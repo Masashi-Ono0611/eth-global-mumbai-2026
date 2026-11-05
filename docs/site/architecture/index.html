@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Robots with a budget: architecture · ETHGlobal Mumbai 2026</title>
-<link rel="canonical" href="https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/">
 <meta name="description" content="Robots get USDC budgets. EIP-7702 session keys on Arc, human approval with World, decisions on 0G.">
 <style>
   :root {
@@ -50,15 +49,10 @@
   footer { margin-top: 72px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 18px; }
   a { color: var(--arc); }
 </style>
-<!-- Hypothesis: select any text on this page to comment on it (threads, replies, private groups).
-     Comments follow the canonical URL above, so the old and new hosts share them.
-     Agents read the comments: https://api.hypothes.is/api/search?uri=https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/&limit=200 -->
-<script type="application/json" class="js-hypothesis-config">{ "openSidebar": false, "showHighlights": "always" }</script>
-<script async src="https://hypothes.is/embed.js"></script>
 </head>
 <body>
 <main>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture brainstorm · working draft · <span title="Uses Hypothesis; the comment panel is on the right edge">select any text to comment →</span></div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture brainstorm · working draft</div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
   <p class="lead">Owners give their robots USDC allowances, like <em>"this duck may spend $10 a day"</em>. Each robot pays on its own inside that limit, asks a human when it goes over, and can be cut off with one tap. No gas, no chains, just dollars. The duck is robot #1.</p>
 
@@ -358,8 +352,8 @@ sequenceDiagram
     (<code>docs/infrastructure.md</code>, <code>docs/research/</code>). Nothing here is built yet.
   </footer>
 </main>
-<!-- Pele (obsidianmd/pele, MIT): renders the Mermaid text below to SVG, synchronously, themed by --pele-* variables -->
-<script src="https://cdn.jsdelivr.net/npm/pele@1.13.0/dist/pele.global.js"></script>
+<!-- Pele 1.13.0 (obsidianmd/pele, MIT), self-hosted by the site build at /lib/pele.js: renders the Mermaid text below to SVG, themed by --pele-* variables -->
+<script src="/lib/pele.js"></script>
 <script>
   for (const el of document.querySelectorAll("pre.mermaid")) pele.mount(el, el.textContent);
 </script>
