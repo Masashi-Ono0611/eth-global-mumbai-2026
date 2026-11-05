@@ -6,6 +6,7 @@ Shareable pages for the team (architecture, brainstorms, spikes), not product co
 
 | Page | Source | Live |
 | --- | --- | --- |
+| Plan (generated from `docs/plan.md` by `docs/render-plan-page.py`) | `plan/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/plan |
 | Architecture | `architecture/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/ |
 | Template | `_template/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/_template/ |
 

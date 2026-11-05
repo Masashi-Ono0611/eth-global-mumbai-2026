@@ -1,5 +1,8 @@
 # Brainstorm: robotic payments PoC (ChatGPT session)
 
+> **Historical (5 Nov 2026).** The original ChatGPT brainstorm. Superseded by `docs/spec.md` and `docs/decisions.md` (Pi Zero, BLE/offline and x402-on-Base ideas are not the plan).
+
+
 Captured from Kris’s Mac brainstorming session (pasted into eth-global-mumbai-2026 docs 2026-11-05).  
 This is **exploratory product/hardware design**, not a locked architecture. Where it conflicts with `decisions.md` (Arc mainnet, MetaMask delegation, Open Duck Mini on Pi Zero 2W, World/0G prizes), **decisions.md wins** until we deliberately reopen them.
 

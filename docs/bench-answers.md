@@ -1,5 +1,8 @@
 # Bench answers: duck payment gate
 
+> **Historical (5 Nov 2026).** Written for the first bench session; the plan has moved on (no session keys, the chip signs leaves under a grant, HTTPS long-polling). The invoice/status endpoint shapes in §1 survive in `docs/spec.md` §7. Build from `docs/spec.md`.
+
+
 Answers for the MacBook bench session (ESP32 gate + ST7735 TFT + servo, Radxa Zero 3W + camera).
 Written 2026-11-05 from `coding-agent-brief.md`, `foundation.md`, `decisions.md` and
 `brainstorm-chatgpt-robot-payments.md`.

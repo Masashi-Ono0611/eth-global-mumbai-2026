@@ -1,5 +1,8 @@
 # Hardware bench spikes H1–H6 (for the MacBook agent)
 
+> **Historical for H4/H5.** Venue network is now a dedicated phone hotspot (not Mac Internet Sharing) and no camera frames leave the chip (H5 is out of scope). H1–H3 and H6 still apply; the chip protocol the Radxa implements is `docs/spec.md` §8.
+
+
 Written 2026-11-05 on netcup for the agent on Kris's MacBook, where the hardware is plugged in:
 - Radxa Zero 3W (the duck's chip) with its camera
 - classic ESP32 with the 1.8" ST7735 128×160 screen

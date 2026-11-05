@@ -17,7 +17,6 @@ export default defineConfig({
     'repos/**',
     // Foldkit's verbatim conventions, verified against repos/foldkit by vendor:check.
     'FOLDKIT.md',
-    'docs/migration/v1-inventory.json',
     'tools/oxlint/anti-slop/**',
     'packages/i18n/catalogs/**',
   ],
