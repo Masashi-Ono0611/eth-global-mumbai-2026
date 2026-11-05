@@ -52,7 +52,7 @@
 </head>
 <body>
 <main>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.1 · 6 Nov 2026 · comment with 💬 (blocks, diagram nodes, selected text)</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.2 · 6 Nov 2026 · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
   <p class="lead">A passkey wallet on Arc grants a budget to a robot's chip. One Robot Agent per robot thinks on 0G, pays merchants over x402, and asks a human through World Agent Pass when a purchase is over the limit or restricted. The chip always signs. The wallet never needs to know the grantee is a robot.</p>
 
@@ -145,6 +145,7 @@ flowchart LR
     <tr><td>For</td><td>Our merchant (accepts ERC-7710 delegations)</td><td>Any x402 seller that only takes EIP-3009</td></tr>
     <tr><td>Limits</td><td>All checked on Arc when the payment lands</td><td>All checked at the pull; the seller payment is a plain transfer</td></tr>
     <tr><td>Settled by</td><td>Our facilitator (~150 lines; no open-source one exists for this scheme)</td><td>Circle's Facilitator Service (live on Arc, Circle pays gas)</td></tr>
+    <tr><td>Measured cost</td><td>≈ 663k gas ≈ <strong>$0.013</strong> per settle (spike S2; ≈ $0.010 with redundant caveats dropped)</td><td>The pull as on the left, plus Circle's settle (Circle pays that gas)</td></tr>
     <tr><td>On failure</td><td>Revert, nothing paid</td><td>The authorization expires; the float is swept back to the owner</td></tr>
   </table>
 
@@ -427,6 +428,16 @@ flowchart LR
     <tr><td>H2, H5, H6</td><td>Not yet run: reading the ESP32 QR with the camera, frames over WebSocket, the signed bench loop</td></tr>
   </table>
 
+  <h2>Spike results and the World Chain question (6 Nov)</h2>
+  <table>
+    <tr><th>What</th><th>Result</th></tr>
+    <tr><td>S2: our facilitator (grant path)</td><td><strong>Pass, 14 / 14</strong> on live Arc mainnet state (simulated with <code>eth_call</code>, nothing broadcast). Wrong amount, wrong payee, replayed invoice, expired, over the cap, revoked grant, wrong relayer, tampered signature: all rejected with the right reason. Cost ≈ $0.013 per payment, about double our earlier guess. Note: a plain anvil fork can't move Arc USDC (Arc's native-coin precompile is missing), so fork tests simulate against live state</td></tr>
+    <tr><td>S5b: World's token checked on Arc</td><td><strong>Works:</strong> RSA check + claim parsing + one-use nonce and <code>jti</code>, ≈ $0.008. Two findings: (1) a passkey-only World sign-in also says <code>pop</code>, so the check must reject <code>mfa</code>; (2) <strong>the token becomes public on Arc</strong>, including the owner's World pseudonym and an email-like claim, so your approvals are linkable (decision D15)</td></tr>
+    <tr><td>World Chain + 0G + ENS instead of Arc</td><td><strong>Not worth it.</strong> No World Chain prize exists; MetaMask's delegation contracts aren't on World Chain (≈ 45 contracts to deploy, all tests to redo); Circle's facilitator doesn't support it; gas is cheaper but in ETH; World's wallet still can't grant a robot allowance</td></tr>
+    <tr><td>ENS</td><td>Works <em>on top of</em> Arc: robots and merchants as subnames holding their Arc address and agent records (≈ 0.5–1 day, ≈ 8 USDC/year). But ETHGlobal caps a project at <strong>3 partner prizes</strong>, so ENS ($7k, 4 places, ENSv2) would replace Arc ($3k, one winner) as the third pick (decision D16)</td></tr>
+    <tr><td>0G requirement</td><td>The Physical AI prize needs an <strong>episode log on 0G Storage</strong> plus a contract address: a build item, not optional</td></tr>
+  </table>
+
   <h2>What we know, what we believe, what we don't</h2>
   <h3>Known</h3>
   <ul>
@@ -441,12 +452,12 @@ flowchart LR
   <table>
     <tr><th>#</th><th>Spike</th></tr>
     <tr><td>S1</td><td>Real-device passkey → HybridDeleGator on Arc → passkey-signed grant → $0.01 relayed payment</td></tr>
-    <tr><td>S2</td><td>Our ERC-7710 facilitator: owner → chip voucher on an Arc fork, then $0.01 real</td></tr>
+    <tr><td>S2</td><td><strong>Done (simulated):</strong> our facilitator settles a chip-signed voucher on live Arc state, 14 / 14 cases with the right revert reasons. Left: a real broadcast and the x402 envelope</td></tr>
     <tr><td>S2b</td><td>Float path: pull to chip → EIP-3009 through Circle's facilitator, $0.01</td></tr>
     <tr><td>S3</td><td>0G with the team's credits: a tool-calling model (ideally with images), latency, request ids</td></tr>
     <tr><td>S4</td><td>Robot Agent DO: pi-ai loop + MCP OAuth client ↔ our wallet MCP</td></tr>
     <tr><td>S5</td><td>Agent Pass browser flow with <code>nonce</code> (approve and deny) using Kris's Orb-verified ID: does the token echo the nonce, and which <code>acr</code> / <code>amr</code> values come back</td></tr>
-    <tr><td>S5b</td><td><code>HumanApprovalEnforcer</code> verifies a real World RS256 token on an Arc fork: gas, claim parsing, <code>jti</code> replay</td></tr>
+    <tr><td>S5b</td><td><strong>Done (prototype):</strong> a contract verifies World's RS256 token on Arc, 43 tests, also run on live Arc; ≈ 409k gas ≈ $0.008. Left: a real World token with our nonce (S5, Kris's phone), key rotation</td></tr>
     <tr><td>S6</td><td>Mock chip ↔ Robot Agent WebSocket (pairing, sign requests); then the real Radxa with Bun + viem</td></tr>
     <tr><td>S7</td><td>The <code>duckbench</code> hotspot with the Radxa, ESP32 and laptops; then H2, H5, H6 on it</td></tr>
     <tr><td>S8</td><td>Walking policy on the new servos (teammate)</td></tr>
@@ -479,6 +490,8 @@ flowchart LR
     <tr><td>Recovery</td><td>Several passkeys now; guardians later</td></tr>
     <tr><td>Accounts on other chains</td><td>Arc-only; other chains are funding routes</td></tr>
     <tr><td>Who may watch / drive the robot</td><td>Owner drives; judges view</td></tr>
+    <tr><td><strong>D15</strong>: the World token is public on Arc (approvals linkable to one World pseudonym)</td><td>Accept for the demo and say so in the pitch; the backend co-signer remains the private fallback</td></tr>
+    <tr><td><strong>D16</strong>: third prize pick, Arc or ENS (cap of 3; 0G and World stay)</td><td>Keep Arc if the enforcers are really built and shown in Arc Studio; switch to ENS if Studio is painful or ENS names become central. Decide by Saturday</td></tr>
   </table>
 
   <footer>

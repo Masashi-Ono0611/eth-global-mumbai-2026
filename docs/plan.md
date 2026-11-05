@@ -1,5 +1,6 @@
 # Plan v3: wallet → robot agent → merchant → chip
 
+**v3.2, 2026-11-06:** spikes S2 + S5b done (simulated / prototype), World Chain + ENS alternative assessed, decisions D15–D16 added.
 **v3.1, 2026-11-06:** comment round 2 (on-chain Agent Pass check, mock chip, no simulator, bench results, network, servo wiring).
 **v3, 2026-11-05 (late).** Updated from Kris's 13 comments on the v2 page and the Q&A that followed. The decisions are
 recorded in `decisions.md` (plan v3 A–J).
@@ -113,7 +114,7 @@ The wallet design is unchanged from v2, except for owner actions and approvals:
 | For | Our merchant (accepts ERC-7710) | Any x402 seller that only takes EIP-3009 |
 | How | Chip signs a one-time leaf → **our facilitator** → `redeemDelegations` | The chip pulls the exact amount (a grant payment *to itself*: `ExactCalldata(transfer(chip, amount))`, `IdEnforcer(invoice)`), waits for the receipt, then signs EIP-3009 (`validBefore` ≤ 120 s) → **Circle's Facilitator Service** |
 | Limits enforced | All of them, on Arc, at payment time | All of them at the **pull**; the seller payment itself is a plain transfer |
-| Cost | 1 tx (≈ $0.004–0.008) | 2 txs, about 1 s on Arc, invisible to the user |
+| Cost | 1 tx: **≈ 663k gas ≈ $0.013** measured in spike S2 (≈ 505k / $0.010 with redundant caveats dropped; the passkey check and ~13 caveats dominate) | 2 txs, about 1 s on Arc, invisible to the user |
 | On failure | Revert: nothing paid | Let the authorization expire (or call `cancelAuthorization`), then sweep the float back to the owner |
 
 - **Our facilitator:**
@@ -162,7 +163,7 @@ The wallet design is unchanged from v2, except for owner actions and approvals:
     - `iss`, `aud`, `exp`, `sub` = the owner's World pseudonym (stored at setup)
     - `nonce` = this payment
     - `auth_time` recent
-    - `amr` contains `pop` (not a passkey-only sign-in)
+    - `amr` contains `pop` **and not `mfa`** (spike S5b: a passkey-only sign-in is `["pop","user","mfa"]`, so `pop` alone isn't enough)
     - `jti` not used before (stored)
   - **Remaining trust:** World IdP, plus whoever registers World's public key on Arc (a key-admin role; handle key
     rotation). Arc itself is permissioned proof-of-authority (Circle + about 11 validators).
@@ -239,6 +240,8 @@ All of D1 and plan v3 A–J are recorded in `decisions.md`. Still open:
 | D10 | Accounts on other chains | Arc-only; other chains are funding routes |
 | D11 | MetaMask can pause the DelegationManager | Accept; the 4337 break-glass path covers it |
 | D13 | Who may watch or drive the robot | Owner drives; judges view |
+| D15 | **The World token becomes public calldata** when verified on-chain: it carries the owner's per-app `sub` (and an email-like claim), so all of one owner's approvals are linkable on Arc; World's guide says to keep the token server-side (spike S5b) | Accept for the demo with a note; or verify on-chain but send only what's needed (not possible: the signature covers the whole payload); or fall back to the backend co-signer |
+| D16 | **Third partner prize: Arc or ENS.** ETHGlobal caps a project at 3 partner prizes; 0G and World stay. Arc Advanced Stablecoin Logic $3k (one winner, needs Arc Studio) vs ENS "Best Use of ENSv2" $7k (4 places, ENSv2 on Ethereum mainnet or Sepolia, must be central) | Keep Arc if the enforcers are really built and shown in Studio; switch to ENS if Studio is painful or ENS names (robots/merchants as agent namespaces) become central. Decide by Saturday |
 
 ---
 
@@ -247,24 +250,36 @@ All of D1 and plan v3 A–J are recorded in `decisions.md`. Still open:
 | # | Spike | Settles |
 | --- | --- | --- |
 | S1 | Real-device passkey → HybridDeleGator on Arc → passkey-signed grant → $0.01 relayed payment | The wallet |
-| S2 | Our ERC-7710 facilitator: owner → chip leaf on an Arc fork, then $0.01 real | Grant path |
+| S2 | Our ERC-7710 facilitator: owner → chip leaf, then $0.01 real. **Done (simulated, 2026-11-06): 14/14 cases on live Arc state** via `eth_call` with state overrides (a plain anvil fork can't move Arc USDC: the native-coin precompile is missing). Correct revert reasons for wrong amount/payee, replay, expiry, cap, revoke. Left: a real broadcast, receipt logs, the x402 envelope (≈ 12 KB header) | Grant path |
 | S2b | Float path: pull to chip → EIP-3009 through Circle's facilitator on Arc, $0.01 | Float path |
 | S3 | 0G with the teammate's credits: tool-calling model, latency, request ids via pi-ai `onResponse` | Robot Agent brain; 0G prize |
 | S4 | Robot Agent DO: pi-ai loop + MCP OAuth client ↔ our wallet MCP | Agent ↔ wallet |
 | S5 | Agent Pass **browser flow with `nonce`** (approve and deny) with Kris's Orb ID: confirm the token echoes the nonce, plus the `acr`/`amr`/`auth_time` values | World |
-| S5b | `HumanApprovalEnforcer` verifies a real World RS256 token on an Arc fork: gas, claim parsing, `jti` replay | Trust-minimised approval |
+| S5b | `HumanApprovalEnforcer` verifies a World RS256 token on Arc. **Done (prototype, 2026-11-06): 43 forge tests pass; also run on live Arc via `eth_call`; ≈ 409k gas ≈ $0.008.** The kid is the RFC 7638 thumbprint, computed on-chain at registration. Left: a real World token carrying our nonce (S5, Kris's phone), key rotation, wrapping it as the caveat | Trust-minimised approval |
 | S6 | Mock chip ↔ Robot Agent WebSocket: pairing, sign request; then the real Radxa with Bun + viem (H3 retry) | Chip protocol |
 | S7 | The `duckbench` phone hotspot with the Radxa, ESP32 and laptops; H2, H5 and H6 on it | Venue network, camera, bench loop |
 | S8 | Walking policy on the new servos | Teammate |
 
 ## 6. Booth questions
 
-- **0G:** whether Storage + `EpisodeLog` may use Galileo testnet. (Credits: we have them. Standard providers: decided.)
+- **0G:** the Physical AI prize **requires an episode log on 0G Storage** (plus a contract address), so Storage + `EpisodeLog` are build items, not optional; ask only whether Galileo testnet is acceptable. (Credits: we have them. Standard providers: decided.)
 - **World:** what "mocked proofs" covers for Agent Pass; time to get a production client.
 - **Arc:** can judges open a Studio URL without logging in; is a Studio-built enforcer module deployed to mainnet by us
   acceptable; Circle facilitator minimum amount; a keyed RPC.
 
-## 7. What v3 supersedes
+## 7. Alternative considered: World Chain + 0G + ENS (2026-11-06, `docs/research/worldchain-ens-alternative.md`)
+
+- **Not worth it:**
+  - no World Chain or mini-app prize exists at Mumbai, and World's tracks don't depend on the chain
+  - MetaMask's delegation contracts aren't on World Chain (≈ 45 contracts to deploy, every Arc simulation and bench C1 to redo)
+  - Circle's facilitator doesn't support chain 480
+  - gas is ≈ 5× cheaper but paid in ETH
+  - the World App wallet still can't grant a standing allowance
+- **What survives: ENS names on top of Arc.** Robots and merchants as subnames under our own `.eth`, holding their Arc
+  address (ENSIP-11) and agent records. About 0.5–1 dev-day, ≈ 8 USDC/year for the parent name. It matters only if
+  ENS takes the third prize pick (D16).
+
+## 8. What v3 supersedes
 
 - **v2's separate AI client + RobotSession + robot MCP** → one Robot Agent per robot.
 - **v2's "sub-grant to the robot"** → the grant's delegate is the chip directly.
