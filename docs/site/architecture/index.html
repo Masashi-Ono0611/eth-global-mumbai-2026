@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robots with a budget: architecture · ETHGlobal Mumbai 2026</title>
+<meta name="description" content="Robots get USDC budgets. EIP-7702 session keys on Arc, human approval with World, decisions on 0G.">
+<style>
+  :root {
+    --bg: #fbf8f1; --ink: #1d1b16; --muted: #6b665a; --line: #e4ddcc; --card: #fff;
+    --arc: #2f6bff; --world: #111; --og: #8a3ffc; --cf: #f38020; --duck: #f5b700; --deny: #d64545; --ok: #1f9d55;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15140f; --ink: #f1ede2; --muted: #a39d8d; --line: #2e2b22; --card: #1d1b15; --world: #e8e8e8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 20px 96px; }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.05; margin: 0 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.5rem; margin: 64px 0 8px; letter-spacing: -0.01em; }
+  h3 { font-size: 1.05rem; margin: 0 0 6px; }
+  p.lead { font-size: 1.2rem; color: var(--muted); max-width: 46rem; margin: 0; }
+  .kicker { font: 600 .8rem/1 ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .muted { color: var(--muted); }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .tag { display: inline-block; font: 600 .72rem/1 ui-monospace, monospace; padding: 5px 8px; border-radius: 999px; color: #fff; margin-bottom: 10px; }
+  .t-arc { background: var(--arc); } .t-world { background: var(--world); color: var(--bg); } .t-og { background: var(--og); }
+  .t-cf { background: var(--cf); } .t-duck { background: var(--duck); color: #1d1b16; }
+  .diagram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-top: 18px; overflow-x: auto; }
+  .diagram pre.mermaid { margin: 0; background: none; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: .95rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  code { font: .88em ui-monospace, monospace; background: color-mix(in srgb, var(--line) 55%, transparent); padding: 1px 5px; border-radius: 5px; }
+  .rule { border-left: 4px solid var(--arc); padding: 14px 18px; background: var(--card); border-radius: 0 12px 12px 0; margin-top: 18px; }
+  .flows { display: grid; gap: 18px; }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 10px; }
+  ol.qs li { margin-bottom: 6px; }
+  footer { margin-top: 72px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 18px; }
+  a { color: var(--arc); }
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture brainstorm · working draft</div>
+  <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
+  <p class="lead">Owners give their robots USDC allowances, like <em>"this duck may spend $10 a day"</em>. Each robot pays on its own inside that limit, asks a human when it goes over, and can be cut off with one tap. No gas, no chains, just dollars. The duck is robot #1.</p>
+
+  <div class="grid">
+    <div class="card"><span class="tag t-arc">ARC</span><h3>The money and the rules</h3><p>USDC on Arc mainnet. The owner's account (EIP-7702) enforces each robot's caps, expiry and revoke on-chain. Gas is paid in USDC by our relayer.</p></div>
+    <div class="card"><span class="tag t-world">WORLD</span><h3>The human check</h3><p>Over the limit or a restricted item, the owner approves on their phone (World Agent Pass). Deny or expiry → the payment can't happen.</p></div>
+    <div class="card"><span class="tag t-og">0G</span><h3>The brain</h3><p>Each purchase decision ("right item? sane price? pay, ask, or walk away") is a 0G inference call, logged with its request id as evidence.</p></div>
+    <div class="card"><span class="tag t-cf">CLOUDFLARE</span><h3>The coordinator</h3><p>Workers and Durable Objects relay, watch the chain and show the dashboard. Cloudflare can never authorise a payment.</p></div>
+  </div>
+
+  <div class="rule"><strong>The one rule:</strong> Arc is the authority, Cloudflare coordinates. If our servers vanish, no robot can spend more than its on-chain allowance.</div>
+
+  <h2>System</h2>
+  <p class="muted">The robot runtime is the same on every robot; only the "body" plugs in. We build everything with a simulated robot and a web gate first, then plug in the duck.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph Owner["👤 Owner"]
+    O["Phone / laptop&lt;br/&gt;passkey · 7702 account"]
+  end
+  subgraph CF["☁️ Cloudflare: one origin"]
+    W["Worker&lt;br/&gt;web · API · auth"]
+    RS[("RobotSession DO&lt;br/&gt;one per robot")]
+    INV[("Invoice DO&lt;br/&gt;one per invoice")]
+    AP[("Approval DO&lt;br/&gt;World device flow")]
+    REL[("Relayer DO&lt;br/&gt;nonce · gas in USDC")]
+    CW[("ChainWatcher DO&lt;br/&gt;follows Arc blocks")]
+    D1[("D1&lt;br/&gt;read models only")]
+    R2[("R2&lt;br/&gt;evidence")]
+  end
+  subgraph Robot["🤖 Robot runtime (same everywhere)"]
+    RT["session key · policy precheck&lt;br/&gt;decide · sign · submit"]
+    B["Body plug-in&lt;br/&gt;Sim · Bench (Radxa) · Duck"]
+  end
+  subgraph Merchant["🏪 Merchant"]
+    G["Gate&lt;br/&gt;web page → ESP32 + servo"]
+  end
+  ARC[["Arc mainnet&lt;br/&gt;USDC · 7702 account · caps"]]
+  WORLD[["World IdP&lt;br/&gt;Agent Pass"]]
+  OG[["0G&lt;br/&gt;inference · storage"]]
+
+  O -- "grant / revoke" --> ARC
+  O --> W
+  RT <-- "WebSocket" --> RS
+  RT --- B
+  G <-- "signed status" --> INV
+  RT -- "decide?" --> W --> OG
+  RT -- "signed payment" --> REL --> ARC
+  CW -- "watch logs" --> ARC
+  CW --> INV
+  AP <--> WORLD
+  W --- D1
+  W --- R2
+  </pre></div>
+
+  <h2>Flows</h2>
+  <div class="flows">
+    <details open>
+      <summary>1 · Pay inside the budget</summary>
+      <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant G as Gate
+  participant R as Robot
+  participant CF as Cloudflare
+  participant OG as 0G
+  participant A as Arc
+  G->>CF: POST /invoices
+  CF-->>G: invoice id → QR on screen
+  R->>G: scans QR (untrusted input)
+  R->>CF: GET /invoices/:id (amount, payTo)
+  R->>CF: decide? (frame + invoice)
+  CF->>OG: inference
+  OG-->>CF: "pay" + request_id
+  CF-->>R: pay (evidence logged)
+  R->>CF: signed one-time payment
+  CF->>A: relayer submits (gas in USDC)
+  A-->>A: 7702 account checks caps ✓
+  CF->>A: ChainWatcher sees the transfer
+  CF-->>G: signed "paid"
+  G->>G: open 🔓
+      </pre>
+    </details>
+    <details open>
+      <summary>2 · Needs a human (over the limit or restricted), approve and deny</summary>
+      <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant R as Robot
+  participant CF as Cloudflare (Approval DO)
+  participant W as World IdP
+  participant O as Owner phone
+  participant A as Arc
+  R->>CF: payment needs approval
+  CF->>W: start device flow
+  CF-->>O: "Duck wants $8 for chai, approve?"
+  O->>W: approve in World App
+  CF->>W: poll token
+  alt approved
+    W-->>CF: signed ID token ✓
+    CF->>CF: approver co-signs this exact payment
+    CF->>A: submit (robot sig + co-sig)
+    A-->>A: caps + co-sig ✓ → paid
+  else denied / expired / outage
+    W-->>CF: no token
+    CF-->>R: denied: nothing signed, nothing paid
+  end
+      </pre>
+    </details>
+    <details open>
+      <summary>3 · Offline robot</summary>
+      <pre class="mermaid">
+sequenceDiagram
+  participant R as Robot (no network)
+  participant G as Gate / another robot
+  participant A as Arc
+  R->>G: signed one-time payment (via QR / BLE)
+  Note over G: holds it until online
+  G->>A: relays later
+  alt budget still available
+    A-->>G: paid ✓
+  else cap already used
+    A-->>G: reverts: first come, first served
+  end
+      </pre>
+    </details>
+    <details open>
+      <summary>4 · Pair a robot · revoke · safe-stop</summary>
+      <pre class="mermaid">
+sequenceDiagram
+  participant R as Robot
+  participant O as Owner
+  participant A as Arc
+  participant CF as Cloudflare
+  R->>R: generate session key (never leaves device)
+  R-->>O: pairing QR (address + nonce)
+  O->>A: delegate: $10/day · max $5 each · until Sunday
+  R->>CF: connect, signed with its key
+  O->>A: revoke → next payment fails
+  O->>CF: safe-stop → robot stops moving and signing
+      </pre>
+    </details>
+  </div>
+
+  <h2>Who holds which key</h2>
+  <table>
+    <tr><th>Key</th><th>Lives</th><th>If stolen</th></tr>
+    <tr><td>Robot session key</td><td>on the robot only</td><td>at most that robot's remaining cap; owner revokes</td></tr>
+    <tr><td>Owner key / passkey</td><td>owner's device</td><td>the owner's account; never on our servers</td></tr>
+    <tr><td>Relayer key</td><td>Cloudflare secret</td><td>its small USDC gas float; <strong>can't move owner funds</strong></td></tr>
+    <tr><td>World approver key</td><td>Cloudflare secret (ideally its own Worker)</td><td>can approve, but every payment still needs the robot's signature and stays within the caps</td></tr>
+    <tr><td>Gate status key (Ed25519)</td><td>Cloudflare secret; the gate holds only the public key</td><td>could open gates; physical risk only, no money</td></tr>
+  </table>
+
+  <h2>What's verified so far</h2>
+  <table>
+    <tr><th>Fact</th><th>Status</th></tr>
+    <tr><td>Arc mainnet is live (chain 5042), sub-second finality, ~$0.0004 per transfer</td><td>checked with live calls</td></tr>
+    <tr><td>EIP-7702 works on Arc</td><td>a real type-4 transaction found on mainnet</td></tr>
+    <tr><td>Passkey (P-256) verification on-chain</td><td>precompile at <code>0x100</code> tested</td></tr>
+    <tr><td>MetaMask Delegation Framework deployed on Arc</td><td>found at its usual addresses</td></tr>
+    <tr><td>Circle Gateway (unified USDC balance) supports Arc</td><td>listed by the Gateway API</td></tr>
+    <tr><td>World Agent Pass is an OIDC device flow; deny and expiry give no token</td><td>endpoints checked</td></tr>
+    <tr><td>0G inference returns a request id and cost per call</td><td>checked live</td></tr>
+    <tr><td>Gotcha: Arc silently drops transactions with a max fee under 20 gwei</td><td>from Arc's docs</td></tr>
+  </table>
+
+  <h2>Open questions</h2>
+  <ol class="qs">
+    <li>Do 0G calls go through our Worker (central evidence) or straight from the robot?</li>
+    <li>Where does the 0G Storage uploader run? It needs Node: Cloudflare Containers or a small service.</li>
+    <li>Gate: polling with a signed status first, or WebSocket?</li>
+    <li>Who funds the relayer's gas float: per-payment fee or free for users?</li>
+    <li>Our own contract built in Arc Studio: the per-payment cap, merchant allowlist and World co-signature check.</li>
+  </ol>
+
+  <footer>
+    Working draft, 5 Nov 2026. Source: <a href="https://github.com/grmkris/eth-global-mumbai-2026">github.com/grmkris/eth-global-mumbai-2026</a>
+    (<code>docs/infrastructure.md</code>, <code>docs/research/</code>). Nothing here is built yet.
+  </footer>
+</main>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", securityLevel: "strict", flowchart: { curve: "basis", htmlLabels: false } });
+  // render one at a time with unique ids; concurrent or repeated run() calls collide
+  let i = 0;
+  for (const el of document.querySelectorAll("pre.mermaid")) {
+    const { svg } = await mermaid.render(`diagram-${i++}`, el.textContent);
+    el.innerHTML = svg;
+  }
+</script>
+</body>
+</html>
