@@ -10,9 +10,5 @@
   {
     "file": "packages/auth/src/live.ts",
     "comment": "@effect-diagnostics-next-line unstableApiUsage:off -- The pinned Effect D1 adapter is the Worker persistence boundary."
-  },
-  {
-    "file": "packages/server/test/RuntimeWorker.ts",
-    "comment": "oxlint-disable-next-line max-lines-per-function -- native acceptance fixture keeps all endpoints in one Worker."
   }
 ]

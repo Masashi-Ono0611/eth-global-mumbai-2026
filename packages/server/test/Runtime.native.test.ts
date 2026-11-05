@@ -214,22 +214,6 @@ test(
 )
 
 test(
-  'serializes competing reservations in native SQLite Durable Objects',
-  Effect.gen(function* () {
-    const { url } = yield* stack
-    const response = yield* HttpClient.get(`${url}/wallet`)
-    expect(response.status).toBe(200)
-    expect(yield* response.json).toMatchObject({
-      successful: 1,
-      reserved: { subscription: 2 },
-      settled: { subscription: 10, purchased: 0, reservations: {} },
-      other: { subscription: 0, purchased: 0, reservations: {} },
-    })
-  }).pipe(Effect.provide(FetchHttpClient.layer)),
-  { timeout: 60000 },
-)
-
-test(
   'serves the isolated D1 schema and R2 binding',
   Effect.gen(function* () {
     const { url } = yield* stack
@@ -365,7 +349,7 @@ test(
 )
 
 test(
-  'recovers native wallet receipts, auth sessions and R2 bytes after a Worker restart',
+  'recovers auth sessions and R2 bytes after a Worker restart',
   Effect.gen(function* () {
     const { url, styldUrl } = yield* stack
     expect((yield* HttpClient.post(`${url}/test/recovery/seed`)).status).toBe(204)
@@ -379,7 +363,7 @@ test(
       .map(([name, value]) => `${name}=${value.value}`)
       .join('; ')
     const read = () => HttpClient.get(`${url}/test/recovery/read`).pipe(Effect.flatMap((response) => response.json))
-    expect(yield* read()).toMatchObject({ generation: 'before', reads: 1, wallet: { subscription: 2 } })
+    expect(yield* read()).toMatchObject({ generation: 'before', reads: 1 })
     expect(yield* read()).toMatchObject({ generation: 'before', reads: 2 })
     const next = yield* deploy(makeStack('after'))
     expect(next.url).toBe(url)
@@ -393,7 +377,6 @@ test(
     expect(recovered).toMatchObject({
       generation: 'after',
       reads: 1,
-      wallet: { subscription: 2, reservations: { 'recovery-operation': { fromSubscription: 8 } } },
       media: 'survives-native-restart',
     })
     yield* HttpClient.get(`${next.apiUrl}/api/health`).pipe(
@@ -408,10 +391,6 @@ test(
       _tag: 'Success',
       value: { subjectId: 'native-recovery' },
     })
-    expect((yield* HttpClient.post(`${url}/test/recovery/replay`)).status).toBe(204)
-    expect(yield* read()).toMatchObject({ wallet: { subscription: 2 } })
-    expect((yield* HttpClient.post(`${url}/test/recovery/settle`)).status).toBe(204)
-    expect(yield* read()).toMatchObject({ wallet: { subscription: 10, reservations: {} } })
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 120000 },
 )

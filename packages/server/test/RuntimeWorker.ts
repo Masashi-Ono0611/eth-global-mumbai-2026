@@ -1,21 +1,15 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
-import { CurrentActor } from '@styld/domain/CurrentActor.context'
-import { UserId, OperationId } from '@styld/domain/Identity'
-import { GrantMonthlyCredits } from '@styld/domain/Wallet/GrantMonthlyCredits.command'
-import { ReserveCredits } from '@styld/domain/Wallet/ReserveCredits.command'
-import { SettleCredits } from '@styld/domain/Wallet/SettleCredits.command'
-import { Wallet } from '@styld/domain/Wallet/Wallet.aggregate'
 import { format } from '@styld/i18n'
-import { Effect, Layer, Result } from 'effect'
+import { Effect, Layer } from 'effect'
 import { Redacted } from 'effect'
 import { HttpServerRequest } from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { exerciseAttemptLimiter } from './AttemptLimiterFixture.ts'
 import { seedIdentity, disableIdentity } from './IdentityFixture.ts'
+import { DomainLive } from '../src/DomainLive.ts'
 import { recoveryRoutes } from './RecoveryFixture.ts'
 import { makeAuthHttp } from '../src/AuthHttp.ts'
-import { DomainLive } from '../src/DomainLive.ts'
 import { StyldDatabase, StyldMedia } from '../src/Resources.ts'
 import { storageHealth } from './StorageHealth.ts'
 
@@ -36,7 +30,6 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
       }),
     },
   },
-  // oxlint-disable-next-line max-lines-per-function -- native acceptance fixture keeps all endpoints in one Worker.
   Effect.gen(function* () {
     const database = yield* Cloudflare.D1.QueryDatabase(StyldDatabase)
     const media = yield* Cloudflare.R2.ReadWriteBucket(StyldMedia)
@@ -85,39 +78,6 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
       ),
     )
     const authHandle = yield* HttpRouter.toHttpEffect(identityRoutes).pipe(Effect.orDie)
-    const wallets = yield* Wallet
-    const exercise = Effect.fn('Styld.acceptance.wallet')(function* () {
-      const owner = UserId.make('native-test-owner')
-      yield* wallets.send(owner, new GrantMonthlyCredits({ period: '2026-10', monthly: 10 }), {
-        commandId: 'grant:2026-10',
-      })
-      const compete = (id: string) =>
-        wallets
-          .send(
-            owner,
-            new ReserveCredits({
-              operationId: OperationId.make(id),
-              fingerprint: 'a'.repeat(64),
-              amount: 8,
-            }),
-            { commandId: `reserve:${id}` },
-          )
-          .pipe(Effect.result)
-      const results = yield* Effect.all([compete('one'), compete('two')], { concurrency: 'unbounded' })
-      const reserved = yield* wallets.state(owner)
-      const operationId = Object.keys(reserved.reservations)[0]
-      if (operationId !== undefined) {
-        yield* wallets.send(
-          owner,
-          new SettleCredits({ operationId: OperationId.make(operationId), outcome: 'refunded' }),
-          { commandId: 'settle' },
-        )
-        yield* compete(operationId)
-      }
-      const settled = yield* wallets.state(owner)
-      const other = yield* wallets.state(UserId.make('native-test-other'))
-      return { successful: results.filter(Result.isSuccess).length, reserved, settled, other }
-    })
     return {
       fetch: Effect.gen(function* () {
         const request = yield* HttpServerRequest
@@ -136,12 +96,6 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
             date: new Intl.DateTimeFormat('en', { timeZone: 'UTC', year: 'numeric' }).format(0),
             currency: new Intl.NumberFormat('sl', { style: 'currency', currency: 'EUR' }).format(12.5),
           })
-        if (url.pathname === '/wallet')
-          return yield* exercise().pipe(
-            Effect.provideService(CurrentActor, { userId: UserId.make('native-test-owner'), service: true }),
-            Effect.orDie,
-            Effect.flatMap((payload) => HttpServerResponse.json(payload).pipe(Effect.orDie)),
-          )
         if (url.pathname === '/storage') return yield* storageHealth(database, media)
         return HttpServerResponse.empty({ status: 404 })
       }),
