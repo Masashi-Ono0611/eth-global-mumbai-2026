@@ -5,8 +5,9 @@ export default {
     '.': {
       entry: ['alchemy.run.ts!', 'tools/*.ts', 'tools/**/*.test.ts', '*.config.ts'],
       project: ['tools/**/*.ts', '*.ts'],
-      // effect-tsrs embeds the plugin named by tsconfig; it is not a JS dependency.
-      ignoreDependencies: ['@effect/language-service'],
+      // effect-tsrs embeds the plugin named by tsconfig; it is not a JS dependency. lefthook runs from .git/hooks,
+      // which a fresh CI checkout doesn't have, so knip's lefthook plugin can't see it there.
+      ignoreDependencies: ['@effect/language-service', 'lefthook'],
     },
     'apps/web': {
       entry: ['src/entry.ts!', 'src/entry.server.ts!', 'test/**/*.test.ts'],
@@ -22,7 +23,7 @@ export default {
     'packages/i18n': { project: ['src/**/*.ts!'] },
     // The scratch site copies these libraries' browser bundles into dist/lib; nothing imports them.
     'docs/site': {
-      entry: ['alchemy.run.ts!', 'build.ts!', 'worker.ts!', 'drizzle.config.ts', 'lib/*.ts!'],
+      entry: ['alchemy.run.ts!', 'build.ts!', 'worker.ts!', 'lib/*.ts!'],
       ignoreDependencies: ['chart.js', 'd3', 'mermaid', 'pele'],
     },
   },

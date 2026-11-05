@@ -17,6 +17,8 @@ jobs:
     # ~40 s `playwright install --with-deps` on every run.
     container: mcr.microsoft.com/playwright:v1.64.1-noble
     steps:
+      # setup-bun unpacks a zip; the playwright image has no unzip.
+      - run: apt-get update -qq && apt-get install -y -qq unzip > /dev/null
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
