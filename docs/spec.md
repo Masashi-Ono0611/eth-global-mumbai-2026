@@ -45,7 +45,9 @@ the episode uploaded to 0G Storage with an `EpisodeLog` record. All of it record
 
 Deviation from `AGENTS.md`'s "Domain aggregates on Durable Objects own live coordination": for the event, live
 coordination (errands, chip requests, invoices) is Effect services + D1 with HTTPS long-polling. Reason: 28 hours and
-unproven DO wiring in this foundation. The Domain model stays empty.
+unproven DO wiring in this foundation. **Keep `packages/domain` and `DomainLive` wired exactly as they are** (empty
+model): removing them broke the Worker types on 5 Nov (`RuntimeContext`, `FileSystem | Etag.Generator | HttpPlatform
+| Path` went missing). Nobody deletes them during the event.
 
 ## 2. Milestones
 
@@ -56,7 +58,7 @@ schemas. M6 needs M2's approver.
 | M | Goal | Files (`+` create / `~` change / `-` delete) | Acceptance | h | Lane |
 | --- | --- | --- | --- | --- | --- |
 | **M0** | Protocol + chain packages, deps, golden fixtures | `+packages/protocol/{package.json,src/{index,Invoice,Chip,X402,Approval,Errand,Base32}.ts,test/*.test.ts,test/fixtures/*.json}` (`@ethmumbai/protocol`, dep `effect` only, browser-safe). `+packages/chain/{package.json,src/{index,Arc,Env,Owner,Grant,Leaf,Hashes,DeleGatorSignature,Facilitator,Relayer,Approver,ZeroG}.ts,test/*.test.ts}` (`@ethmumbai/chain`: `effect`, `viem@2.57.16`, `@metamask/smart-accounts-kit@2.0.0`, `@ethmumbai/protocol`; server-only). `~package.json` (catalog pins), `~tools/quality/graph.ts` (`web += protocol`; `server += protocol, chain`; `chain: [protocol]`; `protocol: []`; `assertBrowserSafe` adds `/^(viem\|@metamask\/)/` and `/^packages\/chain\//`), `~knip.config.ts` (add `protocol`, `chain`), `~tsconfig.json`; `bun install` | `bun run test:unit` green with fixtures: `invoiceHash` of the S2 spike invoice; 26-char base32 ↔ `invoiceId` round trip; `hashDelegation(leaf)` equals the kit's; DeleGator signature encoding vector; `Approval` EIP-712 vector. `bun run graph:check` green | 2 | Lead |
-| **M0a** | Passkey-only auth (§4) | `-packages/auth/src/{config,live,storage,AttemptLimiter}.ts`, `+packages/auth/src/{Session,Passkey,Spki,Challenge}.ts`, `~packages/auth/src/{client,index}.ts` (browser `Passkeys` service over `navigator.credentials`); `-packages/server/src/{AuthHttp,AuthConfiguration}.ts`, `+packages/server/src/auth/{Routes,Session,Origin}.ts`; `-packages/server/test/{AuthHttp.test,IdentityFixture,IdentityBrowserAcceptance,AttemptLimiterFixture}.ts`, `+packages/server/test/{PasskeyFixture,PasskeyBrowserAcceptance}.ts`; `~package.json` (remove `@yielded/*`; add `@simplewebauthn/server@^14`, `@simplewebauthn/browser@^14`); `~drizzle.config.ts` (schema = `packages/db/src/schema.ts` only); the `accounts`/`passkeys`/`auth_challenges` tables go into Lead's migration (hand Lead the drizzle definitions). **i18n:** `-packages/i18n/catalogs/{sl,ja,hi,mr}.json`, `-packages/i18n/src/pseudo.ts`, `~tools/i18n-check.ts` (`translatedLocales = []`), `~packages/i18n/src/index.ts` (`languages = ['en']`), `~apps/web/src/Locale.ts`, language selector + its scene tests removed | unit: register/login verify with `@simplewebauthn/server` against a software authenticator fixture; bad origin, bad rpId hash, UV unset, stale counter, replayed challenge all rejected; SPKI → x,y vector. Native: register → cookie → `GET /api/auth/session` 200; mutating POST without `Origin` → 403; `bun run i18n:check` green | 4 | Wallet |
+| **M0a** | Passkey-only auth (§4) | `-packages/auth/src/{config,live,storage,AttemptLimiter}.ts`, `+packages/auth/src/{Session,Passkey,Spki,Challenge}.ts`, `~packages/auth/src/{client,index}.ts` (browser `Passkeys` service over `navigator.credentials`); `-packages/server/src/{AuthHttp,AuthConfiguration}.ts`, `+packages/server/src/auth/{Routes,Session,Origin}.ts`; `-packages/server/test/{AuthHttp.test,IdentityFixture,IdentityBrowserAcceptance,AttemptLimiterFixture}.ts`, `+packages/server/test/{PasskeyFixture,PasskeyBrowserAcceptance}.ts`; `~package.json` (remove `@yielded/*`; add `@simplewebauthn/server@^14`, `@simplewebauthn/browser@^14`); `~drizzle.config.ts` (schema = `packages/db/src/schema.ts` only); the `accounts`/`passkeys`/`auth_challenges` tables go into Lead's migration (hand Lead the drizzle definitions). **i18n:** keep all five catalogs and the selector (Kris asked for ja/hi/mr on 5 Nov; nothing is deleted); every new key goes into `en` **and** the other four catalogs (write the translations; `bun run i18n:check` must stay green) | unit: register/login verify with `@simplewebauthn/server` against a software authenticator fixture; bad origin, bad rpId hash, UV unset, stale counter, replayed challenge all rejected; SPKI → x,y vector. Native: register → cookie → `GET /api/auth/session` 200; mutating POST without `Origin` → 403; `bun run i18n:check` green | 4 | Wallet |
 | **M1** | Contracts + deploy | `+contracts/{foundry.toml,src/{RobotPaymentPolicyEnforcer,EpisodeLog}.sol,test/{RobotPaymentPolicyEnforcer,EpisodeLog}.t.sol,script/{DeployArc,DeployZg}.s.sol,README.md}` (Studio URL in README), `+docs/evidence/contracts.md` | `forge test` green: under-cap allowlisted ok; over-cap without approval reverts `RPP:approval-required`; off-list without approval reverts; valid approval ok; wrong payee, wrong amount, expired, reused nonce, wrong signer revert. `forge script script/DeployArc.s.sol --rpc-url $APP_ARC_RPC_URL --broadcast` prints `ENFORCER_ADDRESS`; `DeployZg` on Galileo prints `EPISODE_LOG_ADDRESS` | 4 | Lead |
 | **M2** | Facilitator + relayer + first real payment | `~packages/chain/src/{Facilitator,Relayer}.ts` (port of `docs/research/spikes/s2-facilitator-spike.ts.txt` with the fixes in §6), `+packages/chain/scripts/smoke.ts`; `~packages/db/src/schema.ts` (all tables of §3), `+packages/db/migrations/*` (`bunx drizzle-kit generate --name vitaquack`); `~packages/server/test/Runtime.native.test.ts` (table list, secret binds); `~alchemy.run.ts`, `~.github/workflows/check.yml`, `~.env.main.local` (§9) | `heavy --wait bun packages/chain/scripts/smoke.ts --amount 0.01` on Arc mainnet exits 0 and prints: deploy tx, settle tx (receipt success), replay → `IdEnforcer:id-already-used`, revoke tx, next settle → `CannotUseADisabledDelegation`. Hashes in `docs/evidence/2026-11-06-smoke.md` | 3 | Lead |
 | **M3** | Merchant | `+packages/server/src/merchant/{Catalogue,Invoices,X402,Status,GateKey}.ts`, `~packages/server/src/ApiWorker.ts` (merge `merchantRoutes`); `+apps/web/src/pages/{Merchant,Gate}.ts`, `~apps/web/src/{route,model,message,update,View,command}.ts`; keys in `packages/i18n/catalogs/en.json` + `bun run i18n:generate` | Native: `POST /api/merchants/duck-cafe/invoices {itemId:"chai"}` → 201; `GET /api/i/:id` → 402 (§7) with `PAYMENT-REQUIRED`; `GET /api/invoices/:id/status?nonce=abc` → signed `pending`; with a forced `paid` row: first read `paid`, second `used`; scene: `/gate/duck-cafe` renders CLOSED | 3 | M+R |
@@ -115,8 +117,13 @@ The passkey is both the login and the wallet's signer. Verification uses `@simpl
 
 Session cookie `vq_session=<base64url payload>.<base64url HMAC-SHA256>`, payload `{accountId, securityRevision, keyId,
 iat, exp}` (7 days), key = the active entry of `APP_AUTH_SESSION_KEYS` (the existing keyring JSON); `HttpOnly; Secure;
-SameSite=Lax; Path=/`. `requireSession` provides `CurrentSession`; every mutating route under a session requires
-`Origin == AUTH_ORIGIN` (403 otherwise).
+SameSite=Lax; Path=/`. `requireSession` provides `CurrentSession` and rejects a cookie whose `securityRevision` differs
+from `accounts.security_revision`; **logout bumps `security_revision`** (invalidating every session of that account),
+so a replayed cookie after logout is 401 (keep the native tests' logout-replay and Origin/CSRF equivalents). Every
+mutating route under a session requires `Origin == AUTH_ORIGIN` (403 otherwise). `rp.id` and the expected origin are
+derived from `AUTH_ORIGIN` at runtime (the native test stack has a different host). Challenges live in
+`auth_challenges`, single-use, 5 min. P-256 on Arc: the precompile at `0x100` was verified live (research), so the
+passkey can be the on-chain signer.
 
 Chain signing with the same credential: `POST /api/wallet/grants/options {robotId, dailyCap, perPaymentCap, allowlist,
 expiresAt}` → builds the unsigned grant (§5), stores it `unsigned`, returns `{grantId, challenge = delegationHash
@@ -335,7 +342,11 @@ token on Arc.
 | `APP_ZG_STORAGE_PRIVATE_KEY`, `ZG_STORAGE_INDEXER` (`https://indexer-storage-testnet-turbo.0g.ai`), `ZG_CHAIN_RPC` (`https://evmrpc-testnet.0g.ai`, 16602), `EPISODE_LOG_ADDRESS`, `EVIDENCE_SERVER_URL`, `EVIDENCE_TOKEN` | netcup `~/.config/secrets.env` only, never the Worker | `tools/evidence-uploader/main.ts` |
 
 All bindings are decoded in `ApiWorker.ts` `onFirstUse` with Schema (`^0x[0-9a-f]{64}$` for keys), `Effect.orDie`.
-Adding a secret = `alchemy.run.ts` + `check.yml` + `.env.main.local` + the native test bind + the Schema decode.
+Adding a secret = `alchemy.run.ts` + `check.yml` + `.env.main.local` + the native test bind + the Schema decode **+
+`gh secret set` on the repo** (the deploy job needs every secret present, or it fails after a green check). Removing
+`APP_AUTH_SECRET` = all of those plus `gh secret delete`. Until Kris supplies a value (RPC URL, 0G key, World client),
+set a placeholder (`pending`) so deploys keep working and the feature fails at runtime with a clear error. The Lead
+generates fresh relayer, approver and gate keys (never reused from anywhere) and sets them as GitHub secrets.
 
 ## 11. Mainnet smoke runbook and evidence
 
