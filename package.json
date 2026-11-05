@@ -57,8 +57,7 @@
     "canaries:check": "bun tools/checker-canaries.ts",
     "bundle:check": "bun tools/bundle-check.ts",
     "deploy": "alchemy deploy --stage main",
-    "site:deploy": "bun run --cwd docs/site deploy",
-    "site:draft": "bun run --cwd docs/site draft"
+    "site:deploy": "bun run --cwd docs/site deploy"
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "catalog:",

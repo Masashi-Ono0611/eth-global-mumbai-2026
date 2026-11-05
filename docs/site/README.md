@@ -38,12 +38,7 @@ beta.85 bootstraps stores to v8.
 
 ## Deploy without pushing
 
-Both deploy the working copy as it is on disk (uncommitted edits included), in ~10–20 s, from the repo root with
-`CLOUDFLARE_API_TOKEN` in the environment (any shell on the box has it):
-
-| Command | URL | Use |
-| --- | --- | --- |
-| `bun run site:draft` | https://eth-mumbai-site-draft.kristjan-grm11775.workers.dev | Spikes not ready for the team |
-| `bun run site:deploy` | https://eth-mumbai-site.kristjan-grm11775.workers.dev | Put it live now; the next push to `main` redeploys `main`'s copy over it, so commit what you want to keep |
-
-Other stages (`bunx alchemy deploy alchemy.run.ts --stage <name>` in docs/site) get their own `eth-mumbai-site-<name>` Worker.
+`bun run site:deploy` (repo root, `CLOUDFLARE_API_TOKEN` in the environment, which any shell on the box has) deploys
+the working copy as it is on disk, uncommitted edits included, in ~15 s. The next push to `main` that touches
+docs/site redeploys `main`'s copy over it, so commit what you want to keep. One URL for everything: spikes and
+brainstorms are just more pages.
