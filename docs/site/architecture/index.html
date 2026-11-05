@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plan v2: wallet → AI client → merchant → robot · ETHGlobal Mumbai 2026</title>
-<meta name="description" content="A passkey wallet on Arc that grants budgets to AI clients and robots; merchants with World 18+ rules; decisions on 0G.">
+<title>Plan v3: wallet → robot agent → merchant → chip · ETHGlobal Mumbai 2026</title>
+<meta name="description" content="A passkey wallet on Arc grants a budget to a robot chip; one Robot Agent per robot thinks on 0G, pays over x402, asks a human via World Agent Pass.">
 <style>
   :root {
     --bg: #fbf8f1; --ink: #1d1b16; --muted: #6b665a; --line: #e4ddcc; --card: #fff;
@@ -52,18 +52,18 @@
 </head>
 <body>
 <main>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v2 · 5 Nov 2026 · comment with 💬</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3 · 5 Nov 2026 · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
-  <p class="lead">A passkey wallet on Arc that can hand <em>grants</em> to anything: an AI app, a robot, a script. The AI client thinks on 0G, buys from merchants that enforce rules like 18+ with World, and later walks a duck to the till. The wallet never needs to know the grantee is a robot.</p>
+  <p class="lead">A passkey wallet on Arc grants a budget to a robot's chip. One Robot Agent per robot thinks on 0G, pays merchants over x402, and asks a human through World Agent Pass when a purchase is over the limit or restricted. The chip always signs. The wallet never needs to know the grantee is a robot.</p>
 
   <div class="grid">
-    <div class="card"><span class="tag t-arc">1 · WALLET</span><h3>The foundation</h3><p>Passkey signup, USDC on Arc, fund / send / receive with no gas shown, grants to any grantee, World verification, an MCP server whose consent screen creates a grant. No Privy-style services.</p></div>
-    <div class="card"><span class="tag t-og">2 · AI CLIENT</span><h3>The brain</h3><p>A 0G-powered agent connected over MCP to the wallet, merchant and robot. It decides what to buy; deterministic wallet code does the paying. Every 0G decision is logged.</p></div>
-    <div class="card"><span class="tag t-cf">3 · MERCHANT</span><h3>The till</h3><p>Items, prices and rules (18+, needs approval). Checkout over x402 with our own facilitator on Arc. Later an ESP32 shows the QR and opens a gate.</p></div>
-    <div class="card"><span class="tag t-duck">4 · ROBOT</span><h3>The body</h3><p>The duck: its own key on the Radxa, a camera you can watch in the browser, control from the browser or the AI. It pays with a narrower sub-grant.</p></div>
+    <div class="card"><span class="tag t-arc">1 · WALLET</span><h3>The foundation</h3><p>Passkey account on Arc, fund / send / receive with no gas shown, grants to any address, an MCP server whose consent screen creates the grant, Agent Pass approvals.</p></div>
+    <div class="card"><span class="tag t-og">2 · ROBOT AGENT</span><h3>The brain</h3><p>One Durable Object per robot: the AI client. Calls 0G, holds the wallet connection, logs every decision, talks to the chip. Runs with no chip too.</p></div>
+    <div class="card"><span class="tag t-cf">3 · MERCHANT</span><h3>The till</h3><p>Items, prices, rules (needs approval, restricted). x402 checkout that accepts both ways to pay. Later an ESP32 shows the QR and opens a gate.</p></div>
+    <div class="card"><span class="tag t-duck">4 · CHIP</span><h3>The body and the signer</h3><p>The Radxa on the duck, or a virtual chip in iteration 1. Holds the key the grant is given to and signs every robot payment. Camera and motors on the real one.</p></div>
   </div>
 
-  <div class="rule"><strong>The one rule:</strong> Arc is the authority. Every limit, sub-limit, age rule and human approval is checked on-chain when a payment lands. Our servers coordinate; they can never authorise a payment on their own.</div>
+  <div class="rule"><strong>The one rule:</strong> Arc is the authority. Every limit and every human approval is checked on-chain when a payment lands. Our servers coordinate and relay; they can never authorise, steal or redirect a payment, only delay it.</div>
 
   <h2>System map</h2>
   <div class="diagram"><pre class="mermaid">
@@ -72,99 +72,103 @@ flowchart TB
     PH["Phone / laptop&lt;br/&gt;passkey · World App"]
   end
   subgraph W["1 · Wallet (Cloudflare)"]
-    WAPP["Wallet app&lt;br/&gt;signup · fund · grants · World verify"]
+    WAPP["Wallet app&lt;br/&gt;signup · fund · grants · approvals"]
     WMCP["Wallet MCP server&lt;br/&gt;OAuth consent = grant"]
-    REL[("Relayer DO&lt;br/&gt;gas in USDC")]
-    LED[("Ledger DO&lt;br/&gt;activity · approvals")]
+    FAC[("Our x402 facilitator / relayer&lt;br/&gt;grant payments · owner actions")]
   end
-  subgraph AI["2 · AI client (Cloudflare Agent)"]
-    AG["Agent DO&lt;br/&gt;plans · calls tools"]
+  subgraph RA["2 · Robot Agent (one DO per robot)"]
+    AG["AI client&lt;br/&gt;0G loop · tools · evidence"]
+  end
+  subgraph C["4 · Chip"]
+    CHIP["Radxa or virtual chip&lt;br/&gt;key · signs · camera · motors"]
   end
   subgraph M["3 · Merchant"]
-    STORE["Store config&lt;br/&gt;items · prices · 18+"]
-    X402["x402 checkout&lt;br/&gt;+ our facilitator"]
+    STORE["Store&lt;br/&gt;items · prices · rules"]
+    X402["x402 checkout&lt;br/&gt;accepts grant + float"]
     GATE["ESP32 gate (iter 2)&lt;br/&gt;QR · servo"]
-  end
-  subgraph R["4 · Robot"]
-    RS[("RobotSession DO&lt;br/&gt;camera · control")]
-    DUCK["Duck (Radxa)&lt;br/&gt;own key · camera · walking"]
   end
   subgraph ARC["Arc mainnet"]
     ACC["Owner account&lt;br/&gt;HybridDeleGator (passkey)"]
-    DM["DelegationManager&lt;br/&gt;+ caveat enforcers"]
-    HR["HumanRegistry&lt;br/&gt;verified · adult"]
+    DM["DelegationManager&lt;br/&gt;+ our enforcers (Arc Studio)"]
     USDC["USDC"]
   end
-  OG[["0G inference"]]
-  WORLD[["World&lt;br/&gt;IDKit · Agent Pass"]]
-  CCTP[["Circle CCTP / Gateway&lt;br/&gt;fund from any chain"]]
+  CIRCLE[["Circle Facilitator&lt;br/&gt;EIP-3009 (float path)"]]
+  OG[["0G inference&lt;br/&gt;standard providers"]]
+  WORLD[["World IdP&lt;br/&gt;Agent Pass (OIDC)"]]
 
   PH --> WAPP
-  WAPP --> REL --> DM
-  CCTP --> ACC
   WAPP <--> WORLD
-  WAPP -- "verify once" --> HR
-  AG -- "MCP" --> WMCP
+  AG -- "MCP + OAuth" --> WMCP
   AG -- "decide" --> OG
+  AG <-- "WebSocket (chip dials out)" --> CHIP
   AG -- "x402" --> X402
-  AG -- "MCP (iter 2)" --> RS
-  RS <-- "WebSocket" --> DUCK
-  DUCK -- "scan" --> GATE
-  X402 -- "redeem" --> DM
-  DM -- "checks caps" --> ACC
-  ACC --> USDC
-  X402 -- "age rule" --> HR
+  CHIP -- "scan (iter 2)" --> GATE
   STORE --> X402
-  WMCP --> LED
+  X402 -- "grant path" --> FAC
+  X402 -- "float path" --> CIRCLE
+  WAPP --> FAC
+  FAC -- "redeemDelegations" --> DM
+  DM -- "checks every cap" --> ACC
+  ACC --> USDC
+  CIRCLE --> USDC
   </pre></div>
 
-  <h2>Grants: one mechanism for every grantee</h2>
-  <p class="muted">A grant is a signed delegation from the owner's account to an address, with on-chain limits. A grantee can pass a narrower sub-grant on. Each payment is a one-time voucher that our relayer submits, and Arc checks every limit up the chain.</p>
+  <h2>Grants: one mechanism, the chip is the grantee</h2>
+  <p class="muted">A grant is a signed delegation from the owner's account to an address. Here that address is the robot's chip, so the chip signs every payment. The Robot Agent decides; it never holds a spending key.</p>
   <div class="diagram"><pre class="mermaid">
 flowchart TB
   O["👤 Owner account (passkey)&lt;br/&gt;$42.10 USDC on Arc"]
-  G1["Grant → AI client&lt;br/&gt;$10/day · USDC only · until Sunday&lt;br/&gt;key held by the wallet"]
-  G2["Sub-grant → Robot&lt;br/&gt;$3/day · max $2 each&lt;br/&gt;key held by the robot (Radxa)"]
-  G3["Grant → claude.ai&lt;br/&gt;$2/day"]
-  V1["One-time voucher&lt;br/&gt;pay Chai Stand $1.50 · invoice 7f3a · before 18:05"]
-  V2["One-time voucher&lt;br/&gt;pay Data API $0.05 · invoice 91c2"]
-  RL["Relayer submits&lt;br/&gt;redeemDelegations(voucher → … → root)"]
-  CHK{"Arc checks every hop:&lt;br/&gt;caps · expiry · USDC only · invoice unused&lt;br/&gt;· age rule · approval co-signature"}
-  O --> G1 --> G2 --> V1 --> RL
-  O --> G3 --> V2 --> RL
+  G1["Grant → Vitaquack's chip (0xChip…)&lt;br/&gt;$10/day · max $2 each · USDC only · until Sunday&lt;br/&gt;above $2 or restricted: needs Agent Pass co-signature"]
+  G2["Grant → claude.ai&lt;br/&gt;$2/day · key held by the wallet"]
+  V1["Voucher signed by the chip&lt;br/&gt;pay Chai Stand $1.50 · invoice 7f3a"]
+  V2["Voucher signed by the chip&lt;br/&gt;pull $0.40 to the chip (float) · invoice 91c2"]
+  RL["Our facilitator&lt;br/&gt;redeemDelegations(voucher → grant)"]
+  CHK{"Arc checks:&lt;br/&gt;caps · expiry · USDC only · invoice unused&lt;br/&gt;· approval co-signature"}
+  O --> G1
+  O --> G2
+  G1 --> V1 --> RL
+  G1 --> V2 --> RL
   RL --> CHK
-  CHK -- "all pass" --> PAY["USDC to merchant"]
+  CHK -- "all pass" --> PAY["USDC moves"]
   CHK -- "any fails" --> REV["revert: nothing paid"]
   </pre></div>
+
+  <h2>Two ways to pay</h2>
+  <p class="muted">In short: on the grant path the money goes straight from the owner's account to the merchant. For sellers that only accept plain transfers, the chip first pulls the exact amount to itself, then pays. One extra transaction, about a second on Arc, invisible to the user.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  GA(["Grant path&lt;br/&gt;our merchant"]) --> a1["Chip signs a voucher&lt;br/&gt;pay merchant · exact amount"] --> a2["Our facilitator&lt;br/&gt;redeemDelegations"] --> a3["Arc checks every cap&lt;br/&gt;at payment time"] --> a4["Owner → merchant"]
+  FA(["Float path&lt;br/&gt;any x402 seller"]) --> b1["Chip signs a voucher&lt;br/&gt;pull exact amount to itself"] --> b2["Our facilitator&lt;br/&gt;caps checked at the pull"] --> b3["Chip signs EIP-3009&lt;br/&gt;valid for 120 s"] --> b4["Circle Facilitator&lt;br/&gt;chip → seller"]
+  </pre></div>
   <table>
-    <tr><th>Grant field</th><th>Meaning</th></tr>
-    <tr><td>Delegate</td><td>Any address the grantee gives us. The wallet doesn't know whether it's an AI app, a robot or a script</td></tr>
-    <tr><td>Custody</td><td><strong>wallet-held</strong>: we keep one key per grant, for hosts like claude.ai that can't hold keys · <strong>grantee-held</strong>: the robot keeps its own key on the Radxa</td></tr>
-    <tr><td>Limits (caveats)</td><td>USDC only · native value 0 · per-period cap · expiry · ours: per-payment cap, merchant allowlist, human co-signature above $X</td></tr>
-    <tr><td>Sub-grants</td><td>Can only narrow the parent; revoking a parent kills everything under it</td></tr>
+    <tr><th></th><th>Grant path</th><th>Float path</th></tr>
+    <tr><td>For</td><td>Our merchant (accepts ERC-7710 delegations)</td><td>Any x402 seller that only takes EIP-3009</td></tr>
+    <tr><td>Limits</td><td>All checked on Arc when the payment lands</td><td>All checked at the pull; the seller payment is a plain transfer</td></tr>
+    <tr><td>Settled by</td><td>Our facilitator (~150 lines; no open-source one exists for this scheme)</td><td>Circle's Facilitator Service (live on Arc, Circle pays gas)</td></tr>
+    <tr><td>On failure</td><td>Revert, nothing paid</td><td>The authorization expires; the float is swept back to the owner</td></tr>
   </table>
 
   <h2>Iterations</h2>
   <div class="diagram"><pre class="mermaid">
 flowchart LR
-  I0["0 · Wallet&lt;br/&gt;passkey signup · fund · send/receive&lt;br/&gt;grants · World verify · MCP"]
-  I1["1 · Headless commerce&lt;br/&gt;merchant + x402 · AI client on 0G&lt;br/&gt;18+ · approve/deny · headless robot grantee"]
-  I15["1.5 · Virtual robot&lt;br/&gt;Microduck sim · camera + control in browser&lt;br/&gt;robot MCP"]
-  I2["2 · Hardware&lt;br/&gt;duck on the Radxa · ESP32 QR gate&lt;br/&gt;scan · pay · gate opens"]
+  I0["0 · Wallet&lt;br/&gt;passkey · fund · send/receive&lt;br/&gt;grants · MCP · Agent Pass"]
+  I1["1 · Headless&lt;br/&gt;Robot Agent + virtual chip&lt;br/&gt;merchant · both pay paths"]
+  I15["1.5 · Virtual robot&lt;br/&gt;Microduck sim body&lt;br/&gt;camera + control in browser"]
+  I2["2 · Hardware&lt;br/&gt;Radxa chip · ESP32 gate&lt;br/&gt;scan · sign · gate opens"]
   I0 --> I1 --> I15 --> I2
   </pre></div>
   <table>
     <tr><th>Iteration</th><th>Done when</th></tr>
-    <tr><td>0 · Wallet</td><td>A new user signs up with only a passkey, receives $1, sends $0.10, connects claude.ai with a $2/day grant and revokes it, on Arc mainnet, with no gas shown</td></tr>
-    <tr><td>1 · Headless</td><td>The AI client buys a normal item; an 18+ item only if the owner is verified; an over-limit item with World approve → paid / deny → nothing; a headless "robot" pays with its sub-grant; revoke stops all</td></tr>
-    <tr><td>1.5 · Virtual robot</td><td>The AI walks the sim duck to the sim stand, it scans the QR and pays; the browser shows its camera and can take over</td></tr>
-    <tr><td>2 · Hardware</td><td>The real duck scans the ESP32 QR, pays under its sub-grant, and the gate opens on a signed "paid"</td></tr>
+    <tr><td>0 · Wallet</td><td>Sign up with only a passkey, receive $1, send $0.10, connect a client with a $2/day grant, revoke it, on Arc mainnet with no gas shown</td></tr>
+    <tr><td>1 · Headless</td><td>The agent (0G) buys a normal item (grant path), a restricted or over-limit item (Agent Pass approve → paid, deny → nothing), and an item from a plain x402 seller (float path via Circle); revoke stops all; every 0G decision logged</td></tr>
+    <tr><td>1.5 · Virtual robot</td><td>The agent walks the sim duck to the stand, the virtual chip signs, it pays; camera and control in the browser</td></tr>
+    <tr><td>2 · Hardware</td><td>The duck scans the ESP32 QR, the Radxa signs, the gate opens on a signed "paid"</td></tr>
   </table>
 
   <h2>Flows</h2>
   <div class="flows">
     <details open>
-      <summary>A · Sign up and fund (wallet, iteration 0)</summary>
+      <summary>A · Sign up and fund</summary>
       <pre class="mermaid">
 sequenceDiagram
   autonumber
@@ -182,76 +186,101 @@ sequenceDiagram
     P->>C: deposit / burn from MetaMask on Base, Ethereum, …
     C->>A: mint to the account on Arc (Circle submits, no gas for the owner)
   end
-  P->>P: optional: verify with World (IDKit)
-  W->>A: write HumanRegistry: account is a verified adult
       </pre>
     </details>
     <details open>
-      <summary>B · Connect the AI client: the consent screen creates the grant</summary>
+      <summary>B · Pair the chip, connect the Robot Agent (consent = grant to the chip)</summary>
       <pre class="mermaid">
 sequenceDiagram
   autonumber
-  participant AI as AI client
-  participant WM as Wallet MCP
   participant P as Owner (passkey)
-  participant A as Arc
-  AI->>WM: connect (MCP, OAuth)
-  WM-->>P: consent page: "Duck Shopper wants $10/day until Sunday"
-  P->>P: passkey signs the grant (a delegation, no transaction, free)
-  WM->>WM: store the grant + a wallet-held key for this connection
-  WM-->>AI: access token: tools wallet_overview, pay_quote, pay_execute, subgrant_create …
-  AI->>WM: subgrant_create(robot address, $3/day)
-  WM-->>P: shown in the wallet with one-tap revoke
-  Note over A: nothing on-chain yet: grants are checked when a payment lands
+  participant WA as Wallet
+  participant RA as Robot Agent DO
+  participant CH as Chip (real or virtual)
+  P->>WA: add robot "Vitaquack" → pairing code
+  CH->>CH: generate key (never leaves the chip)
+  CH->>RA: open WebSocket with the pairing code
+  RA-->>CH: challenge
+  CH->>RA: signature → RA now knows the chip address
+  RA->>WA: connect MCP (OAuth)
+  WA-->>P: consent: "Vitaquack (0xChip…) wants $10/day until Sunday"
+  P->>P: passkey signs the grant (delegate = chip address, no transaction)
+  WA-->>RA: token · tools: payment_prepare, payment_submit, float_pull, approval_request …
       </pre>
     </details>
     <details open>
-      <summary>C · Headless purchase over x402, including the 18+ rule (iteration 1)</summary>
+      <summary>C · Headless purchase, grant path (iteration 1, virtual chip)</summary>
       <pre class="mermaid">
 sequenceDiagram
   autonumber
-  participant AI as AI client
+  participant RA as Robot Agent
   participant OG as 0G
   participant M as Merchant (x402)
-  participant WM as Wallet MCP
-  participant F as Facilitator / relayer
+  participant CH as Chip
+  participant F as Our facilitator
   participant A as Arc
-  AI->>OG: "buy chai for the owner" → plan
-  OG-->>AI: tool call + request_id (logged)
-  AI->>M: GET /items/chai
-  M-->>AI: 402: $1.50 USDC, exact (ERC-7710), invoice 7f3a, buyer-eligibility: 18+? no
-  AI->>WM: pay_execute(requirements)
-  WM->>WM: wallet code builds the one-time voucher (IdEnforcer(7f3a)), signs with the grant key
-  WM->>M: retry with X-PAYMENT
+  RA->>OG: "buy chai" → plan (request_id logged)
+  RA->>M: GET /items/chai
+  M-->>RA: 402: $1.50 · accepts [EIP-3009, ERC-7710] · invoice 7f3a
+  RA->>CH: sign voucher: pay Chai Stand $1.50, invoice 7f3a
+  CH->>CH: check invoice and amount, sign
+  CH-->>RA: signed voucher
+  RA->>M: retry with X-PAYMENT (ERC-7710)
   M->>F: verify + settle
-  F->>A: redeemDelegations(voucher → grant → owner)
-  A->>A: caps · expiry · invoice unused · (18+ item: HumanRegistry says adult?)
-  A-->>F: paid (final in under a second)
-  M-->>AI: 200 + receipt
+  F->>A: redeemDelegations(voucher → grant)
+  A-->>F: caps OK → paid (final in under a second)
+  M-->>RA: 200 + receipt
       </pre>
     </details>
     <details open>
-      <summary>D · Over the limit: World approval, approve and deny</summary>
+      <summary>C2 · Float path: a seller that only takes EIP-3009</summary>
       <pre class="mermaid">
 sequenceDiagram
   autonumber
-  participant AI as AI client
-  participant WM as Wallet
-  participant WO as World (Agent Pass)
-  participant P as Owner phone
+  participant RA as Robot Agent
+  participant S as Any x402 seller
+  participant CH as Chip
+  participant F as Our facilitator
+  participant CF as Circle Facilitator
   participant A as Arc
-  AI->>WM: pay_execute($8 item, over the $5 per-payment cap)
-  WM->>WO: start device flow
-  WM-->>AI: needs approval: link for the owner
-  WM-->>P: "Duck Shopper wants $8 for chai, approve?"
-  P->>WO: approve or deny in World App
+  RA->>S: GET /resource
+  S-->>RA: 402: $0.40 · accepts [EIP-3009 only]
+  RA->>CH: sign voucher: pull $0.40 to the chip, invoice 91c2
+  CH-->>RA: signed voucher
+  RA->>F: settle the pull
+  F->>A: redeemDelegations → owner to chip ($0.40, caps checked)
+  A-->>F: done
+  RA->>CH: sign EIP-3009: chip to seller $0.40, valid 120 s
+  CH-->>RA: signed authorization
+  RA->>S: retry with X-PAYMENT (EIP-3009)
+  S->>CF: verify + settle
+  CF->>A: transferWithAuthorization → paid
+  S-->>RA: 200
+      </pre>
+    </details>
+    <details open>
+      <summary>D · Over the limit or restricted: Agent Pass (approve and deny)</summary>
+      <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant RA as Robot Agent
+  participant WA as Wallet
+  participant WO as World IdP
+  participant P as Owner (World App)
+  participant A as Arc
+  RA->>WA: approval_request($8 item, invoice 7f3a)
+  WA->>WO: start device flow
+  WA-->>P: our page shows "Vitaquack wants $8 for chai" + World link
+  P->>WO: confirm code, approve or deny in World App
+  WA->>WO: poll
   alt approved
-    WO-->>WM: signed ID token
-    WM->>WM: backend co-signs an EIP-712 approval for invoice 7f3a
-    WM->>A: voucher + co-signature → HumanApprovalEnforcer passes → paid
+    WO-->>WA: RS256 ID token (acr orb · fresh auth_time)
+    WA->>WA: verify token, co-sign EIP-712 approval for invoice 7f3a
+    WA-->>RA: approval
+    RA->>A: chip-signed voucher + co-signature → HumanApprovalEnforcer passes → paid
   else denied / expired / World down
-    WO-->>WM: no token
-    WM-->>AI: denied: nothing signed, nothing paid
+    WO-->>WA: no token
+    WA-->>RA: denied: nothing co-signed, nothing paid
   end
       </pre>
     </details>
@@ -261,21 +290,19 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   participant B as Browser (owner)
-  participant AI as AI client
-  participant RS as RobotSession DO
-  participant D as Duck (Radxa)
+  participant RA as Robot Agent
+  participant CH as Chip (Radxa)
   participant G as ESP32 gate
   participant M as Merchant
   participant A as Arc
-  B->>RS: watch camera / take over any time
-  AI->>RS: robot MCP: approach_qr
-  RS->>D: steer toward the QR (deadman 300 ms)
+  B->>RA: watch camera, take over any time
+  RA->>CH: approach the QR (deadman 300 ms)
   G->>M: POST /invoices → QR on screen
-  D->>D: scan QR (zxing), fetch invoice, check against its sub-grant
-  AI->>AI: 0G: "is this the chai? price sane?" → pay (request_id logged)
-  D->>M: pay_scanned_invoice: voucher signed with the robot's own key
-  M->>A: settle (robot → AI client grant → owner)
-  A-->>M: paid
+  CH->>CH: scan QR, fetch invoice
+  RA->>RA: 0G: "is this the chai? price sane?" → pay (request_id logged)
+  CH->>CH: sign voucher for the invoice it scanned itself
+  RA->>M: pay (x402)
+  M->>A: settle → paid
   G->>M: poll status
   M-->>G: Ed25519-signed "paid" + gate nonce
   G->>G: open 🔓 → status "used"
@@ -288,48 +315,80 @@ sequenceDiagram
   participant P as Owner
   participant W as Wallet
   participant A as Arc
-  participant RS as RobotSession DO
-  P->>W: revoke "Duck Shopper"
-  W->>W: step 1: service stops signing for it (instant)
-  P->>A: step 2: passkey-signed disableDelegation (relayed) → grant and all sub-grants dead
-  P->>RS: e-stop → robot stops moving and signing
-  Note over RS: also automatic: 0G down → the AI's control lease lapses → the duck stops
+  participant RA as Robot Agent
+  P->>W: revoke Vitaquack's grant
+  W->>W: step 1: stop serving it (instant)
+  P->>A: step 2: passkey-signed disableDelegation, relayed → grant dead on-chain
+  P->>RA: e-stop → robot stops moving and the chip stops signing
+  Note over RA: also automatic: 0G down → no new decisions → the robot stops
       </pre>
     </details>
   </div>
 
-  <h2>How the robot works</h2>
-  <p class="muted">0G never moves the duck. Walking runs on the robot, offline, many times a second. 0G is asked a few times per errand. The robot MCP runs on our Worker, not on the robot.</p>
+  <h2>Robot Agent</h2>
+  <p class="muted">One Durable Object per robot is the AI client. 0G never moves the duck: walking runs on the chip, offline, 50 times a second. The agent is asked a few times per errand and runs fine with no chip attached.</p>
   <div class="diagram"><pre class="mermaid">
 flowchart LR
-  subgraph Duck["🦆 Duck: Radxa Zero 3W"]
-    direction TB
-    NAV["Navigation · 5–10×/s&lt;br/&gt;QR in frame → turn / walk / stop"]
-    POL["Walking policy · 50×/s&lt;br/&gt;ONNX net → 15 servos"]
-    RT["Runtime&lt;br/&gt;own key · webcam · deadman 300 ms"]
-    NAV --> POL
-    RT --> NAV
-  end
   subgraph CF["☁️ Cloudflare"]
-    RS[("RobotSession DO&lt;br/&gt;frames fan-out · one driver · e-stop")]
-    RMCP["Robot MCP&lt;br/&gt;look · scan_qr · move · approach_qr&lt;br/&gt;stop · pay_scanned_invoice"]
-    AG["AI client (0G)"]
+    RA["Robot Agent DO&lt;br/&gt;pi-ai loop · 0G · wallet MCP client&lt;br/&gt;evidence · e-stop · one driver"]
+  end
+  subgraph Chip["🦆 Chip: Radxa (or virtual)"]
+    direction TB
+    KEY["Key + signer&lt;br/&gt;checks invoice, signs"]
+    NAV["Navigation 5–10×/s&lt;br/&gt;QR in frame → turn / walk / stop"]
+    POL["Walking policy 50×/s&lt;br/&gt;ONNX → 15 servos"]
+    NAV --> POL
   end
   BR["Browser&lt;br/&gt;camera view · gamepad"]
-  RT <-- "WebSocket: JPEG frames up, move/stop down" --> RS
-  BR <-- "frames · control (human wins)" --> RS
-  AG -- "tools" --> RMCP --> RS
+  OG[["0G"]]
+  WM[["Wallet MCP"]]
+  RA <-- "WebSocket: frames up, move / sign requests down" --> Chip
+  BR <-- "frames · control (human beats AI)" --> RA
+  RA --> OG
+  RA --> WM
   </pre></div>
   <table>
-    <tr><th>What</th><th>Runs where</th></tr>
-    <tr><td>Walking policy, navigation, camera, QR scan, robot key</td><td><strong>on the duck</strong> (Radxa)</td></tr>
-    <tr><td>RobotSession, robot MCP, AI client, wallet, merchant</td><td><strong>Cloudflare</strong></td></tr>
-    <tr><td>Virtual robot (Microduck sim fork) for iteration 1.5</td><td><strong>the browser</strong></td></tr>
-    <tr><td>Retraining the walking policy for our servos</td><td><strong>a rented NVIDIA GPU</strong></td></tr>
+    <tr><th>Copied from Goblin (<code>~/code/goblin/apps/runtime/src/</code>)</th><th>Why</th></tr>
+    <tr><td><code>agent.ts</code>: Agents SDK <code>Agent</code> + <code>schedule</code></td><td>One DO per robot, wakes and timeouts</td></tr>
+    <tr><td><code>pi/model.ts</code>: pi-ai <code>openai-completions</code></td><td>0G's router is OpenAI-compatible; add <code>onResponse</code> to log 0G request ids</td></tr>
+    <tr><td><code>mcp/oauth/oauth-provider.ts</code> + <code>auth.ts</code></td><td>The agent's OAuth connection to our wallet MCP</td></tr>
+    <tr><td><code>mcp/approvals/*</code></td><td>Hold the exact call, end the turn, continue on approval</td></tr>
+    <tr><td><code>telemetry/pi.ts</code></td><td>Append-only run events = per-decision evidence</td></tr>
+  </table>
+  <p class="muted">Not copied: personas, topics, subagents, agent apps, inbound MCP, the AG-UI shell.</p>
+
+  <h2>Agent Pass vs the MCP grant</h2>
+  <table>
+    <tr><th></th><th>MCP grant</th><th>Agent Pass</th></tr>
+    <tr><td>What</td><td>The standing budget: "$10/day until Sunday"</td><td>A one-off exception for one purchase</td></tr>
+    <tr><td>Who approves, where</td><td>Owner's passkey, in our wallet</td><td>Owner in World App (World IdP)</td></tr>
+    <tr><td>When</td><td>On connect; again to raise the budget (<code>grant_change_request</code> → link → passkey)</td><td>Over the per-payment cap, or a restricted item</td></tr>
+    <tr><td>On-chain effect</td><td>A new signed delegation</td><td>Our backend co-signs that one payment; <code>HumanApprovalEnforcer</code> checks it</td></tr>
+    <tr><td>Blockchain involved</td><td>Arc</td><td>None in World's part: plain OIDC (RS256 ID token), so it fits Arc cleanly</td></tr>
+  </table>
+
+  <h2>World: Agent Pass</h2>
+  <table>
+    <tr><th>Piece</th><th>How</th></tr>
+    <tr><td>Flow</td><td>Our backend starts a device flow at <code>auth.world.org</code> → the owner checks a short code and approves in World App → the backend polls and gets an RS256 ID token. Deny, 20-minute expiry or any error = no token = no payment</td></tr>
+    <tr><td>Binding</td><td>World App can't show what is being approved, so our wallet page shows item, amount, payee and invoice, and the approval is single-use for that invoice</td></tr>
+    <tr><td>Token checks</td><td>Accept <code>acr</code> orb or orb-face; reject passkey-only sign-ins (<code>amr</code> with <code>mfa</code>); <code>auth_time</code> after the request; <code>jti</code> used once. World's reference code gets two of these wrong</td></tr>
+    <tr><td>On Arc</td><td>Backend signs EIP-712 {invoice, amount, payee, expiry, nonce}; <code>HumanApprovalEnforcer</code> (built in Arc Studio) checks it</td></tr>
+    <tr><td>Not used</td><td>IDKit 18+ registry (dropped; restricted items need Agent Pass instead) · AgentKit, World's x402 extension (archived, no age claim)</td></tr>
+  </table>
+
+  <h2>Owner actions and trust</h2>
+  <table>
+    <tr><th>Question</th><th>Answer</th></tr>
+    <tr><td>How does the owner send / revoke?</td><td>The passkey signs a one-time delegation; our relayer (the same code as the facilitator) submits it, ≈ $0.006. This is the pattern MetaMask's own facilitator uses</td></tr>
+    <tr><td>Break-glass</td><td>If the DelegationManager is ever paused: an ERC-4337 user operation via Pimlico's public bundler, gas paid by the account in USDC</td></tr>
+    <tr><td>Other chains (gas not in USDC)</td><td>ERC-4337 with a USDC paymaster (as Goblin's wallet did on Base)</td></tr>
+    <tr><td>Can the relayer steal?</td><td>No. Signatures fix the exact action and Arc checks every cap; a relayer or bundler can only delay. Hence the fallback</td></tr>
+    <tr><td>Passkey-native: still a "DeleGator"?</td><td>Yes. DeleGator is MetaMask's name for their delegation-capable smart accounts. Ours is a HybridDeleGator (own contract, passkey signer); the 7702 fallback points an EOA at EIP7702StatelessDeleGator. Same grants either way</td></tr>
   </table>
 
   <h2>0G and Arc: data, not money</h2>
-  <p class="muted">The user's money stays USDC on Arc. 0G is a platform cost, like Cloudflare. The two link through provenance: every payment points to the decision that caused it, and every decision points to the payment.</p>
+  <p class="muted">The user's money stays USDC on Arc. 0G is a platform cost (credits from the team, standard providers). The two link through provenance.</p>
   <div class="diagram"><pre class="mermaid">
 flowchart LR
   F["Camera frame&lt;br/&gt;+ invoice"] --> D["0G decision&lt;br/&gt;request_id · model"]
@@ -338,74 +397,68 @@ flowchart LR
   S --> E["EpisodeLog on 0G Chain&lt;br/&gt;episode hash"]
   P -. "ledger: invoice → request_id" .-> D
   </pre></div>
-  <table>
-    <tr><th>0G feature</th><th>Paid with</th><th>By</th><th>Touches the user's USDC?</th></tr>
-    <tr><td>Inference (the AI client's brain)</td><td>credits / API key (we have credits)</td><td>us</td><td>no</td></tr>
-    <tr><td>Storage (decision records)</td><td>0G Chain gas</td><td>us, a backend key on 0G Chain</td><td>no</td></tr>
-    <tr><td>EpisodeLog contract (prize needs a contract address)</td><td>0G Chain gas</td><td>us</td><td>no</td></tr>
-  </table>
-  <div class="rule"><strong>TEE, in one line:</strong> 0G can run a model inside a sealed hardware enclave, so the provider can't see prompts and every answer is hardware-attested. Today only "standard" providers are listed. Inference still works; we just can't claim sealed inference until TEE providers return. Nice-to-have, not required by the prize.</div>
 
-  <h2>World, end to end</h2>
+  <h2>Venue network</h2>
   <table>
-    <tr><th>Need</th><th>Design</th></tr>
-    <tr><td>18+ rule</td><td>Verify once in the wallet → our backend verifies with World → <code>HumanRegistry</code> on Arc. The merchant checks the <em>paying root account</em>. With delegations that's always the owner's account, even when the robot pays. Nothing to forward, no phone per purchase</td></tr>
-    <tr><td>Age basis</td><td>No World proof carries age. "18+" = Orb-verified (World only verifies adults at an Orb): policy, not cryptography. IDKit's 18+ check is a preview needing World's approval</td></tr>
-    <tr><td>Over-limit</td><td>Agent Pass device flow → our backend co-signs that one invoice → a caveat on the owner's grant requires it, so it binds sub-grants too</td></tr>
-    <tr><td>World ID + x402</td><td>That's AgentKit (with Coinbase, March 2026): unique human, no age, discounts not gates, and its repo was archived on 20 Oct 2026. An optional extra at most</td></tr>
+    <tr><th>Setup</th><th>How</th></tr>
+    <tr><td><strong>Primary</strong>: Mac shares its Ethernet as Wi-Fi</td><td>macOS Internet Sharing, channel 1/6/11 (ESP32 is 2.4 GHz only), WPA2/WPA3, never WPA3-only. Radxa: <code>key-mgmt wpa-psk</code>; ESP32: <code>setMinSecurity(WPA2_PSK)</code>. The Mac is the gateway, so SSH to the Radxa works. <code>caffeinate -dis</code> so it doesn't sleep</td></tr>
+    <tr><td>Fallback</td><td>Phone hotspot on its own mobile data (local SIM), saved on both devices as a second network</td></tr>
+    <tr><td>Doesn't work</td><td>Mac → Android reverse tether over USB, then the phone's hotspot: on stock Android, hotspot clients bypass the tether's VPN</td></tr>
   </table>
 
   <h2>What we know, what we believe, what we don't</h2>
-  <h3>Known: we know how to build it</h3>
+  <h3>Known</h3>
   <ul>
-    <li>Passkey account (HybridDeleGator) and its factory are live on Arc, byte-identical to Base. A passkey-signed grant → AI client → robot → one-time payment chain was simulated against live mainnet state: over-cap payments revert, revoke kills the subtree.</li>
-    <li>Gas without a bundler: our relayer submits everything, ≈ $0.004–0.008 per action.</li>
-    <li>OAuth-consent-as-grant with real MCP hosts (Nod on Stellar, remit on Base); the MCP 2026-07-28 spec and Cloudflare's OAuth provider.</li>
-    <li>One invoice → one payment via <code>IdEnforcer</code>; Arc receipts are final; the ESP32 Ed25519 check needs <code>crypto_ed25519_check</code>.</li>
-    <li>Camera as JPEG over the robot's WebSocket works behind any NAT (Microduck does it); deadman and e-stop patterns.</li>
-    <li>World: no proof carries age; proofs can't be handed to agents; AgentKit is archived.</li>
+    <li>Passkey account (HybridDeleGator) and factory live on Arc; the whole grant chain simulated against live mainnet state.</li>
+    <li>Circle's Facilitator Service is live on Arc mainnet (x402 v2, EIP-3009, Circle pays gas).</li>
+    <li>No open-source ERC-7710 facilitator ships; we write ~150 lines from PR #1837 + Fireblocks' mechanism.</li>
+    <li>Agent Pass is plain OIDC with no chain involved; deny / expire give no token.</li>
+    <li>Goblin's agent stack (Agents SDK, pi-ai, MCP OAuth client, approvals) and its archived wallet (just-in-time top-ups) are proven patterns.</li>
   </ul>
   <h3>Uncertain: one spike settles it</h3>
   <table>
     <tr><th>#</th><th>Spike</th></tr>
-    <tr><td>S1</td><td>Real-device passkeys (iPhone, Android, laptop) → deploy on Arc → one real $0.01 payment</td></tr>
-    <tr><td>S2</td><td>Our x402 ERC-7710 facilitator: owner → agent → voucher on an Arc fork, then $0.01 for real</td></tr>
-    <tr><td>S3</td><td>0G (with the teammate's credits): a tool-calling model, ideally with images (glm-5.3-flash / qwen3.8-flash), latency per call, request ids in streams</td></tr>
-    <tr><td>S4</td><td>AI client's MCP client ↔ our wallet MCP over OAuth; claude.ai on MCP SDK v2</td></tr>
-    <tr><td>S5</td><td>IDKit 4.6 inside Foldkit, World verify → registry; Agent Pass end to end (with Kris's Orb-verified ID)</td></tr>
-    <tr><td>S6</td><td>Gateway accepts a passkey account's 544-byte signature (cross-chain send out)</td></tr>
-    <tr><td>S7</td><td>Robot JPEG latency on venue Wi-Fi; Radxa CPU; webcam formats</td></tr>
-    <tr><td>S8</td><td>Walking policy on the new servos (GPU retrain)</td></tr>
+    <tr><td>S1</td><td>Real-device passkey → HybridDeleGator on Arc → passkey-signed grant → $0.01 relayed payment</td></tr>
+    <tr><td>S2</td><td>Our ERC-7710 facilitator: owner → chip voucher on an Arc fork, then $0.01 real</td></tr>
+    <tr><td>S2b</td><td>Float path: pull to chip → EIP-3009 through Circle's facilitator, $0.01</td></tr>
+    <tr><td>S3</td><td>0G with the team's credits: a tool-calling model (ideally with images), latency, request ids</td></tr>
+    <tr><td>S4</td><td>Robot Agent DO: pi-ai loop + MCP OAuth client ↔ our wallet MCP</td></tr>
+    <tr><td>S5</td><td>Agent Pass approve and deny with Kris's Orb-verified ID</td></tr>
+    <tr><td>S6</td><td>Virtual chip ↔ Robot Agent WebSocket: pairing and sign requests</td></tr>
+    <tr><td>S7</td><td>Mac Internet Sharing with the Radxa and ESP32</td></tr>
+    <tr><td>S8</td><td>Walking policy on the new servos (teammate)</td></tr>
   </table>
-  <h3>Unknown: needs a sponsor's answer or research</h3>
+  <h3>Unknown: booth questions</h3>
   <ul>
-    <li><strong>0G:</strong> we have credits (teammate). Still open: whether sealed TEE providers come back (nice-to-have, see below); whether Storage + EpisodeLog may run on testnet.</li>
-    <li><strong>World:</strong> what "mocked proofs" covers; IDKit 18+ access; World's verifier on Arc has no issuer keys and gets roots hourly. (Answered: Kris has an Orb-verified World ID, so real proofs can be tested.)</li>
-    <li><strong>Arc / Circle:</strong> Studio URL viewable without login; a keyed RPC (public one throttles); App Kit swap on Arc mainnet.</li>
-    <li><strong>Robot:</strong> which OS is on the Radxa; does the walking policy survive the new servos.</li>
+    <li><strong>0G:</strong> may Storage + EpisodeLog run on Galileo testnet?</li>
+    <li><strong>World:</strong> does "mocked proofs" cover Agent Pass; time to a production client.</li>
+    <li><strong>Arc:</strong> Studio URL viewable without login; deploying our Studio-built module to mainnet ourselves; Circle facilitator minimum amount; a keyed RPC.</li>
   </ul>
 
-  <h2>Decisions for Kris</h2>
+  <h2>Decisions</h2>
   <table>
-    <tr><th>#</th><th>Decision</th><th>Recommendation</th></tr>
-    <tr><td>D1</td><td>Owner account</td><td><strong>Decided: passkey-native HybridDeleGator</strong>; 7702 as fallback</td></tr>
-    <tr><td>D2</td><td>AI client key custody</td><td>Wallet-held now; robots hold their own</td></tr>
-    <tr><td>D3</td><td>Does the robot sign its own payments?</td><td>Yes, only invoices it scanned, under its sub-grant</td></tr>
-    <tr><td>D4</td><td>18+ basis</td><td>"Orb-verified = 18+" now; ask World for the age check</td></tr>
-    <tr><td>D5</td><td>Who writes the HumanRegistry</td><td>Our backend after World's verify; ask World before touching their bridge</td></tr>
-    <tr><td>D6</td><td>Public "account X is a verified adult"</td><td>Accept for the demo</td></tr>
-    <tr><td>D7</td><td>Who pays relayer gas</td><td>We absorb it</td></tr>
-    <tr><td>D8</td><td>Sub-grants without the owner?</td><td>Yes, inside the parent's limit, visible with one-tap revoke</td></tr>
-    <tr><td>D9</td><td>Recovery</td><td>Several passkeys now; guardians later</td></tr>
-    <tr><td>D10</td><td>Accounts on other chains</td><td>Arc-only; others are funding routes</td></tr>
-    <tr><td>D11</td><td>MetaMask can pause the DelegationManager</td><td>Accept; 4337 break-glass later</td></tr>
-    <tr><td>D12</td><td>Restricted demo item: age and approval?</td><td>Both, so both World paths show</td></tr>
-    <tr><td>D13</td><td>Who may watch / drive the robot</td><td>Owner drives; judges view</td></tr>
-    <tr><td>D14</td><td>Radxa OS image</td><td>Tell us what's on it</td></tr>
+    <tr><th>Decided</th><th>Choice</th></tr>
+    <tr><td>Owner account</td><td>Passkey-native HybridDeleGator; 7702 fallback</td></tr>
+    <tr><td>Robot brain</td><td>One Robot Agent DO per robot = the AI client (Goblin-inspired)</td></tr>
+    <tr><td>Who signs</td><td>The chip, always; a virtual chip in iteration 1</td></tr>
+    <tr><td>Payments</td><td>x402 now (MPP later); grant path + float path</td></tr>
+    <tr><td>Owner actions</td><td>Our relayer; ERC-4337 break-glass</td></tr>
+    <tr><td>0G</td><td>Standard providers</td></tr>
+    <tr><td>World</td><td>Agent Pass only</td></tr>
+    <tr><td>Arc track</td><td>Advanced Stablecoin Logic: RobotPaymentPolicyEnforcer + HumanApprovalEnforcer built in Arc Studio</td></tr>
+    <tr><td>Network</td><td>Mac Internet Sharing; phone hotspot on mobile data as fallback</td></tr>
+    <tr><td>Radxa OS, walking policy</td><td>Teammate</td></tr>
+  </table>
+  <table>
+    <tr><th>Still open</th><th>Recommendation</th></tr>
+    <tr><td>Who pays relayer gas</td><td>We absorb it (≈ $0.004–0.008 per action)</td></tr>
+    <tr><td>Recovery</td><td>Several passkeys now; guardians later</td></tr>
+    <tr><td>Accounts on other chains</td><td>Arc-only; other chains are funding routes</td></tr>
+    <tr><td>Who may watch / drive the robot</td><td>Owner drives; judges view</td></tr>
   </table>
 
   <footer>
-    Plan v2, 5 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/research/</code> the evidence ·
+    Plan v3, 5 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/decisions.md</code> the decisions, <code>docs/research/</code> the evidence ·
     <a href="https://github.com/grmkris/eth-global-mumbai-2026">github.com/grmkris/eth-global-mumbai-2026</a>
   </footer>
 </main>
