@@ -54,11 +54,15 @@
     },
     "docs/site": {
       "name": "@ethmumbai/site",
+      "dependencies": {
+        "drizzle-orm": "catalog:",
+      },
       "devDependencies": {
         "@alchemy.run/cloudflare": "catalog:",
         "alchemy": "catalog:",
         "chart.js": "4.6.1",
         "d3": "7.9.2",
+        "drizzle-kit": "catalog:",
         "effect": "catalog:",
         "mermaid": "12.3.0",
         "pele": "1.13.0",
