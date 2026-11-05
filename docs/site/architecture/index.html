@@ -52,7 +52,7 @@
 </head>
 <body>
 <main>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3 · 5 Nov 2026 · comment with 💬 (blocks, diagram nodes, selected text)</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.1 · 6 Nov 2026 · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
   <p class="lead">A passkey wallet on Arc grants a budget to a robot's chip. One Robot Agent per robot thinks on 0G, pays merchants over x402, and asks a human through World Agent Pass when a purchase is over the limit or restricted. The chip always signs. The wallet never needs to know the grantee is a robot.</p>
 
@@ -152,16 +152,16 @@ flowchart LR
   <div class="diagram"><pre class="mermaid">
 flowchart LR
   I0["0 · Wallet&lt;br/&gt;passkey · fund · send/receive&lt;br/&gt;grants · MCP · Agent Pass"]
-  I1["1 · Headless&lt;br/&gt;Robot Agent + virtual chip&lt;br/&gt;merchant · both pay paths"]
-  I15["1.5 · Virtual robot&lt;br/&gt;Microduck sim body&lt;br/&gt;camera + control in browser"]
+  I1["1 · Headless&lt;br/&gt;Robot Agent + mock chip per teammate&lt;br/&gt;merchant · both pay paths"]
+  I15["1.5 · Virtual resource&lt;br/&gt;no simulator: the chip buys&lt;br/&gt;an x402 API through the full flow"]
   I2["2 · Hardware&lt;br/&gt;Radxa chip · ESP32 gate&lt;br/&gt;scan · sign · gate opens"]
   I0 --> I1 --> I15 --> I2
   </pre></div>
   <table>
     <tr><th>Iteration</th><th>Done when</th></tr>
     <tr><td>0 · Wallet</td><td>Sign up with only a passkey, receive $1, send $0.10, connect a client with a $2/day grant, revoke it, on Arc mainnet with no gas shown</td></tr>
-    <tr><td>1 · Headless</td><td>The agent (0G) buys a normal item (grant path), a restricted or over-limit item (Agent Pass approve → paid, deny → nothing), and an item from a plain x402 seller (float path via Circle); revoke stops all; every 0G decision logged</td></tr>
-    <tr><td>1.5 · Virtual robot</td><td>The agent walks the sim duck to the stand, the virtual chip signs, it pays; camera and control in the browser</td></tr>
+    <tr><td>1 · Headless</td><td>Fully virtual. Every teammate runs a <strong>mock chip</strong> (a Bun script with its own key, same WebSocket protocol as the Radxa); the real Radxa pairs over the internet with the same code. The agent (0G) buys a normal item (grant path), a restricted or over-limit item (Agent Pass approve → paid, deny → nothing), and an item from a plain x402 seller (float path via Circle); revoke stops all; every 0G decision logged</td></tr>
+    <tr><td>1.5 · Virtual resource</td><td>No simulator: the chip buys a virtual resource, an x402 API (data, an image, a song), through the whole flow, with no physical QR</td></tr>
     <tr><td>2 · Hardware</td><td>The duck scans the ESP32 QR, the Radxa signs, the gate opens on a signed "paid"</td></tr>
   </table>
 
@@ -265,22 +265,24 @@ sequenceDiagram
   autonumber
   participant RA as Robot Agent
   participant WA as Wallet
+  participant P as Owner phone (World App)
   participant WO as World IdP
-  participant P as Owner (World App)
-  participant A as Arc
-  RA->>WA: approval_request($8 item, invoice 7f3a)
-  WA->>WO: start device flow
-  WA-->>P: our page shows "Vitaquack wants $8 for chai" + World link
-  P->>WO: confirm code, approve or deny in World App
-  WA->>WO: poll
+  participant CH as Chip
+  participant A as Arc (HumanApprovalEnforcer)
+  RA->>WA: approval_request($8 chai, invoice 7f3a)
+  WA->>WA: nonce = EIP-712 hash {invoice 7f3a, $8, Chai Stand, expiry}
+  WA-->>P: our page shows "Vitaquack wants $8 for chai" + Approve with World
+  P->>WO: browser sign-in (nonce, max_age=0) → confirm in World App
   alt approved
-    WO-->>WA: RS256 ID token (acr orb · fresh auth_time)
-    WA->>WA: verify token, co-sign EIP-712 approval for invoice 7f3a
-    WA-->>RA: approval
-    RA->>A: chip-signed voucher + co-signature → HumanApprovalEnforcer passes → paid
-  else denied / expired / World down
+    WO-->>WA: RS256-signed ID token (nonce echoed, fresh auth_time)
+    WA-->>RA: token
+    RA->>CH: sign voucher for invoice 7f3a
+    RA->>A: voucher + World token in the caveat args
+    A->>A: RSA-verify the token with World's registered key · nonce = this payment · sub = owner · jti unused
+    A-->>RA: paid
+  else denied / cancelled / expired
     WO-->>WA: no token
-    WA-->>RA: denied: nothing co-signed, nothing paid
+    WA-->>RA: denied: nothing to submit, nothing paid
   end
       </pre>
     </details>
@@ -363,18 +365,18 @@ flowchart LR
     <tr><td>What</td><td>The standing budget: "$10/day until Sunday"</td><td>A one-off exception for one purchase</td></tr>
     <tr><td>Who approves, where</td><td>Owner's passkey, in our wallet</td><td>Owner in World App (World IdP)</td></tr>
     <tr><td>When</td><td>On connect; again to raise the budget (<code>grant_change_request</code> → link → passkey)</td><td>Over the per-payment cap, or a restricted item</td></tr>
-    <tr><td>On-chain effect</td><td>A new signed delegation</td><td>Our backend co-signs that one payment; <code>HumanApprovalEnforcer</code> checks it</td></tr>
+    <tr><td>On-chain effect</td><td>A new signed delegation</td><td>World's signed token goes with that one payment; <code>HumanApprovalEnforcer</code> on Arc verifies it itself (no backend co-signer)</td></tr>
     <tr><td>Blockchain involved</td><td>Arc</td><td>None in World's part: plain OIDC (RS256 ID token), so it fits Arc cleanly</td></tr>
   </table>
 
   <h2>World: Agent Pass</h2>
   <table>
     <tr><th>Piece</th><th>How</th></tr>
-    <tr><td>Flow</td><td>Our backend starts a device flow at <code>auth.world.org</code> → the owner checks a short code and approves in World App → the backend polls and gets an RS256 ID token. Deny, 20-minute expiry or any error = no token = no payment</td></tr>
+    <tr><td>Flow</td><td>World IdP's <strong>browser flow</strong> (not the device flow, which can't carry a nonce): our wallet page asks World to sign in with <code>nonce</code> = the EIP-712 hash of {invoice, amount, payee, expiry} and <code>max_age=0</code>; the owner confirms in World App; World returns an RS256-signed ID token. Deny, cancel or expiry = no token = no payment</td></tr>
     <tr><td>Binding</td><td>World App can't show what is being approved, so our wallet page shows item, amount, payee and invoice, and the approval is single-use for that invoice</td></tr>
     <tr><td>Token checks</td><td>Accept <code>acr</code> orb or orb-face; reject passkey-only sign-ins (<code>amr</code> with <code>mfa</code>); <code>auth_time</code> after the request; <code>jti</code> used once. World's reference code gets two of these wrong</td></tr>
-    <tr><td>On Arc</td><td>Backend signs EIP-712 {invoice, amount, payee, expiry, nonce}; <code>HumanApprovalEnforcer</code> (built in Arc Studio) checks it</td></tr>
-    <tr><td>Not used</td><td>IDKit 18+ registry (dropped; restricted items need Agent Pass instead) · AgentKit, World's x402 extension (archived, no age claim)</td></tr>
+    <tr><td>On Arc</td><td><strong>Decided: verified on-chain.</strong> <code>HumanApprovalEnforcer</code> (built in Arc Studio) RSA-verifies the token with OpenZeppelin <code>RSA.pkcs1Sha256</code> (modexp, ≈ 150–400k gas, under $0.01) against World's key registered on Arc, and checks <code>iss</code>, <code>aud</code>, <code>exp</code>, <code>sub</code> = owner, <code>nonce</code> = this payment, fresh <code>auth_time</code>, <code>amr</code> includes <code>pop</code>, <code>jti</code> used once. Remaining trust: World's sign-in service and whoever registers its key. Fallback: our backend co-signs</td></tr>
+    <tr><td>Not used</td><td>IDKit 18+ registry (dropped) · AgentKit (archived) · <strong>World's wallet as our wallet</strong>: "World Money" is a Safe on World Chain only; World's SDK refuses other chains, a Safe can't be a Delegation Framework delegator, and allowances reset after each transaction. At most a World mini app could fund our Arc account</td></tr>
   </table>
 
   <h2>Owner actions and trust</h2>
@@ -401,9 +403,28 @@ flowchart LR
   <h2>Venue network</h2>
   <table>
     <tr><th>Setup</th><th>How</th></tr>
-    <tr><td><strong>Primary</strong>: Mac shares its Ethernet as Wi-Fi</td><td>macOS Internet Sharing, channel 1/6/11 (ESP32 is 2.4 GHz only), WPA2/WPA3, never WPA3-only. Radxa: <code>key-mgmt wpa-psk</code>; ESP32: <code>setMinSecurity(WPA2_PSK)</code>. The Mac is the gateway, so SSH to the Radxa works. <code>caffeinate -dis</code> so it doesn't sleep</td></tr>
-    <tr><td>Fallback</td><td>Phone hotspot on its own mobile data (local SIM), saved on both devices as a second network</td></tr>
+    <tr><td><strong>Primary</strong>: dedicated phone hotspot</td><td>Pixel hotspot <code>duckbench</code>, 2.4 GHz, WPA2, on the phone's own mobile data. Radxa, ESP32 and laptops all join it. Bench H4 found the venue Wi-Fi unusable (≈ 3 KB/s, pings up to 2.5 s)</td></tr>
+    <tr><td>Alternative</td><td>macOS Internet Sharing from a <em>wired</em> Ethernet uplink: channel 1/6/11, WPA2/WPA3 (never WPA3-only), Radxa <code>key-mgmt wpa-psk</code>, ESP32 <code>setMinSecurity(WPA2_PSK)</code>, <code>caffeinate -dis</code></td></tr>
     <tr><td>Doesn't work</td><td>Mac → Android reverse tether over USB, then the phone's hotspot: on stock Android, hotspot clients bypass the tether's VPN</td></tr>
+  </table>
+
+  <h2>ESP32 gate wiring</h2>
+  <table>
+    <tr><th>Servo wire</th><th>Connect to</th></tr>
+    <tr><td>Signal (orange / yellow)</td><td>A GPIO, e.g. GPIO 13 (3.3 V logic is fine). Code: ESP32Servo <code>attach(13, 500, 2400)</code></td></tr>
+    <tr><td>Power (red)</td><td>A <strong>separate 5 V supply, at least 1 A</strong> (power bank or adapter). Not the ESP32's 3.3 V pin; the ESP32's VIN over the Mac's USB can brown-out reset it</td></tr>
+    <tr><td>Ground (brown)</td><td>The supply's ground <strong>and</strong> the ESP32's GND (shared ground)</td></tr>
+    <tr><td>Extra</td><td>A 470 µF capacitor across the servo's 5 V / GND. No driver chip needed for one micro servo (SG90 / MG90S); a PCA9685 board only for many servos</td></tr>
+  </table>
+
+  <h2>Bench results so far</h2>
+  <table>
+    <tr><th>Spike</th><th>Result</th></tr>
+    <tr><td>C1: the chip signs the plan-v3 voucher</td><td><strong>Pass, 20 / 20 checks.</strong> Hashes and caveats match MetaMask's kit; on live Arc the voucher pays the merchant, a different amount or payee fails, a replay fails</td></tr>
+    <tr><td>H1: Radxa health</td><td>Partial. OS and camera known, ≤ 57 °C in a short capture. The overheating was the camera ribbon: fixed by reseating it striped face up</td></tr>
+    <tr><td>H3: signing speed</td><td>Python signing works but takes 187 ms (pure-Python recovery); Bun + viem or libsecp256k1 needed. Bun not yet tested</td></tr>
+    <tr><td>H4: network</td><td>Venue Wi-Fi unusable, so a dedicated phone hotspot</td></tr>
+    <tr><td>H2, H5, H6</td><td>Not yet run: reading the ESP32 QR with the camera, frames over WebSocket, the signed bench loop</td></tr>
   </table>
 
   <h2>What we know, what we believe, what we don't</h2>
@@ -412,7 +433,8 @@ flowchart LR
     <li>Passkey account (HybridDeleGator) and factory live on Arc; the whole grant chain simulated against live mainnet state.</li>
     <li>Circle's Facilitator Service is live on Arc mainnet (x402 v2, EIP-3009, Circle pays gas).</li>
     <li>No open-source ERC-7710 facilitator ships; we write ~150 lines from PR #1837 + Fireblocks' mechanism.</li>
-    <li>Agent Pass is plain OIDC with no chain involved; deny / expire give no token.</li>
+    <li>Agent Pass is plain OIDC with no chain involved; deny / expire give no token. Its RS256 token can be verified in an Arc contract (modexp precompile, under $0.01), and the browser flow binds it to one payment via <code>nonce</code>.</li>
+    <li>The chip signs the plan-v3 voucher correctly (bench C1, 20 / 20 checks against MetaMask's kit and live Arc).</li>
     <li>Goblin's agent stack (Agents SDK, pi-ai, MCP OAuth client, approvals) and its archived wallet (just-in-time top-ups) are proven patterns.</li>
   </ul>
   <h3>Uncertain: one spike settles it</h3>
@@ -423,9 +445,10 @@ flowchart LR
     <tr><td>S2b</td><td>Float path: pull to chip → EIP-3009 through Circle's facilitator, $0.01</td></tr>
     <tr><td>S3</td><td>0G with the team's credits: a tool-calling model (ideally with images), latency, request ids</td></tr>
     <tr><td>S4</td><td>Robot Agent DO: pi-ai loop + MCP OAuth client ↔ our wallet MCP</td></tr>
-    <tr><td>S5</td><td>Agent Pass approve and deny with Kris's Orb-verified ID</td></tr>
-    <tr><td>S6</td><td>Virtual chip ↔ Robot Agent WebSocket: pairing and sign requests</td></tr>
-    <tr><td>S7</td><td>Mac Internet Sharing with the Radxa and ESP32</td></tr>
+    <tr><td>S5</td><td>Agent Pass browser flow with <code>nonce</code> (approve and deny) using Kris's Orb-verified ID: does the token echo the nonce, and which <code>acr</code> / <code>amr</code> values come back</td></tr>
+    <tr><td>S5b</td><td><code>HumanApprovalEnforcer</code> verifies a real World RS256 token on an Arc fork: gas, claim parsing, <code>jti</code> replay</td></tr>
+    <tr><td>S6</td><td>Mock chip ↔ Robot Agent WebSocket (pairing, sign requests); then the real Radxa with Bun + viem</td></tr>
+    <tr><td>S7</td><td>The <code>duckbench</code> hotspot with the Radxa, ESP32 and laptops; then H2, H5, H6 on it</td></tr>
     <tr><td>S8</td><td>Walking policy on the new servos (teammate)</td></tr>
   </table>
   <h3>Unknown: booth questions</h3>
@@ -444,9 +467,10 @@ flowchart LR
     <tr><td>Payments</td><td>x402 now (MPP later); grant path + float path</td></tr>
     <tr><td>Owner actions</td><td>Our relayer; ERC-4337 break-glass</td></tr>
     <tr><td>0G</td><td>Standard providers</td></tr>
-    <tr><td>World</td><td>Agent Pass only</td></tr>
+    <tr><td>World</td><td>Agent Pass only, the approval verified on Arc (browser flow, nonce = invoice hash); World's wallet can't replace ours</td></tr>
+    <tr><td>Iterations</td><td>Mock chip per teammate; no simulator (1.5 = a virtual x402 resource)</td></tr>
     <tr><td>Arc track</td><td>Advanced Stablecoin Logic: RobotPaymentPolicyEnforcer + HumanApprovalEnforcer built in Arc Studio</td></tr>
-    <tr><td>Network</td><td>Mac Internet Sharing; phone hotspot on mobile data as fallback</td></tr>
+    <tr><td>Network</td><td>Dedicated phone hotspot (venue Wi-Fi unusable); Mac Internet Sharing from wired Ethernet as the alternative</td></tr>
     <tr><td>Radxa OS, walking policy</td><td>Teammate</td></tr>
   </table>
   <table>
