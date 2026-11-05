@@ -89,8 +89,27 @@ Owner action (send, revoke, add passkey) = the owner's passkey signs a one-time 
   `x_0g_trace.request_id` / `ZG-Res-Key` as evidence; if a 0G step fails, take no action that step.
   - **Uncertain:** which model handles the tool loop (`glm-5.3-flash` vs `qwen3.8-flash`), and whether
     AI SDK copes with their reasoning + tool-call deltas (S3).
-  - **Unknown:** TEE/"private" providers and `0gm-1.0` disappeared from the catalogue on 2026-11-05
-    18:40 UTC; there's no API key or credits yet. Ask at the 0G booth.
+  - **Known:** we have 0G credits (Kris's teammate, 2026-11-05).
+  - **Nice-to-have, not blocking:** 0G's "verified/private" trust modes run the model inside a TEE (a
+    sealed hardware enclave: the provider can't see prompts, and each response carries a hardware
+    attestation, `tee_verified`). On 2026-11-05 only "standard" providers were listed, and the TEE
+    vision model `0gm-1.0` was gone. Inference and request ids still work; we just can't claim sealed
+    inference unless TEE providers return. The 0G prize asks for a 0G call in the loop, per-decision
+    evidence, a live demo and a safe-stop, not TEE.
+
+### 2.2a 0G ↔ Arc: data, not money
+
+- **Users never pay 0G.** Inference (credits / `sk-` key), Storage uploads and the `EpisodeLog`
+  contract (0G Chain gas) are platform costs, like Cloudflare. The passkey account lives only on Arc.
+  Our backend holds a separate ordinary key on 0G Chain.
+- **The two link through provenance:**
+  - each decision record on 0G Storage includes the resulting Arc tx hash (or "denied" / "walked away")
+  - our ledger maps every Arc payment (invoice id) to the 0G `request_id` that decided it, and the
+    decision hash can sit inside the one-time voucher
+  - `EpisodeLog` on 0G Chain anchors each episode's hash
+  - result: "this USDC payment on Arc ← this 0G decision ← this camera frame", with no bridge
+- **Optional:** charge users for AI in USDC by adding a small per-call fee to the AI client's grant,
+  paid to the platform's Arc account. We top up 0G separately. Not in the demo unless wanted.
 
 ### 2.3 Merchant (iteration 1, extended in 2)
 
@@ -200,7 +219,7 @@ Owner action (send, revoke, add passkey) = the owner's passkey signs a one-time 
 
 ## 6. Sponsor booth questions
 
-- **0G:** credits or API key; when TEE/"private" providers and `0gm-1.0` come back; whether testnet is acceptable.
+- **0G:** ~~credits~~ (we have them); whether TEE/"private" providers and `0gm-1.0` come back (nice-to-have); whether Storage + `EpisodeLog` may use Galileo testnet (free faucet) or must be mainnet (needs 0G tokens).
 - **World:**
   - what "mocked proofs" covers
   - `identityCheck`/`minimum_age` access this weekend

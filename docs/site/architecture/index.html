@@ -328,6 +328,24 @@ flowchart LR
     <tr><td>Retraining the walking policy for our servos</td><td><strong>a rented NVIDIA GPU</strong></td></tr>
   </table>
 
+  <h2>0G and Arc: data, not money</h2>
+  <p class="muted">The user's money stays USDC on Arc. 0G is a platform cost, like Cloudflare. The two link through provenance: every payment points to the decision that caused it, and every decision points to the payment.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  F["Camera frame&lt;br/&gt;+ invoice"] --> D["0G decision&lt;br/&gt;request_id · model"]
+  D -- "pay" --> P["USDC payment on Arc&lt;br/&gt;tx hash · invoice id"]
+  D --> S["0G Storage&lt;br/&gt;decision record incl. Arc tx hash"]
+  S --> E["EpisodeLog on 0G Chain&lt;br/&gt;episode hash"]
+  P -. "ledger: invoice → request_id" .-> D
+  </pre></div>
+  <table>
+    <tr><th>0G feature</th><th>Paid with</th><th>By</th><th>Touches the user's USDC?</th></tr>
+    <tr><td>Inference (the AI client's brain)</td><td>credits / API key (we have credits)</td><td>us</td><td>no</td></tr>
+    <tr><td>Storage (decision records)</td><td>0G Chain gas</td><td>us, a backend key on 0G Chain</td><td>no</td></tr>
+    <tr><td>EpisodeLog contract (prize needs a contract address)</td><td>0G Chain gas</td><td>us</td><td>no</td></tr>
+  </table>
+  <div class="rule"><strong>TEE, in one line:</strong> 0G can run a model inside a sealed hardware enclave, so the provider can't see prompts and every answer is hardware-attested. Today only "standard" providers are listed. Inference still works; we just can't claim sealed inference until TEE providers return. Nice-to-have, not required by the prize.</div>
+
   <h2>World, end to end</h2>
   <table>
     <tr><th>Need</th><th>Design</th></tr>
@@ -352,7 +370,7 @@ flowchart LR
     <tr><th>#</th><th>Spike</th></tr>
     <tr><td>S1</td><td>Real-device passkeys (iPhone, Android, laptop) → deploy on Arc → one real $0.01 payment</td></tr>
     <tr><td>S2</td><td>Our x402 ERC-7710 facilitator: owner → agent → voucher on an Arc fork, then $0.01 for real</td></tr>
-    <tr><td>S3</td><td>0G: key, a tool-calling model (glm-5.3-flash / qwen3.8-flash), latency, request ids in streams</td></tr>
+    <tr><td>S3</td><td>0G (with the teammate's credits): a tool-calling model, ideally with images (glm-5.3-flash / qwen3.8-flash), latency per call, request ids in streams</td></tr>
     <tr><td>S4</td><td>AI client's MCP client ↔ our wallet MCP over OAuth; claude.ai on MCP SDK v2</td></tr>
     <tr><td>S5</td><td>IDKit 4.6 inside Foldkit, World verify → registry; Agent Pass end to end (with Kris's Orb-verified ID)</td></tr>
     <tr><td>S6</td><td>Gateway accepts a passkey account's 544-byte signature (cross-chain send out)</td></tr>
@@ -361,7 +379,7 @@ flowchart LR
   </table>
   <h3>Unknown: needs a sponsor's answer or research</h3>
   <ul>
-    <li><strong>0G:</strong> credits / API key; TEE "private" providers and the 0gm-1.0 vision model disappeared from the catalogue today.</li>
+    <li><strong>0G:</strong> we have credits (teammate). Still open: whether sealed TEE providers come back (nice-to-have, see below); whether Storage + EpisodeLog may run on testnet.</li>
     <li><strong>World:</strong> what "mocked proofs" covers; IDKit 18+ access; World's verifier on Arc has no issuer keys and gets roots hourly. (Answered: Kris has an Orb-verified World ID, so real proofs can be tested.)</li>
     <li><strong>Arc / Circle:</strong> Studio URL viewable without login; a keyed RPC (public one throttles); App Kit swap on Arc mainnet.</li>
     <li><strong>Robot:</strong> which OS is on the Radxa; does the walking policy survive the new servos.</li>
