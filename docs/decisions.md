@@ -5,13 +5,13 @@ Locked unless we deliberately reopen them.
 | Decision | Choice | Why |
 | --- | --- | --- |
 | Event | ETHGlobal Mumbai | Team is there |
-| Product | Open Duck Mini + USDC payments | Hardware story + on-chain budget |
+| Product | Platform for robots that pay: owners control and delegate payments to a fleet. The duck is the first robot (proof of concept) | Duck proves the loop; the platform is what scales |
+| Money | USDC micropayments; owner holds a unified USDC balance | Robots spend small amounts often from one balance |
 | Chain | Arc **mainnet** (not testnet) | Real USDC demo; keep caps tiny while testing |
-| Owner wallet | Our own passkey smart wallet (not Circle Modular Wallets) | We control the flow; sponsors do not provide a wallet |
-| Robot wallet | Plain key on ESP32 | Simplest for the board; no smart-account logic on-device |
-| Spending authority | On-chain delegation / allowance | Database cannot authorise spend |
-| Preferred delegation stack | MetaMask Delegation Framework on Arc (already deployed) | Gas-free grant; robot signs exact spend; anyone can submit |
-| Fallback if SDKs fight us | Small custom DuckWallet in Arc Studio | Same ESP32 signing shape |
+| Owner wallet | Our own smart wallet: owner EOA upgraded with **EIP-7702** (not Circle Modular Wallets) | We control the flow; sponsors do not provide a wallet |
+| Robot wallet | A **session key** on the owner's 7702 smart wallet; the key is generated on and never leaves the robot | One owner account, many robots, each with its own scoped key |
+| Spending authority | On-chain session-key permissions (caps, expiry, revoke) enforced by the 7702 account | Database cannot authorise spend |
+| Sponsors | Arc, 0G, World. No others | Arc = money, 0G = decisions, World = human approval |
 | Backend / web foundation | Early **styldappv2** commit `370a0e23` (not stylelab v1): stack shell, **no** wardrobe logic | See `foundation.md`; HEAD skills + `repos/foldkit` for patterns |
 | Infra shape (later) | Same family as stylelab / styld: Bun, Effect, Alchemy, Foldkit | One-to-one with how Kris likes to ship |
 | Prize focus | Arc + 0G Physical AI + World Agent Pass | Best fit for body + budget + human gate |
@@ -20,7 +20,11 @@ Locked unless we deliberately reopen them.
 
 ## Non-decisions (still open)
 
-See `open-questions.md`.
+See `open-questions.md`. Also open since 2026-11-05:
+
+- Which 7702 implementation the owner account delegates to (existing audited one vs ours built in Arc Studio), and whether Arc mainnet supports type-4 (7702) transactions.
+- What "unified balance" means on the wire: Circle's unified USDC balance product or just one Arc balance.
+- Which robot we have: Open Duck Mini or Pollen Robotics Microduck.
 
 
 ## Project name
