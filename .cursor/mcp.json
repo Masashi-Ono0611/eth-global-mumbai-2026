@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "cloudflare": {
+      "url": "https://mcp.cloudflare.com/mcp"
+    },
+    "mysi": {
+      "url": "https://mysi.lol/mcp"
+    }
+  }
+}

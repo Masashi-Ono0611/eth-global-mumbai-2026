@@ -1,0 +1,26 @@
+{
+  "name": "@styld/web",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "./src/entry.ts",
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@alchemy.run/cloudflare": "catalog:",
+    "@styld/auth": "workspace:*",
+    "@styld/i18n": "workspace:*",
+    "@styld/observability": "workspace:*",
+    "effect": "catalog:",
+    "foldkit": "catalog:"
+  },
+  "devDependencies": {
+    "@foldkit/vite-plugin": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

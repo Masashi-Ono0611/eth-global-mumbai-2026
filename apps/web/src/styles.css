@@ -1,0 +1,214 @@
+/* Styld's existing Atelier palette and typography: the rewrite preserves its visual identity. */
+:root {
+  color-scheme: light;
+  --paper: oklch(94.5% 0.01 76);
+  --ink: oklch(19% 0.024 52);
+  --muted: oklch(47% 0.014 60);
+  --rule: oklch(81% 0.011 70);
+  --focus: oklch(50% 0.095 248);
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.55;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scrollbar-gutter: stable;
+}
+body {
+  margin: 0;
+}
+h1,
+h2,
+p {
+  margin: 0;
+}
+h1,
+h2 {
+  font-family: 'Sentient', Georgia, serif;
+  font-weight: 300;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+h1 {
+  font-size: clamp(2.5rem, 1.5rem + 4vw, 5rem);
+  letter-spacing: -0.022em;
+  max-inline-size: 15ch;
+}
+h2 {
+  font-size: 2rem;
+}
+p {
+  max-inline-size: 65ch;
+  text-wrap: pretty;
+}
+a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+  touch-action: manipulation;
+}
+button,
+select {
+  font: inherit;
+  font-size: 1rem;
+  min-block-size: 44px;
+  touch-action: manipulation;
+}
+select {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  max-inline-size: 100%;
+  padding: 0.45rem;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.site {
+  max-inline-size: 78rem;
+  margin-inline: auto;
+  padding-inline: max(1.25rem, env(safe-area-inset-left), env(safe-area-inset-right));
+}
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+  padding-block: calc(1rem + env(safe-area-inset-top)) 1rem;
+}
+.brand {
+  display: inline-flex;
+}
+.brand img {
+  display: block;
+}
+.language-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-inline-start: auto;
+}
+.language-picker p {
+  flex-basis: 100%;
+}
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 1.5rem;
+  padding-block: clamp(3rem, 10vw, 8rem);
+}
+.lead {
+  font-size: 1.2rem;
+  max-inline-size: 45ch;
+  color: var(--muted);
+}
+.primary-action {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 48px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.65rem 1.5rem;
+  border-radius: 3px;
+  text-decoration: none;
+}
+.primary-action:active {
+  opacity: 0.8;
+}
+.secondary-action {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 48px;
+  padding: 0.65rem 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.secondary-action:active {
+  opacity: 0.8;
+}
+.auth-page {
+  max-inline-size: 32rem;
+  min-block-size: 65svh;
+  padding-block: clamp(3rem, 8vw, 6rem);
+}
+.auth-form {
+  display: grid;
+  gap: 0.65rem;
+  margin-block-start: 1.5rem;
+}
+.auth-form input {
+  font: inherit;
+  font-size: 1rem;
+  inline-size: 100%;
+  min-block-size: 48px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--paper) 88%, var(--ink));
+  color: var(--ink);
+}
+.auth-form input:user-invalid {
+  border-color: oklch(58% 0.16 25);
+}
+.auth-form button {
+  justify-self: start;
+  margin-block-start: 0.75rem;
+  border: 0;
+  cursor: pointer;
+}
+.form-error {
+  color: oklch(48% 0.16 25);
+}
+.account-details {
+  display: grid;
+  justify-items: start;
+  gap: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.account-details dd {
+  margin: 0;
+  margin-block-end: 1rem;
+}
+.inspiration {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-block: 2rem 5rem;
+  border-block-start: 1px solid var(--rule);
+  scroll-margin-block-start: 2rem;
+}
+.empty-state {
+  padding-block: 2rem;
+  color: var(--muted);
+}
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-block: 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+  border-block-start: 1px solid var(--rule);
+}
+footer a {
+  margin-inline-start: auto;
+  min-block-size: 44px;
+}
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+  .primary-action:hover {
+    opacity: 0.85;
+  }
+  .secondary-action:hover {
+    background: color-mix(in oklch, var(--paper) 90%, var(--ink));
+  }
+}

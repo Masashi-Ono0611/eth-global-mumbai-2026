@@ -1,0 +1,73 @@
+{
+  "version": 2,
+  "skills": {
+    "alchemy-domain": {
+      "repository": "alchemy-run/alchemy",
+      "commit": "3bb45b0f089597f4b0f9c908b2f5d615201d1405",
+      "path": "packages/domain/skills/alchemy-domain",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "f36574c2c495b578c7ba6371356756372d7111ca7845bf54d62bd84713b51a66",
+      "localTreeSha256": "f36574c2c495b578c7ba6371356756372d7111ca7845bf54d62bd84713b51a66",
+      "unchanged": true
+    },
+    "durable-objects": {
+      "repository": "cloudflare/skills",
+      "commit": "0871daceb347e3c51693fbe9c77555468df7e410",
+      "path": "skills/durable-objects",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "57d6553178ac88801def139889b4932af574dbb3db0f7949f3b8bf45b3d7335d",
+      "localTreeSha256": "86c2713d744846c851c14f096bba920904f7e664b404ada07908d53011c971de",
+      "unchanged": false,
+      "adaptation": "Removed trailing spaces from two blank lines in references/workers.md; the guidance is unchanged.",
+      "baseCommit": "0871daceb347e3c51693fbe9c77555468df7e410"
+    },
+    "thermo-nuclear-code-quality-review": {
+      "repository": "cursor/plugins",
+      "commit": "ccb5507cec1546dc88135c1139c811e6c59115ba",
+      "path": "thermos/skills/thermo-nuclear-code-quality-review",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "b92ba8ebcf36f421a22a6af2972325d4e8b56ee397ca7de6734f84806050dbb4",
+      "localTreeSha256": "dce8793eba43c2e18caa103e747f44205d41462c0a9e5eac469dbab277dedd11",
+      "unchanged": false,
+      "adaptation": "agents/openai.yaml added so Codex also treats it as manual-only.",
+      "baseCommit": "ccb5507cec1546dc88135c1139c811e6c59115ba"
+    },
+    "unslop": {
+      "repository": "cursor/plugins",
+      "commit": "ccb5507cec1546dc88135c1139c811e6c59115ba",
+      "path": "pstack/skills/unslop",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "8ccc1d0bebf98bb77486238ca07d7dc7fba9b467aef3ad49477aa64cbcef89aa",
+      "localTreeSha256": "a3acfd72b95b3dce0feb5cfde79797526ece9270f46bdcfac1139f8ed74b704e",
+      "unchanged": false,
+      "adaptation": "Description scoped to prose; upstream 'Must always apply' contradicts its manual-only flag (cursor/plugins#308, #367). agents/openai.yaml added so Codex also treats it as manual-only.",
+      "baseCommit": "ccb5507cec1546dc88135c1139c811e6c59115ba"
+    },
+    "wrangler": {
+      "repository": "cloudflare/skills",
+      "commit": "0871daceb347e3c51693fbe9c77555468df7e410",
+      "path": "skills/wrangler",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "1e707db60202e48cdd03b2456b85580b03b713d7a2bc2c459fce8d37e2ea28f2",
+      "localTreeSha256": "ce7fb8fd999337d8dcd7796284db3c8af432c9077a2df60369790c3f1ce16af3",
+      "unchanged": false,
+      "adaptation": "Made manual-only (disable-model-invocation: true). agents/openai.yaml disables implicit invocation in Codex.",
+      "baseCommit": "0871daceb347e3c51693fbe9c77555468df7e410"
+    }
+  }
+}
