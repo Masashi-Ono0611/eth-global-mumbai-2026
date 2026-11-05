@@ -1,6 +1,7 @@
 import { API, type PageComment, QUOTE_MAX, QUOTE_MIN, type Selected, type State, type Status, page, store } from './types.ts'
 import { button, el, link, messageOf } from './dom.ts'
 import { hash } from './anchors.ts'
+import { richText } from './richtext.ts'
 import { anyThread, isRoot, openThreadCount, repliesTo, rootsFor } from './threads.ts'
 import { markParts, markQuotes } from './marks.ts'
 import { deleteComment, fetchComments, patchStatus, postComment } from './api.ts'
@@ -138,7 +139,7 @@ const commentView = (state: State, comment: PageComment, depth: number): HTMLEle
   )
   const meta = el('div', { className: 'cm-meta' }, el('span', { textContent: `${comment.name} · ${new Date(comment.createdAt).toLocaleString()}` }), actions)
   const replies = repliesTo(state, comment.id).map((reply) => commentView(state, reply, depth + 1))
-  const node = el('div', { className: depth === 0 ? 'cm-item' : 'cm-item cm-reply' }, meta, el('div', { className: 'cm-body', textContent: comment.body }), replySlot, ...replies)
+  const node = el('div', { className: depth === 0 ? 'cm-item' : 'cm-item cm-reply' }, meta, richText(comment.body), replySlot, ...replies)
   return node
 }
 

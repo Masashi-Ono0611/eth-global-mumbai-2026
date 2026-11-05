@@ -37,7 +37,11 @@ export const css = `
   .cm-thread { border-top: 1px solid var(--line, #eee); padding-top: 6px; margin-top: 6px; }
   .cm-thread-resolved, .cm-thread-accepted, .cm-thread-rejected { opacity: .7; }
   .cm-reply { margin-left: 14px; padding-left: 10px; border-left: 2px solid var(--line, #ddd); border-top: 0; }
-  .cm-body { white-space: pre-wrap; word-break: break-word; }
+  .cm-body { word-break: break-word; }
+  .cm-body .cm-p { margin: 4px 0; }
+  .cm-body .cm-bq { margin: 4px 0; padding: 2px 0 2px 10px; border-left: 3px solid var(--line, #ccc); color: var(--muted, #666); }
+  .cm-body code { font: 12px ui-monospace, monospace; background: color-mix(in srgb, var(--line, #ddd) 60%, transparent); padding: 1px 4px; border-radius: 4px; }
+  .cm-body a { color: var(--arc, #2f6bff); }
   .cm-actions { display: inline-flex; gap: 10px; }
   .cm-link { border: 0; background: none; color: var(--arc, #2f6bff); cursor: pointer; font: 600 12px system-ui, sans-serif; padding: 0; }
   .cm-status { display: flex; gap: 12px; align-items: center; font-size: 12px; margin: 2px 0 4px; }
