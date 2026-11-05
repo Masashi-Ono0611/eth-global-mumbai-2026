@@ -11,6 +11,8 @@ const architectureUrl = 'https://eth-mumbai-site.kristjan-grm11775.workers.dev/a
 const languages: ReadonlyArray<Readonly<{ locale: Locale; label: string }>> = [
   { locale: 'en', label: 'English' },
   { locale: 'sl', label: 'Slovenščina' },
+  { locale: 'ja', label: '日本語' },
+  { locale: 'hi', label: 'हिन्दी' },
   { locale: 'en-XA', label: 'English (expanded)' },
   { locale: 'ar-XB', label: 'English (RTL)' },
 ]

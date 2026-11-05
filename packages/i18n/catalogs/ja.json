@@ -1,0 +1,39 @@
+{
+  "account": {
+    "email": "メールアドレス",
+    "name": "名前",
+    "title": "アカウント"
+  },
+  "auth": {
+    "email": "メールアドレス",
+    "language": "言語",
+    "password": "パスワード",
+    "signInError": "サインインに失敗しました。もう一度お試しください。",
+    "signingIn": "サインイン中...",
+    "signInTitle": "サインイン",
+    "signInWithEmail": "メールでサインイン",
+    "signOut": "サインアウト"
+  },
+  "catalog": {
+    "pieces": "{count, plural, other {#点}}"
+  },
+  "common": {
+    "error": "問題が発生しました",
+    "errorDetail": "問題が発生しました: {message}",
+    "goHome": "ホームへ戻る",
+    "loading": "読み込み中...",
+    "notFoundDescription": "お探しのページは見つかりませんでした。",
+    "notFoundTitle": "ページが見つかりません",
+    "retry": "再試行"
+  },
+  "landing": {
+    "browse": "アーキテクチャを見る",
+    "contact": "ソースコード",
+    "description": "ロボットに Arc 上で上限付きの USDC 予算を渡しましょう。レジまで歩き、支払い用 QR コードを読み取って支払います。許可はいつでも取り消せます。",
+    "feedDescription": "パスキーのウォレットがオンチェーンでアヒルに利用上限を与え、支払いへの署名はアヒル自身が行います。",
+    "feedEmpty": "デモ用ダッシュボードは準備中です。",
+    "feedTitle": "しくみ",
+    "lead": "あなたのアヒル、<italic>あなたの予算</italic>。",
+    "title": "予算を持ったアヒル。"
+  }
+}

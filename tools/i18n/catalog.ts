@@ -82,25 +82,36 @@ export const contractFor = (locale: string, key: string, message: string): Contr
   return contract
 }
 
-export const validateCatalogs = (en: Catalog, sl: Catalog): ReadonlyMap<string, Contract> => {
+/** One translated message against the English contract: the same arguments, with compatible kinds. */
+const mergeTranslation = (locale: string, key: string, left: Contract, target: string): Contract => {
+  const right = contractFor(locale, key, target)
+  if (JSON.stringify([...left.keys()].toSorted()) !== JSON.stringify([...right.keys()].toSorted()))
+    throw new Error(`Argument parity failed: ${locale}:${key}`)
+  const merged = new Map<string, ArgumentKind>()
+  for (const [name, kind] of left) {
+    const other = right.get(name)
+    if (other === undefined) throw new Error(`Missing argument: ${locale}:${key}:${name}`)
+    merged.set(name, compatible(kind, other))
+  }
+  return merged
+}
+
+/** Every translation must have exactly English's keys and arguments; plural forms are checked per locale. */
+export const validateCatalogs = (
+  en: Catalog,
+  translations: Readonly<Record<string, Catalog>>,
+): ReadonlyMap<string, Contract> => {
   const keys = Object.keys(en).toSorted()
-  if (JSON.stringify(keys) !== JSON.stringify(Object.keys(sl).toSorted())) throw new Error('Catalog key parity failed')
-  const contracts = new Map<string, Contract>()
-  for (const key of keys) {
-    const source = en[key]
-    const target = sl[key]
-    if (source === undefined || target === undefined) throw new Error(`Missing message: ${key}`)
-    const left = contractFor('en', key, source)
-    const right = contractFor('sl', key, target)
-    if (JSON.stringify([...left.keys()].toSorted()) !== JSON.stringify([...right.keys()].toSorted()))
-      throw new Error(`Argument parity failed: ${key}`)
-    const merged = new Map<string, ArgumentKind>()
-    for (const [name, kind] of left) {
-      const other = right.get(name)
-      if (other === undefined) throw new Error(`Missing argument: ${key}:${name}`)
-      merged.set(name, compatible(kind, other))
+  const contracts = new Map<string, Contract>(keys.map((key) => [key, contractFor('en', key, en[key] ?? '')]))
+  for (const [locale, catalog] of Object.entries(translations)) {
+    if (JSON.stringify(keys) !== JSON.stringify(Object.keys(catalog).toSorted()))
+      throw new Error(`Catalog key parity failed: ${locale}`)
+    for (const key of keys) {
+      const target = catalog[key]
+      const left = contracts.get(key)
+      if (target === undefined || left === undefined) throw new Error(`Missing message: ${locale}:${key}`)
+      contracts.set(key, mergeTranslation(locale, key, left, target))
     }
-    contracts.set(key, merged)
   }
   return contracts
 }

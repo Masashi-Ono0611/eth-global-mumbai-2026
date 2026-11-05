@@ -9,10 +9,14 @@ const load = async (locale: string) => {
   const input: unknown = JSON.parse(await readFile(`${root}/packages/i18n/catalogs/${locale}.json`, 'utf8'))
   return flatten(input)
 }
+/** The reviewed translations of the English catalog; each also needs a `Locale` entry in packages/i18n and apps/web. */
+const translatedLocales = ['sl', 'ja', 'hi'] as const
 const en = await load('en')
-const sl = await load('sl')
-const contracts = validateCatalogs(en, sl)
-const outputs = generate(en, sl, contracts)
+const translations = Object.fromEntries(
+  await Promise.all(translatedLocales.map(async (locale) => [locale, await load(locale)] as const)),
+)
+const contracts = validateCatalogs(en, translations)
+const outputs = generate(en, translations, contracts)
 for (const [name, source] of Object.entries(outputs)) {
   const path = `${root}/packages/i18n/src/${name}`
   const result = await format(path, source, config)
@@ -21,5 +25,5 @@ for (const [name, source] of Object.entries(outputs)) {
   else if ((await readFile(path, 'utf8')) !== result.code) throw new Error(`Stale ${name}. Run bun run i18n:generate`)
 }
 console.log(
-  `i18n: ${Object.keys(en).length} messages; ICU, variables, tags, plural coverage and generated files verified`,
+  `i18n: ${Object.keys(en).length} messages in ${translatedLocales.length + 1} languages; ICU, variables, tags, plural coverage and generated files verified`,
 )

@@ -105,4 +105,18 @@ describe('language', () => {
       expect(role('heading', { name: 'Raca s proračunom.' })).toExist(),
     )
   })
+
+  test('Japanese and Hindi are offered and render the page', () => {
+    scene(
+      { update, view },
+      given(signedOut('/')),
+      change(label('Language'), 'ja'),
+      Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'ja' })),
+      expect(role('heading', { name: '予算を持ったアヒル。' })).toExist(),
+      expect(role('link', { name: 'メールでサインイン' })).toHaveAttr('href', '/login'),
+      change(label('言語'), 'hi'),
+      Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'hi' })),
+      expect(role('heading', { name: 'बजट वाली बत्तख।' })).toExist(),
+    )
+  })
 })

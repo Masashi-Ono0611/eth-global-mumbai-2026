@@ -212,3 +212,17 @@ footer a {
     background: color-mix(in oklch, var(--paper) 90%, var(--ink));
   }
 }
+
+/* Japanese and Hindi: the Latin faces above have no CJK or Devanagari glyphs, so prefer each script's system face. */
+:lang(ja) {
+  font-family: 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif;
+}
+:lang(hi) {
+  font-family: 'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Nirmala UI', system-ui, sans-serif;
+}
+:lang(ja) h1,
+:lang(ja) h2,
+:lang(hi) h1,
+:lang(hi) h2 {
+  font-family: inherit;
+}

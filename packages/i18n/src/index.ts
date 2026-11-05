@@ -1,24 +1,28 @@
 import { IntlMessageFormat } from 'intl-messageformat'
 
-import { en, sl } from './catalogs.ts'
+import { en, hi, ja, sl } from './catalogs.ts'
 import type { MessageKey, MessageValues } from './generated.ts'
 import { pseudoMessage } from './pseudo.ts'
 
 export type { MessageKey, MessageValues, RichTextValue } from './generated.ts'
 export { catalogVersion } from './generated.ts'
-export type Locale = 'en' | 'sl' | 'en-XA' | 'ar-XB'
+/** Translated languages; the pseudo-locales en-XA and ar-XB exercise layout with English text. */
+export type Language = 'en' | 'sl' | 'ja' | 'hi'
+export type Locale = Language | 'en-XA' | 'ar-XB'
+const catalogs: Readonly<Record<Language, Readonly<Record<MessageKey, string>>>> = { en, sl, ja, hi }
+const languages: ReadonlyArray<Language> = ['en', 'sl', 'ja', 'hi']
 
 const defaultLocale: Locale = 'en'
 const formatterLimit = 4096
 const formatters = new Map<string, IntlMessageFormat>()
 
-const baseLocale = (locale: Locale): 'en' | 'sl' => (locale === 'sl' ? 'sl' : 'en')
+const baseLocale = (locale: Locale): Language => (locale === 'en-XA' || locale === 'ar-XB' ? 'en' : locale)
 
 const formatterFor = (locale: Locale, key: MessageKey): IntlMessageFormat => {
   const cacheKey = `${locale}:${key}`
   const cached = formatters.get(cacheKey)
   if (cached !== undefined) return cached
-  const catalog = baseLocale(locale) === 'sl' ? sl : en
+  const catalog = catalogs[baseLocale(locale)]
   const source = new IntlMessageFormat(catalog[key], baseLocale(locale))
   const formatter =
     locale === 'en-XA' || locale === 'ar-XB'
@@ -34,7 +38,8 @@ const formatterFor = (locale: Locale, key: MessageKey): IntlMessageFormat => {
 
 export const normalizeLocale = (input: string | undefined): Locale => {
   if (input === 'en-XA' || input === 'ar-XB') return input
-  if (/^sl(?:-[a-z0-9]{2,8})*$/i.test(input ?? '')) return 'sl'
+  const language = languages.find((candidate) => new RegExp(`^${candidate}(?:-[a-z0-9]{2,8})*$`, 'i').test(input ?? ''))
+  if (language !== undefined) return language
   return defaultLocale
 }
 

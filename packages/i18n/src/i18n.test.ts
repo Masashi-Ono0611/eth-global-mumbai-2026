@@ -8,6 +8,17 @@ describe('App locales', () => {
     expect(format('sl', 'catalog.pieces', { count: 2 })).toBe('2 kosa')
   })
 
+  test("formats Japanese and Hindi, with each language's plural rules", () => {
+    expect(format('ja', 'landing.title', {})).toBe('予算を持ったアヒル。')
+    expect(format('ja', 'catalog.pieces', { count: 1 })).toBe('1点')
+    expect(format('ja', 'catalog.pieces', { count: 3 })).toBe('3点')
+    expect(format('hi', 'landing.title', {})).toBe('बजट वाली बत्तख।')
+    expect(format('hi', 'catalog.pieces', { count: 1 })).toBe('1 वस्तु')
+    expect(format('hi', 'catalog.pieces', { count: 3 })).toBe('3 वस्तुएँ')
+    expect(normalizeLocale('ja-JP')).toBe('ja')
+    expect(normalizeLocale('hi-IN')).toBe('hi')
+  })
+
   test('keeps locale state explicit and supports pseudolocales', () => {
     expect(normalizeLocale('sl-SI')).toBe('sl')
     expect(normalizeLocale('unknown')).toBe('en')
