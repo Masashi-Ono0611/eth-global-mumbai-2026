@@ -13,12 +13,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Chromium and its system libraries come prebuilt with the image (matches the pinned playwright), instead of a
-    # ~40 s `playwright install --with-deps` on every run.
-    container: mcr.microsoft.com/playwright:v1.64.1-noble
+    # Tried the playwright v1.64.1 container instead of `playwright install --with-deps` (2026-11-05): image start
+    # (~33 s) plus installing unzip for setup-bun (~29 s) cost more than the ~39 s install it replaced.
     steps:
-      # setup-bun unpacks a zip; the playwright image has no unzip.
-      - run: apt-get update -qq && apt-get install -y -qq unzip > /dev/null
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -28,6 +25,7 @@ jobs:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
         timeout-minutes: 5
+      - run: bunx playwright install --with-deps chromium
       - run: bun run check
   # The app (alchemy.run.ts, stage `main`), after a green check on main only.
   deploy:
