@@ -15,12 +15,12 @@
  */
 
 
-import { PART, type State } from './comments/types'
-import { css } from './comments/style'
-import { el } from './comments/dom'
-import { collectAnchors, ownersOf } from './comments/anchors'
-import { registerPart } from './comments/marks'
-import { closePanel, closePopover, commentOnSelection, openPanel, openPopover, refresh, render, showSelectButton } from './comments/view'
+import { PART, type State } from './comments/types.ts'
+import { css } from './comments/style.ts'
+import { el } from './comments/dom.ts'
+import { collectAnchors, ownersOf } from './comments/anchors.ts'
+import { registerPart } from './comments/marks.ts'
+import { closePanel, closePopover, commentOnSelection, openPanel, openPopover, refresh, render, showSelectButton } from './comments/view.ts'
 
 // ---------- wiring ----------
 

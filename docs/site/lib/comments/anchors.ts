@@ -1,5 +1,5 @@
-import { type Anchor, SELECTOR } from './types'
-import { textOf } from './dom'
+import { type Anchor, SELECTOR } from './types.ts'
+import { textOf } from './dom.ts'
 
 // ---------- anchors: which elements can be commented on ----------
 
@@ -9,26 +9,26 @@ export const hash = (text: string): string => {
   return h.toString(36)
 }
 
-export const slug = (text: string): string =>
+const slug = (text: string): string =>
   text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
 
-export const isSection = (node: Element): boolean => node.tagName === 'H1' || node.tagName === 'H2'
+const isSection = (node: Element): boolean => node.tagName === 'H1' || node.tagName === 'H2'
 
-export const isSkipped = (node: Element): boolean =>
+const isSkipped = (node: Element): boolean =>
   node.parentElement?.closest(SELECTOR) != null || (node.tagName === 'TR' && node.querySelector('th') !== null)
 
-export const labelOf = (node: Element): string => {
+const labelOf = (node: Element): string => {
   const pre = node.classList.contains('diagram') ? node.querySelector('pre') : null
   return pre ? `diagram:${textOf(pre).slice(0, 200)}` : textOf(node)
 }
 
-export const kindOf = (node: Element): string => {
+const kindOf = (node: Element): string => {
   const first = node.classList.item(0)
   return first ? `${node.tagName.toLowerCase()}.${first}` : node.tagName.toLowerCase()
 }
 
 /** Where the button goes: a button can't live directly in a <tr>, and clicking inside a <summary> toggles <details>. */
-export const hostOf = (node: HTMLElement): HTMLElement => {
+const hostOf = (node: HTMLElement): HTMLElement => {
   const target = node.tagName === 'SUMMARY' ? node.parentElement : node.tagName === 'TR' ? node.lastElementChild : node
   return target instanceof HTMLElement ? target : node
 }

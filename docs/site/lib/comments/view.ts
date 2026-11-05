@@ -1,11 +1,11 @@
-import { API, type PageComment, QUOTE_MAX, QUOTE_MIN, type Selected, type State, type Status, page, store } from './types'
-import { button, el, link, messageOf } from './dom'
-import { hash } from './anchors'
-import { anyThread, isRoot, openThreadCount, repliesTo, rootsFor } from './threads'
-import { markParts, markQuotes } from './marks'
-import { deleteComment, fetchComments, patchStatus, postComment } from './api'
+import { API, type PageComment, QUOTE_MAX, QUOTE_MIN, type Selected, type State, type Status, page, store } from './types.ts'
+import { button, el, link, messageOf } from './dom.ts'
+import { hash } from './anchors.ts'
+import { anyThread, isRoot, openThreadCount, repliesTo, rootsFor } from './threads.ts'
+import { markParts, markQuotes } from './marks.ts'
+import { deleteComment, fetchComments, patchStatus, postComment } from './api.ts'
 
-export const ownerIdOf = (state: State, start: Element): string | null => {
+const ownerIdOf = (state: State, start: Element): string | null => {
   for (let node: Element | null = start; node; node = node.parentElement) {
     const id = state.owners.get(node)
     if (id) return id
@@ -13,7 +13,7 @@ export const ownerIdOf = (state: State, start: Element): string | null => {
   return null
 }
 
-export const readSelection = (state: State): Selected | null => {
+const readSelection = (state: State): Selected | null => {
   const selection = getSelection()
   if (!selection || selection.isCollapsed || selection.rangeCount === 0) return null
   const quote = selection.toString().replace(/\s+/g, ' ').trim()
@@ -93,25 +93,25 @@ export const refresh = (state: State): void => {
   fetchComments().then(redraw, () => redraw([]))
 }
 
-export const report = (prefix: string) => (error: unknown): void => {
+const report = (prefix: string) => (error: unknown): void => {
   alert(`${prefix}: ${messageOf(error)}`)
 }
 
-export const removeComment = (state: State, id: string): void => {
+const removeComment = (state: State, id: string): void => {
   if (!confirm('Delete this comment?')) return
   deleteComment(id).then(() => refresh(state), report('Could not delete'))
 }
 
-export const setStatus = (state: State, id: string, status: Status): void => {
+const setStatus = (state: State, id: string, status: Status): void => {
   const by = store.get('name') || prompt('Your name')?.trim() || ''
   if (!by) return
   store.set('name', by)
   patchStatus(id, status, by).then(() => refresh(state), report('Could not update'))
 }
 
-export const STATUS_LABEL: Readonly<Record<Status, string>> = { open: 'open', resolved: '✓ resolved', accepted: '✓ accepted', rejected: '✗ rejected' }
+const STATUS_LABEL: Readonly<Record<Status, string>> = { open: 'open', resolved: '✓ resolved', accepted: '✓ accepted', rejected: '✗ rejected' }
 
-export const statusBar = (state: State, root: PageComment): HTMLElement => {
+const statusBar = (state: State, root: PageComment): HTMLElement => {
   if (root.status !== 'open') {
     const label = `${STATUS_LABEL[root.status]}${root.statusBy ? ` by ${root.statusBy}` : ''}`
     return el('div', { className: 'cm-status' }, el('span', { className: `cm-chip cm-${root.status}`, textContent: label }), button('Reopen', 'cm-link', () => setStatus(state, root.id, 'open')))
@@ -125,7 +125,7 @@ export const statusBar = (state: State, root: PageComment): HTMLElement => {
   )
 }
 
-export const commentView = (state: State, comment: PageComment, depth: number): HTMLElement => {
+const commentView = (state: State, comment: PageComment, depth: number): HTMLElement => {
   const replySlot = el('div')
   const actions = el(
     'span',
@@ -142,11 +142,11 @@ export const commentView = (state: State, comment: PageComment, depth: number): 
   return node
 }
 
-export const threadView = (state: State, root: PageComment): HTMLElement =>
+const threadView = (state: State, root: PageComment): HTMLElement =>
   el('div', { className: `cm-thread cm-thread-${root.status}` }, statusBar(state, root), commentView(state, root, 0))
 
 /** Open threads first; resolved ones folded behind a toggle. */
-export const threadsView = (state: State, roots: ReadonlyArray<PageComment>): HTMLElement[] => {
+const threadsView = (state: State, roots: ReadonlyArray<PageComment>): HTMLElement[] => {
   const open = roots.filter((r) => r.status === 'open').map((r) => threadView(state, r))
   const closed = roots.filter((r) => r.status !== 'open')
   if (closed.length === 0) return open
@@ -159,7 +159,7 @@ export const threadsView = (state: State, roots: ReadonlyArray<PageComment>): HT
   return [...open, toggle, folded]
 }
 
-export const form = (state: State, target: { readonly anchor: string; readonly anchorText: string; readonly parentId: string | null }, placeholder: string): HTMLElement => {
+const form = (state: State, target: { readonly anchor: string; readonly anchorText: string; readonly parentId: string | null }, placeholder: string): HTMLElement => {
   const name = el('input', { placeholder: 'Your name', value: store.get('name'), maxLength: 60 })
   const body = el('textarea', { placeholder: `${placeholder} (⌘/Ctrl+Enter to send)`, maxLength: 4000 })
   const error = el('div', { className: 'cm-err' })
@@ -206,7 +206,7 @@ export function openPopover(state: State, id: string, rect: DOMRect): void {
   state.popoverAt = { id, rect }
 }
 
-export const anchorGroup = (state: State, id: string, text: string, node: HTMLElement | null): HTMLElement[] => {
+const anchorGroup = (state: State, id: string, text: string, node: HTMLElement | null): HTMLElement[] => {
   const label = text.slice(0, 120)
   const head = node ? link(label, () => node.scrollIntoView({ behavior: 'smooth', block: 'center' })) : el('span', { textContent: label })
   return [el('div', { className: 'cm-quote' }, head), ...threadsView(state, rootsFor(state, id))]

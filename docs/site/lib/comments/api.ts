@@ -1,17 +1,17 @@
-import { API, type PageComment, type Status, page } from './types'
+import { API, type PageComment, type Status, page } from './types.ts'
 
 // ---------- API ----------
 
-export const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
-export const STATUSES: ReadonlyArray<Status> = ['open', 'resolved', 'accepted', 'rejected']
+const STATUSES: ReadonlyArray<Status> = ['open', 'resolved', 'accepted', 'rejected']
 
-export const isStatus = (value: unknown): value is Status => STATUSES.some((status) => status === value)
+const isStatus = (value: unknown): value is Status => STATUSES.some((status) => status === value)
 
-export const stringOrNull = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null)
+const stringOrNull = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null)
 
 /** Older servers return no parentId/status: those comments are open, top-level threads. */
-export const toComment = (value: unknown): PageComment | null => {
+const toComment = (value: unknown): PageComment | null => {
   if (!isRecord(value)) return null
   const { id, anchor, anchorText, name, body, createdAt } = value
   if (typeof id !== 'string' || typeof anchor !== 'string' || typeof anchorText !== 'string') return null
@@ -20,7 +20,7 @@ export const toComment = (value: unknown): PageComment | null => {
   return { id, anchor, anchorText, name, body, createdAt, parentId: stringOrNull(value['parentId']), status, statusBy: stringOrNull(value['statusBy']) }
 }
 
-export const send = async (path: string, init?: RequestInit): Promise<unknown> => {
+const send = async (path: string, init?: RequestInit): Promise<unknown> => {
   const res = await fetch(path, init)
   if (!res.ok) throw new Error(`${res.status} ${await res.text().catch(() => '')}`.trim())
   return res.status === 204 ? null : res.json()

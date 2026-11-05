@@ -1,11 +1,11 @@
-import { type PageComment, type State } from './types'
+import { type PageComment, type State } from './types.ts'
 
 // ---------- threads ----------
 
-export const byId = (state: State): ReadonlyMap<string, PageComment> => new Map(state.comments.map((c) => [c.id, c]))
+const byId = (state: State): ReadonlyMap<string, PageComment> => new Map(state.comments.map((c) => [c.id, c]))
 
 /** The thread's first comment. A reply whose parent is gone counts as a root. */
-export const rootOf = (state: State, comment: PageComment): PageComment => {
+const rootOf = (state: State, comment: PageComment): PageComment => {
   const index = byId(state)
   let current = comment
   for (let hops = 0; current.parentId && hops < 50; hops++) {
@@ -25,7 +25,7 @@ export const repliesTo = (state: State, id: string): ReadonlyArray<PageComment> 
 export const rootsFor = (state: State, anchorId: string): ReadonlyArray<PageComment> =>
   state.comments.filter((c) => c.anchor === anchorId && isRoot(state, c))
 
-export const matches = (anchorId: string, comment: PageComment): boolean => comment.anchor === anchorId || comment.anchor.startsWith(`${anchorId}/`)
+const matches = (anchorId: string, comment: PageComment): boolean => comment.anchor === anchorId || comment.anchor.startsWith(`${anchorId}/`)
 
 /** Badge: open threads on this element and its diagram parts / quotes. */
 export const openThreadCount = (state: State, anchorId: string): number =>

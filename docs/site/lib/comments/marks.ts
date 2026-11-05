@@ -1,16 +1,16 @@
-import { PART, type State } from './types'
-import { el, escapeRegExp, svgText } from './dom'
-import { isOpen } from './threads'
-import { hash } from './anchors'
+import { PART, type State } from './types.ts'
+import { el, escapeRegExp, svgText } from './dom.ts'
+import { isOpen } from './threads.ts'
+import { hash } from './anchors.ts'
 
 // ---------- diagram parts ----------
 
-export const partKind = (part: Element): string => {
+const partKind = (part: Element): string => {
   if (part.classList.contains('pele-cluster')) return 'group'
   return part.classList.contains('pele-node') ? 'node' : 'arrow'
 }
 
-export const partLabel = (part: Element): string => {
+const partLabel = (part: Element): string => {
   const id = part.getAttribute('data-id') ?? ''
   if (part.classList.contains('pele-cluster')) return svgText(part.querySelector('text') ?? part).slice(0, 120)
   if (part.classList.contains('pele-node')) return svgText(part)
@@ -19,7 +19,7 @@ export const partLabel = (part: Element): string => {
   return label ? svgText(label) : id
 }
 
-export const partAnchorId = (diagramId: string, part: Element): string =>
+const partAnchorId = (diagramId: string, part: Element): string =>
   `${diagramId}/n/${part.getAttribute('data-id') ?? ''}:${hash(partLabel(part))}`
 
 export const registerPart = (state: State, diagramId: string, part: Element): string => {
@@ -53,7 +53,7 @@ export const markParts = (state: State): void => {
 
 // ---------- text quotes ----------
 
-export const textNodesOf = (root: Element): Text[] => {
+const textNodesOf = (root: Element): Text[] => {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) =>
       node.parentElement?.closest('.cm-btn, .cm-mark, svg, script, style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
@@ -64,7 +64,7 @@ export const textNodesOf = (root: Element): Text[] => {
 }
 
 /** Wraps the first whitespace-insensitive match of `quote` inside `root` in <mark>s; returns false if not found. */
-export const wrapQuote = (root: Element, quote: string, anchorId: string): boolean => {
+const wrapQuote = (root: Element, quote: string, anchorId: string): boolean => {
   const nodes = textNodesOf(root)
   const match = new RegExp(quote.split(/\s+/).map(escapeRegExp).join('\\s+')).exec(nodes.map((n) => n.data).join(''))
   if (!match) return false
