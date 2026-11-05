@@ -1,5 +1,6 @@
 # Plan v3: wallet → robot agent → merchant → chip
 
+**v3.1, 2026-11-06:** comment round 2 (on-chain Agent Pass check, mock chip, no simulator, bench results, network, servo wiring).
 **v3, 2026-11-05 (late).** Updated from Kris's 13 comments on the v2 page and the Q&A that followed. The decisions are
 recorded in `decisions.md` (plan v3 A–J).
 
@@ -143,51 +144,75 @@ The wallet design is unchanged from v2, except for owner actions and approvals:
   - a `used` state, so a cached `paid` can't reopen the gate
 - **Restricted items** (the mock cigarette pack) need a **fresh Agent Pass approval**, not an age proof (see 2.5).
 
-### 2.5 World: Agent Pass only (decision F)
+### 2.5 World: Agent Pass, verified on Arc (decision F, updated)
 
 - **What Agent Pass is:** ETHGlobal's name for **World IdP**, World's OIDC sign-in at `auth.world.org`.
-  - **Known:** no blockchain is involved at all, so it fits Arc cleanly.
-  - Our backend (an OIDC client with a secret) starts a **device flow**. The owner opens the link, checks a short code,
-    and approves in World App.
-  - The backend polls and gets an **RS256 ID token** (JWKS at `/.well-known/jwks.json`).
-  - Deny (`access_denied`), expiry (20 min, `expired_token`) and any error mean **no token, so no payment**.
-- **Binding:** World App **cannot** show what is being approved (only the `openid` scope; no `binding_message` or
-  `authorization_details`). So:
-  - our wallet page shows item, amount, payee and invoice
-  - we store the attempt, and mark it used in the same step that co-signs
-- **Co-signature:** after verifying the token, the backend signs EIP-712
-  `{invoiceHash, amount, payee, expiry, nonce, delegationHash, authTime}`. `HumanApprovalEnforcer` (built in Arc
-  Studio) checks the signer, expiry and a single-use nonce. It sits on the root grant, so it binds the chip too.
-- **Token checks:**
-  - accept `acr` `…/acr/orb` or `…/acr/orb-face`
-  - reject passkey-only sign-ins (an `amr` containing `mfa`), or require `orb-face`
-  - check `sub` = owner, `auth_time` after the attempt started, `jti` unused
-  - World's reference `idp.ts` has two bugs here (it requires a non-existent `orb-v3`, and it accepts passkey-only
-    sign-ins)
+  - **Known:** World IdP itself uses no chain. World *does* have its own chain (World Chain) for its wallet and on-chain
+    World ID proofs, but Agent Pass doesn't touch it.
+  - It returns an **RS256-signed ID token** (JWKS at `/.well-known/jwks.json`, RSA-2048).
+- **Decided: the approval is verified on Arc itself** (Kris, 2026-11-05), so our backend is no longer a trusted approver.
+  - **Flow:** World IdP's **browser (authorization-code) flow**, not the device flow, because only the browser flow
+    accepts a `nonce` and echoes it into the token. We set `nonce` = the EIP-712 hash of
+    `{invoiceHash, amount, payee, expiry}` and use `max_age=0` / `prompt=login` to force a fresh World ID check. The
+    owner opens the approval on their phone from our wallet page, which shows item, amount, payee and invoice. World
+    App itself can't show what is approved.
+  - **On-chain check:** `HumanApprovalEnforcer` (built in Arc Studio) receives the raw token in the caveat args,
+    RSA-verifies it with OpenZeppelin `RSA.pkcs1Sha256` (modexp precompile, ≈ 33k gas) and parses the claims (≈ 100–300k
+    gas; < $0.01 total). It checks:
+    - `iss`, `aud`, `exp`, `sub` = the owner's World pseudonym (stored at setup)
+    - `nonce` = this payment
+    - `auth_time` recent
+    - `amr` contains `pop` (not a passkey-only sign-in)
+    - `jti` not used before (stored)
+  - **Remaining trust:** World IdP, plus whoever registers World's public key on Arc (a key-admin role; handle key
+    rotation). Arc itself is permissioned proof-of-authority (Circle + about 11 validators).
+  - **Fallback:** our backend verifies the token and co-signs EIP-712 (the earlier design), if on-chain JWT parsing
+    proves too risky in time. **Uncertain:** spike S5b.
+- **Deny / cancel:** the owner refuses in World App, or never completes it. Then no token exists, so the voucher can't
+  pass the enforcer and nothing is paid.
 - **Agent Pass vs the MCP grant:** the grant is the **standing budget** (passkey, in our wallet). Agent Pass is a
-  **one-off exception** for a single over-limit or restricted payment (World App). Raising the budget is a new grant,
-  not Agent Pass.
-- **Setup:**
-  - register a client at `auth.world.org/portal` with an HTTPS redirect URI and `client_secret_basic`
-  - sandbox at `sandbox.auth.world.org` (separate; a sandbox ID takes about 1 h)
-  - Kris has an Orb-verified ID; whether ETHGlobal's "mocked proofs" apply is a booth question
-- **Dropped:** the IDKit `HumanRegistry` / 18+ path (optional later). AgentKit (World's x402 extension) isn't used:
-  archived, no age, discounts only.
+  **one-off exception** for one over-limit or restricted payment (World App). Raising the budget is a new grant, not
+  Agent Pass.
+- **World's wallet can't replace ours:** "World Money" is a Safe on World Chain only. World's SDK refuses other chains
+  for transactions, a Safe can't be a Delegation Framework delegator, and World resets allowances after each
+  transaction. A World mini app could at most fund our Arc account (World Chain → Arc via CCTP/Gateway).
+- **Setup:** register a client at `auth.world.org/portal` (HTTPS redirect URI, `client_secret_basic`); sandbox at
+  `sandbox.auth.world.org`; Kris has an Orb-verified ID.
+- **Dropped:** the IDKit `HumanRegistry` / 18+ path. AgentKit (archived, no age).
 
-### 2.6 Venue network (decision I)
+### 2.6 Venue network (decision I, updated by bench H4)
 
-- **Primary: macOS Internet Sharing**, sharing the Mac's Ethernet as Wi-Fi. Settings:
-  - channel 1, 6 or 11 (the ESP32 is 2.4 GHz only)
-  - security WPA2/WPA3 Personal, **never WPA3-only**
-  - Radxa: `nmcli … wifi-sec.key-mgmt wpa-psk`
-  - ESP32: `WiFi.setMinSecurity(WIFI_AUTH_WPA2_PSK)`
-  - the Mac is the gateway, so you can SSH to the Radxa from it
-  - if the channel menu comes up blank, move `com.apple.nat.plist` aside and reboot
-  - run `caffeinate -dis` so the Mac doesn't sleep
-- **Fallback:** the phone's hotspot on its **own mobile data** (needs a local SIM), saved on both devices as a second
-  network.
-- **Doesn't work:** reverse-tethering Mac → Android over USB and then sharing via the hotspot. On stock Android,
-  hotspot clients bypass gnirehtet's VPN.
+- **Bench H4 finding:** the venue Wi-Fi is unusable for the robots: about 3 KB/s, pings up to 2.5 s, a 1 MB `scp` never
+  finished.
+- **Primary: a dedicated phone hotspot.** Pixel, 2.4 GHz, WPA2, name `duckbench`, shared by the Radxa, the ESP32 and the
+  laptops. Use its own mobile data (a local SIM) as the uplink.
+- **Alternative: macOS Internet Sharing** from a *wired* Ethernet uplink. Settings:
+  - channel 1, 6 or 11
+  - WPA2/WPA3 (never WPA3-only)
+  - Radxa `key-mgmt wpa-psk`; ESP32 `setMinSecurity(WPA2_PSK)`
+  - run `caffeinate -dis`
+- **Doesn't work:** reverse-tethering into the Android hotspot (hotspot clients bypass gnirehtet's VPN).
+
+### 2.7 ESP32 gate wiring
+
+- **A micro servo (SG90 / MG90S) needs no extra chip:**
+  - signal to a GPIO (e.g. GPIO 13; 3.3 V logic is fine)
+  - **power from a separate 5 V supply of at least 1 A**, not the ESP32's 3.3 V pin
+  - grounds joined
+  - a 470 µF capacitor across the servo supply
+  - code: ESP32Servo `attach(pin, 500, 2400)`
+- Powering the servo from the ESP32 over the Mac's USB can brown-out-reset the board. A PCA9685 driver only matters for
+  many servos.
+
+### 2.8 Bench results so far (`docs/spikes/hardware-results.md`, 2026-11-06)
+
+| Spike | Result |
+| --- | --- |
+| C1: the chip signs the plan-v3 voucher | **Pass, 20/20 checks**: hashes and caveats match MetaMask's kit; on live Arc the voucher pays the merchant, a different amount or payee fails, a replay fails |
+| H1: Radxa health | Partial: OS and camera known, ≤ 57 °C in a short capture. The overheating was the camera ribbon: fixed by reseating it striped face up |
+| H3: signing speed | Python signing works but takes 187 ms (pure-Python recovery); Bun + viem or libsecp256k1 needed. **Bun not yet tested** |
+| H4: venue network | Venue Wi-Fi unusable, so a dedicated phone hotspot (above) |
+| H2, H5, H6 | Not yet run: QR read from the ESP32 screen, frames over WebSocket, the signed bench loop |
 
 ---
 
@@ -196,8 +221,8 @@ The wallet design is unchanged from v2, except for owner actions and approvals:
 | Iteration | Build | Done when |
 | --- | --- | --- |
 | **0: Wallet** | Passkey signup and deploy, fund, send/receive, grants UI, MCP server with OAuth-consent-as-grant, Agent Pass approvals | Sign up with a passkey only, receive $1, send $0.10, connect a client with a $2/day grant, revoke it, on Arc mainnet with no gas shown |
-| **1: Headless commerce** | Robot Agent DO + **virtual chip** + merchant (both payment paths) + our facilitator | The agent (0G) buys a normal item (grant path); a restricted or over-limit item (Agent Pass approve → paid, deny → nothing); an item from an EIP-3009-only seller (float path via Circle); revoke stops everything; every 0G decision is logged |
-| **1.5: Virtual robot** | Sim body (Microduck fork), camera and control in the browser | The agent walks the sim duck to the stand, the virtual chip signs, it pays |
+| **1: Headless commerce** | Robot Agent DO + **mock chip** (a Bun script with its own key, one per teammate; the real Radxa pairs over the internet with the same code) + merchant (both payment paths) + our facilitator | The agent (0G) buys a normal item (grant path); a restricted or over-limit item (Agent Pass approve → paid, deny → nothing); an item from an EIP-3009-only seller (float path via Circle); revoke stops everything; every 0G decision is logged |
+| **1.5: Virtual resource** (no simulator) | The chip buys a virtual resource: an x402 API (data, an image, a song) | The full flow without hardware: 0G decides, the chip signs, payment settles, Agent Pass for a restricted item, verified on Arc |
 | **2: Hardware** | Radxa chip (same TS code), webcam, ESP32 gate | The duck scans the ESP32 QR, the chip signs, the gate opens on a signed "paid" |
 
 ---
@@ -226,9 +251,10 @@ All of D1 and plan v3 A–J are recorded in `decisions.md`. Still open:
 | S2b | Float path: pull to chip → EIP-3009 through Circle's facilitator on Arc, $0.01 | Float path |
 | S3 | 0G with the teammate's credits: tool-calling model, latency, request ids via pi-ai `onResponse` | Robot Agent brain; 0G prize |
 | S4 | Robot Agent DO: pi-ai loop + MCP OAuth client ↔ our wallet MCP | Agent ↔ wallet |
-| S5 | Agent Pass device flow (approve and deny) with Kris's Orb ID; `acr`/`amr` checks | World |
-| S6 | Virtual chip ↔ Robot Agent WebSocket: pairing, sign request | Chip protocol |
-| S7 | Mac Internet Sharing with the Radxa + ESP32 | Venue network |
+| S5 | Agent Pass **browser flow with `nonce`** (approve and deny) with Kris's Orb ID: confirm the token echoes the nonce, plus the `acr`/`amr`/`auth_time` values | World |
+| S5b | `HumanApprovalEnforcer` verifies a real World RS256 token on an Arc fork: gas, claim parsing, `jti` replay | Trust-minimised approval |
+| S6 | Mock chip ↔ Robot Agent WebSocket: pairing, sign request; then the real Radxa with Bun + viem (H3 retry) | Chip protocol |
+| S7 | The `duckbench` phone hotspot with the Radxa, ESP32 and laptops; H2, H5 and H6 on it | Venue network, camera, bench loop |
 | S8 | Walking policy on the new servos | Teammate |
 
 ## 6. Booth questions
@@ -243,6 +269,8 @@ All of D1 and plan v3 A–J are recorded in `decisions.md`. Still open:
 - **v2's separate AI client + RobotSession + robot MCP** → one Robot Agent per robot.
 - **v2's "sub-grant to the robot"** → the grant's delegate is the chip directly.
 - **The IDKit `HumanRegistry` and 18+ age rule** → dropped: restricted items need Agent Pass.
+- **Agent Pass via device flow + backend co-signer** → browser flow with `nonce` = invoice hash, verified on Arc (co-signer only as fallback).
+- **Iteration 1.5 simulator** → a virtual x402 resource; **virtual chip** → mock chip per teammate.
 - **"Our relayer submits everything"** → our facilitator/relayer for grant payments and owner actions, Circle's
   facilitator for float payments, 4337 as break-glass.
 - **Reverse-tether network idea** → macOS Internet Sharing.
