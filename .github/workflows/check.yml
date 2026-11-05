@@ -1,6 +1,8 @@
 name: Checks and deploy
 on:
+  # Branch pushes get their checks from the pull request; main runs on push (and deploys).
   push:
+    branches: [main]
   pull_request:
 permissions:
   contents: read
@@ -11,6 +13,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Chromium and its system libraries come prebuilt with the image (matches the pinned playwright), instead of a
+    # ~40 s `playwright install --with-deps` on every run.
+    container: mcr.microsoft.com/playwright:v1.64.1-noble
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,7 +25,7 @@ jobs:
         with:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
+        timeout-minutes: 5
       - run: bun run check
   # The app (alchemy.run.ts, stage `main`), after a green check on main only.
   deploy:
@@ -37,6 +42,7 @@ jobs:
         with:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
+        timeout-minutes: 5
       # Edge serves apps/web/dist/client; Alchemy skips the website build when its sources are unchanged,
       # so a fresh checkout must build it first.
       - run: bun run build

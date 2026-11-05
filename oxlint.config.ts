@@ -59,7 +59,7 @@ export default defineConfig({
     'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }],
     'max-lines-per-function': ['error', { max: 80, skipBlankLines: true, skipComments: true }],
     'max-depth': ['error', 4],
-    'complexity/complexity': ['error', { cyclomatic: 1000, cognitive: 15 }],
+    'complexity/complexity': ['error', { cyclomatic: 20, cognitive: 15 }],
   },
   overrides: [
     { files: ['apps/web/src/**/*.ts'], rules: foldkitRules(foldkitRecommended.rules) },

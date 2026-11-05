@@ -1,0 +1,18 @@
+# The pre-commit fence (from styldappv2 243ddf50): the cheap gates only, in a couple of seconds, never `heavy` or the
+# typecheck (those run in `bun run check` and CI). Install once per clone with `bunx lefthook install`; the hook lives in
+# the shared .git/hooks. Never bypass it with `--no-verify`: fix what it reports. The repo-wide gates read the working
+# tree, so a neighbour's unstaged edit can fail them; that failure is not yours to fix, so say so rather than bypass.
+no_auto_install: true
+
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      glob: '*.{ts,tsx,js,mjs,cjs,json,jsonc,md,yml,yaml,css,html}'
+      run: bunx oxfmt -c oxfmt.config.ts --check --no-error-on-unmatched-pattern {staged_files}
+    graph:
+      run: bun run graph:check
+    suppressions:
+      run: bun run suppressions:check
+    vendored:
+      run: bun run provenance:check && bun run vendor:check

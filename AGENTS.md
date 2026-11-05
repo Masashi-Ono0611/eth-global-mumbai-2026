@@ -4,7 +4,7 @@ Read `docs/DELIVERY.md`, `docs/ARCHITECTURE.md` and `docs/STATUS.md` before subs
 
 ## Ownership and workflow
 
-Work on main. Commit each coherent green change using explicit paths. Preserve concurrent work. Never stash, reset, restore foreign edits, bypass hooks, or replace unfinished features with placeholders. Run expensive work through `heavy --wait`; retain real exit status. Follow the machine-wide instructions in the parent workspace.
+Work on main. Commit each coherent green change using explicit paths. Preserve concurrent work. Never stash, reset, restore foreign edits, bypass hooks, or replace unfinished features with placeholders. Run expensive work through `heavy --wait`; retain real exit status. A lefthook pre-commit hook (`lefthook.yml`; install once per clone with `bunx lefthook install`) runs the cheap gates on every commit in about a second; `heavy --wait bun run check` is the full gate CI runs. Follow the machine-wide instructions in the parent workspace.
 
 Only isolated v2 Cloudflare resources and a workers.dev preview are authorized. Preserve v1, production DNS, mail records and provider resources. Do not copy production personal data into a public preview. Keep all secret values outside Git and tool output.
 
