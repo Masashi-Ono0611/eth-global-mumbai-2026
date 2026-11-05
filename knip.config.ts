@@ -22,7 +22,7 @@ export default {
     'packages/i18n': { project: ['src/**/*.ts!'] },
     // The scratch site copies these libraries' browser bundles into dist/lib; nothing imports them.
     'docs/site': {
-      entry: ['alchemy.run.ts', 'worker.ts', 'lib/*.ts'],
+      entry: ['alchemy.run.ts!', 'build.ts!', 'worker.ts!', 'lib/*.ts!'],
       ignoreDependencies: ['chart.js', 'd3', 'mermaid', 'pele'],
     },
   },
