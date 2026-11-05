@@ -107,6 +107,125 @@ flowchart LR
   W --- R2
   </pre></div>
 
+  <h2>How the robot works</h2>
+  <p class="muted">0G never moves the duck. Movement runs on the robot, many times a second, and works offline. 0G is asked a few times per errand, while the duck stands still and has to decide something.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph Duck["🦆 On the duck: Radxa Zero 3W"]
+    direction TB
+    NAV["② Navigation · 5–10×/s · plain code&lt;br/&gt;camera → find QR → turn / walk / stop&lt;br/&gt;(Xbox pad = manual backup)"]
+    POL["① Walking policy · 50×/s · ONNX net&lt;br/&gt;IMU + servo angles → 15 servo targets&lt;br/&gt;input: forward · sideways · turn"]
+    SRV["Servos + IMU"]
+    RT["④a Robot runtime&lt;br/&gt;session key · signs payments"]
+    NAV -- "vx, vy, yaw" --> POL --> SRV
+    SRV -- "angles, IMU" --> POL
+    NAV -- "at the QR: stop" --> RT
+  end
+  subgraph Cloud["☁️ Cloudflare"]
+    direction TB
+    BR["③ Brain call · a few per errand · seconds&lt;br/&gt;photo + invoice + budget"]
+    MON["④b Relayer · World approval · dashboard"]
+  end
+  OG[["0G inference&lt;br/&gt;pay · ask_human · walk_away"]]
+  ARC[["Arc"]]
+  RT -- "decide?" --> BR --> OG
+  OG -- "decision + request_id" --> BR --> RT
+  RT -- "signed payment" --> MON --> ARC
+  </pre></div>
+  <table>
+    <tr><th>What</th><th>Runs where</th><th>When</th></tr>
+    <tr><td>Walking policy, navigation, camera, QR, session key, robot runtime</td><td><strong>on the duck</strong> (Radxa)</td><td>always</td></tr>
+    <tr><td>0G calls, relayer, World approvals, invoices, dashboard, evidence</td><td><strong>Cloudflare</strong></td><td>always</td></tr>
+    <tr><td>Sim robot: the same runtime with a webcam, for the PoC without the duck</td><td><strong>a MacBook</strong></td><td>development</td></tr>
+    <tr><td>Retraining the walking policy for our servos (MuJoCo Playground / mjlab)</td><td><strong>a rented NVIDIA GPU</strong></td><td>once, before the duck walks</td></tr>
+  </table>
+  <div class="rule"><strong>If 0G is slow or down,</strong> the duck still stands and walks, but it won't pay. That's also what the 0G prize requires: never fake a decision.</div>
+
+  <h2>Wallet: passkeys, unified balance, 7702, session keys</h2>
+  <p class="muted">The owner sees one dollar balance and a Face ID prompt. Underneath, four mechanisms each do one job.</p>
+  <div class="grid">
+    <div class="card"><span class="tag t-arc">PASSKEY</span><h3>How the owner signs</h3><p>Face ID / Touch ID. The owner never sees a seed phrase. Used to grant, revoke, top up and approve.</p></div>
+    <div class="card"><span class="tag t-arc">UNIFIED BALANCE</span><h3>Where the money comes from</h3><p>Circle Gateway: USDC deposited on any chain counts as one balance, and a top-up mints it into the owner's account on Arc. Circle submits that transaction, so the owner never needs gas on Arc.</p></div>
+    <div class="card"><span class="tag t-arc">EIP-7702</span><h3>The owner's account</h3><p>The owner's address gets smart-account code (MetaMask's 7702 delegator, already on Arc). Same address, now with rules.</p></div>
+    <div class="card"><span class="tag t-arc">SESSION KEYS</span><h3>What each robot can do</h3><p>One delegation per robot: $10/day, max $5 each, USDC only, allowed merchants, expiry, and above $X needs a co-signature. Enforced on Arc.</p></div>
+  </div>
+  <div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph OwnerDev["👤 Owner's phone"]
+    PK["Passkey&lt;br/&gt;Face ID"]
+    EOA["Owner EOA key&lt;br/&gt;(secp256k1)"]
+    PK -- "unlocks (WebAuthn PRF)" --> EOA
+  end
+  subgraph GW["Circle Gateway: unified USDC balance"]
+    B1["USDC on Base"]
+    B2["USDC on Ethereum / Arbitrum / …"]
+    B3["USDC on Arc"]
+  end
+  subgraph ARC["Arc mainnet"]
+    ACC["Owner account = same address&lt;br/&gt;+ 7702 code (MetaMask delegator)"]
+    DM["DelegationManager&lt;br/&gt;+ caveat enforcers&lt;br/&gt;(daily cap · expiry · USDC only&lt;br/&gt;+ ours: per-tx cap · allowlist · co-sign)"]
+    USDC["USDC"]
+    M["Merchant"]
+  end
+  RK["🤖 Robot session key&lt;br/&gt;(never leaves the robot)"]
+  APP["Approver (our backend)&lt;br/&gt;signs only after World ✓"]
+  REL["Relayer (our backend)&lt;br/&gt;pays gas in USDC"]
+
+  EOA -- "1 · 7702 authorization (once)" --> ACC
+  EOA -- "2 · burn intent (top-up)" --> GW
+  GW -- "mint into owner account&lt;br/&gt;(Circle submits, no gas)" --> ACC
+  EOA -- "3 · root delegation per robot" --> RK
+  RK -- "4 · one-time payment (leaf delegation)" --> REL
+  APP -. "co-signature when needed" .-> REL
+  REL -- "redeem [leaf, root]" --> DM
+  DM -- "checks every rule" --> ACC
+  ACC -- "USDC.transfer" --> USDC --> M
+  </pre></div>
+
+  <h3 style="margin-top:28px">One-time setup, then every payment</h3>
+  <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant P as Owner phone (passkey)
+  participant GW as Circle Gateway
+  participant A as Arc (owner account)
+  participant R as Robot
+  participant B as Our backend (relayer)
+  Note over P: Setup, once
+  P->>P: create passkey + EOA key (key wrapped by the passkey)
+  P->>A: sign 7702 authorization → account gets MetaMask delegator code
+  P->>GW: deposit USDC from any chain (unified balance)
+  P->>GW: top-up: sign burn intent
+  GW->>A: Circle mints USDC into the owner account (no gas for owner)
+  R->>P: pairing QR (robot address)
+  P->>P: sign root delegation (caps, expiry, allowlist), off-chain, free
+  P->>B: store the delegation (no secret, it only names the robot)
+  Note over R: Every payment
+  R->>R: sign leaf delegation: pay merchant X exactly $Y, once, before T
+  R->>B: hand it over (online, or later if offline)
+  B->>A: redeem [leaf, root] (relayer pays gas in USDC)
+  A->>A: check daily cap · per-tx cap · allowlist · expiry · co-sign · revoked?
+  A-->>B: USDC sent to the merchant, or revert
+  </pre></div>
+
+  <h3 style="margin-top:28px">The passkey question</h3>
+  <p class="muted">7702 needs an ordinary Ethereum key (secp256k1) to sign its authorization, and that key stays root forever. A passkey uses a different curve (P-256), so it can't be that key. Three ways to give the owner a passkey anyway:</p>
+  <table>
+    <tr><th>Option</th><th>How</th><th>Good</th><th>Bad</th></tr>
+    <tr><td><strong>A. Passkey unlocks the key</strong> (proposal for now)</td><td>The EOA key is encrypted with a secret from the passkey (WebAuthn PRF) and unlocked for each signature</td><td>Works with stock MetaMask contracts <em>and</em> with Gateway, which needs a normal signature. Least custom code</td><td>Passkeys aren't on-chain; the key exists briefly in the browser; PRF support varies by device</td></tr>
+    <tr><td><strong>B. Passkey as an on-chain signer</strong></td><td>Our small extension of MetaMask's 7702 delegator verifies WebAuthn using Arc's P-256 precompile</td><td>Real on-chain passkey; a good Arc Studio piece</td><td>Unaudited custom code; Gateway top-ups then need contract signatures</td></tr>
+    <tr><td><strong>C. Uniswap Calibur</strong> (fallback)</td><td>A 7702 wallet with native passkey keys, already on Arc</td><td>Passkeys built in</td><td>All the cap rules become our own unaudited code; no delegation standard</td></tr>
+  </table>
+
+  <h3 style="margin-top:28px">Traps we already know about</h3>
+  <ul>
+    <li><strong>Cap both ways USDC moves.</strong> USDC on Arc is also the native coin. The robot's delegation must allow only <code>USDC.transfer</code> and native value 0, or a robot could drain the account through the uncapped path.</li>
+    <li><strong>No signed USDC transfers from the owner account for robots.</strong> USDC's own signed transfers, Permit2 and x402 <code>exact</code> check signatures without updating anything, so they would skip the daily cap. Robots pay only through the delegation path.</li>
+    <li><strong>Gateway is for top-ups, not for robots.</strong> A Gateway delegate can spend the whole balance, and revoking doesn't cancel what it already signed. The caps live in the account on Arc.</li>
+    <li><strong>Micropayments below a cent:</strong> each delegation payment costs roughly a few tenths of a cent in gas. For many tiny payments to one merchant, use x402 batch-settlement (already on Arc): the robot signs vouchers and the merchant claims once.</li>
+    <li><strong>Arc drops transactions with a max fee under 20 gwei without an error.</strong></li>
+  </ul>
+
   <h2>Flows</h2>
   <div class="flows">
     <details open>
