@@ -52,7 +52,7 @@
 </head>
 <body>
 <main>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.2 · 6 Nov 2026 · comment with 💬 (blocks, diagram nodes, selected text)</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.3 · Fri 6 Nov 04:30 IST · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
   <p class="lead">A passkey wallet on Arc grants a budget to a robot's chip. One Robot Agent per robot thinks on 0G, pays merchants over x402, and asks a human through World Agent Pass when a purchase is over the limit or restricted. The chip always signs. The wallet never needs to know the grantee is a robot.</p>
 
@@ -60,10 +60,60 @@
     <div class="card"><span class="tag t-arc">1 · WALLET</span><h3>The foundation</h3><p>Passkey account on Arc, fund / send / receive with no gas shown, grants to any address, an MCP server whose consent screen creates the grant, Agent Pass approvals.</p></div>
     <div class="card"><span class="tag t-og">2 · ROBOT AGENT</span><h3>The brain</h3><p>One Durable Object per robot: the AI client. Calls 0G, holds the wallet connection, logs every decision, talks to the chip. Runs with no chip too.</p></div>
     <div class="card"><span class="tag t-cf">3 · MERCHANT</span><h3>The till</h3><p>Items, prices, rules (needs approval, restricted). x402 checkout that accepts both ways to pay. Later an ESP32 shows the QR and opens a gate.</p></div>
-    <div class="card"><span class="tag t-duck">4 · CHIP</span><h3>The body and the signer</h3><p>The Radxa on the duck, or a virtual chip in iteration 1. Holds the key the grant is given to and signs every robot payment. Camera and motors on the real one.</p></div>
+    <div class="card"><span class="tag t-duck">4 · CHIP</span><h3>The body and the signer</h3><p>The Radxa on the duck, or a mock chip in iteration 1. Holds the key the grant is given to and signs every robot payment. Camera and motors on the real one.</p></div>
   </div>
 
   <div class="rule"><strong>The one rule:</strong> Arc is the authority. Every limit and every human approval is checked on-chain when a payment lands. Our servers coordinate and relay; they can never authorise, steal or redirect a payment, only delay it.</div>
+
+  <h2>Battle plan to Saturday 09:00 IST</h2>
+  <div class="rule" style="border-left-color: var(--deny)"><strong>Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.</strong> On Fri 04:30 no product code exists yet, only the foundation, these docs and spike prototypes. Everything is cut to fit about 28 hours. Details: <code>docs/plan.md</code> §0.</div>
+  <table>
+    <tr><th>Scope</th><th>What</th></tr>
+    <tr><td><strong>MUST</strong></td><td>Passkey wallet on Arc mainnet → grant to the chip (real Radxa or mock) → the Robot Agent asks 0G and buys from our x402 merchant through our facilitator → a restricted item needs Agent Pass (approve <em>and</em> deny) → revoke stops the next payment → 0G Storage episode log + contract → our enforcer(s) built in Arc Studio → the ESP32 gate opens on a signed "paid"</td></tr>
+    <tr><td>STRETCH</td><td>On-chain Agent Pass check · float path via Circle · camera in the browser · duck walking</td></tr>
+    <tr><td>CUT</td><td>Outside MCP hosts (claude.ai) · funding from other chains · MPP · ENS · IDKit · 4337 break-glass (doc only)</td></tr>
+  </table>
+  <table>
+    <tr><th>Lane (Kris + agents)</th><th>Builds</th><th>Done when</th></tr>
+    <tr><td>A · wallet + chain</td><td>Wallet web app (passkey signup, consent = grant, approval page, revoke, activity); relayer = our facilitator; enforcer(s) in Arc Studio → Arc mainnet</td><td>A grant from a real phone passkey; one relayed $0.01 payment</td></tr>
+    <tr><td>B · brain</td><td>Robot Agent DO (0G loop, wallet MCP client); evidence → 0G Storage + EpisodeLog contract; Agent Pass request + backend check + co-signature</td><td>0G decides with a stored request id; Agent Pass approve and deny both work</td></tr>
+    <tr><td>C · chip + merchant</td><td>Chip protocol, mock chip, Radxa runtime (Bun + viem, Python fallback); merchant (store, x402, invoices, signed status for the ESP32)</td><td>Mock chip and Radxa sign; merchant settles; ESP32 shows PAID</td></tr>
+    <tr><td>Teammates</td><td>Physical robot (duck build, Radxa OS, ESP32 wiring + servo, camera QR read) and booth questions</td><td>The Radxa and ESP32 run on the <code>duckbench</code> hotspot</td></tr>
+  </table>
+  <table>
+    <tr><th>By (IST)</th><th>Checkpoint</th></tr>
+    <tr><td>Fri 08:00</td><td>Prerequisites done: ~$20 USDC on Arc + relayer key, a keyed Arc RPC, the 0G key, 0G Chain gas for Storage, World IdP client, Arc Studio project, <strong>a product name</strong>. Spikes S1 (real-phone passkey), S3 (0G), S5 (Agent Pass returns our nonce)</td></tr>
+    <tr><td><strong>Fri 14:00</strong></td><td><strong>First end-to-end headless purchase on Arc mainnet</strong> ($0.10, mock chip, our merchant, our facilitator)</td></tr>
+    <tr><td>Fri 20:00</td><td>Full MUST loop: Agent Pass approve/deny, revoke, 0G Storage log, the Radxa signing, the ESP32 gate opening</td></tr>
+    <tr><td>Sat 02:00</td><td>Stretch stops; README, architecture diagram, Arc Studio walkthrough</td></tr>
+    <tr><td><strong>Sat 06:00</strong></td><td><strong>Feature freeze</strong>: video (2:30–2:59, fits both ETHGlobal's 2–4 min and 0G's under 3 min), World debrief, contract addresses</td></tr>
+    <tr><td>Sat 09:00</td><td>Submitted (aim for 08:00)</td></tr>
+  </table>
+  <table>
+    <tr><th>Demo (4 min)</th><th>Beat</th></tr>
+    <tr><td>0:00</td><td>Don't give a robot your wallet, give it a budget</td></tr>
+    <tr><td>0:20</td><td>Owner's passkey grants Vitaquack's chip $10/day on the consent screen</td></tr>
+    <tr><td>0:50</td><td>"Buy me a chai": 0G decides (request id) → the chip signs → paid on Arc → <strong>the gate opens</strong></td></tr>
+    <tr><td>1:50</td><td>Mock cigarette pack → Agent Pass on the phone → <strong>deny: nothing paid</strong> → approve: paid</td></tr>
+    <tr><td>2:50</td><td>Revoke → the next attempt fails on-chain</td></tr>
+    <tr><td>3:20</td><td>Architecture, our enforcer in Arc Studio, the episode log on 0G Storage</td></tr>
+  </table>
+  <table>
+    <tr><th>Must not forget</th><th>Why</th></tr>
+    <tr><td>README section on code that predates the event (the foundation boilerplate from the public styld.app repo, one commit on 5 Nov); product code in small commits</td><td>ETHGlobal: "from scratch", and "large single commits … may be disqualified"</td></tr>
+    <tr><td>Video: 2–4 min, ≥ 720p, real narration, no AI voice, not sped up, not filmed on a phone, ≤ 4 bullets per slide</td><td>Otherwise rejected on upload</td></tr>
+    <tr><td>Each of the 3 partner prizes needs "how we integrated it" + feedback; World needs a debrief (time to first success, friction, one improvement)</td><td>The only way partners assess the project</td></tr>
+    <tr><td>0G: contract deployment addresses + episode log on 0G Storage with a request id per decision</td><td>Required for Physical AI</td></tr>
+    <tr><td>Arc: shareable Studio URL, Studio shown in the demo, architecture diagram</td><td>Required for every Arc track</td></tr>
+  </table>
+  <table>
+    <tr><th>Gaps found in this review</th><th>Fix</th></tr>
+    <tr><td>The float path would bypass the merchant allowlist (pull to the chip, pay anyone)</td><td>A separate small float cap; float is a stretch anyway</td></tr>
+    <tr><td>How does Arc know an item is restricted?</td><td>Approval needed when over the per-payment cap <em>or</em> the payee isn't allowlisted; restricted items use a merchant payTo that's never allowlisted</td></tr>
+    <tr><td>Two ways to submit a payment (wallet MCP vs x402)</td><td>Robot payments go over x402 to the merchant only; the wallet MCP keeps balance/history, Agent Pass requests and budget changes; the chip builds the leaf from its stored grant</td></tr>
+    <tr><td>x402 header is ≈ 12 KB</td><td>Test against the Worker; trim caveats; fallback: relay directly</td></tr>
+    <tr><td>No map of the apps</td><td>One web app: wallet (owner) + robot console (camera, control, decisions) + merchant (store, checkout); the ESP32 is the gate</td></tr>
+  </table>
 
   <h2>System map</h2>
   <div class="diagram"><pre class="mermaid">
@@ -80,7 +130,7 @@ flowchart TB
     AG["AI client&lt;br/&gt;0G loop · tools · evidence"]
   end
   subgraph C["4 · Chip"]
-    CHIP["Radxa or virtual chip&lt;br/&gt;key · signs · camera · motors"]
+    CHIP["Radxa or mock chip&lt;br/&gt;key · signs · camera · motors"]
   end
   subgraph M["3 · Merchant"]
     STORE["Store&lt;br/&gt;items · prices · rules"]
@@ -118,8 +168,8 @@ flowchart TB
   <div class="diagram"><pre class="mermaid">
 flowchart TB
   O["👤 Owner account (passkey)&lt;br/&gt;$42.10 USDC on Arc"]
-  G1["Grant → Vitaquack's chip (0xChip…)&lt;br/&gt;$10/day · max $2 each · USDC only · until Sunday&lt;br/&gt;above $2 or restricted: needs Agent Pass co-signature"]
-  G2["Grant → claude.ai&lt;br/&gt;$2/day · key held by the wallet"]
+  G1["Grant → Vitaquack's chip (0xChip…)&lt;br/&gt;$10/day · max $2 each · allowlisted merchants · USDC only&lt;br/&gt;over $2 or payee not allowlisted (restricted): needs Agent Pass approval"]
+  G2["Grant → claude.ai (after the event)&lt;br/&gt;$2/day · key held by the wallet"]
   V1["Voucher signed by the chip&lt;br/&gt;pay Chai Stand $1.50 · invoice 7f3a"]
   V2["Voucher signed by the chip&lt;br/&gt;pull $0.40 to the chip (float) · invoice 91c2"]
   RL["Our facilitator&lt;br/&gt;redeemDelegations(voucher → grant)"]
@@ -143,7 +193,7 @@ flowchart LR
   <table>
     <tr><th></th><th>Grant path</th><th>Float path</th></tr>
     <tr><td>For</td><td>Our merchant (accepts ERC-7710 delegations)</td><td>Any x402 seller that only takes EIP-3009</td></tr>
-    <tr><td>Limits</td><td>All checked on Arc when the payment lands</td><td>All checked at the pull; the seller payment is a plain transfer</td></tr>
+    <tr><td>Limits</td><td>All checked on Arc when the payment lands</td><td>All checked at the pull, plus a separate small float cap (otherwise the chip could pull to itself and pay anyone, bypassing the allowlist); the seller payment is a plain transfer</td></tr>
     <tr><td>Settled by</td><td>Our facilitator (~150 lines; no open-source one exists for this scheme)</td><td>Circle's Facilitator Service (live on Arc, Circle pays gas)</td></tr>
     <tr><td>Measured cost</td><td>≈ 663k gas ≈ <strong>$0.013</strong> per settle (spike S2; ≈ $0.010 with redundant caveats dropped)</td><td>The pull as on the left, plus Circle's settle (Circle pays that gas)</td></tr>
     <tr><td>On failure</td><td>Revert, nothing paid</td><td>The authorization expires; the float is swept back to the owner</td></tr>
@@ -210,7 +260,7 @@ sequenceDiagram
       </pre>
     </details>
     <details open>
-      <summary>C · Headless purchase, grant path (iteration 1, virtual chip)</summary>
+      <summary>C · Headless purchase, grant path (iteration 1, mock chip)</summary>
       <pre class="mermaid">
 sequenceDiagram
   autonumber
@@ -260,7 +310,7 @@ sequenceDiagram
       </pre>
     </details>
     <details open>
-      <summary>D · Over the limit or restricted: Agent Pass (approve and deny)</summary>
+      <summary>D · Over the limit or restricted: Agent Pass (approve and deny). For the event our backend checks the token and co-signs; checking it on Arc itself is the stretch (shown)</summary>
       <pre class="mermaid">
 sequenceDiagram
   autonumber
@@ -366,7 +416,7 @@ flowchart LR
     <tr><td>What</td><td>The standing budget: "$10/day until Sunday"</td><td>A one-off exception for one purchase</td></tr>
     <tr><td>Who approves, where</td><td>Owner's passkey, in our wallet</td><td>Owner in World App (World IdP)</td></tr>
     <tr><td>When</td><td>On connect; again to raise the budget (<code>grant_change_request</code> → link → passkey)</td><td>Over the per-payment cap, or a restricted item</td></tr>
-    <tr><td>On-chain effect</td><td>A new signed delegation</td><td>World's signed token goes with that one payment; <code>HumanApprovalEnforcer</code> on Arc verifies it itself (no backend co-signer)</td></tr>
+    <tr><td>On-chain effect</td><td>A new signed delegation</td><td>For the event: our backend checks World's token and co-signs that one payment; <code>HumanApprovalEnforcer</code> checks the co-signature. Stretch: the enforcer verifies World's token itself</td></tr>
     <tr><td>Blockchain involved</td><td>Arc</td><td>None in World's part: plain OIDC (RS256 ID token), so it fits Arc cleanly</td></tr>
   </table>
 
@@ -376,7 +426,7 @@ flowchart LR
     <tr><td>Flow</td><td>World IdP's <strong>browser flow</strong> (not the device flow, which can't carry a nonce): our wallet page asks World to sign in with <code>nonce</code> = the EIP-712 hash of {invoice, amount, payee, expiry} and <code>max_age=0</code>; the owner confirms in World App; World returns an RS256-signed ID token. Deny, cancel or expiry = no token = no payment</td></tr>
     <tr><td>Binding</td><td>World App can't show what is being approved, so our wallet page shows item, amount, payee and invoice, and the approval is single-use for that invoice</td></tr>
     <tr><td>Token checks</td><td>Accept <code>acr</code> orb or orb-face; reject passkey-only sign-ins (<code>amr</code> with <code>mfa</code>); <code>auth_time</code> after the request; <code>jti</code> used once. World's reference code gets two of these wrong</td></tr>
-    <tr><td>On Arc</td><td><strong>Decided: verified on-chain.</strong> <code>HumanApprovalEnforcer</code> (built in Arc Studio) RSA-verifies the token with OpenZeppelin <code>RSA.pkcs1Sha256</code> (modexp, ≈ 150–400k gas, under $0.01) against World's key registered on Arc, and checks <code>iss</code>, <code>aud</code>, <code>exp</code>, <code>sub</code> = owner, <code>nonce</code> = this payment, fresh <code>auth_time</code>, <code>amr</code> includes <code>pop</code>, <code>jti</code> used once. Remaining trust: World's sign-in service and whoever registers its key. Fallback: our backend co-signs</td></tr>
+    <tr><td>On Arc</td><td><strong>Decided (D15): backend co-signer first.</strong> Our backend runs the same checks on World's token (<code>iss</code>, <code>aud</code>, <code>exp</code>, <code>sub</code> = owner, <code>nonce</code> = this payment, fresh <code>auth_time</code>, <code>amr</code> has <code>pop</code> and not <code>mfa</code>, <code>jti</code> once) and co-signs EIP-712; <code>HumanApprovalEnforcer</code> checks the co-signature. <strong>Stretch:</strong> the enforcer verifies the token itself (S5b prototype, ≈ $0.008), which removes the trusted backend but makes approvals linkable on-chain</td></tr>
     <tr><td>Not used</td><td>IDKit 18+ registry (dropped) · AgentKit (archived) · <strong>World's wallet as our wallet</strong>: "World Money" is a Safe on World Chain only; World's SDK refuses other chains, a Safe can't be a Delegation Framework delegator, and allowances reset after each transaction. At most a World mini app could fund our Arc account</td></tr>
   </table>
 
@@ -465,7 +515,7 @@ flowchart LR
   <h3>Unknown: booth questions</h3>
   <ul>
     <li><strong>0G:</strong> may Storage + EpisodeLog run on Galileo testnet?</li>
-    <li><strong>World:</strong> does "mocked proofs" cover Agent Pass; time to a production client.</li>
+    <li><strong>World:</strong> how fast we get a production World IdP client (sandbox is separate), and spike S5: does the browser flow echo our nonce. ("Mocked proofs" in World's prize text only means teams without an Orb may use fake identities; we have Kris's real Orb ID, so it no longer matters.)</li>
     <li><strong>Arc:</strong> Studio URL viewable without login; deploying our Studio-built module to mainnet ourselves; Circle facilitator minimum amount; a keyed RPC.</li>
   </ul>
 
@@ -474,7 +524,7 @@ flowchart LR
     <tr><th>Decided</th><th>Choice</th></tr>
     <tr><td>Owner account</td><td>Passkey-native HybridDeleGator; 7702 fallback</td></tr>
     <tr><td>Robot brain</td><td>One Robot Agent DO per robot = the AI client (Goblin-inspired)</td></tr>
-    <tr><td>Who signs</td><td>The chip, always; a virtual chip in iteration 1</td></tr>
+    <tr><td>Who signs</td><td>The chip, always; a mock chip in iteration 1</td></tr>
     <tr><td>Payments</td><td>x402 now (MPP later); grant path + float path</td></tr>
     <tr><td>Owner actions</td><td>Our relayer; ERC-4337 break-glass</td></tr>
     <tr><td>0G</td><td>Standard providers</td></tr>
@@ -486,11 +536,11 @@ flowchart LR
   </table>
   <table>
     <tr><th>Still open</th><th>Recommendation</th></tr>
-    <tr><td>Who pays relayer gas</td><td>We absorb it (≈ $0.004–0.008 per action)</td></tr>
+    <tr><td>Who pays relayer gas</td><td>We absorb it (≈ $0.013 per payment measured in S2; ≈ $0.006 per owner action)</td></tr>
     <tr><td>Recovery</td><td>Several passkeys now; guardians later</td></tr>
     <tr><td>Accounts on other chains</td><td>Arc-only; other chains are funding routes</td></tr>
     <tr><td>Who may watch / drive the robot</td><td>Owner drives; judges view</td></tr>
-    <tr><td><strong>D15</strong>: the World token is public on Arc (approvals linkable to one World pseudonym)</td><td>Accept for the demo and say so in the pitch; the backend co-signer remains the private fallback</td></tr>
+    <tr><td><strong>D15</strong> (decided): the World token check</td><td>Backend co-signer for the event; on-chain verification as a stretch, with the privacy note in the pitch</td></tr>
     <tr><td><strong>D16</strong>: third prize pick</td><td><strong>Decided: Arc + 0G + World</strong> (max $3k + $2.5k + $2.5k = $8k). ENS names only as an optional add-on; picks finalised at submission</td></tr>
   </table>
 
