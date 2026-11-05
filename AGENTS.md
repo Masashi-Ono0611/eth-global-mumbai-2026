@@ -1,12 +1,12 @@
-# Styld v2
+# ETH Global Mumbai 2026 — duck robot that pays in USDC
 
-Read `docs/DELIVERY.md`, `docs/ARCHITECTURE.md` and `docs/STATUS.md` before substantial work. This is a full rewrite with v1 feature parity, not a demonstration or compatibility proxy.
+Read `README.md` and `docs/` (vision, decisions, foundation, infrastructure, plan) before substantial work. The code was bootstrapped from the styldappv2 foundation (`docs/foundation.md`); Styld's product (wardrobe, credits, Dodo, stylist) is not part of this project. Spending authority lives on Arc, never in our database.
 
 ## Ownership and workflow
 
 Work on main. Commit each coherent green change using explicit paths. Preserve concurrent work. Never stash, reset, restore foreign edits, bypass hooks, or replace unfinished features with placeholders. Run expensive work through `heavy --wait`; retain real exit status. A lefthook pre-commit hook (`lefthook.yml`; install once per clone with `bunx lefthook install`) runs the cheap gates on every commit in about a second; `heavy --wait bun run check` is the full gate CI runs. Follow the machine-wide instructions in the parent workspace.
 
-Only isolated v2 Cloudflare resources and a workers.dev preview are authorized. Preserve v1, production DNS, mail records and provider resources. Do not copy production personal data into a public preview. Keep all secret values outside Git and tool output.
+Deploy only through Alchemy (`docs/DEPLOYMENT.md`): the app stack and the scratch site, on the personal Cloudflare account, with the named `ethmumbai` state store; never the account's shared default store, and never upgrade Alchemy past beta.84 there without checking it. Arc is mainnet with real USDC: keep caps tiny and never commit or log keys. Keep all secret values outside Git and tool output.
 
 ## Stack
 
@@ -18,12 +18,12 @@ Read installed library source before using unfamiliar APIs. Load the matching sk
 
 ## Architecture and testing
 
-One authoritative writer for each invariant. Domain owns usage reservations and generation lifecycles; D1 owns ordinary relational entities. Typed application operations are shared by HTTP/MCP/jobs. Domain `decide`/`evolve` are pure. Durable reactions and provider calls have explicit idempotency and unknown-outcome handling.
+One authoritative writer for each invariant. Arc contracts own spending caps, revocation and approvals; Domain aggregates on Durable Objects own live coordination (robot sessions, invoices); D1 owns ordinary relational entities and read models. Typed application operations are shared by HTTP/MCP/jobs. Domain `decide`/`evolve` are pure. Durable reactions and provider calls have explicit idempotency and unknown-outcome handling.
 
 Browser code imports contracts, never server adapters. Foldkit views are pure, updates emit named Commands, request state uses explicit schemas. Rendering receives locale, version, time zone and a stable reference time. Catalogs stay reviewed in Git.
 
-Logs/spans omit tokens, signed URLs, prompts, images and raw user bodies. Native traces carry safe operation/release/correlation metadata; sampled telemetry is not the usage ledger.
+Logs/spans omit tokens, keys, signatures' private inputs, signed URLs, prompts, images and raw user bodies. Native traces carry safe operation/release/correlation metadata; sampled telemetry is not the usage ledger.
 
-Tests verify behavior, real storage semantics and public contracts. In-memory, native workerd, deployed preview and live-provider acceptance are different evidence levels. Every feature in the baseline must be mapped to v2 implementation and acceptance; test counts alone do not prove parity.
+Tests verify behavior, real storage semantics and public contracts. In-memory, native workerd, deployed preview and live-provider acceptance are different evidence levels. Test counts alone prove nothing; show the behaviour.
 
-Before completion, run multiple reviewer rounds for architecture/tooling, security/privacy/durable behavior, and actual browser/product parity. Resolve findings, rerun final integration gates and verify the deployed release. Keep `docs/STATUS.md` factual and all unfinished requirements visible.
+Before calling work done, run the gates, verify the deployed release (CI deploys `main`), and keep docs factual about what is and isn't built.

@@ -16,7 +16,7 @@ export const authClientLayer = (baseUrl: string) => makeAuthClient(baseUrl).laye
 export class BrowserAuth extends Context.Service<
   BrowserAuth,
   Effect.Success<ReturnType<typeof makeAuthClient>['make']>
->()('@styld/auth/BrowserAuth') {}
+>()('@ethmumbai/auth/BrowserAuth') {}
 
 /** One client lifetime for the browser host; the trusted URL is supplied by its entrypoint. */
 export const browserAuthLayer = (baseUrl: string) => {

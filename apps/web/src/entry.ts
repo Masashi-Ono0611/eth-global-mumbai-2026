@@ -1,6 +1,6 @@
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import { Layer } from 'effect'
-import { browserAuthLayer } from '@styld/auth/client'
+import { browserAuthLayer } from '@ethmumbai/auth/client'
 import { Runtime } from 'foldkit'
 import { Flags, Model, init, update } from './App.ts'
 import { view } from './View.ts'

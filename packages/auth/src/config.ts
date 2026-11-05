@@ -19,7 +19,7 @@ export const sessionOptions = Sessions.stateful()
 
 /** Shared browser/server contract. Add an action only when its payload and
  * success/error semantics are ready for every transport. */
-export const AuthApi = AuthContract.make('styld/Auth', {
+export const AuthApi = AuthContract.make('ethmumbai/Auth', {
   claims: AccountClaims,
   basePath: '/api/auth',
   actions: (sessions) => ({

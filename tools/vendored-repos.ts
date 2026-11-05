@@ -136,7 +136,7 @@ const pull = async (name: string, ref: string) => {
   const { sha: commit } = Schema.decodeUnknownSync(Commit)(await response.json())
 
   // The archive is untrusted data: download and extract it in a fresh directory, never execute it.
-  const scratch = await mkdtemp(path.join(os.tmpdir(), `styld-vendor-${name}-`))
+  const scratch = await mkdtemp(path.join(os.tmpdir(), `ethmumbai-vendor-${name}-`))
   try {
     const archive = path.join(scratch, 'source.tar.gz')
     const tarball = await fetch(`https://codeload.github.com/${current.repository}/tar.gz/${commit}`)

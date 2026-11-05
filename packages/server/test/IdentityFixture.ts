@@ -1,5 +1,5 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
-import { AppAuth } from '@styld/auth/storage'
+import { AppAuth } from '@ethmumbai/auth/storage'
 import { Password } from '@yielded/auth'
 import * as WorkerdServices from '@yielded/auth/WorkerdServices'
 import { Clock, Effect, Redacted } from 'effect'

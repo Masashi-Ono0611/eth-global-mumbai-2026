@@ -1,7 +1,7 @@
 import { Schema as AuthSchema } from '@yielded/auth'
 import { AuthPersistence } from '@yielded/auth-persistence-drizzle/D1'
 import { Effect } from 'effect'
-import { accounts } from '@styld/db'
+import { accounts } from '@ethmumbai/db'
 
 import { makeAuth, requirement } from './config.ts'
 

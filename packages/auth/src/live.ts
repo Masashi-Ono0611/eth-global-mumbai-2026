@@ -5,7 +5,7 @@ import { databaseLayer } from '@yielded/auth-persistence-drizzle/D1'
 import * as Drizzle from 'drizzle-orm/effect-d1'
 import { Effect, Layer, Redacted, Schema } from 'effect'
 import { eq } from 'drizzle-orm'
-import { accounts } from '@styld/db'
+import { accounts } from '@ethmumbai/db'
 
 import { passwordAttemptLimiter, type D1Source } from './AttemptLimiter.ts'
 import { AccountClaims, requirement } from './config.ts'
@@ -24,7 +24,7 @@ export const makeAuthRuntime = <R>(raw: D1Source<R>, secret: Redacted.Redacted) 
     Effect.gen(function* () {
       const drizzle = yield* Drizzle.makeWithDefaults({})
       return {
-        resolve: Effect.fn('Styld.Auth.claims')(
+        resolve: Effect.fn('EthMumbai.Auth.claims')(
           function* ({ subjectId, credential }) {
             const rows = yield* drizzle.select().from(accounts).where(eq(accounts.id, subjectId))
             const account = rows[0]

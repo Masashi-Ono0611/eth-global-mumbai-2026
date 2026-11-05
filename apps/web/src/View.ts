@@ -1,4 +1,4 @@
-import { direction, format, type Locale } from '@styld/i18n'
+import { direction, format, type Locale } from '@ethmumbai/i18n'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { LocaleSave, Message, type Model } from './App.ts'
 
@@ -78,7 +78,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const isLogin = pathname === loginPath || pathname === '/account'
   return {
     title:
-      format(locale, isHome ? 'landing.title' : isLogin ? 'auth.signInTitle' : 'common.notFoundTitle', {}) + ' | Styld',
+      format(locale, isHome ? 'landing.title' : isLogin ? 'auth.signInTitle' : 'common.notFoundTitle', {}) +
+      ' | ETH Global Mumbai 2026',
     lang: locale,
     dir: direction(locale) === 'rtl' ? 'Rtl' : 'Ltr',
     body: h.div(
@@ -86,18 +87,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       [
         h.header(
           [h.Class('masthead')],
-          [
-            h.a(
-              [h.Href(homePath), h.Class('brand'), h.AriaLabel('Styld')],
-              [h.img([h.Src('/brand/wordmark.svg'), h.Alt('Styld'), h.Width('112'), h.Height('53')])],
-            ),
-            languagePicker(model, h),
-          ],
+          [h.a([h.Href(homePath), h.Class('brand')], ['ETH Global Mumbai 2026']), languagePicker(model, h)],
         ),
         isHome ? homeView(locale, h) : isLogin ? accountView(model, h) : notFoundView(locale, h),
         h.footer(
           [],
-          [h.span([], ['Styld']), h.a([h.Href('mailto:hello@styld.app')], [format(locale, 'landing.contact', {})])],
+          [
+            h.span([], ['ETH Global Mumbai 2026']),
+            h.a([h.Href('https://github.com/grmkris/eth-global-mumbai-2026')], [format(locale, 'landing.contact', {})]),
+          ],
         ),
       ],
     ),

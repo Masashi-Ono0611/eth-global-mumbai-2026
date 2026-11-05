@@ -13,7 +13,7 @@ test('deployed preview serves API/auth contracts and the hydrated website', asyn
     const context = await browser.newContext()
     const health = await context.request.get(new URL('/api/health', origin).toString())
     expect(health.status()).toBe(200)
-    expect(await health.json()).toMatchObject({ service: 'styldappv2', status: 'ok' })
+    expect(await health.json()).toMatchObject({ service: 'ethmumbai', status: 'ok' })
     const session = await context.request.post(new URL('/api/auth/getSession', origin).toString(), {
       headers: { origin: origin.origin, 'x-effect-auth-csrf': '1' },
       data: {},

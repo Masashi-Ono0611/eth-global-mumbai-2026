@@ -1,4 +1,4 @@
-import { makeAuthRuntime } from '@styld/auth'
+import { makeAuthRuntime } from '@ethmumbai/auth'
 import { Http, Sessions } from '@yielded/auth'
 import { Effect, Layer } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'

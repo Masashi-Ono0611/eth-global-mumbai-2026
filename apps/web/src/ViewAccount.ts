@@ -1,5 +1,5 @@
-import type { AccountClaims } from '@styld/auth/config'
-import { format, type Locale } from '@styld/i18n'
+import type { AccountClaims } from '@ethmumbai/auth/config'
+import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { AuthState, Message, type Model } from './App.ts'
 import { passwordFormId } from './PasswordForm.ts'

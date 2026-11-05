@@ -6,10 +6,10 @@ import { assertBrowserSafe, checkDirection, checkGraph } from './graph.ts'
 import { importsOf, sourceFiles } from './source.ts'
 
 const withSources = async <A>(sources: Record<string, string>, run: (root: string) => Promise<A>) => {
-  const root = await mkdtemp(join(tmpdir(), 'styld-graph-'))
+  const root = await mkdtemp(join(tmpdir(), 'ethmumbai-graph-'))
   try {
     for (const [file, contents] of Object.entries({
-      'apps/web/package.json': JSON.stringify({ name: '@styld/web' }),
+      'apps/web/package.json': JSON.stringify({ name: '@ethmumbai/web' }),
       ...sources,
     })) {
       const path = join(root, file)
@@ -23,16 +23,22 @@ const withSources = async <A>(sources: Record<string, string>, run: (root: strin
 }
 
 test('import auditing sees re-exports, type imports and dynamic imports without matching strings', () => {
-  const source = `export * from '@styld/auth/storage'; import type { A } from './a.ts';
-    const text = "import('ignored')"; import('@styld/db'); require('node:fs'); import fs = require('fs');`
-  expect(importsOf('fixture.ts', source)).toEqual(['@styld/auth/storage', './a.ts', '@styld/db', 'node:fs', 'fs'])
+  const source = `export * from '@ethmumbai/auth/storage'; import type { A } from './a.ts';
+    const text = "import('ignored')"; import('@ethmumbai/db'); require('node:fs'); import fs = require('fs');`
+  expect(importsOf('fixture.ts', source)).toEqual([
+    '@ethmumbai/auth/storage',
+    './a.ts',
+    '@ethmumbai/db',
+    'node:fs',
+    'fs',
+  ])
   expect(() => importsOf('fixture.ts', 'import(userInput)')).toThrow('Computed module import')
 })
 
 test('domain cannot depend on persistence and browser cannot reach adapters through re-exports', () => {
-  expect(() => checkDirection('@styld/domain', '@styld/db')).toThrow('Forbidden dependency')
-  expect(() => checkDirection('@styld/auth', '@styld/server')).toThrow('Forbidden dependency')
-  expect(() => checkDirection('@styld/server', '@styld/auth')).not.toThrow()
+  expect(() => checkDirection('@ethmumbai/domain', '@ethmumbai/db')).toThrow('Forbidden dependency')
+  expect(() => checkDirection('@ethmumbai/auth', '@ethmumbai/server')).toThrow('Forbidden dependency')
+  expect(() => checkDirection('@ethmumbai/server', '@ethmumbai/auth')).not.toThrow()
   for (const file of ['packages/auth/src/storage.ts', 'packages/db/src/index.ts', 'apps/web/src/server/Secret.ts'])
     expect(() => assertBrowserSafe(file, '')).toThrow('Server adapter')
   expect(() => assertBrowserSafe('apps/web/src/entry.ts', 'node:fs')).toThrow('Server adapter')

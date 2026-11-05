@@ -10,7 +10,7 @@ import { chromium } from 'playwright'
 import { verifyBrowser } from './BrowserAcceptance.ts'
 import { verifyBrowserIdentity } from './IdentityBrowserAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
-import StyldWorkerLive, { StyldWorker } from '../src/StyldWorker.ts'
+import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 
 const makeStack = (generation: string) =>
   Alchemy.Stack(
@@ -22,7 +22,7 @@ const makeStack = (generation: string) =>
     Effect.gen(function* () {
       const worker = yield* RuntimeWorker
       yield* worker.bind('AcceptanceGeneration', { env: { TEST_GENERATION: generation } })
-      const styld = yield* StyldWorker
+      const api = yield* ApiWorker
       // Execute the production SSR artifact in workerd. Website.Foldkit's dev
       // mode runs Vite in Node, which cannot prove the deployed Worker behavior.
       const website = yield* Cloudflare.Worker('NativeWebsite', {
@@ -32,13 +32,13 @@ const makeStack = (generation: string) =>
       })
       const edge = yield* Cloudflare.Worker('NativeEdge', {
         main: 'packages/server/src/EdgeWorker.ts',
-        env: { API: styld, WEBSITE: website },
+        env: { API: api, WEBSITE: website },
         assets: { directory: 'apps/web/dist/client' },
         compatibility: { date: '2026-10-19' },
       })
       // Native acceptance binds the same secret-text contract used by Alchemy's
       // preview stack. Values are test-only and never leave this process.
-      yield* styld.bind('RuntimeConfiguration', {
+      yield* api.bind('RuntimeConfiguration', {
         env: {
           AUTH_ORIGIN: edge.url,
           APP_ENV: 'local',
@@ -54,11 +54,11 @@ const makeStack = (generation: string) =>
       })
       return {
         url: worker.url.as<string>(),
-        styldUrl: edge.url.as<string>(),
-        apiUrl: styld.url.as<string>(),
+        appUrl: edge.url.as<string>(),
+        apiUrl: api.url.as<string>(),
         websiteUrl: website.url.as<string>(),
       }
-    }).pipe(Effect.provide(StyldWorkerLive)),
+    }).pipe(Effect.provide(ApiWorkerLive)),
   )
 
 const Stack = makeStack('before')
@@ -100,12 +100,12 @@ test(
   'hydrates the built website and persists locale changes in a browser',
   Effect.scoped(
     Effect.gen(function* () {
-      const { styldUrl } = yield* stack
+      const { appUrl } = yield* stack
       const browserInstance = yield* Effect.acquireRelease(
         Effect.promise(() => chromium.launch({ headless: true })),
         (browser) => Effect.promise(() => browser.close()),
       )
-      yield* Effect.promise(() => verifyBrowser(browserInstance, styldUrl))
+      yield* Effect.promise(() => verifyBrowser(browserInstance, appUrl))
     }),
   ),
   { timeout: 60000 },
@@ -115,14 +115,14 @@ test(
   'signs in through the browser, retains the session across reloads and revokes it on logout',
   Effect.scoped(
     Effect.gen(function* () {
-      const { url, styldUrl } = yield* stack
+      const { url, appUrl } = yield* stack
       const seeded = yield* HttpClient.post(`${url}/test/identity/seed-browser`)
       expect(seeded.status).toBe(204)
       const browserInstance = yield* Effect.acquireRelease(
         Effect.promise(() => chromium.launch({ headless: true })),
         (browser) => Effect.promise(() => browser.close()),
       )
-      yield* Effect.promise(() => verifyBrowserIdentity(browserInstance, styldUrl))
+      yield* Effect.promise(() => verifyBrowserIdentity(browserInstance, appUrl))
     }),
   ).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 60000 },
@@ -142,18 +142,18 @@ test(
 test(
   'serves the built Foldkit document and assets through the public edge',
   Effect.gen(function* () {
-    const { styldUrl } = yield* stack
-    const document = yield* HttpClient.get(styldUrl, { headers: { accept: 'text/html' } })
+    const { appUrl } = yield* stack
+    const document = yield* HttpClient.get(appUrl, { headers: { accept: 'text/html' } })
     const html = yield* document.text
     expect(document.status).toBe(200)
     expect(document.headers['content-type']).toContain('text/html')
-    expect(html).toContain('A wardrobe shaped by you.')
+    expect(html).toContain('A duck with a budget.')
     const scriptPath = html.match(/<script type="module" crossorigin src="([^"]+)"/)?.[1]
     const stylesheetPath = html.match(/<link rel="stylesheet" crossorigin href="([^"]+)"/)?.[1]
     expect(scriptPath).toBeDefined()
     expect(stylesheetPath).toBeDefined()
-    const script = yield* HttpClient.get(`${styldUrl}${scriptPath}`)
-    const stylesheet = yield* HttpClient.get(`${styldUrl}${stylesheetPath}`)
+    const script = yield* HttpClient.get(`${appUrl}${scriptPath}`)
+    const stylesheet = yield* HttpClient.get(`${appUrl}${stylesheetPath}`)
     expect(script.status, `edge asset ${scriptPath}`).toBe(200)
     expect(yield* script.text).toContain('hydrate')
     expect(stylesheet.status, `edge asset ${stylesheetPath}`).toBe(200)
@@ -165,12 +165,12 @@ test(
 test(
   'serves health but no storage internals through the actual application Worker',
   Effect.gen(function* () {
-    const { styldUrl } = yield* stack
-    const health = yield* HttpClient.get(`${styldUrl}/api/health`)
+    const { appUrl } = yield* stack
+    const health = yield* HttpClient.get(`${appUrl}/api/health`)
     expect(health.status).toBe(200)
-    expect(yield* health.json).toMatchObject({ service: 'styldappv2', status: 'ok' })
+    expect(yield* health.json).toMatchObject({ service: 'ethmumbai', status: 'ok' })
 
-    const storage = yield* HttpClient.get(`${styldUrl}/api/storage`)
+    const storage = yield* HttpClient.get(`${appUrl}/api/storage`)
     expect(storage.status).toBe(404)
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 60000 },
@@ -179,16 +179,16 @@ test(
 test(
   'enforces Origin and CSRF on the actual application Worker',
   Effect.gen(function* () {
-    const { styldUrl } = yield* stack
-    const missingHeaders = yield* HttpClient.post(`${styldUrl}/api/auth/getSession`, {
+    const { appUrl } = yield* stack
+    const missingHeaders = yield* HttpClient.post(`${appUrl}/api/auth/getSession`, {
       headers: new Headers({ 'content-type': 'application/json' }),
       body: HttpBody.text('{}', 'application/json'),
     })
     expect(missingHeaders.status).toBe(403)
 
-    const valid = yield* HttpClient.post(`${styldUrl}/api/auth/getSession`, {
+    const valid = yield* HttpClient.post(`${appUrl}/api/auth/getSession`, {
       headers: new Headers({
-        origin: new URL(styldUrl).origin,
+        origin: new URL(appUrl).origin,
         'content-type': 'application/json',
         'x-effect-auth-csrf': '1',
       }),
@@ -197,7 +197,7 @@ test(
     expect(valid.status).toBe(200)
     expect(yield* valid.json).toMatchObject({ _tag: 'Success' })
 
-    const wrongOrigin = yield* HttpClient.post(`${styldUrl}/api/auth/getSession`, {
+    const wrongOrigin = yield* HttpClient.post(`${appUrl}/api/auth/getSession`, {
       headers: new Headers({
         origin: 'https://evil.invalid',
         'content-type': 'application/json',
@@ -207,7 +207,7 @@ test(
     })
     expect(wrongOrigin.status).toBe(403)
 
-    const unknownRoute = yield* HttpClient.get(`${styldUrl}/api/health-other`)
+    const unknownRoute = yield* HttpClient.get(`${appUrl}/api/health-other`)
     expect(unknownRoute.status).toBe(404)
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 60000 },
@@ -260,10 +260,10 @@ test(
 test(
   'authenticates, rejects password signup, logs out and immediately invalidates disabled accounts',
   Effect.gen(function* () {
-    const { url, styldUrl } = yield* stack
+    const { url, appUrl } = yield* stack
     const seeded = yield* HttpClient.post(`${url}/test/identity/seed`)
     expect(seeded.status).toBe(204)
-    const call = authCall(styldUrl)
+    const call = authCall(appUrl)
     const credentials = { email: 'native-identity@example.invalid', password: 'native-identity-password-52' }
     const denied = yield* call('signIn', { ...credentials, password: 'incorrect-password' })
     expect(yield* denied.json).toMatchObject({ _tag: 'Failure' })
@@ -311,12 +311,12 @@ test(
 test(
   'retains password attempt budgets across separate application requests',
   Effect.gen(function* () {
-    const { url, styldUrl } = yield* stack
+    const { url, appUrl } = yield* stack
     const seeded = yield* HttpClient.post(`${url}/test/identity/seed-limited`)
     expect(seeded.status).toBe(204)
     const attempt = () =>
-      HttpClient.post(`${styldUrl}/api/auth/signIn`, {
-        headers: { origin: new URL(styldUrl).origin, 'content-type': 'application/json', 'x-effect-auth-csrf': '1' },
+      HttpClient.post(`${appUrl}/api/auth/signIn`, {
+        headers: { origin: new URL(appUrl).origin, 'content-type': 'application/json', 'x-effect-auth-csrf': '1' },
         body: HttpBody.text(
           JSON.stringify({
             payload: { email: 'native-limited@example.invalid', password: 'native-identity-password-52' },
@@ -351,9 +351,9 @@ test(
 test(
   'recovers auth sessions and R2 bytes after a Worker restart',
   Effect.gen(function* () {
-    const { url, styldUrl } = yield* stack
+    const { url, appUrl } = yield* stack
     expect((yield* HttpClient.post(`${url}/test/recovery/seed`)).status).toBe(204)
-    const callAuth = authCall(styldUrl)
+    const callAuth = authCall(appUrl)
     const login = yield* callAuth('signIn', {
       email: 'native-recovery@example.invalid',
       password: 'native-identity-password-52',

@@ -61,7 +61,7 @@ const readHeader = (headers: HeaderSource, name: string): string | undefined => 
  * assigned by trusted application operations, never derived from request headers.
  */
 export const metadataFromHeaders = (base: ObservabilityBase, headers: HeaderSource): ObservabilityMetadata => {
-  const correlation = Schema.decodeUnknownOption(CorrelationId)(readHeader(headers, 'x-styld-correlation-id'))
+  const correlation = Schema.decodeUnknownOption(CorrelationId)(readHeader(headers, 'x-app-correlation-id'))
   return Option.match(correlation, {
     onNone: () => ({ ...base, kind: 'http' }),
     onSome: (correlationId) => ({ ...base, kind: 'http', correlationId }),
@@ -71,15 +71,15 @@ export const metadataFromHeaders = (base: ObservabilityBase, headers: HeaderSour
 /** Convert the typed metadata to a record with no undefined optional fields. */
 export const metadataAttributes = (metadata: ObservabilityMetadata): Record<string, string | number> => {
   const attributes: Record<string, string | number> = {
-    'styld.environment': metadata.environment,
-    'styld.release': metadata.release,
-    'styld.component': metadata.component,
+    'app.environment': metadata.environment,
+    'app.release': metadata.release,
+    'app.component': metadata.component,
   }
-  if (metadata.kind !== undefined) attributes['styld.kind'] = metadata.kind
-  if (metadata.correlationId !== undefined) attributes['styld.correlation_id'] = metadata.correlationId
-  if (metadata.operationId !== undefined) attributes['styld.operation_id'] = metadata.operationId
-  if (metadata.jobId !== undefined) attributes['styld.job_id'] = metadata.jobId
-  if (metadata.attempt !== undefined) attributes['styld.attempt'] = metadata.attempt
+  if (metadata.kind !== undefined) attributes['app.kind'] = metadata.kind
+  if (metadata.correlationId !== undefined) attributes['app.correlation_id'] = metadata.correlationId
+  if (metadata.operationId !== undefined) attributes['app.operation_id'] = metadata.operationId
+  if (metadata.jobId !== undefined) attributes['app.job_id'] = metadata.jobId
+  if (metadata.attempt !== undefined) attributes['app.attempt'] = metadata.attempt
   return attributes
 }
 

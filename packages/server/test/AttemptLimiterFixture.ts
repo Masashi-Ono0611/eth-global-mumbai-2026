@@ -1,5 +1,5 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
-import { passwordAttemptLimiter } from '@styld/auth/attempt-limiter'
+import { passwordAttemptLimiter } from '@ethmumbai/auth/attempt-limiter'
 import { Password } from '@yielded/auth'
 import { Effect, Redacted, Result } from 'effect'
 

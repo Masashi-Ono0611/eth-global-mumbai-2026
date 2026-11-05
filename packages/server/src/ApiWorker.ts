@@ -8,8 +8,8 @@ import { makeAuthHttp } from './AuthHttp.ts'
 import { DomainLive } from './DomainLive.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
-import { StyldDatabase } from './Resources.ts'
-import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@styld/observability'
+import { AppDatabase } from './Resources.ts'
+import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
 
 const Runtime = Layer.mergeAll(
   DomainLive,
@@ -17,9 +17,9 @@ const Runtime = Layer.mergeAll(
   Cloudflare.D1.QueryDatabaseBinding,
 )
 
-export class StyldWorker extends Cloudflare.Worker<StyldWorker, Cloudflare.WorkerShape>()('Api') {}
+export class ApiWorker extends Cloudflare.Worker<ApiWorker, Cloudflare.WorkerShape>()('Api') {}
 
-export default StyldWorker.make(
+export default ApiWorker.make(
   {
     main: import.meta.url,
     // Keep local workerd and deployed Workers on the same supported date; telemetry needs >= 2026-07-28.
@@ -33,7 +33,7 @@ export default StyldWorker.make(
     },
   },
   Effect.gen(function* () {
-    const database = yield* Cloudflare.D1.QueryDatabase(StyldDatabase)
+    const database = yield* Cloudflare.D1.QueryDatabase(AppDatabase)
     // Bindings configured by the stack (including the web origin and secrets) exist only in the deployed request
     // runtime, not while Alchemy evaluates the Worker declaration during planning. Build the application on the
     // first request and reuse it for every later request in this isolate (styldappv2 726c7e6d).
@@ -69,7 +69,7 @@ export default StyldWorker.make(
       const { handle, observabilityBase } = yield* application(env)
       const request = yield* HttpServerRequest
       const metadata = metadataFromHeaders(observabilityBase, request.headers)
-      return yield* handle.pipe(withObservability('styld.http', metadata))
+      return yield* handle.pipe(withObservability('app.http', metadata))
     })
     return { fetch }
   }).pipe(Effect.provide(Runtime)),

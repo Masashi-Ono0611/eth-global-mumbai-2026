@@ -16,11 +16,11 @@ test('accepts only bounded deployment and correlation metadata', () => {
   const metadata = metadataFromHeaders(
     base,
     new Headers({
-      'x-styld-kind': 'http',
-      'x-styld-correlation-id': correlationId,
-      'x-styld-operation-id': 'op-123',
-      'x-styld-job-id': 'job-123',
-      'x-styld-attempt': '2',
+      'x-app-kind': 'http',
+      'x-app-correlation-id': correlationId,
+      'x-app-operation-id': 'op-123',
+      'x-app-job-id': 'job-123',
+      'x-app-attempt': '2',
       authorization: 'Bearer secret-token',
     }),
   )
@@ -31,7 +31,7 @@ test('accepts only bounded deployment and correlation metadata', () => {
   })
   expect(metadataAttributes(metadata)).not.toHaveProperty('authorization')
   expect(
-    metadataFromHeaders(base, new Headers({ 'x-styld-correlation-id': 'prompt=ignore me', 'x-styld-attempt': '0' })),
+    metadataFromHeaders(base, new Headers({ 'x-app-correlation-id': 'prompt=ignore me', 'x-app-attempt': '0' })),
   ).toEqual({ ...base, kind: 'http' })
 })
 
@@ -48,7 +48,7 @@ test('invalid deployment identity fails without logging the supplied value', asy
 })
 
 test('withObservability annotates logs and forwards the same approved span fields', async () => {
-  const metadata = metadataFromHeaders(base, new Headers({ 'x-styld-correlation-id': correlationId }))
+  const metadata = metadataFromHeaders(base, new Headers({ 'x-app-correlation-id': correlationId }))
   const spans: Array<Tracer.NativeSpan> = []
   const tracer = Tracer.make({
     span(options) {
@@ -66,7 +66,7 @@ test('withObservability annotates logs and forwards the same approved span field
       yield* Effect.logInfo('safe')
       return yield* Effect.succeed('done')
     }).pipe(
-      withObservability('styld.test', metadata),
+      withObservability('app.test', metadata),
       Effect.provide(Logger.layer([logger])),
       Effect.provideService(Tracer.Tracer, tracer),
     ),
@@ -75,7 +75,7 @@ test('withObservability annotates logs and forwards the same approved span field
   expect(spans).toHaveLength(1)
   expect(Object.fromEntries(spans[0]?.attributes ?? [])).toEqual(metadataAttributes(metadata))
   expect(annotations[0]).toEqual(metadataAttributes(metadata))
-  expect(metadataFromHeaders(base, new Headers({ 'x-styld-job-id': 'x'.repeat(129) }))).toEqual({
+  expect(metadataFromHeaders(base, new Headers({ 'x-app-job-id': 'x'.repeat(129) }))).toEqual({
     ...base,
     kind: 'http',
   })

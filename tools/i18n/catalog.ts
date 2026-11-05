@@ -4,13 +4,8 @@ export type Catalog = Readonly<Record<string, string>>
 export type ArgumentKind = 'text' | 'number' | 'date' | 'tag'
 export type Contract = ReadonlyMap<string, ArgumentKind>
 
-// Frozen v1 result screens omit their question; these are optional copy, not untranslated messages.
-const optionalCopy = new Set([
-  'onboardingFlows.default-v4.results.question',
-  'onboardingFlows.outfit-check.results.question',
-  'onboardingFlows.try-on.results.question',
-  'onboardingFlows.wardrobe.results.question',
-])
+// Messages that may legitimately be empty (none today).
+const optionalCopy = new Set<string>()
 
 export const flatten = (input: unknown, prefix = ''): Catalog => {
   if (typeof input === 'string') {
@@ -27,12 +22,7 @@ export const flatten = (input: unknown, prefix = ''): Catalog => {
 }
 
 // Exact frozen-copy waivers: preserve existing wording, reject newly missing plural forms.
-const pluralWaivers: Readonly<Record<string, string>> = {
-  'en:admin.versionsCount:count:one': '{count, plural, =1 {# version} other {# versions}}',
-  'sl:activity.activeCount:count:two': '{count, plural, one {# v teku} few {# v teku} other {# v teku}}',
-  'sl:profile.shop.piecesCount:feed:two,few':
-    '{feed, plural, one {# s tvoje strani} other {# s tvoje strani}}, {manual, plural, one {# dodan ročno} two {# dodana ročno} few {# dodani ročno} other {# dodanih ročno}}',
-}
+const pluralWaivers: Readonly<Record<string, string>> = {}
 
 const compatible = (left: ArgumentKind, right: ArgumentKind): ArgumentKind => {
   if (left === right) return left

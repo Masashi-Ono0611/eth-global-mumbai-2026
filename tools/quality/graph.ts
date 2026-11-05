@@ -12,13 +12,19 @@ const Manifest = Schema.Struct({
 type Workspace = { readonly directory: string; readonly manifest: typeof Manifest.Type }
 
 const directions: Readonly<Record<string, readonly string[]>> = {
-  '@styld/web': ['@styld/auth', '@styld/i18n', '@styld/observability'],
-  '@styld/server': ['@styld/auth', '@styld/db', '@styld/domain', '@styld/i18n', '@styld/observability'],
-  '@styld/auth': ['@styld/db'],
-  '@styld/domain': [],
-  '@styld/db': [],
-  '@styld/i18n': [],
-  '@styld/observability': [],
+  '@ethmumbai/web': ['@ethmumbai/auth', '@ethmumbai/i18n', '@ethmumbai/observability'],
+  '@ethmumbai/server': [
+    '@ethmumbai/auth',
+    '@ethmumbai/db',
+    '@ethmumbai/domain',
+    '@ethmumbai/i18n',
+    '@ethmumbai/observability',
+  ],
+  '@ethmumbai/auth': ['@ethmumbai/db'],
+  '@ethmumbai/domain': [],
+  '@ethmumbai/db': [],
+  '@ethmumbai/i18n': [],
+  '@ethmumbai/observability': [],
 }
 
 const packageName = (specifier: string) =>
@@ -70,7 +76,7 @@ const resolveEdge = (
     }
     return resolveWorkspace(target, specifier)
   }
-  if (specifier.startsWith('@styld/')) throw new Error(`Unknown workspace import in ${file}: ${specifier}`)
+  if (specifier.startsWith('@ethmumbai/')) throw new Error(`Unknown workspace import in ${file}: ${specifier}`)
   if (!specifier.startsWith('.')) return undefined
   const destination = posix.normalize(posix.join(dirname(file), specifier))
   if (owner !== undefined && !destination.startsWith(`${owner.directory}/`))

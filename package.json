@@ -1,5 +1,5 @@
 {
-  "name": "styldappv2",
+  "name": "ethmumbai",
   "private": true,
   "workspaces": {
     "packages": [
@@ -69,10 +69,10 @@
     "@effect/platform-bun": "catalog:",
     "@effect/platform-node": "catalog:",
     "@effect/vitest": "catalog:",
+    "@ethmumbai/server": "workspace:*",
     "@foldkit/oxlint-plugin": "0.15.4",
     "@formatjs/icu-messageformat-parser": "catalog:",
     "@oxlint/plugins": "1.91.0",
-    "@styld/server": "workspace:*",
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "@yielded/effect-tsrs": "0.2.3",

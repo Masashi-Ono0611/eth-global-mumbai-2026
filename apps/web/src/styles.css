@@ -1,4 +1,4 @@
-/* Styld's existing Atelier palette and typography: the rewrite preserves its visual identity. */
+/* The palette and typography inherited from the styldappv2 foundation; restyle when the product design lands. */
 :root {
   color-scheme: light;
   --paper: oklch(94.5% 0.01 76);

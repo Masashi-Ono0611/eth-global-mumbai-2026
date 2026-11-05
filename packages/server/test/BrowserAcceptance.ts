@@ -10,12 +10,12 @@ export const verifyBrowser = async (browser: Browser, origin: string): Promise<v
     page.on('pageerror', (error) => errors.push(error.message))
     const documentResponse = await page.goto(origin, { waitUntil: 'networkidle' })
     expect(documentResponse?.status()).toBe(200)
-    expect(await page.locator('h1').textContent()).toBe('A wardrobe shaped by you.')
+    expect(await page.locator('h1').textContent()).toBe('A duck with a budget.')
     expect(await page.locator('.masthead').evaluate((element) => getComputedStyle(element).display)).toBe('flex')
     await page.selectOption('#language', 'sl')
     await page.waitForFunction(() => document.documentElement.lang === 'sl')
-    expect(await page.locator('h1').textContent()).toBe('Garderoba po tvojem okusu.')
-    expect((await context.cookies()).find((cookie) => cookie.name === 'styld_locale')).toMatchObject({
+    expect(await page.locator('h1').textContent()).toBe('Raca s proračunom.')
+    expect((await context.cookies()).find((cookie) => cookie.name === 'app_locale')).toMatchObject({
       value: 'sl',
       httpOnly: true,
       sameSite: 'Lax',
@@ -30,7 +30,7 @@ export const verifyBrowser = async (browser: Browser, origin: string): Promise<v
     const loginResponse = await page.goto(new URL('/login', origin).toString(), { waitUntil: 'networkidle' })
     expect(loginResponse?.status()).toBe(200)
     await page.locator('#auth-password').waitFor({ state: 'visible' })
-    expect(await page.locator('h1').textContent()).toBe('Sign in to Styld')
+    expect(await page.locator('h1').textContent()).toBe('Sign in')
     expect(await page.locator('#auth-password').getAttribute('autocomplete')).toBe('current-password')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     expect(errors).toEqual([])

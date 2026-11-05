@@ -39,7 +39,7 @@ export const passwordAttemptLimiter = <R>(raw: D1Source<R>, secret: Redacted.Red
         catch: () => Password.PasswordUnavailable.make({}),
       })
       return Password.PasswordAttemptLimiter.of({
-        check: Effect.fn('Styld.Auth.limitPasswordAttempts')(function* (input) {
+        check: Effect.fn('EthMumbai.Auth.limitPasswordAttempts')(function* (input) {
           const budget = yield* Schema.decodeUnknownEffect(Password.PasswordAttemptPolicy.fields.identifier)(
             input.budget,
           ).pipe(Effect.mapError(() => Password.PasswordUnavailable.make({})))
@@ -49,7 +49,13 @@ export const passwordAttemptLimiter = <R>(raw: D1Source<R>, secret: Redacted.Red
                 'HMAC',
                 key,
                 encoder.encode(
-                  JSON.stringify(['styld/password-attempt/v1', input.moduleId, input.action, input.scope, input.key]),
+                  JSON.stringify([
+                    'ethmumbai/password-attempt/v1',
+                    input.moduleId,
+                    input.action,
+                    input.scope,
+                    input.key,
+                  ]),
                 ),
               ),
             catch: () => Password.PasswordUnavailable.make({}),

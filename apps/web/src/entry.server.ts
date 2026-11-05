@@ -1,8 +1,8 @@
 import { Clock, Effect } from 'effect'
 import { layer as cloudflareTracer } from '@alchemy.run/cloudflare/Workers/CloudflareTracer'
 import * as Server from 'foldkit/experimental/server'
-import { catalogVersion } from '@styld/i18n'
-import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@styld/observability'
+import { catalogVersion } from '@ethmumbai/i18n'
+import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
 import { Flags, init } from './App.ts'
 import { localeEndpoint, requestLocale } from './Locale.ts'
 import { view } from './View.ts'
@@ -51,7 +51,7 @@ export const renderRequest = (
       component: 'web',
     }).pipe(Effect.orDie)
     return yield* renderApplication(request, options).pipe(
-      withObservability('styld.web.render', metadataFromHeaders(identity, request.headers)),
+      withObservability('app.web.render', metadataFromHeaders(identity, request.headers)),
     )
   })
 

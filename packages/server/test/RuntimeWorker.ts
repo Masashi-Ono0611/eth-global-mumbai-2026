@@ -1,5 +1,5 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
-import { format } from '@styld/i18n'
+import { format } from '@ethmumbai/i18n'
 import { Effect, Layer } from 'effect'
 import { Redacted } from 'effect'
 import { HttpServerRequest } from 'effect/http/HttpServerRequest'
@@ -10,7 +10,7 @@ import { seedIdentity, disableIdentity } from './IdentityFixture.ts'
 import { DomainLive } from '../src/DomainLive.ts'
 import { recoveryRoutes } from './RecoveryFixture.ts'
 import { makeAuthHttp } from '../src/AuthHttp.ts'
-import { StyldDatabase, StyldMedia } from '../src/Resources.ts'
+import { AppDatabase, AppMedia } from '../src/Resources.ts'
 import { storageHealth } from './StorageHealth.ts'
 
 // Only the local native-test stack imports this fixture. It has no production declaration.
@@ -31,8 +31,8 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
     },
   },
   Effect.gen(function* () {
-    const database = yield* Cloudflare.D1.QueryDatabase(StyldDatabase)
-    const media = yield* Cloudflare.R2.ReadWriteBucket(StyldMedia)
+    const database = yield* Cloudflare.D1.QueryDatabase(AppDatabase)
+    const media = yield* Cloudflare.R2.ReadWriteBucket(AppMedia)
     const auth = makeAuthHttp(database, {
       origin: 'http://localhost',
       secret: Redacted.make('native-test-auth-secret-012345678901234567890123'),

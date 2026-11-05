@@ -17,7 +17,7 @@ export class PasswordForm extends Context.Service<
       PasswordFormUnavailable
     >
   }
->()('@styld/web/PasswordForm') {}
+>()('@ethmumbai/web/PasswordForm') {}
 
 export const passwordFormLayer = (document: Document) =>
   Layer.succeed(PasswordForm, {

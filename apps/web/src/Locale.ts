@@ -20,8 +20,8 @@ export const requestLocale = (request: Request): Locale => {
   const cookie = request.headers
     .get('cookie')
     ?.split(';')
-    .find((part) => part.trim().startsWith('styld_locale='))
-  const saved = parseLocale(cookie?.trim().slice('styld_locale='.length))
+    .find((part) => part.trim().startsWith('app_locale='))
+  const saved = parseLocale(cookie?.trim().slice('app_locale='.length))
   if (saved !== undefined) return saved
   const ranges = (request.headers.get('accept-language') ?? '')
     .slice(0, 4096)
@@ -41,7 +41,7 @@ export const requestLocale = (request: Request): Locale => {
 }
 
 export const localeCookie = (locale: Locale, url: URL): string =>
-  'styld_locale=' +
+  'app_locale=' +
   locale +
   '; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax' +
   (url.protocol === 'https:' ? '; Secure' : '')

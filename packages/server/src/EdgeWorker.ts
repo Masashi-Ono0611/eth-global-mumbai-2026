@@ -19,9 +19,9 @@ export default {
   fetch(request: Request, env: EdgeEnvironment): Promise<Response> {
     const headers = new Headers(request.headers)
     for (const name of request.headers.keys()) {
-      if (name.startsWith('x-styld-')) headers.delete(name)
+      if (name.startsWith('x-app-')) headers.delete(name)
     }
-    headers.set('x-styld-correlation-id', crypto.randomUUID())
+    headers.set('x-app-correlation-id', crypto.randomUUID())
     const forwarded = new Request(request, { headers })
     return (isApiPath(new URL(request.url).pathname) ? env.API : env.WEBSITE).fetch(forwarded)
   },

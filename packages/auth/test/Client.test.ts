@@ -6,7 +6,7 @@ import { makeAuthClient } from '../src/client.ts'
 describe('Yielded Auth browser client', () => {
   test('uses the shared session contract and JSON transport envelope', async () => {
     const requests: Request[] = []
-    const definition = makeAuthClient('https://styld.test')
+    const definition = makeAuthClient('https://app.test')
     const response = new Response(JSON.stringify({ _tag: 'Success', value: null }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -27,7 +27,7 @@ describe('Yielded Auth browser client', () => {
 
     expect(session).toBeNull()
     expect(requests).toHaveLength(1)
-    expect(requests[0]?.url).toBe('https://styld.test/api/auth/getSession')
+    expect(requests[0]?.url).toBe('https://app.test/api/auth/getSession')
     expect(requests[0]?.method).toBe('POST')
     expect(requests[0]?.headers.get('x-effect-auth-csrf')).toBe('1')
     expect(requests[0]?.headers.get('content-type')).toBe('application/json')

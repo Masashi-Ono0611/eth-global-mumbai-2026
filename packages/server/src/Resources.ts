@@ -7,10 +7,10 @@ import { Effect } from 'effect'
 const keepOnMain = retain(Effect.map(Stage, (stage) => stage === 'main'))
 
 /** The app's Cloudflare data plane. Physical names derive from the `EthMumbai` stack and its stage. */
-export const StyldDatabase = Cloudflare.D1.Database('Database', {
+export const AppDatabase = Cloudflare.D1.Database('Database', {
   migrations: 'packages/db/migrations',
 }).pipe(keepOnMain)
 
-export const StyldMedia = Cloudflare.R2.Bucket('Media', {
+export const AppMedia = Cloudflare.R2.Bucket('Media', {
   jurisdiction: 'eu',
 }).pipe(keepOnMain)

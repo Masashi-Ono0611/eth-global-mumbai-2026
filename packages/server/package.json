@@ -1,5 +1,5 @@
 {
-  "name": "@styld/server",
+  "name": "@ethmumbai/server",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -9,10 +9,10 @@
   "dependencies": {
     "@alchemy.run/cloudflare": "catalog:",
     "@alchemy.run/domain": "catalog:",
-    "@styld/auth": "workspace:*",
-    "@styld/domain": "workspace:*",
-    "@styld/i18n": "workspace:*",
-    "@styld/observability": "workspace:*",
+    "@ethmumbai/auth": "workspace:*",
+    "@ethmumbai/domain": "workspace:*",
+    "@ethmumbai/i18n": "workspace:*",
+    "@ethmumbai/observability": "workspace:*",
     "@yielded/auth": "catalog:",
     "alchemy": "catalog:",
     "effect": "catalog:"

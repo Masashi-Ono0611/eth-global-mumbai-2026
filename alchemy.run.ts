@@ -1,8 +1,8 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Alchemy from 'alchemy'
 import { Config, Effect } from 'effect'
-import { StyldMedia } from '@styld/server/Resources'
-import StyldWorkerLive, { StyldWorker } from '@styld/server/StyldWorker'
+import { AppMedia } from '@ethmumbai/server/Resources'
+import ApiWorkerLive, { ApiWorker } from '@ethmumbai/server/ApiWorker'
 
 /**
  * The app: public edge Worker (SSR website + API behind it), D1 and R2. `.github/workflows/check.yml` deploys stage
@@ -19,8 +19,8 @@ export default Alchemy.Stack(
     const stage = yield* Alchemy.Stage
     const environment = stage === 'main' ? 'production' : stage === 'local' ? 'local' : 'preview'
     // The stack owns the media bucket even while no Worker serves media yet.
-    yield* StyldMedia
-    const api = yield* StyldWorker
+    yield* AppMedia
+    const api = yield* ApiWorker
     const website = yield* Cloudflare.Website.Foldkit('Website', {
       rootDir: 'apps/web',
       env: { VITE_APP_ENV: environment, VITE_APP_RELEASE: release },
@@ -60,5 +60,5 @@ export default Alchemy.Stack(
       },
     })
     return { url: edge.url.as<string>() }
-  }).pipe(Effect.provide(StyldWorkerLive)),
+  }).pipe(Effect.provide(ApiWorkerLive)),
 )

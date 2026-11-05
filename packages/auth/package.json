@@ -1,5 +1,5 @@
 {
-  "name": "@styld/auth",
+  "name": "@ethmumbai/auth",
   "private": true,
   "type": "module",
   "exports": {
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@effect/sql-d1": "catalog:",
-    "@styld/db": "workspace:*",
+    "@ethmumbai/db": "workspace:*",
     "@yielded/auth": "catalog:",
     "@yielded/auth-persistence-drizzle": "catalog:",
     "drizzle-orm": "catalog:",

@@ -12,10 +12,10 @@
         "@effect/platform-bun": "catalog:",
         "@effect/platform-node": "catalog:",
         "@effect/vitest": "catalog:",
+        "@ethmumbai/server": "workspace:*",
         "@foldkit/oxlint-plugin": "0.15.4",
         "@formatjs/icu-messageformat-parser": "catalog:",
         "@oxlint/plugins": "1.91.0",
-        "@styld/server": "workspace:*",
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
         "@yielded/effect-tsrs": "0.2.3",
@@ -38,12 +38,12 @@
       },
     },
     "apps/web": {
-      "name": "@styld/web",
+      "name": "@ethmumbai/web",
       "dependencies": {
         "@alchemy.run/cloudflare": "catalog:",
-        "@styld/auth": "workspace:*",
-        "@styld/i18n": "workspace:*",
-        "@styld/observability": "workspace:*",
+        "@ethmumbai/auth": "workspace:*",
+        "@ethmumbai/i18n": "workspace:*",
+        "@ethmumbai/observability": "workspace:*",
         "effect": "catalog:",
         "foldkit": "catalog:",
       },
@@ -70,10 +70,10 @@
       },
     },
     "packages/auth": {
-      "name": "@styld/auth",
+      "name": "@ethmumbai/auth",
       "dependencies": {
         "@effect/sql-d1": "catalog:",
-        "@styld/db": "workspace:*",
+        "@ethmumbai/db": "workspace:*",
         "@yielded/auth": "catalog:",
         "@yielded/auth-persistence-drizzle": "catalog:",
         "drizzle-orm": "catalog:",
@@ -81,13 +81,13 @@
       },
     },
     "packages/db": {
-      "name": "@styld/db",
+      "name": "@ethmumbai/db",
       "dependencies": {
         "drizzle-orm": "catalog:",
       },
     },
     "packages/domain": {
-      "name": "@styld/domain",
+      "name": "@ethmumbai/domain",
       "dependencies": {
         "@alchemy.run/domain": "catalog:",
         "alchemy": "catalog:",
@@ -99,14 +99,14 @@
       },
     },
     "packages/i18n": {
-      "name": "@styld/i18n",
+      "name": "@ethmumbai/i18n",
       "dependencies": {
         "@formatjs/icu-messageformat-parser": "catalog:",
         "intl-messageformat": "catalog:",
       },
     },
     "packages/observability": {
-      "name": "@styld/observability",
+      "name": "@ethmumbai/observability",
       "dependencies": {
         "effect": "catalog:",
       },
@@ -115,14 +115,14 @@
       },
     },
     "packages/server": {
-      "name": "@styld/server",
+      "name": "@ethmumbai/server",
       "dependencies": {
         "@alchemy.run/cloudflare": "catalog:",
         "@alchemy.run/domain": "catalog:",
-        "@styld/auth": "workspace:*",
-        "@styld/domain": "workspace:*",
-        "@styld/i18n": "workspace:*",
-        "@styld/observability": "workspace:*",
+        "@ethmumbai/auth": "workspace:*",
+        "@ethmumbai/domain": "workspace:*",
+        "@ethmumbai/i18n": "workspace:*",
+        "@ethmumbai/observability": "workspace:*",
         "@yielded/auth": "catalog:",
         "alchemy": "catalog:",
         "effect": "catalog:",
@@ -298,7 +298,21 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
 
+    "@ethmumbai/auth": ["@ethmumbai/auth@workspace:packages/auth"],
+
+    "@ethmumbai/db": ["@ethmumbai/db@workspace:packages/db"],
+
+    "@ethmumbai/domain": ["@ethmumbai/domain@workspace:packages/domain"],
+
+    "@ethmumbai/i18n": ["@ethmumbai/i18n@workspace:packages/i18n"],
+
+    "@ethmumbai/observability": ["@ethmumbai/observability@workspace:packages/observability"],
+
+    "@ethmumbai/server": ["@ethmumbai/server@workspace:packages/server"],
+
     "@ethmumbai/site": ["@ethmumbai/site@workspace:docs/site"],
+
+    "@ethmumbai/web": ["@ethmumbai/web@workspace:apps/web"],
 
     "@foldkit/oxlint-plugin": ["@foldkit/oxlint-plugin@0.15.4", "", { "dependencies": { "effect-oxlint": "^0.3.4 || ^0.4.0" } }, "sha512-qBFoApW7UAn5gu2GWyhL5lwyQpD9scCwESJOWQ3uC3h1oVnpToDmlCvFNC3HmfNZjQUxcGSwvWtL9LOB+ECyjg=="],
 
@@ -579,20 +593,6 @@
     "@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.2.13", "", { "os": "win32", "cpu": "x64" }, "sha512-UKhFaZTeTcbKrb3iU82m17jVcPEAoqDkCN5MBqgPyZSwp/cQmib21crTS0DdH7T1B7wZRWEI89YQAOJMet5yhg=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
-
-    "@styld/auth": ["@styld/auth@workspace:packages/auth"],
-
-    "@styld/db": ["@styld/db@workspace:packages/db"],
-
-    "@styld/domain": ["@styld/domain@workspace:packages/domain"],
-
-    "@styld/i18n": ["@styld/i18n@workspace:packages/i18n"],
-
-    "@styld/observability": ["@styld/observability@workspace:packages/observability"],
-
-    "@styld/server": ["@styld/server@workspace:packages/server"],
-
-    "@styld/web": ["@styld/web@workspace:apps/web"],
 
     "@tsrs/darwin-arm64": ["@tsrs/darwin-arm64@0.22.0-ts7.1.0-beta", "", { "os": "darwin", "cpu": "arm64" }, "sha512-mY0dMEtFxig4h5At3nByjZe8E4DTDPqqz73kkxQ6gqW5K9ym+u/VHQhtnpTF6ZOTkYyjP3bTaj5T8HcyoGVddA=="],
 

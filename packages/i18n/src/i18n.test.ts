@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import { direction, format, formatRich, normalizeLocale, text, type MessageValues } from './index.ts'
 
-describe('Styld locales', () => {
+describe('App locales', () => {
   test('formats the reviewed English and Slovenian catalog', () => {
     expect(text('catalog.pieces', { count: 2 })).toBe('2 pieces')
     expect(format('sl', 'catalog.pieces', { count: 2 })).toBe('2 kosa')
@@ -13,10 +13,10 @@ describe('Styld locales', () => {
     expect(normalizeLocale('unknown')).toBe('en')
     expect(direction('ar-XB')).toBe('rtl')
     expect(normalizeLocale('sloppy')).toBe('en')
-    expect(format('en-XA', 'catalog.title', {})).toContain('⟦')
+    expect(format('en-XA', 'auth.signInTitle', {})).toContain('⟦')
     const userValue = '<script>customer</script>'
-    expect(format('en-XA', 'catalog.tryOnError', { message: userValue })).toContain(userValue)
-    expect(format('ar-XB', 'catalog.title', {})).toContain('\u2067')
+    expect(format('en-XA', 'common.errorDetail', { message: userValue })).toContain(userValue)
+    expect(format('ar-XB', 'auth.signInTitle', {})).toContain('\u2067')
   })
 
   test.each([
@@ -43,9 +43,10 @@ describe('Styld locales', () => {
   test('rich translations return structured nodes rather than HTML', () => {
     type Node = { tag: 'em'; children: readonly (string | Node)[] }
     const italic = (children: (string | Node)[]): Node => ({ tag: 'em', children })
-    expect(formatRich<'outfitCheck.uploadOutfit', Node>('sl', 'outfitCheck.uploadOutfit', { italic })).toEqual([
-      'Naloži svoj ',
-      { tag: 'em', children: ['videz'] },
+    expect(formatRich<'landing.lead', Node>('sl', 'landing.lead', { italic })).toEqual([
+      'Vaša raca, ',
+      { tag: 'em', children: ['vaš proračun'] },
+      '.',
     ])
   })
 

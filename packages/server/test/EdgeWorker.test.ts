@@ -16,14 +16,14 @@ describe('public edge routing', () => {
     (path) => expect(isApiPath(path)).toBe(false),
   )
   test('passes request bodies, cookies, redirects and repeated response headers unchanged', async () => {
-    const request = new Request('https://styld.test/api/auth/getSession?x=1', {
+    const request = new Request('https://app.test/api/auth/getSession?x=1', {
       method: 'POST',
       headers: {
         cookie: 'session=test',
-        origin: 'https://styld.test',
-        'x-styld-correlation-id': 'caller-controlled-secret',
-        'x-styld-job-id': 'caller-controlled-secret',
-        'x-styld-kind': 'caller-controlled-secret',
+        origin: 'https://app.test',
+        'x-app-correlation-id': 'caller-controlled-secret',
+        'x-app-job-id': 'caller-controlled-secret',
+        'x-app-kind': 'caller-controlled-secret',
       },
       body: '{}',
     })
@@ -37,10 +37,10 @@ describe('public edge routing', () => {
         expect(received.method).toBe(request.method)
         expect(await received.text()).toBe('{}')
         expect(received.headers.get('cookie')).toBe('session=test')
-        expect(received.headers.get('origin')).toBe('https://styld.test')
-        expect(received.headers.get('x-styld-correlation-id')).toMatch(/^[0-9a-f-]{36}$/)
-        expect(received.headers.has('x-styld-job-id')).toBe(false)
-        expect(received.headers.has('x-styld-kind')).toBe(false)
+        expect(received.headers.get('origin')).toBe('https://app.test')
+        expect(received.headers.get('x-app-correlation-id')).toMatch(/^[0-9a-f-]{36}$/)
+        expect(received.headers.has('x-app-job-id')).toBe(false)
+        expect(received.headers.has('x-app-kind')).toBe(false)
         return response
       },
     }

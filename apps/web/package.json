@@ -1,5 +1,5 @@
 {
-  "name": "@styld/web",
+  "name": "@ethmumbai/web",
   "private": true,
   "type": "module",
   "sideEffects": [
@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@alchemy.run/cloudflare": "catalog:",
-    "@styld/auth": "workspace:*",
-    "@styld/i18n": "workspace:*",
-    "@styld/observability": "workspace:*",
+    "@ethmumbai/auth": "workspace:*",
+    "@ethmumbai/i18n": "workspace:*",
+    "@ethmumbai/observability": "workspace:*",
     "effect": "catalog:",
     "foldkit": "catalog:"
   },
