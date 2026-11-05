@@ -44,6 +44,7 @@ test('negotiation respects explicit locale, cookie, language weights and exclusi
   expect(requestLocale(request('de,sl;q=0.9,en;q=0.5'))).toBe('sl')
   expect(requestLocale(request('ja-JP,ja;q=0.9,en;q=0.8'))).toBe('ja')
   expect(requestLocale(request('hi-IN,hi;q=0.9,en-IN;q=0.8'))).toBe('hi')
+  expect(requestLocale(request('mr-IN,mr;q=0.9,hi;q=0.8'))).toBe('mr')
   expect(requestLocale(request('sl;q=0,en;q=0.5'))).toBe('en')
   expect(requestLocale(new Request('https://app.test/?lang=ar-XB', { headers: { cookie: 'app_locale=sl' } }))).toBe(
     'ar-XB',

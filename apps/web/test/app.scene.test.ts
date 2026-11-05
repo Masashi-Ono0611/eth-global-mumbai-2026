@@ -106,7 +106,7 @@ describe('language', () => {
     )
   })
 
-  test('Japanese and Hindi are offered and render the page', () => {
+  test('Japanese, Hindi and Marathi are offered and render the page', () => {
     scene(
       { update, view },
       given(signedOut('/')),
@@ -117,6 +117,9 @@ describe('language', () => {
       change(label('言語'), 'hi'),
       Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'hi' })),
       expect(role('heading', { name: 'बजट वाली बत्तख।' })).toExist(),
+      change(label('भाषा'), 'mr'),
+      Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'mr' })),
+      expect(role('heading', { name: 'बजेट असलेले बदक.' })).toExist(),
     )
   })
 })

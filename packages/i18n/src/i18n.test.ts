@@ -17,6 +17,10 @@ describe('App locales', () => {
     expect(format('hi', 'catalog.pieces', { count: 3 })).toBe('3 वस्तुएँ')
     expect(normalizeLocale('ja-JP')).toBe('ja')
     expect(normalizeLocale('hi-IN')).toBe('hi')
+    expect(format('mr', 'landing.title', {})).toBe('बजेट असलेले बदक.')
+    // Marathi numbers default to Devanagari digits (२), unlike Hindi's Latin ones.
+    expect(format('mr', 'catalog.pieces', { count: 2 })).toBe('२ वस्तू')
+    expect(normalizeLocale('mr-IN')).toBe('mr')
   })
 
   test('keeps locale state explicit and supports pseudolocales', () => {

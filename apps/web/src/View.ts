@@ -13,6 +13,7 @@ const languages: ReadonlyArray<Readonly<{ locale: Locale; label: string }>> = [
   { locale: 'sl', label: 'Slovenščina' },
   { locale: 'ja', label: '日本語' },
   { locale: 'hi', label: 'हिन्दी' },
+  { locale: 'mr', label: 'मराठी' },
   { locale: 'en-XA', label: 'English (expanded)' },
   { locale: 'ar-XB', label: 'English (RTL)' },
 ]

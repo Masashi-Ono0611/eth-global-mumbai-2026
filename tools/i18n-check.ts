@@ -10,7 +10,7 @@ const load = async (locale: string) => {
   return flatten(input)
 }
 /** The reviewed translations of the English catalog; each also needs a `Locale` entry in packages/i18n and apps/web. */
-const translatedLocales = ['sl', 'ja', 'hi'] as const
+const translatedLocales = ['sl', 'ja', 'hi', 'mr'] as const
 const en = await load('en')
 const translations = Object.fromEntries(
   await Promise.all(translatedLocales.map(async (locale) => [locale, await load(locale)] as const)),

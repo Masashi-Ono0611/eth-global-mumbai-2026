@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-export const Locale = Schema.Literals(['en', 'sl', 'ja', 'hi', 'en-XA', 'ar-XB'])
+export const Locale = Schema.Literals(['en', 'sl', 'ja', 'hi', 'mr', 'en-XA', 'ar-XB'])
 export type Locale = typeof Locale.Type
 export const localeEndpoint = '/locale'
 
@@ -9,7 +9,7 @@ export const parseLocale = (value: string | null | undefined): Locale | undefine
 
 const languageRange = (range: string): Locale | undefined => {
   const language = range.trim().toLowerCase().split('-')[0]
-  return language === 'en' || language === 'sl' || language === 'ja' || language === 'hi' ? language : undefined
+  return (['en', 'sl', 'ja', 'hi', 'mr'] as const).find((candidate) => candidate === language)
 }
 
 /** Request-local negotiation. Invalid cookies and q=0 ranges never select a language. */

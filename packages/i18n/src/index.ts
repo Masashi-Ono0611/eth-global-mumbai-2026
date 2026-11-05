@@ -1,16 +1,16 @@
 import { IntlMessageFormat } from 'intl-messageformat'
 
-import { en, hi, ja, sl } from './catalogs.ts'
+import { en, hi, ja, mr, sl } from './catalogs.ts'
 import type { MessageKey, MessageValues } from './generated.ts'
 import { pseudoMessage } from './pseudo.ts'
 
 export type { MessageKey, MessageValues, RichTextValue } from './generated.ts'
 export { catalogVersion } from './generated.ts'
 /** Translated languages; the pseudo-locales en-XA and ar-XB exercise layout with English text. */
-export type Language = 'en' | 'sl' | 'ja' | 'hi'
+export type Language = 'en' | 'sl' | 'ja' | 'hi' | 'mr'
 export type Locale = Language | 'en-XA' | 'ar-XB'
-const catalogs: Readonly<Record<Language, Readonly<Record<MessageKey, string>>>> = { en, sl, ja, hi }
-const languages: ReadonlyArray<Language> = ['en', 'sl', 'ja', 'hi']
+const catalogs: Readonly<Record<Language, Readonly<Record<MessageKey, string>>>> = { en, sl, ja, hi, mr }
+const languages: ReadonlyArray<Language> = ['en', 'sl', 'ja', 'hi', 'mr']
 
 const defaultLocale: Locale = 'en'
 const formatterLimit = 4096

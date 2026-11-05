@@ -217,12 +217,15 @@ footer a {
 :lang(ja) {
   font-family: 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif;
 }
-:lang(hi) {
+:lang(hi),
+:lang(mr) {
   font-family: 'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Nirmala UI', system-ui, sans-serif;
 }
 :lang(ja) h1,
 :lang(ja) h2,
 :lang(hi) h1,
-:lang(hi) h2 {
+:lang(hi) h2,
+:lang(mr) h1,
+:lang(mr) h2 {
   font-family: inherit;
 }
