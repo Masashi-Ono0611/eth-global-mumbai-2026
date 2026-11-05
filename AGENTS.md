@@ -1,6 +1,15 @@
-# ETH Global Mumbai 2026 — duck robot that pays in USDC
+# Vitaquack — a passkey wallet on Arc that gives robots a USDC budget (ETHGlobal Mumbai 2026)
 
-Read `README.md` and `docs/` (vision, decisions, foundation, infrastructure, plan) before substantial work. The code was bootstrapped from the styldappv2 foundation (`docs/foundation.md`); Styld's product (wardrobe, credits, Dodo, stylist) is not part of this project. Spending authority lives on Arc, never in our database.
+Read, in this order, before substantial work: **`docs/spec.md`** (the build order; it wins over every other document),
+`docs/decisions.md`, `docs/plan.md`. Nothing else under `docs/` is authoritative for the build: `docs/research/` is
+evidence, `docs/spikes/` and `docs/evidence/` are results, and files marked "historical" are kept for the record only.
+The code was bootstrapped from the public `styld.app` foundation at commit `370a0e23` (one import commit on 5 Nov 2026);
+Styld's product is not part of this project.
+
+Product rules: Arc contracts are the only spending authority (D1 mirrors, never authorises); the robot's chip signs
+every payment and the Robot Agent never holds a spending key; never fake a 0G decision (a failed call ends the errand
+in `safe_stop`); no camera frames leave the chip; restricted items need a human approval, never an "age check"; no
+keys, tokens, signatures' private inputs or prompts in logs, commits or tool output.
 
 ## Ownership and workflow
 
@@ -18,7 +27,7 @@ Read installed library source before using unfamiliar APIs. Load the matching sk
 
 ## Architecture and testing
 
-One authoritative writer for each invariant. Arc contracts own spending caps, revocation and approvals; Domain aggregates on Durable Objects own live coordination (robot sessions, invoices); D1 owns ordinary relational entities and read models. Typed application operations are shared by HTTP/MCP/jobs. Domain `decide`/`evolve` are pure. Durable reactions and provider calls have explicit idempotency and unknown-outcome handling.
+One authoritative writer for each invariant. Arc contracts own spending caps, revocation and approvals. For the event, live coordination (errands, chip sign requests, invoices, approvals) is Effect services over D1 with HTTPS long-polling; no Durable Objects, no WebSockets and no MCP are on the critical path (recorded deviation from the foundation's Domain-on-Durable-Objects shape: 28 hours, unproven wiring). The Domain model stays empty. Typed application operations are shared by HTTP and jobs. Provider calls (Arc RPC, 0G, World) have explicit idempotency and unknown-outcome handling: a settlement is keyed by invoice, an approval by nonce, a relayer transaction by its key.
 
 Browser code imports contracts, never server adapters. Foldkit views are pure, updates emit named Commands, request state uses explicit schemas. Rendering receives locale, version, time zone and a stable reference time. Catalogs stay reviewed in Git.
 
