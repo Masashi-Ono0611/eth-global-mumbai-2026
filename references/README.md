@@ -195,3 +195,8 @@ Commits are read from each clone. The `@version` clones match the versions the r
 | `worldcoin_web-authenticator` | https://github.com/worldcoin/web-authenticator | `8f3eae8f59` | world-v2 |
 | `worldcoin_world-id-utility-contracts` | https://github.com/worldcoin/world-id-utility-contracts | `6f09724250` | world-v2 |
 | `xanderslabs_norkey` | https://github.com/xanderslabs/norkey | `dc1e026979` | wallet-accounts-v2 |
+| `fireblocks_x402-facilitator` | https://github.com/fireblocks/x402-facilitator | `ca7dd59d2a` | plan v3: ERC-7710 facilitator mechanism |
+| `base_account-sdk` | https://github.com/base/account-sdk | `1c31057036` | plan v3: just-in-time refill (sub accounts) |
+| `tempoxyz_mpp-specs` | https://github.com/tempoxyz/mpp-specs | `cd75e27a54` | plan v3: MPP (later) |
+| `wevm_mppx` | https://github.com/wevm/mppx | `7a18dacc93` | plan v3: MPP (later) |
+| `danfinlay_x402@7710-implementation` | https://github.com/danfinlay/x402 | `a26d75e857` | plan v3: x402 PR #1837 (7710 facilitator draft) |
