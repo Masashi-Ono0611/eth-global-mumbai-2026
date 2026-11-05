@@ -168,7 +168,7 @@ Owner action (send, revoke, add passkey) = the owner's passkey signs a one-time 
 
 | # | Decision | Recommendation |
 | --- | --- | --- |
-| D1 | Owner account: **passkey-native `HybridDeleGator`** vs the locked "EOA + 7702" | HybridDeleGator for passkey signups (no PRF gap, passkey verified on-chain, same grant system); 7702 only as fallback |
+| D1 | Owner account | **Decided 2026-11-05: passkey-native `HybridDeleGator`**; 7702 only as fallback (`decisions.md`) |
 | D2 | AI client key custody in iteration 1 | Wallet-held per grant (works with any MCP host); grantee-held for robots |
 | D3 | Does the robot sign its own payments? | Yes, only for invoices it scanned, under its sub-grant |
 | D4 | 18+ basis for the demo | "Orb-verified = 18+" now; try IDKit `identityCheck` at the World booth |
