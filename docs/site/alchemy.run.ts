@@ -1,5 +1,6 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Alchemy from 'alchemy'
+import { retain } from 'alchemy/RemovalPolicy'
 import { Effect } from 'effect'
 
 /**
@@ -15,7 +16,8 @@ export default Alchemy.Stack(
   'EthMumbaiSite',
   { providers: Cloudflare.providers(), state: Cloudflare.state({ name: 'ethmumbai' }) },
   Effect.gen(function* () {
-    const comments = yield* Cloudflare.D1.Database('CommentsDatabase', { migrations: 'migrations' })
+    // Comments are the team's feedback: a stack teardown keeps them.
+    const comments = yield* Cloudflare.D1.Database('CommentsDatabase', { migrations: 'migrations' }).pipe(retain())
     const site = yield* Cloudflare.Website.StaticSite('Site', {
       name: 'eth-mumbai-site',
       main: 'worker.ts',
