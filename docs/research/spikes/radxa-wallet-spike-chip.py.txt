@@ -1,0 +1,241 @@
+# Saved from bench/wallet-spike/chip.py on 2026-11-06 as .txt so the repo lint/typecheck gates skip it.
+# Runs ON the Radxa Zero 3W (Python 3.11 + python3-cryptography 38). Write-up: docs/research/bench-spikes.md
+#!/usr/bin/env python3
+"""Wallet spike. Runs ON the Radxa. The private key is generated here, stored 0600, never printed.
+
+Commands:
+  selftest   known-answer tests for the pure-python pieces (keccak256, address derivation, recovery)
+  address    print the on-chip address (creates the key on first use)
+  sign       JSON request on stdin -> JSON result on stdout (EIP-3009 TransferWithAuthorization)
+
+Throwaway spike key: never fund it. Pure-python keccak256 and pubkey recovery are spike-only;
+the product should use libsecp256k1 / viem. ECDSA itself is done by OpenSSL via `cryptography`.
+"""
+import json
+import os
+import sys
+import time
+
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import Prehashed, decode_dss_signature
+
+KEY_PATH = os.path.expanduser("~/.duck/spike-key.pem")
+
+# ---- local hard policy (the last line of defence if the server lies) -----------------------
+ALLOWED_CHAIN_ID = 5042                                          # Arc mainnet
+ALLOWED_TOKEN = "0x3600000000000000000000000000000000000000"     # Arc USDC (ERC-20 interface)
+MAX_VALUE = 100_000                                              # 0.10 USDC (6 decimals)
+MAX_VALIDITY_SECONDS = 3600
+
+# ---- keccak256 (hashlib's sha3_256 uses different padding, so we need our own) -------------
+MASK = (1 << 64) - 1
+RC = [
+    0x0000000000000001, 0x0000000000008082, 0x800000000000808A, 0x8000000080008000,
+    0x000000000000808B, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009,
+    0x000000000000008A, 0x0000000000000088, 0x0000000080008009, 0x000000008000000A,
+    0x000000008000808B, 0x800000000000008B, 0x8000000000008089, 0x8000000000008003,
+    0x8000000000008002, 0x8000000000000080, 0x000000000000800A, 0x800000008000000A,
+    0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008,
+]
+ROT = [[0, 36, 3, 41, 18], [1, 44, 10, 45, 2], [62, 6, 43, 15, 61], [28, 55, 25, 21, 56], [27, 20, 39, 8, 14]]
+
+
+def _rol(x, n):
+    return ((x << n) | (x >> (64 - n))) & MASK if n else x
+
+
+def _keccak_f(A):
+    for rc in RC:
+        C = [A[x][0] ^ A[x][1] ^ A[x][2] ^ A[x][3] ^ A[x][4] for x in range(5)]
+        D = [C[(x - 1) % 5] ^ _rol(C[(x + 1) % 5], 1) for x in range(5)]
+        A = [[A[x][y] ^ D[x] for y in range(5)] for x in range(5)]
+        B = [[0] * 5 for _ in range(5)]
+        for x in range(5):
+            for y in range(5):
+                B[y][(2 * x + 3 * y) % 5] = _rol(A[x][y], ROT[x][y])
+        A = [[B[x][y] ^ ((~B[(x + 1) % 5][y]) & B[(x + 2) % 5][y]) for y in range(5)] for x in range(5)]
+        A[0][0] ^= rc
+    return A
+
+
+def keccak256(data: bytes) -> bytes:
+    rate = 136
+    msg = bytearray(data)
+    msg.append(0x01)
+    while len(msg) % rate:
+        msg.append(0)
+    msg[-1] |= 0x80
+    A = [[0] * 5 for _ in range(5)]
+    for off in range(0, len(msg), rate):
+        block = msg[off:off + rate]
+        for i in range(rate // 8):
+            A[i % 5][i // 5] ^= int.from_bytes(block[8 * i:8 * i + 8], "little")
+        A = _keccak_f(A)
+    return b"".join(A[i % 5][i // 5].to_bytes(8, "little") for i in range(4))
+
+
+# ---- secp256k1 point math (only for finding the recovery id and verifying) -----------------
+P = 2**256 - 2**32 - 977
+N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
+
+
+def _padd(a, b):
+    if a is None:
+        return b
+    if b is None:
+        return a
+    if a[0] == b[0]:
+        if (a[1] + b[1]) % P == 0:
+            return None
+        lam = 3 * a[0] * a[0] * pow(2 * a[1], -1, P) % P
+    else:
+        lam = (b[1] - a[1]) * pow(b[0] - a[0], -1, P) % P
+    x = (lam * lam - a[0] - b[0]) % P
+    return x, (lam * (a[0] - x) - a[1]) % P
+
+
+def _pmul(k, pt):
+    r = None
+    while k:
+        if k & 1:
+            r = _padd(r, pt)
+        pt = _padd(pt, pt)
+        k >>= 1
+    return r
+
+
+def recover(digest: bytes, r: int, s: int, recid: int):
+    y2 = (pow(r, 3, P) + 7) % P
+    y = pow(y2, (P + 1) // 4, P)
+    if y * y % P != y2:
+        return None
+    if (y & 1) != recid:
+        y = P - y
+    e = int.from_bytes(digest, "big")
+    sR = _pmul(s, (r, y))
+    eG = _pmul(e % N, (GX, GY))
+    neg = None if eG is None else (eG[0], (-eG[1]) % P)
+    return _pmul(pow(r, -1, N), _padd(sR, neg))
+
+
+# ---- key handling ---------------------------------------------------------------------------
+def load_or_create_key():
+    if not os.path.exists(KEY_PATH):
+        os.makedirs(os.path.dirname(KEY_PATH), mode=0o700, exist_ok=True)
+        sk = ec.generate_private_key(ec.SECP256K1())
+        pem = sk.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                               serialization.NoEncryption())
+        fd = os.open(KEY_PATH, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(pem)
+    return serialization.load_pem_private_key(open(KEY_PATH, "rb").read(), None)
+
+
+def pub_xy(sk):
+    n = sk.public_key().public_numbers()
+    return n.x, n.y
+
+
+def address_of_xy(x, y):
+    return "0x" + keccak256(x.to_bytes(32, "big") + y.to_bytes(32, "big"))[12:].hex()
+
+
+def sign_digest(sk, digest: bytes):
+    r, s = decode_dss_signature(sk.sign(digest, ec.ECDSA(Prehashed(hashes.SHA256()))))
+    if s > N // 2:          # low-s, as Ethereum requires
+        s = N - s
+    xy = pub_xy(sk)
+    for recid in (0, 1):
+        if recover(digest, r, s, recid) == xy:
+            return r, s, 27 + recid
+    raise RuntimeError("no recovery id matched")
+
+
+# ---- EIP-712 / EIP-3009 -----------------------------------------------------------------------
+def _word(n: int) -> bytes:
+    return n.to_bytes(32, "big")
+
+
+def _addr(a: str) -> bytes:
+    h = a[2:] if a.startswith("0x") else a
+    assert len(h) == 40, "bad address"
+    return bytes(12) + bytes.fromhex(h)
+
+
+DOMAIN_T = keccak256(b"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
+TWA_T = keccak256(b"TransferWithAuthorization(address from,address to,uint256 value,"
+                  b"uint256 validAfter,uint256 validBefore,bytes32 nonce)")
+
+
+def domain_separator(d):
+    return keccak256(DOMAIN_T + keccak256(d["name"].encode()) + keccak256(d["version"].encode())
+                     + _word(d["chainId"]) + _addr(d["verifyingContract"]))
+
+
+def twa_digest(d, m):
+    sh = keccak256(TWA_T + _addr(m["from"]) + _addr(m["to"]) + _word(m["value"]) + _word(m["validAfter"])
+                   + _word(m["validBefore"]) + bytes.fromhex(m["nonce"][2:]))
+    return keccak256(b"\x19\x01" + domain_separator(d) + sh), sh
+
+
+# ---- commands ---------------------------------------------------------------------------------
+def cmd_selftest():
+    assert keccak256(b"").hex() == "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+    assert keccak256(b"abc").hex() == "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
+    print("keccak256 known answers: ok")
+    k1 = ec.derive_private_key(1, ec.SECP256K1())
+    assert address_of_xy(*pub_xy(k1)) == "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+    print("address of private key 1: ok")
+    tmp = ec.generate_private_key(ec.SECP256K1())
+    d = keccak256(b"selftest")
+    r, s, v = sign_digest(tmp, d)
+    q = recover(d, r, s, v - 27)
+    assert q == pub_xy(tmp)
+    print("sign + recover round trip: ok")
+
+
+def cmd_address():
+    sk = load_or_create_key()
+    print(address_of_xy(*pub_xy(sk)))
+
+
+def refuse(reason):
+    print(json.dumps({"ok": False, "refused": reason}))
+    sys.exit(3)
+
+
+def cmd_sign():
+    req = json.load(sys.stdin)
+    dom = req["domain"]
+    # local hard policy, checked BEFORE touching the key
+    if dom.get("chainId") != ALLOWED_CHAIN_ID:
+        refuse(f"chain {dom.get('chainId')} not allowed")
+    if str(dom.get("verifyingContract", "")).lower() != ALLOWED_TOKEN:
+        refuse("token contract not allowed")
+    if not (0 < req["value"] <= MAX_VALUE):
+        refuse(f"value {req['value']} outside cap {MAX_VALUE}")
+    now = int(time.time())
+    if not (now < req["validBefore"] <= now + MAX_VALIDITY_SECONDS):
+        refuse(f"validBefore must be within the next {MAX_VALIDITY_SECONDS} s of the chip clock")
+    if req["validAfter"] > now:
+        refuse("validAfter is in the future")
+    sk = load_or_create_key()
+    me = address_of_xy(*pub_xy(sk))
+    msg = {"from": me, "to": req["to"], "value": req["value"], "validAfter": req["validAfter"],
+           "validBefore": req["validBefore"], "nonce": "0x" + os.urandom(32).hex()}
+    digest, struct_hash = twa_digest(dom, msg)
+    r, s, v = sign_digest(sk, digest)
+    print(json.dumps({
+        "ok": True, "address": me, "domain": dom, "message": msg,
+        "domainSeparator": "0x" + domain_separator(dom).hex(), "structHash": "0x" + struct_hash.hex(),
+        "digest": "0x" + digest.hex(),
+        "signature": {"v": v, "r": "0x" + r.to_bytes(32, "big").hex(), "s": "0x" + s.to_bytes(32, "big").hex()},
+    }))
+
+
+if __name__ == "__main__":
+    {"selftest": cmd_selftest, "address": cmd_address, "sign": cmd_sign}.get(
+        sys.argv[1] if len(sys.argv) > 1 else "", lambda: sys.exit(__doc__))()

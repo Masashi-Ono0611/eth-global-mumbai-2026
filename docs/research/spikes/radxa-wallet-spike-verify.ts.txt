@@ -1,0 +1,73 @@
+// Saved from bench/wallet-spike/verify.ts on 2026-11-05 as .txt so the repo lint/typecheck gates skip it.
+// To rerun: copy to a scratch dir as verify.ts, `bun add viem`, `bun verify.ts radxa-wallet-spike-result.json.txt` (rename to .json).
+// Write-up: docs/research/bench-spikes.md
+// Mac-side verifier for the on-chip signature. Read-only: no transaction is ever sent.
+// Usage: bun verify.ts result.json
+import { readFileSync } from "node:fs";
+import {
+  createPublicClient, defineChain, encodeFunctionData, http, parseAbi, recoverTypedDataAddress,
+  type Hex,
+} from "viem";
+
+const res = JSON.parse(readFileSync(process.argv[2] ?? "/dev/stdin", "utf8"));
+if (!res.ok) { console.log("chip refused:", res.refused); process.exit(res.refused ? 0 : 1); }
+
+const arc = defineChain({
+  id: 5042, name: "Arc", nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.mainnet.arc.io"] } },
+});
+const client = createPublicClient({ chain: arc, transport: http() });
+const USDC = res.domain.verifyingContract as Hex;
+const abi = parseAbi([
+  "function name() view returns (string)",
+  "function version() view returns (string)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+  "function transferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce,uint8 v,bytes32 r,bytes32 s)",
+]);
+const ok = (b: boolean) => (b ? "PASS" : "FAIL");
+
+console.log("chip address :", res.address);
+console.log("chain id     :", await client.getChainId(), "(expect 5042)");
+
+// 1. domain separator computed on the chip must equal the one the token contract reports
+const [name, version, ds] = await Promise.all([
+  client.readContract({ address: USDC, abi, functionName: "name" }),
+  client.readContract({ address: USDC, abi, functionName: "version" }),
+  client.readContract({ address: USDC, abi, functionName: "DOMAIN_SEPARATOR" }),
+]);
+console.log(`token        : ${name} v${version}`);
+console.log("1. domain separator chip == on-chain:", ok(ds.toLowerCase() === res.domainSeparator.toLowerCase()));
+
+// 2. independent recovery of the signer with viem
+const sig = (res.signature.r + res.signature.s.slice(2) + res.signature.v.toString(16).padStart(2, "0")) as Hex;
+const types = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" },
+  ],
+} as const;
+const m = res.message;
+const message = { ...m, value: BigInt(m.value), validAfter: BigInt(m.validAfter), validBefore: BigInt(m.validBefore) };
+const recovered = await recoverTypedDataAddress({
+  domain: { ...res.domain, chainId: BigInt(res.domain.chainId) }, types,
+  primaryType: "TransferWithAuthorization", message, signature: sig,
+});
+console.log("2. viem recovers signer == chip address:", ok(recovered.toLowerCase() === res.address.toLowerCase()), recovered);
+
+// 3. ask the real USDC contract (eth_call, nothing is sent). The signature check runs BEFORE the balance check:
+//    valid signature on an unfunded address -> revert about balance; bad signature -> revert about the signature.
+async function simulate(label: string, value: bigint) {
+  const data = encodeFunctionData({
+    abi, functionName: "transferWithAuthorization",
+    args: [m.from, m.to, value, message.validAfter, message.validBefore, m.nonce, res.signature.v, res.signature.r, res.signature.s],
+  });
+  try {
+    await client.call({ to: USDC, data });
+    return `${label}: call SUCCEEDED (unexpected for an unfunded address)`;
+  } catch (e: any) {
+    const why = e?.cause?.reason ?? e?.cause?.data?.errorName ?? e?.shortMessage ?? e?.message;
+    return `${label}: reverted -> ${String(why).split("\n")[0].slice(0, 160)}`;
+  }
+}
+console.log("3. on-chain eth_call, as signed      :", await simulate("as signed", message.value));
+console.log("3. on-chain eth_call, value tampered :", await simulate("tampered", message.value + 1n));
