@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "bun build.ts",
-    "deploy": "alchemy deploy alchemy.run.ts --stage prod --no-input --yes"
+    "deploy": "CLOUDFLARE_ACCOUNT_ID=bceaeae4788dce3493514fde194b4a7e alchemy deploy alchemy.run.ts --stage prod --no-input --yes",
+    "draft": "CLOUDFLARE_ACCOUNT_ID=bceaeae4788dce3493514fde194b4a7e alchemy deploy alchemy.run.ts --stage draft --no-input --yes"
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "catalog:",

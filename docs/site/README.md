@@ -36,8 +36,14 @@ State is in a **named** Alchemy state store, `alchemy-state-store-ethmumbai`, wi
 account's shared default `alchemy-state-store` (v7, used by other projects). Alchemy is pinned at beta.84 because
 beta.85 bootstraps stores to v8.
 
-Deploy by hand (from the repo root, `CLOUDFLARE_API_TOKEN` in the environment):
+## Deploy without pushing
 
-```sh
-CLOUDFLARE_ACCOUNT_ID=bceaeae4788dce3493514fde194b4a7e bun run --cwd docs/site deploy
-```
+Both deploy the working copy as it is on disk (uncommitted edits included), in ~10–20 s, from the repo root with
+`CLOUDFLARE_API_TOKEN` in the environment (any shell on the box has it):
+
+| Command | URL | Use |
+| --- | --- | --- |
+| `bun run site:draft` | https://eth-mumbai-site-draft.kristjan-grm11775.workers.dev | Spikes not ready for the team |
+| `bun run site:deploy` | https://eth-mumbai-site.kristjan-grm11775.workers.dev | Put it live now; the next push to `main` redeploys `main`'s copy over it, so commit what you want to keep |
+
+Other stages (`bunx alchemy deploy alchemy.run.ts --stage <name>` in docs/site) get their own `eth-mumbai-site-<name>` Worker.
