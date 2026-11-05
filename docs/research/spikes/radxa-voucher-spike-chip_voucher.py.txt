@@ -1,0 +1,213 @@
+# C1 spike, runs ON the Radxa next to wallet-spike chip.py (reuses its keccak, key handling and secp256k1 helpers).
+# Saved from bench/delegation-spike/chip_voucher.py on 2026-11-06 as .txt so the repo lint/typecheck gates skip it.
+# Deploy: save as chip_voucher.py beside chip.py (docs/research/spikes/radxa-wallet-spike-chip.py.txt saved as chip.py).
+# Write-up: docs/research/bench-spikes.md section 7 and docs/spikes/hardware-results.md
+#!/usr/bin/env python3
+"""On-chip payment voucher signing for the plan's flow (ERC-7710 leaf delegation under the robot's sub-grant).
+Runs ON the Radxa next to chip.py (reuses its keccak, key handling and secp256k1 helpers).
+
+Commands (JSON on stdin, JSON on stdout):
+  provision      store the robot's sub-grant (the signed hop AI client -> robot) plus allowlists
+  sign-voucher   invoice in -> chip recomputes the invoice hash, BUILDS the leaf delegation itself, applies
+                 policy, signs. It never signs a delegation it was handed, only one it built.
+  address        print the chip address
+Throwaway spike key, never fund it. The spike key is the one chip.py made (~/.duck/spike-key.pem).
+"""
+import base64
+import json
+import os
+import sys
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import chip  # noqa: E402
+
+k = chip.keccak256
+STATE_DIR = os.path.expanduser("~/.duck")
+SUBGRANT = os.path.join(STATE_DIR, "subgrant.json")
+USED = os.path.join(STATE_DIR, "used-invoices.json")
+
+# ---- pinned facts about Arc mainnet (5042); a real build reads these from signed config ----------
+CHAIN_ID = 5042
+USDC = "0x3600000000000000000000000000000000000000"
+DELEGATION_MANAGER = "0xdb9B1e94B5b69Df7e401DDbedE43491141047dB3"
+ANY_DELEGATE = "0x0000000000000000000000000000000000000a11"
+ENF = {
+    "AllowedTargets": "0x7F20f61b1f09b08D970938F6fa563634d65c4EeB",
+    "AllowedMethods": "0x2c21fD0Cb9DC8445CB3fb0DC5E7Bb0Aca01842B5",
+    "ValueLte": "0x92Bf12322527cAA612fd31a0e810472BBB106A8F",
+    "ExactExecution": "0x146713078D39eCC1F5338309c28405ccf85Abfbb",
+    "Id": "0xC8B5D93463c893401094cc70e66A206fb5987997",
+    "Timestamp": "0x1046bb45C8d673d4ea75321280DB34899413c069",
+    "LimitedCalls": "0x04658B29F6b82ed55274221a06Fc97D318E25416",
+    "ERC20TransferAmount": "0xf100b0819427117EcF76Ed94B358B1A5b5C6D2Fc",
+}
+TRANSFER_SELECTOR = bytes.fromhex("a9059cbb")
+
+# ---- local hard policy ---------------------------------------------------------------------------
+MAX_VOUCHER_AMOUNT = 2_000_000          # 2 USDC, also capped by the sub-grant's own cap
+MAX_INVOICE_TTL = 900                   # seconds from now
+
+
+def hx(b: bytes) -> str:
+    return "0x" + b.hex()
+
+
+def unhex(s: str) -> bytes:
+    return bytes.fromhex(s[2:] if s.startswith("0x") else s)
+
+
+def u256(n: int) -> bytes:
+    return n.to_bytes(32, "big")
+
+
+# ---- EIP-712 for the delegation framework (matches EncoderLib.sol in MetaMask/delegation-framework) --------
+DELEG_T = k(b"Delegation(address delegate,address delegator,bytes32 authority,Caveat[] caveats,uint256 salt)"
+            b"Caveat(address enforcer,bytes terms)")
+CAVEAT_T = k(b"Caveat(address enforcer,bytes terms)")
+
+
+def caveat_hash(c) -> bytes:
+    return k(CAVEAT_T + chip._addr(c["enforcer"]) + k(unhex(c["terms"])))
+
+
+def delegation_hash(d) -> bytes:
+    arr = k(b"".join(caveat_hash(c) for c in d["caveats"]))
+    return k(DELEG_T + chip._addr(d["delegate"]) + chip._addr(d["delegator"]) + unhex(d["authority"]) + arr
+             + u256(int(d["salt"], 16)))
+
+
+def delegation_digest(d) -> bytes:
+    dom = {"name": "DelegationManager", "version": "1", "chainId": CHAIN_ID, "verifyingContract": DELEGATION_MANAGER}
+    return k(b"\x19\x01" + chip.domain_separator(dom) + delegation_hash(d))
+
+
+# ---- the merchant's invoice hash (docs/research/merchant-and-agent-commerce.md 2.3) ---------------------
+INVOICE_DOMAIN_T = k(b"EIP712Domain(string name,string version,uint256 chainId)")
+INVOICE_T = k(b"Invoice(bytes32 merchantId,bytes16 invoiceId,address payTo,address asset,uint256 amount,"
+              b"uint64 expiresAt,bytes32 linesHash,bytes32 rulesHash)")
+
+
+def jcs(obj) -> bytes:
+    """RFC 8785 canonical JSON, enough for strings and integers (no floats in invoices)."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+
+def invoice_id_bytes16(inv_id: str) -> bytes:
+    assert len(inv_id) == 26 and inv_id == inv_id.lower(), "invoice id must be 26 lowercase base32 chars"
+    return base64.b32decode(inv_id.upper() + "======")[:16]
+
+
+def invoice_hash(inv) -> bytes:
+    sh = k(INVOICE_T + k(inv["merchantId"].encode()) + invoice_id_bytes16(inv["id"]).ljust(32, b"\0")
+           + chip._addr(inv["payTo"]) + chip._addr(inv["asset"]) + u256(int(inv["amount"])) + u256(inv["expiresAt"])
+           + k(jcs(inv["lines"])) + k(jcs(inv["restrictions"])))
+    dom = k(INVOICE_DOMAIN_T + k(b"AgentMerchant") + k(b"1") + u256(CHAIN_ID))
+    return k(b"\x19\x01" + dom + sh)
+
+
+# ---- state ---------------------------------------------------------------------------------------
+def write_private(path, obj):
+    os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(obj, f)
+
+
+def read_json(path, default):
+    return json.load(open(path)) if os.path.exists(path) else default
+
+
+def refuse(reason):
+    chip.refuse(reason)
+
+
+# ---- commands ------------------------------------------------------------------------------------
+def me():
+    return chip.address_of_xy(*chip.pub_xy(chip.load_or_create_key()))
+
+
+def cmd_provision():
+    req = json.load(sys.stdin)
+    hop = req["hop"]
+    if hop["delegate"].lower() != me().lower():
+        refuse("sub-grant is not addressed to this chip")
+    # An EOA delegator's signature can be checked here with ecrecover. A smart-account owner (HybridDeleGator with a passkey) signs
+    # with WebAuthn P-256 and ERC-1271: the chip cannot check that cheaply, so it trusts the grant as delivered and Arc enforces it.
+    verified = False
+    if not req.get("delegatorIsSmartAccount"):
+        digest = delegation_digest(hop)
+        sig = unhex(hop["signature"])
+        r, s, v = int.from_bytes(sig[:32], "big"), int.from_bytes(sig[32:64], "big"), sig[64]
+        q = chip.recover(digest, r, s, (v - 27) if v >= 27 else v)
+        if q is None or chip.address_of_xy(*q).lower() != hop["delegator"].lower():
+            refuse("sub-grant signature does not recover to its delegator")
+        verified = True
+    cap = None
+    for c in hop["caveats"]:
+        if c["enforcer"].lower() == ENF["ERC20TransferAmount"].lower():
+            t = unhex(c["terms"])
+            if "0x" + t[:20].hex() == USDC:
+                cap = int.from_bytes(t[20:52], "big")
+    if cap is None:
+        refuse("sub-grant carries no USDC transfer-amount cap")
+    write_private(SUBGRANT, {
+        "hopHash": hx(delegation_hash(hop)), "delegator": hop["delegator"], "cap": cap,
+        "payees": [a.lower() for a in req["payees"]], "origins": req["origins"], "signatureVerifiedOnChip": verified,
+    })
+    print(json.dumps({"ok": True, "chip": me(), "hopHash": hx(delegation_hash(hop)), "subgrantCap": cap,
+                      "signatureVerifiedOnChip": verified}))
+
+
+def build_leaf(inv, grant, deadline):
+    transfer = TRANSFER_SELECTOR + bytes(12) + unhex(inv["payTo"]) + u256(int(inv["amount"]))
+    caveats = [
+        {"enforcer": ENF["AllowedTargets"], "terms": USDC},
+        {"enforcer": ENF["AllowedMethods"], "terms": hx(TRANSFER_SELECTOR)},
+        {"enforcer": ENF["ValueLte"], "terms": hx(u256(0))},
+        {"enforcer": ENF["ExactExecution"], "terms": hx(unhex(USDC) + u256(0) + transfer)},
+        {"enforcer": ENF["Id"], "terms": hx(invoice_hash(inv))},
+        {"enforcer": ENF["Timestamp"], "terms": hx((0).to_bytes(16, "big") + deadline.to_bytes(16, "big"))},
+        {"enforcer": ENF["LimitedCalls"], "terms": hx(u256(1))},
+    ]
+    return {"delegate": ANY_DELEGATE, "delegator": me(), "authority": grant["hopHash"], "caveats": caveats, "salt": "0x00"}
+
+
+def cmd_sign_voucher():
+    inv = json.load(sys.stdin)["invoice"]
+    grant = read_json(SUBGRANT, None)
+    if grant is None:
+        refuse("no sub-grant provisioned")
+    now = int(time.time())
+    # ---- policy: every check runs BEFORE the key is used ----
+    if inv.get("network") != f"eip155:{CHAIN_ID}":
+        refuse(f"network {inv.get('network')} not allowed")
+    if inv["asset"].lower() != USDC:
+        refuse("asset not allowed")
+    amount = int(inv["amount"])
+    limit = min(MAX_VOUCHER_AMOUNT, grant["cap"])
+    if not (0 < amount <= limit):
+        refuse(f"amount {amount} outside limit {limit}")
+    if inv["payTo"].lower() not in grant["payees"]:
+        refuse("payee not on the allowlist")
+    if not any(inv["url"] == f"{o}/i/{inv['id']}" for o in grant["origins"]):
+        refuse("invoice url is not on an allowed origin")
+    if not (now < inv["expiresAt"] <= now + MAX_INVOICE_TTL):
+        refuse("invoice expired or expires too far ahead")
+    used = read_json(USED, [])
+    if inv["id"] in used:
+        refuse("invoice id already signed once")
+    # ---- build, never accept, the delegation ----
+    leaf = build_leaf(inv, grant, inv["expiresAt"])
+    digest = delegation_digest(leaf)
+    sk = chip.load_or_create_key()
+    r, s, v = chip.sign_digest(sk, digest)
+    write_private(USED, used + [inv["id"]])
+    sig = r.to_bytes(32, "big") + s.to_bytes(32, "big") + bytes([v])
+    print(json.dumps({"ok": True, "delegation": leaf, "delegationHash": hx(delegation_hash(leaf)), "digest": hx(digest),
+                      "invoiceHash": hx(invoice_hash(inv)), "signature": hx(sig)}))
+
+
+if __name__ == "__main__":
+    {"provision": cmd_provision, "sign-voucher": cmd_sign_voucher, "address": lambda: print(me())}.get(
+        sys.argv[1] if len(sys.argv) > 1 else "", lambda: sys.exit(__doc__))()

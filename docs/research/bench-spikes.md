@@ -17,9 +17,9 @@ photo; low = my inference.
 2. **The chip can generate its own key and sign what Arc USDC accepts.** One JSON request, one
    keypair made on the Radxa, an EIP-3009 `transferWithAuthorization` signature that viem recovers
    to the chip's address and that the live Arc USDC contract treats as valid. (high, see section 4)
-3. **The spike signs EIP-3009 directly, which is not the plan's flow.** The plan has the robot sign
-   an ERC-7710 voucher under a sub-grant (D3). The typed-data, policy-before-signing and key handling
-   carry over; the signed struct does not. The next spike should sign the real voucher. (high)
+3. **The first spike signed EIP-3009 directly, which is not the plan's flow; C1 (section 7) signs the
+   plan's real voucher.** The chip builds the ERC-7710 leaf itself, and it matches the MetaMask kit
+   byte for byte and is accepted by live Arc state in simulation (20 of 20 checks). (high)
 4. **Venue Wi-Fi is the biggest risk found so far, and it bears on S7.** The Radxa joined
    `ETHGlobal` and the Mac reaches it over SSH, so there is no client isolation, but throughput to the
    Radxa was a few KB/s. `apt update` never finished. Plan around a private network. (high)
@@ -158,5 +158,33 @@ or downscale before upload, or keep scanning local and send the QR string only.
 - ESP32: join Wi-Fi, ask the server for an invoice, draw its QR, poll status, drive the servo. The
   servo is not wired yet (pin undecided).
 - A bench server with the four endpoints in `../bench-answers.md`.
-- Re-run the signing spike against the real voucher / delegation struct.
 - Pick and test the private network for the demo.
+
+## 7. C1: the chip signs the plan's payment voucher
+
+Sources: `spikes/radxa-voucher-spike-chip_voucher.py.txt` (on the Radxa), `spikes/radxa-voucher-spike-c1.ts.txt` (Mac). Result summary:
+`../spikes/hardware-results.md` (section "C1").
+
+**Money.** No funds and no testnet. Arc mainnet (5042) is read through `eth_call` with state overrides, which simulate one call on the RPC node and invent
+an owner balance for that call only. Nothing was signed for broadcast or sent, no gas was paid, the owner is a counterfactual account from an in-memory software
+passkey, and the chip's address holds nothing. The public RPC provider sees the simulated calls.
+
+**Flow (plan v3).** Grant: owner passkey account to the chip's address (USDC transfer cap 2 USDC). Invoice in, voucher out:
+
+1. The chip checks the invoice against its policy: network 5042, USDC only, amount within `min(2 USDC, grant cap)`, payee on its allowlist, the URL on an allowed
+   origin, expiry within 15 minutes, and the invoice id not signed before.
+2. It recomputes the invoice hash (EIP-712, domain `AgentMerchant`), then **builds** the leaf delegation itself: `AllowedTargets(USDC)`, `AllowedMethods(transfer)`,
+   `ValueLte(0)`, `ExactExecution(USDC.transfer(payee, amount))`, `IdEnforcer(invoiceHash)`, `Timestamp(0, expiry)`, `LimitedCalls(1)`. The delegate is `ANY_DELEGATE`;
+   `authority` is the grant's hash, computed on the chip. It never signs a delegation it was handed.
+3. It signs the EIP-712 digest under the DelegationManager domain (`0xdb9B…7dB3`, version 1).
+
+**Checks (20 of 20).** Chip equals viem and equals the MetaMask kit for invoice hash, caveats, delegation hash and digest, and viem recovers the chip. On live Arc state
+the voucher pays the merchant 0.05 USDC; a different amount or payee fails `ExactExecutionEnforcer:invalid-execution`; a replay fails `IdEnforcer:id-already-used`; after
+the deadline `TimestampEnforcer:expired-delegation`; a tampered signature `InvalidEOASignature`. The chip refuses eight bad invoices before touching the key.
+
+**Conventions I had to pick (pin these in the merchant note).** `merchantId` bytes32 = keccak256 of the UTF-8 string; `invoiceId` bytes16 = the first 128 bits of the
+26-character base32 id; `linesHash` and `rulesHash` = keccak256 of canonical JSON with sorted keys and no spaces. The chip and viem agree only because I wrote both.
+
+**Not covered.** A real `redeemDelegations` broadcast and a funded owner; a real-device passkey; the x402 `PAYMENT-SIGNATURE` envelope; `HumanApprovalEnforcer` and
+`RobotPaymentPolicyEnforcer` (plan v3 puts them in the grant); the float path; verifying the owner's passkey signature on the chip (not feasible cheaply, so Arc is
+the check); a tamper-resistant replay guard (the used-invoice list is a plain file). Keccak and key storage are still spike-grade (section 4).

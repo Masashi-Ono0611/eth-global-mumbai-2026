@@ -1,0 +1,175 @@
+// C1 spike, Mac side (plan v3 topology: owner passkey -> chip grant -> one-time voucher). The chip signs the voucher; this script cross-checks
+// it against viem and the MetaMask kit, then simulates redeemDelegations on live Arc (eth_call + state overrides, nothing broadcast).
+// Saved from bench/delegation-spike/c1.ts on 2026-11-06 as .txt so the repo gates skip it. Needs passkey.ts (software WebAuthn) beside it;
+// that file is the authenticator block of wallet-accounts-v2-spike.ts.txt exported as { credId, x, y, webAuthnAccount }.
+// package.json deps: {"viem":"2","@metamask/smart-accounts-kit":"2.0.0"}   Run: bun c1.ts  (RADXA_HOST, RADXA_KEY env)
+// C1: the CHIP signs the plan's payment voucher (ERC-7710 leaf under the robot's sub-grant); the Mac checks it against
+// the MetaMask kit and against live Arc state. Nothing is broadcast; every Arc call is eth_call with state overrides.
+// Run: bun c1.ts      (needs ssh access to the Radxa: RADXA_HOST, RADXA_KEY)
+import {
+  createPublicClient, http, defineChain, encodeFunctionData, encodePacked, parseAbi, keccak256, toHex, hashTypedData,
+  recoverTypedDataAddress, decodeFunctionResult, zeroAddress, type Address, type Hex,
+} from "viem";
+import {
+  toMetaMaskSmartAccount, Implementation, createDelegation, createOpenDelegation, getSmartAccountsEnvironment,
+  ExecutionMode, ScopeType,
+} from "@metamask/smart-accounts-kit";
+import { encodeDelegations, hashDelegation, decodeRevertData } from "@metamask/smart-accounts-kit/utils";
+import { credId, x, y, webAuthnAccount } from "./passkey";
+
+const HOST = process.env.RADXA_HOST ?? "radxa@radxa-zero3.local";
+const KEY = process.env.RADXA_KEY ?? `${process.env.HOME}/.ssh/radxa_bench`;
+const SSH = ["ssh", "-o", "IdentityAgent=none", "-o", "IdentitiesOnly=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=40", "-o", "ServerAliveInterval=10",
+  "-o", "ControlMaster=auto", "-o", "ControlPath=/tmp/radxa-c1-%C", "-o", "ControlPersist=300", "-i", KEY, "-o", "PasswordAuthentication=no", HOST]; // one shared connection: venue Wi-Fi latency is high
+
+async function chip(cmd: string, stdin?: unknown): Promise<{ code: number; out: any; raw: string }> {
+  const p = Bun.spawn([...SSH, `cd ~/duck-spike && python3 chip_voucher.py ${cmd}`], { stdin: stdin === undefined ? "ignore" : new Blob([JSON.stringify(stdin)]), stdout: "pipe", stderr: "pipe" });
+  const raw = (await new Response(p.stdout).text()).trim();
+  const code = await p.exited;
+  let out: any = raw; try { out = JSON.parse(raw); } catch { /* keep raw */ }
+  return { code, out, raw };
+}
+
+const RPC = "https://rpc.mainnet.arc.io";
+const arc = defineChain({ id: 5042, name: "Arc", nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
+const client = createPublicClient({ chain: arc, transport: http(RPC, { retryCount: 10, retryDelay: 2000 }) });
+const nap = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const env = getSmartAccountsEnvironment(5042);
+const USDC: Address = "0x3600000000000000000000000000000000000000";
+const MULTICALL3: Address = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const RELAYER: Address = "0x00000000000000000000000000000000000beef1";
+const MERCHANT: Address = "0x000000000000000000000000000000000000c0de";
+const ORIGIN = "http://192.168.2.1:8787";
+const ok = (b: boolean) => (b ? "PASS" : "FAIL");
+let failures = 0;
+const check = (label: string, b: boolean, extra = "") => { if (!b) failures++; console.log(`  ${ok(b)}  ${label}${extra ? "  " + extra : ""}`); };
+
+const usdcAbi = parseAbi(["function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"]);
+const dmAbi = parseAbi(["function redeemDelegations(bytes[] _permissionContexts, bytes32[] _modes, bytes[] _executionCallDatas)"]);
+const mcAbi = parseAbi(["struct Call3 { address target; bool allowFailure; bytes callData; }", "struct Result { bool success; bytes returnData; }", "function aggregate3(Call3[] calls) payable returns (Result[] returnData)"]);
+const transferData = (to: Address, amt: bigint) => encodeFunctionData({ abi: usdcAbi, functionName: "transfer", args: [to, amt] });
+const execData = (to: Address, amt: bigint) => encodePacked(["address", "uint256", "bytes"], [USDC, 0n, transferData(to, amt)]);
+const redeem = (chain: any[], to: Address, amt: bigint) => encodeFunctionData({ abi: dmAbi, functionName: "redeemDelegations", args: [[encodeDelegations(chain)], [ExecutionMode.SingleDefault], [execData(to, amt)]] });
+const balOf = (a: Address) => encodeFunctionData({ abi: usdcAbi, functionName: "balanceOf", args: [a] });
+
+// ---------------- 1. who is the robot: the CHIP ----------------
+const chipAddr = ((await chip("address")).raw.split("\n").pop() ?? "").trim() as Address;
+console.log("robot (the chip):", chipAddr);
+
+// ---------------- 2. owner (passkey HybridDeleGator) -> chip (plan v3 grant) ----------------
+const owner = await toMetaMaskSmartAccount({ client: client as any, implementation: Implementation.Hybrid, deployParams: [zeroAddress, [credId], [x], [y]], deploySalt: "0x01", signer: { webAuthnAccount, keyId: credId } });
+const { factory, factoryData } = await owner.getFactoryArgs();
+// plan v3 (docs/plan.md "The Grant"): the grant is owner -> chip directly; the AI client holds no spending key.
+const root = createDelegation({ environment: env, from: owner.address, to: chipAddr, scope: { type: ScopeType.Erc20TransferAmount, tokenAddress: USDC, maxAmount: 2_000_000n } as any });
+const rootSigned = { ...root, signature: await owner.signDelegation({ delegation: root }) };
+const hopSigned = rootSigned; // the chip's sub-grant IS the grant
+
+// ---------------- 3. give the chip its sub-grant ----------------
+console.log("\n== 3. provision: the chip stores the grant addressed to it");
+const strip = (d: any) => ({ delegate: d.delegate, delegator: d.delegator, authority: d.authority, salt: toHex(BigInt(d.salt)), signature: d.signature, caveats: d.caveats.map((c: any) => ({ enforcer: c.enforcer, terms: c.terms })) });
+const prov = await chip("provision", { hop: strip(hopSigned), payees: [MERCHANT], origins: [ORIGIN], delegatorIsSmartAccount: true });
+console.log("  chip says:", JSON.stringify(prov.out).slice(0, 220));
+check("chip accepts the grant (delegate is the chip; the passkey signature is left for Arc to verify, the chip cannot check P-256)", prov.out?.ok === true && prov.out?.signatureVerifiedOnChip === false);
+check("chip's grant hash equals the kit's hashDelegation", prov.out?.hopHash?.toLowerCase() === hashDelegation(hopSigned as any).toLowerCase());
+
+// ---------------- 4. an invoice, as the merchant would issue it ----------------
+const b32 = "abcdefghijklmnopqrstuvwxyz234567";
+const rnd = crypto.getRandomValues(new Uint8Array(26)); const invId = [...rnd].map((b) => b32[b % 32]).join("");
+const now = Math.floor(Date.now() / 1000);
+const invoice = {
+  id: invId, url: `${ORIGIN}/i/${invId}`, merchantId: "duck-cafe", status: "pending",
+  lines: [{ sku: "coffee", name: "Coffee", qty: 1, unitAmount: "50000" }], amount: "50000", network: "eip155:5042", asset: USDC, payTo: MERCHANT,
+  restrictions: [], createdAt: now, expiresAt: now + 300,
+};
+console.log("\n== 4. chip signs a voucher for invoice", invId);
+const t0 = Date.now();
+const signed = await chip("sign-voucher", { invoice });
+console.log(`  chip exit ${signed.code} in ${Date.now() - t0} ms; ok=${signed.out?.ok}`);
+if (!signed.out?.ok) { console.log("  chip refused:", signed.raw); process.exit(1); }
+const leafC = signed.out.delegation;
+
+// ---------------- 5. everything the chip computed, checked against independent implementations ----------------
+console.log("\n== 5. cross-checks (chip vs viem vs the MetaMask kit)");
+const invTypes = { Invoice: [{ name: "merchantId", type: "bytes32" }, { name: "invoiceId", type: "bytes16" }, { name: "payTo", type: "address" }, { name: "asset", type: "address" }, { name: "amount", type: "uint256" }, { name: "expiresAt", type: "uint64" }, { name: "linesHash", type: "bytes32" }, { name: "rulesHash", type: "bytes32" }] } as const;
+const canon = (o: unknown): string => JSON.stringify(o, (_k, v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v));
+const idBytes16 = ("0x" + Buffer.from(decodeB32(invId)).toString("hex")) as Hex; // first 128 of the 130 bits
+function decodeB32(s: string) { let bits = 0, val = 0; const out: number[] = []; for (const ch of s) { val = (val << 5) | b32.indexOf(ch); bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } } return Uint8Array.from(out); }
+const invHashViem = hashTypedData({
+  domain: { name: "AgentMerchant", version: "1", chainId: 5042 }, types: invTypes, primaryType: "Invoice",
+  message: { merchantId: keccak256(toHex("duck-cafe")), invoiceId: idBytes16, payTo: MERCHANT, asset: USDC, amount: 50000n, expiresAt: BigInt(invoice.expiresAt), linesHash: keccak256(toHex(canon(invoice.lines))), rulesHash: keccak256(toHex(canon(invoice.restrictions))) },
+});
+check("invoiceHash: chip == viem EIP-712", signed.out.invoiceHash.toLowerCase() === invHashViem.toLowerCase(), invHashViem.slice(0, 18) + "…");
+
+const kitLeaf: any = createOpenDelegation({
+  environment: env, from: chipAddr, parentDelegation: hopSigned as any,
+  scope: { type: ScopeType.FunctionCall, targets: [USDC], selectors: ["0xa9059cbb"] } as any,
+  caveats: [
+    { type: "exactExecution", execution: { target: USDC, value: 0n, callData: transferData(MERCHANT, 50000n) } },
+    { type: "id", id: BigInt(invHashViem) }, { type: "timestamp", afterThreshold: 0, beforeThreshold: invoice.expiresAt }, { type: "limitedCalls", limit: 1 },
+  ] as any,
+});
+const same = (a: any[], b: any[]) => a.length === b.length && a.every((c, i) => c.enforcer.toLowerCase() === b[i].enforcer.toLowerCase() && c.terms.toLowerCase() === b[i].terms.toLowerCase());
+check("leaf caveats: chip-built == kit-built (enforcer addresses and terms, same order)", same(leafC.caveats, kitLeaf.caveats));
+check("leaf delegate / delegator / authority / salt equal", leafC.delegate.toLowerCase() === kitLeaf.delegate.toLowerCase() && leafC.delegator.toLowerCase() === kitLeaf.delegator.toLowerCase() && leafC.authority.toLowerCase() === kitLeaf.authority.toLowerCase() && BigInt(leafC.salt) === BigInt(kitLeaf.salt));
+check("delegation hash: chip == kit hashDelegation", signed.out.delegationHash.toLowerCase() === hashDelegation(kitLeaf).toLowerCase());
+
+const dmTypes = { Delegation: [{ name: "delegate", type: "address" }, { name: "delegator", type: "address" }, { name: "authority", type: "bytes32" }, { name: "caveats", type: "Caveat[]" }, { name: "salt", type: "uint256" }], Caveat: [{ name: "enforcer", type: "address" }, { name: "terms", type: "bytes" }] } as const;
+const dmDomain = { name: "DelegationManager", version: "1", chainId: 5042, verifyingContract: env.DelegationManager } as const;
+const msg = { delegate: leafC.delegate, delegator: leafC.delegator, authority: leafC.authority, caveats: leafC.caveats, salt: BigInt(leafC.salt) };
+check("EIP-712 digest: chip == viem hashTypedData", signed.out.digest.toLowerCase() === hashTypedData({ domain: dmDomain, types: dmTypes, primaryType: "Delegation", message: msg }).toLowerCase());
+const recovered = await recoverTypedDataAddress({ domain: dmDomain, types: dmTypes, primaryType: "Delegation", message: msg, signature: signed.out.signature });
+check("viem recovers the signer == the chip", recovered.toLowerCase() === chipAddr.toLowerCase(), recovered);
+
+// ---------------- 6. live Arc, eth_call only ----------------
+console.log("\n== 6. live Arc state (eth_call + state overrides; nothing broadcast)");
+const leafSigned = { ...kitLeaf, signature: signed.out.signature as Hex };
+const chain3 = [leafSigned, rootSigned]; // leaf -> grant (two delegations)
+const deploy = { target: factory as Address, callData: factoryData as Hex };
+const overrides = [{ address: owner.address, balance: 50n * 10n ** 18n }];
+async function sim(label: string, calls: { target: Address; callData: Hex }[], blockOverrides?: any) {
+  await nap(2500);
+  const data = encodeFunctionData({ abi: mcAbi, functionName: "aggregate3", args: [calls.map((c) => ({ allowFailure: true, ...c }))] });
+  try {
+    const res: any = await client.call({ account: RELAYER, to: MULTICALL3, data, stateOverride: overrides, ...(blockOverrides ? { blockOverrides } : {}) } as any);
+    return decodeFunctionResult({ abi: mcAbi, functionName: "aggregate3", data: res.data! }) as any[];
+  } catch (e: any) { console.log(`  [${label}] call failed: ${(e.shortMessage ?? e.message).slice(0, 200)}`); return null; }
+}
+const why = (r: any) => { try { const d = decodeRevertData(r.returnData); return `${d.errorName ?? "revert"} ${d.message ?? ""}`.trim().slice(0, 110); } catch { return String(r.returnData).slice(0, 40); } };
+const mBal = (r: any) => BigInt(r.returnData);
+
+let r = await sim("as signed", [deploy, { target: env.DelegationManager, callData: redeem(chain3, MERCHANT, 50000n) }, { target: USDC, callData: balOf(MERCHANT) }]);
+check("T1 voucher as signed pays the merchant 50000 (0.05 USDC)", !!r && r[1].success && mBal(r[2]) === 50000n, r ? `redeem success=${r[1].success} merchantBalance=${mBal(r[2])}` : "");
+
+r = await sim("amount", [deploy, { target: env.DelegationManager, callData: redeem(chain3, MERCHANT, 60000n) }]);
+check("T2 different amount (60000) is rejected", !!r && !r[1].success, r ? why(r[1]) : "");
+
+r = await sim("payee", [deploy, { target: env.DelegationManager, callData: redeem(chain3, "0x000000000000000000000000000000000000dEaD", 50000n) }]);
+check("T3 different payee is rejected", !!r && !r[1].success, r ? why(r[1]) : "");
+
+r = await sim("replay", [deploy, { target: env.DelegationManager, callData: redeem(chain3, MERCHANT, 50000n) }, { target: env.DelegationManager, callData: redeem(chain3, MERCHANT, 50000n) }, { target: USDC, callData: balOf(MERCHANT) }]);
+check("T4 second redeem of the same voucher is rejected, merchant paid once", !!r && r[1].success && !r[2].success && mBal(r[3]) === 50000n, r ? `second: ${why(r[2])}` : "");
+
+r = await sim("late", [deploy, { target: env.DelegationManager, callData: redeem(chain3, MERCHANT, 50000n) }], { time: BigInt(invoice.expiresAt + 1) });
+check("T5 after the deadline the voucher is rejected", !!r && !r[1].success, r ? why(r[1]) : "");
+
+const badSig = (leafSigned.signature as string).slice(0, 12) + (leafSigned.signature.slice(12, 13) === "a" ? "b" : "a") + (leafSigned.signature as string).slice(13);
+r = await sim("tampered sig", [deploy, { target: env.DelegationManager, callData: redeem([{ ...leafSigned, signature: badSig as Hex }, rootSigned], MERCHANT, 50000n) }]);
+check("T6 tampered signature is rejected", !!r && !r[1].success, r ? why(r[1]) : "");
+
+// ---------------- 7. the chip's own policy ----------------
+console.log("\n== 7. chip policy refuses before using the key");
+const mk = (over: Record<string, unknown>) => { const id = [...crypto.getRandomValues(new Uint8Array(26))].map((b) => b32[b % 32]).join(""); return { ...invoice, id, url: `${ORIGIN}/i/${id}`, ...over }; };
+const refusals: [string, any][] = [
+  ["duplicate invoice id", invoice],
+  ["payee not on the allowlist", mk({ payTo: "0x000000000000000000000000000000000000dEaD" })],
+  ["amount above the grant cap (3 USDC)", mk({ amount: "3000000" })],
+  ["wrong asset", mk({ asset: "0x000000000000000000000000000000000000dEaD" })],
+  ["wrong network", mk({ network: "eip155:1" })],
+  ["url on an unknown origin", (() => { const i = mk({}); i.url = `http://evil.example/i/${i.id}`; return i; })()],
+  ["expired invoice", mk({ expiresAt: now - 5 })],
+  ["expires too far ahead (1 day)", mk({ expiresAt: now + 86400 })],
+];
+for (const [label, inv] of refusals) { const res = await chip("sign-voucher", { invoice: inv }); check(`refuses: ${label}`, res.code === 3 && res.out?.ok === false, String(res.out?.refused ?? res.raw).slice(0, 80)); }
+
+console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
+process.exit(failures === 0 ? 0 : 1);
