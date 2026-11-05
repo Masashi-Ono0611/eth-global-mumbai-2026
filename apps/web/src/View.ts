@@ -1,12 +1,13 @@
 import { direction, format, type Locale } from '@ethmumbai/i18n'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
-import { LocaleSave, Message, type Model } from './App.ts'
+import { Message } from './message.ts'
+import { LocaleSave, type Model } from './model.ts'
+import { AppRoute, homeRouter, loginRouter } from './route.ts'
 
 import { accountView } from './ViewAccount.ts'
 
-const homePath = '/'
-const loginPath = '/login'
-const browseAnchor = '#inspiration'
+/** The team's architecture page on the scratch site (docs/site). */
+const architectureUrl = 'https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/'
 const languages: ReadonlyArray<Readonly<{ locale: Locale; label: string }>> = [
   { locale: 'en', label: 'English' },
   { locale: 'sl', label: 'Slovenščina' },
@@ -47,8 +48,8 @@ const homeView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
         [
           h.h1([], [format(locale, 'landing.title', {})]),
           h.p([h.Class('lead')], [format(locale, 'landing.description', {})]),
-          h.a([h.Href(browseAnchor), h.Class('primary-action')], [format(locale, 'landing.browse', {})]),
-          h.a([h.Href(loginPath), h.Class('secondary-action')], [format(locale, 'auth.signInWithEmail', {})]),
+          h.a([h.Href(architectureUrl), h.Class('primary-action')], [format(locale, 'landing.browse', {})]),
+          h.a([h.Href(loginRouter()), h.Class('secondary-action')], [format(locale, 'auth.signInWithEmail', {})]),
         ],
       ),
       h.section(
@@ -68,18 +69,20 @@ const notFoundView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
     [
       h.h1([], [format(locale, 'common.notFoundTitle', {})]),
       h.p([], [format(locale, 'common.notFoundDescription', {})]),
-      h.a([h.Href(homePath)], [format(locale, 'common.goHome', {})]),
+      h.a([h.Href(homeRouter())], [format(locale, 'common.goHome', {})]),
     ],
   )
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const { locale, pathname } = model.context
-  const isHome = pathname === homePath
-  const isLogin = pathname === loginPath || pathname === '/account'
+  const { locale } = model.context
+  const page = AppRoute.match(model.route, {
+    Home: () => ({ title: format(locale, 'landing.title', {}), body: homeView(locale, h) }),
+    Login: () => ({ title: format(locale, 'auth.signInTitle', {}), body: accountView(model, h) }),
+    Account: () => ({ title: format(locale, 'auth.signInTitle', {}), body: accountView(model, h) }),
+    NotFound: () => ({ title: format(locale, 'common.notFoundTitle', {}), body: notFoundView(locale, h) }),
+  })
   return {
-    title:
-      format(locale, isHome ? 'landing.title' : isLogin ? 'auth.signInTitle' : 'common.notFoundTitle', {}) +
-      ' | ETH Global Mumbai 2026',
+    title: `${page.title} | ETH Global Mumbai 2026`,
     lang: locale,
     dir: direction(locale) === 'rtl' ? 'Rtl' : 'Ltr',
     body: h.div(
@@ -87,9 +90,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       [
         h.header(
           [h.Class('masthead')],
-          [h.a([h.Href(homePath), h.Class('brand')], ['ETH Global Mumbai 2026']), languagePicker(model, h)],
+          [h.a([h.Href(homeRouter()), h.Class('brand')], ['ETH Global Mumbai 2026']), languagePicker(model, h)],
         ),
-        isHome ? homeView(locale, h) : isLogin ? accountView(model, h) : notFoundView(locale, h),
+        page.body,
         h.footer(
           [],
           [

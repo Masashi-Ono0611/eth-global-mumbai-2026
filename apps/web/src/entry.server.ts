@@ -3,7 +3,9 @@ import { layer as cloudflareTracer } from '@alchemy.run/cloudflare/Workers/Cloud
 import * as Server from 'foldkit/experimental/server'
 import { catalogVersion } from '@ethmumbai/i18n'
 import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
-import { Flags, init } from './App.ts'
+import { Flags } from './model.ts'
+import { AppRoute, routeFromPathname } from './route.ts'
+import { init } from './update.ts'
 import { localeEndpoint, requestLocale } from './Locale.ts'
 import { view } from './View.ts'
 import { saveLocale } from './server/LocalePreference.ts'
@@ -17,6 +19,10 @@ const renderApplication = (
   Effect.gen(function* () {
     const url = new URL(request.url)
     if (url.pathname === localeEndpoint) return yield* saveLocale(request)
+    // A preflight reaches the entry too; the app allows no cross-origin calls, so it only reports the methods.
+    if (request.method === 'OPTIONS') {
+      return Server.Responded(new Response(null, { status: 204, headers: { allow: Server.HOST_METHOD_ANSWERS.allow } }))
+    }
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return Server.Responded(new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } }))
     }
@@ -29,7 +35,7 @@ const renderApplication = (
     }
     const rendered = yield* Server.renderToString(application, { ...options, flags })
     return Server.Rendered(rendered, {
-      status: ['/', '/login', '/account'].includes(url.pathname) ? 200 : 404,
+      status: AppRoute.guards.NotFound(routeFromPathname(url.pathname)) ? 404 : 200,
       headers: {
         'cache-control': 'private, no-store',
         vary: 'Accept-Language, Cookie',

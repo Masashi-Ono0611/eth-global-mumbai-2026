@@ -1,7 +1,8 @@
 import type { AccountClaims } from '@ethmumbai/auth/config'
 import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { AuthState, Message, type Model } from './App.ts'
+import { Message } from './message.ts'
+import { AuthState, type Model } from './model.ts'
 import { passwordFormId } from './PasswordForm.ts'
 
 const signedInView = (claims: AccountClaims, pending: boolean, locale: Locale, h: HtmlBuilder<Message>): Html =>

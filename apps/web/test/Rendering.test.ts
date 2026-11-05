@@ -2,7 +2,9 @@ import { Effect } from 'effect'
 import { expect, test } from 'vitest'
 import { catalogVersion } from '@ethmumbai/i18n'
 import * as Server from 'foldkit/experimental/server'
-import { LocaleSave, Message, init, update } from '../src/App.ts'
+import { Message } from '../src/message.ts'
+import { LocaleSave } from '../src/model.ts'
+import { init, update } from '../src/update.ts'
 import { requestLocale } from '../src/Locale.ts'
 import { renderDocument, renderRequest } from '../src/entry.server.ts'
 
@@ -81,4 +83,19 @@ test('RTL and expanded locales render without pretending to be Arabic translatio
   expect(html).toContain('English (RTL)')
   const missing = await Effect.runPromise(renderRequest(new Request('https://app.test/missing'), { buildId: 'test' }))
   expect(Server.toResponse((app) => renderDocument(app, assets), missing).status).toBe(404)
+})
+
+const respond = async (path: string, requestInit?: RequestInit) =>
+  Server.toResponse(
+    (app) => renderDocument(app, assets),
+    await Effect.runPromise(renderRequest(new Request(`https://app.test${path}`, requestInit), { buildId: 'test' })),
+  )
+
+test('typed routes decide the status, and a preflight gets the allowed methods without a render', async () => {
+  expect((await respond('/login')).status).toBe(200)
+  expect((await respond('/account')).status).toBe(200)
+  expect((await respond('/login/extra')).status).toBe(404)
+  const preflight = await respond('/', { method: 'OPTIONS' })
+  expect(preflight.status).toBe(204)
+  expect(preflight.headers.get('allow')).toContain('GET')
 })
