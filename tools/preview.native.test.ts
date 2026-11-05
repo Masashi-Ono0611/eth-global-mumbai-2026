@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test'
 import { chromium } from 'playwright'
 import { verifyBrowser } from '../packages/server/test/BrowserAcceptance.ts'
 
-const origin = new URL(process.env.STYLD_PREVIEW_URL ?? '')
-if (!origin.hostname.startsWith('styldappv2-styldedge-preview-') || !origin.hostname.endsWith('.workers.dev')) {
-  throw new Error('Acceptance requires the isolated v2 preview URL')
+const origin = new URL(process.env.APP_PREVIEW_URL ?? '')
+if (!origin.hostname.startsWith('ethmumbai-edge-') || !origin.hostname.endsWith('.workers.dev')) {
+  throw new Error('Acceptance requires the deployed edge URL')
 }
 
 test('deployed preview serves API/auth contracts and the hydrated website', async () => {

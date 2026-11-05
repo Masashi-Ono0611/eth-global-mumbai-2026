@@ -46,8 +46,8 @@ export const renderRequest = (
 ) =>
   Effect.gen(function* () {
     const identity = yield* makeObservabilityBase({
-      environment: import.meta.env.VITE_STYLD_ENV ?? 'local',
-      release: import.meta.env.VITE_STYLD_RELEASE ?? 'local-build',
+      environment: import.meta.env.VITE_APP_ENV ?? 'local',
+      release: import.meta.env.VITE_APP_RELEASE ?? 'local-build',
       component: 'web',
     }).pipe(Effect.orDie)
     return yield* renderApplication(request, options).pipe(

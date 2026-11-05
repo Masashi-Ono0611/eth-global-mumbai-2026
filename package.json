@@ -45,7 +45,6 @@
     "check": "bun run format:check && bun run agents:check && bun run provenance:check && bun run i18n:check && bun run graph:check && bun run suppressions:check && bun run canaries:check && bun run typecheck && bun run lint && bun run unused:check && bun run unused:production && bun run duplicates:check && bun run test && bun run bundle:check",
     "i18n:check": "bun tools/i18n-check.ts",
     "i18n:generate": "bun tools/i18n-check.ts --write",
-    "deploy:preview": "alchemy deploy --stage preview",
     "dev:preview": "alchemy dev --stage local",
     "build": "bun run --cwd apps/web build",
     "agents:check": "repoagents check",
@@ -56,7 +55,8 @@
     "graph:check": "bun tools/graph-check.ts",
     "suppressions:check": "bun tools/suppressions-check.ts",
     "canaries:check": "bun tools/checker-canaries.ts",
-    "bundle:check": "bun tools/bundle-check.ts"
+    "bundle:check": "bun tools/bundle-check.ts",
+    "deploy": "alchemy deploy --stage main"
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "catalog:",

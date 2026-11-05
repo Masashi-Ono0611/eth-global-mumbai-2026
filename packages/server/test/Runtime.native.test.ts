@@ -14,7 +14,7 @@ import StyldWorkerLive, { StyldWorker } from '../src/StyldWorker.ts'
 
 const makeStack = (generation: string) =>
   Alchemy.Stack(
-    'StyldLocalAcceptance',
+    'LocalAcceptance',
     {
       providers: Cloudflare.providers(),
       state: Alchemy.localState(),
@@ -41,8 +41,8 @@ const makeStack = (generation: string) =>
       yield* styld.bind('RuntimeConfiguration', {
         env: {
           AUTH_ORIGIN: edge.url,
-          STYLD_ENV: 'local',
-          STYLD_RELEASE: `native-${generation}`,
+          APP_ENV: 'local',
+          APP_RELEASE: `native-${generation}`,
           AUTH_SECRET: Redacted.make('native-test-auth-secret-012345678901234567890123'),
           AUTH_SESSION_KEYS: Redacted.make(
             JSON.stringify({

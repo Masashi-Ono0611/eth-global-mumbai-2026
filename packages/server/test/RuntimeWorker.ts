@@ -26,8 +26,8 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
     main: import.meta.url,
     compatibility: { date: '2026-10-19' },
     env: {
-      STYLD_ENV: 'local',
-      STYLD_RELEASE: 'native-test',
+      APP_ENV: 'local',
+      APP_RELEASE: 'native-test',
       AUTH_ORIGIN: 'http://localhost',
       AUTH_SECRET: 'native-test-auth-secret-012345678901234567890123',
       AUTH_SESSION_KEYS: JSON.stringify({

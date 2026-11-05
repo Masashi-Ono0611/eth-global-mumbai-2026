@@ -3,16 +3,21 @@ import * as Alchemy from 'alchemy'
 import { Config, Effect } from 'effect'
 import StyldWorkerLive, { StyldWorker } from '@styld/server/StyldWorker'
 
-/** Isolated v2 stack. The worker's stable URL is the only output used by acceptance tests. */
+/**
+ * The app: public edge Worker (SSR website + API behind it), D1 and R2. `.github/workflows/check.yml` deploys stage
+ * `main` on every green push to main. State lives in the named Cloudflare state store `alchemy-state-store-ethmumbai`
+ * (shared with the scratch site in docs/site), never the personal account's shared default store. The edge Worker's
+ * stable URL is the only output used by acceptance tests.
+ */
 export default Alchemy.Stack(
-  'StyldAppV2',
-  { providers: Cloudflare.providers(), state: Alchemy.localState() },
+  'EthMumbai',
+  { providers: Cloudflare.providers(), state: Cloudflare.state({ name: 'ethmumbai' }) },
   Effect.gen(function* () {
-    const release = yield* Config.String('STYLD_RELEASE')
+    const release = yield* Config.String('APP_RELEASE')
     const api = yield* StyldWorker
-    const website = yield* Cloudflare.Website.Foldkit('StyldWebsite', {
+    const website = yield* Cloudflare.Website.Foldkit('Website', {
       rootDir: 'apps/web',
-      env: { VITE_STYLD_ENV: 'preview', VITE_STYLD_RELEASE: release },
+      env: { VITE_APP_ENV: 'preview', VITE_APP_RELEASE: release },
       compatibility: { date: '2026-10-19' },
       observability: {
         enabled: true,
@@ -22,7 +27,7 @@ export default Alchemy.Stack(
       },
       workersDev: { enabled: false, previewsEnabled: false },
     })
-    const edge = yield* Cloudflare.Worker('StyldEdge', {
+    const edge = yield* Cloudflare.Worker('Edge', {
       main: 'packages/server/src/EdgeWorker.ts',
       env: { API: api, WEBSITE: website },
       // Service-binding fetch enters the SSR handler without the website's
@@ -42,10 +47,10 @@ export default Alchemy.Stack(
     yield* api.bind('RuntimeConfiguration', {
       env: {
         AUTH_ORIGIN: edge.url,
-        STYLD_ENV: 'preview',
-        STYLD_RELEASE: release,
-        AUTH_SECRET: yield* Config.Redacted('STYLD_AUTH_SECRET'),
-        AUTH_SESSION_KEYS: yield* Config.Redacted('STYLD_AUTH_SESSION_KEYS'),
+        APP_ENV: 'preview',
+        APP_RELEASE: release,
+        AUTH_SECRET: yield* Config.Redacted('APP_AUTH_SECRET'),
+        AUTH_SESSION_KEYS: yield* Config.Redacted('APP_AUTH_SESSION_KEYS'),
       },
     })
     return { url: edge.url.as<string>() }

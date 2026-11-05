@@ -18,7 +18,7 @@ const Runtime = Layer.mergeAll(
   Cloudflare.R2.ReadWriteBucketBinding,
 )
 
-export class StyldWorker extends Cloudflare.Worker<StyldWorker, Cloudflare.WorkerShape>()('StyldWorker') {}
+export class StyldWorker extends Cloudflare.Worker<StyldWorker, Cloudflare.WorkerShape>()('Api') {}
 
 export default StyldWorker.make(
   {
@@ -37,8 +37,8 @@ export default StyldWorker.make(
       // Alchemy evaluates the Worker declaration during planning.
       const env = yield* Cloudflare.Workers.WorkerEnvironment
       const observabilityBase = yield* makeObservabilityBase({
-        environment: env.STYLD_ENV,
-        release: env.STYLD_RELEASE,
+        environment: env.APP_ENV,
+        release: env.APP_RELEASE,
         component: 'server',
       }).pipe(Effect.orDie)
       const authOrigin: unknown = env.AUTH_ORIGIN

@@ -1,13 +1,10 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 
-/**
- * v2 owns its Cloudflare data plane. These resources are intentionally named
- * independently from Styld v1 so preview deploys cannot adopt or mutate v1.
- */
-export const StyldDatabase = Cloudflare.D1.Database('StyldV2Database', {
+/** The app's Cloudflare data plane. Physical names derive from the `EthMumbai` stack and its stage. */
+export const StyldDatabase = Cloudflare.D1.Database('Database', {
   migrations: 'packages/db/migrations',
 })
 
-export const StyldMedia = Cloudflare.R2.Bucket('StyldV2Media', {
+export const StyldMedia = Cloudflare.R2.Bucket('Media', {
   jurisdiction: 'eu',
 })
