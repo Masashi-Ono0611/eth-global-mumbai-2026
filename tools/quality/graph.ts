@@ -12,19 +12,24 @@ const Manifest = Schema.Struct({
 type Workspace = { readonly directory: string; readonly manifest: typeof Manifest.Type }
 
 const directions: Readonly<Record<string, readonly string[]>> = {
-  '@ethmumbai/web': ['@ethmumbai/auth', '@ethmumbai/i18n', '@ethmumbai/observability'],
+  '@ethmumbai/web': ['@ethmumbai/auth', '@ethmumbai/i18n', '@ethmumbai/observability', '@ethmumbai/protocol'],
   '@ethmumbai/server': [
     '@ethmumbai/auth',
+    '@ethmumbai/chain',
     '@ethmumbai/db',
     '@ethmumbai/domain',
     '@ethmumbai/i18n',
     '@ethmumbai/observability',
+    '@ethmumbai/protocol',
   ],
   '@ethmumbai/auth': ['@ethmumbai/db'],
+  '@ethmumbai/chain': ['@ethmumbai/protocol'],
+  '@ethmumbai/chip': ['@ethmumbai/protocol'],
   '@ethmumbai/domain': [],
   '@ethmumbai/db': [],
   '@ethmumbai/i18n': [],
   '@ethmumbai/observability': [],
+  '@ethmumbai/protocol': [],
 }
 
 const packageName = (specifier: string) =>
@@ -43,7 +48,8 @@ export const assertBrowserSafe = (file: string, specifier: string) => {
     /^(node:|bun:|cloudflare:|@alchemy\.run\/cloudflare|@yielded\/auth-persistence|@effect\/sql-|drizzle-orm)/.test(
       specifier,
     ) ||
-    /^packages\/(server|db)\//.test(file) ||
+    /^(viem|@metamask\/)/.test(specifier) ||
+    /^packages\/(server|db|chain)\//.test(file) ||
     /\/server\//.test(file) ||
     (file.startsWith('packages/auth/src/') && !/^packages\/auth\/src\/(client|config)\.ts$/.test(file))
   ) {

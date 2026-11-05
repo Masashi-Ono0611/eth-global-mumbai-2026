@@ -43,6 +43,14 @@ test('domain cannot depend on persistence and browser cannot reach adapters thro
     expect(() => assertBrowserSafe(file, '')).toThrow('Server adapter')
   expect(() => assertBrowserSafe('apps/web/src/entry.ts', 'node:fs')).toThrow('Server adapter')
   expect(() => assertBrowserSafe('packages/auth/src/client.ts', '@yielded/auth/Client')).not.toThrow()
+  // The chain package (viem, the MetaMask kit, relayer keys) is server-only; the protocol package is browser-safe.
+  expect(() => checkDirection('@ethmumbai/protocol', '@ethmumbai/chain')).toThrow('Forbidden dependency')
+  expect(() => checkDirection('@ethmumbai/web', '@ethmumbai/chain')).toThrow('Forbidden dependency')
+  expect(() => checkDirection('@ethmumbai/chain', '@ethmumbai/protocol')).not.toThrow()
+  expect(() => assertBrowserSafe('packages/chain/src/index.ts', '')).toThrow('Server adapter')
+  for (const specifier of ['viem', 'viem/accounts', '@metamask/smart-accounts-kit'])
+    expect(() => assertBrowserSafe('packages/protocol/src/index.ts', specifier)).toThrow('Server adapter')
+  expect(() => assertBrowserSafe('packages/protocol/src/index.ts', 'effect')).not.toThrow()
 })
 
 test.each(['ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs'])(

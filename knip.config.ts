@@ -14,7 +14,7 @@ export default {
       project: ['src/**/*.ts', 'test/**/*.ts'],
     },
     ...Object.fromEntries(
-      ['auth', 'domain', 'observability', 'server'].map((name) => [
+      ['auth', 'chain', 'domain', 'observability', 'protocol', 'server'].map((name) => [
         `packages/${name}`,
         { project: ['src/**/*.ts!', 'test/**/*.ts'] },
       ]),
