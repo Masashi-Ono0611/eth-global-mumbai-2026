@@ -51,6 +51,7 @@ const css = `
   .cm-host:hover > .cm-btn, .cm-btn.cm-has, .cm-btn:focus-visible { opacity: 1; }
   .cm-btn.cm-has { background: var(--duck, #f5b700); color: #1d1b16; border-color: transparent; font-weight: 700; }
   td.cm-host > .cm-btn { top: 50%; transform: translateY(-50%); }
+  .diagram.cm-host > .cm-btn { right: auto; left: 6px; } /* Pele's zoom controls sit top-right */
   @media (hover: none) { .cm-btn { opacity: .55; } }
   .cm-pop { position: absolute; z-index: 50; width: min(380px, 92vw); background: var(--card, #fff); color: var(--ink, #111);
     border: 1px solid var(--line, #ddd); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.18); padding: 12px; font: 14px/1.45 system-ui, sans-serif; }
