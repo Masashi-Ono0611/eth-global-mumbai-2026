@@ -10,4 +10,4 @@ The live page is the Cloudflare Worker `eth-mumbai-architecture` (account `Krist
 It serves `architecture/index.html` straight from `main` on GitHub with a 60 s cache, so pushing to
 `main` updates it with no redeploy. It was created by hand through the Cloudflare API, **not** by
 Alchemy, so it isn't part of the app's infrastructure. Delete it when the app's own pages replace it.
-Diagrams are Mermaid, rendered in the browser from jsDelivr.
+Diagrams are Mermaid text rendered by [Pele](https://github.com/obsidianmd/pele) (`pele@1.13.0` from jsDelivr, MIT), themed through `--pele-*` CSS variables. Clone for reading: `references/obsidianmd_pele`.

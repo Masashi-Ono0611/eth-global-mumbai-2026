@@ -29,7 +29,13 @@
   .t-arc { background: var(--arc); } .t-world { background: var(--world); color: var(--bg); } .t-og { background: var(--og); }
   .t-cf { background: var(--cf); } .t-duck { background: var(--duck); color: #1d1b16; }
   .diagram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-top: 18px; overflow-x: auto; }
-  .diagram pre.mermaid { margin: 0; background: none; }
+  .diagram pre.mermaid { margin: 0; background: none; white-space: normal; }
+  .flows pre.mermaid { margin: 0; white-space: normal; }
+  pre.mermaid {
+    --pele-bg: var(--card); --pele-fg: var(--ink); --pele-muted: var(--muted); --pele-line: var(--muted);
+    --pele-surface: var(--bg); --pele-surface-alt: var(--line); --pele-border: var(--line);
+    --pele-accent: var(--arc); --pele-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --pele-radius: 8px;
+  }
   table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: .95rem; }
   th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
@@ -227,16 +233,10 @@ sequenceDiagram
     (<code>docs/infrastructure.md</code>, <code>docs/research/</code>). Nothing here is built yet.
   </footer>
 </main>
-<script type="module">
-  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", securityLevel: "strict", flowchart: { curve: "basis", htmlLabels: false } });
-  // render one at a time with unique ids; concurrent or repeated run() calls collide
-  let i = 0;
-  for (const el of document.querySelectorAll("pre.mermaid")) {
-    const { svg } = await mermaid.render(`diagram-${i++}`, el.textContent);
-    el.innerHTML = svg;
-  }
+<!-- Pele (obsidianmd/pele, MIT): renders the Mermaid text below to SVG, synchronously, themed by --pele-* variables -->
+<script src="https://cdn.jsdelivr.net/npm/pele@1.13.0/dist/pele.global.js"></script>
+<script>
+  for (const el of document.querySelectorAll("pre.mermaid")) pele.mount(el, el.textContent);
 </script>
 </body>
 </html>
