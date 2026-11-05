@@ -4,8 +4,8 @@
  * Opt in with <script src="/lib/comments.js" defer></script>. Every heading, card, table row, list item, callout and
  * diagram gets a 💬 on hover (an element inside another commentable element doesn't get its own). Comments are stored
  * by the site Worker (/api/comments, D1), keyed by page slug and an anchor built from the element's section and text.
- * Writing needs the team code (asked once, kept in localStorage); reading doesn't. If an element's text changes, its
- * comments move to "Comments on changed text" in the panel. Agents read everything at /api/comments.md?page=<slug>.
+ * No login and no code: your name is asked once and kept in localStorage. If an element's text changes, its comments
+ * move to "Comments on changed text" in the panel. Agents read everything at /api/comments.md?page=<slug>.
  */
 
 interface Comment {
@@ -37,8 +37,8 @@ const SELECTOR =
 const page = location.pathname.replace(/^\/|\/$/g, '') || 'index'
 
 const store = {
-  get: (key: 'name' | 'code'): string => localStorage.getItem(`comments.${key}`) ?? '',
-  set: (key: 'name' | 'code', value: string): void => {
+  get: (key: 'name'): string => localStorage.getItem(`comments.${key}`) ?? '',
+  set: (key: 'name', value: string): void => {
     localStorage.setItem(`comments.${key}`, value)
   },
 }
@@ -107,8 +107,6 @@ const textOf = (node: Element): string =>
   (node instanceof HTMLElement ? node.innerText : (node.textContent ?? '')).replace(/\s+/g, ' ').trim()
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
-
-const isAuthError = (error: unknown): boolean => /^40[13]\b/.test(messageOf(error))
 
 // ---------- anchors: which elements can be commented on ----------
 
@@ -179,12 +177,12 @@ const fetchComments = async (): Promise<ReadonlyArray<Comment>> => {
 const postComment = (anchor: string, anchorText: string, name: string, body: string): Promise<unknown> =>
   send(API, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-team-code': store.get('code') },
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ page, anchor, anchorText, name, body }),
   })
 
 const deleteComment = (id: string): Promise<unknown> =>
-  send(`${API}/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'x-team-code': store.get('code') } })
+  send(`${API}/${encodeURIComponent(id)}`, { method: 'DELETE' })
 
 // ---------- rendering ----------
 
@@ -223,14 +221,12 @@ const closePanel = (state: State): void => {
 }
 
 const removeComment = (state: State, id: string): void => {
-  if (!store.get('code')) store.set('code', prompt('Team code')?.trim() ?? '')
   const done = (): void => {
     closePopover(state)
     closePanel(state)
     refresh(state)
   }
   deleteComment(id).then(done, (error: unknown) => {
-    if (isAuthError(error)) store.set('code', '')
     alert(`Could not delete: ${messageOf(error)}`)
     done()
   })
@@ -253,7 +249,6 @@ const thread = (state: State, list: ReadonlyArray<Comment>): HTMLElement[] =>
 
 const form = (state: State, id: string, text: string): HTMLElement => {
   const name = el('input', { placeholder: 'Your name', value: store.get('name'), maxLength: 60 })
-  const code = store.get('code') ? null : el('input', { placeholder: 'Team code (asked once)', type: 'password' })
   const body = el('textarea', { placeholder: 'Comment… (⌘/Ctrl+Enter to send)', maxLength: 4000 })
   const error = el('div', { className: 'cm-err' })
   const submit = (): void => {
@@ -261,7 +256,6 @@ const form = (state: State, id: string, text: string): HTMLElement => {
       error.textContent = 'Name and comment, please.'
       return
     }
-    if (code) store.set('code', code.value.trim())
     store.set('name', name.value.trim())
     postComment(id, text, name.value.trim(), body.value.trim()).then(
       () => {
@@ -269,8 +263,7 @@ const form = (state: State, id: string, text: string): HTMLElement => {
         refresh(state)
       },
       (failure: unknown) => {
-        if (isAuthError(failure)) store.set('code', '')
-        error.textContent = isAuthError(failure) ? 'Wrong team code. Close and try again.' : `Could not save: ${messageOf(failure)}`
+        error.textContent = `Could not save: ${messageOf(failure)}`
       },
     )
   }
@@ -278,7 +271,7 @@ const form = (state: State, id: string, text: string): HTMLElement => {
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') submit()
   })
   const actions = el('div', { className: 'cm-row' }, button('Cancel', 'cm-ghost', () => closePopover(state)), button('Comment', '', submit))
-  return el('div', {}, name, code, body, error, actions)
+  return el('div', {}, name, body, error, actions)
 }
 
 const openPopover = (state: State, id: string, anchorButton: HTMLElement): void => {
