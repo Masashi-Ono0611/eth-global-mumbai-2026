@@ -24,7 +24,7 @@ See `open-questions.md`. Also open since 2026-11-05:
 
 - Which 7702 implementation the owner account delegates to (existing audited one vs ours built in Arc Studio), and whether Arc mainnet supports type-4 (7702) transactions.
 - What "unified balance" means on the wire: Circle's unified USDC balance product or just one Arc balance.
-- Which robot we have: Open Duck Mini or Pollen Robotics Microduck.
+- ~~Which robot we have~~ **Answered 2026-11-05:** our own modified [Open Duck Mini](https://github.com/apirrone/Open_Duck_Mini): different servos, plus a camera and components for scanning QRs and signing. Still open: exact servo model, duck brain (Radxa Zero 3W on the bench vs Pi Zero 2W vs NVIDIA board), and whether the walking policy has to be retrained for the new servos.
 
 
 ## Project name
