@@ -1,11 +1,15 @@
 /**
  * Login-free comments for docs/site pages. The site build compiles this file to /lib/comments.js.
  *
- * Opt in with <script src="/lib/comments.js" defer></script>. Every heading, card, table row, list item, callout and
- * diagram gets a 💬 on hover (an element inside another commentable element doesn't get its own). Comments are stored
- * by the site Worker (/api/comments, D1), keyed by page slug and an anchor built from the element's section and text.
- * No login and no code: your name is asked once and kept in localStorage. If an element's text changes, its comments
- * move to "Comments on changed text" in the panel. Agents read everything at /api/comments.md?page=<slug>.
+ * Opt in with <script src="/lib/comments.js" defer></script>. Three granularities, one storage:
+ * - Elements: every heading, card, table row, list item, callout and diagram gets a 💬 on hover. Anchor:
+ *   `<section>/<kind>/<text hash>`. An element inside another commentable element doesn't get its own.
+ * - Diagram parts: click a node, group, arrow or sequence message in a Pele diagram. Anchor:
+ *   `<diagram anchor>/n/<pele data-id>:<label hash>`. Commented parts glow.
+ * - Selected text: select words inside any element and press "💬 Comment". Anchor: `<element anchor>/q/<quote hash>`;
+ *   the quote is stored as anchorText and highlighted on load.
+ * No login and no code: your name is asked once and kept in localStorage. If the text a comment points to changes, the
+ * comment moves to "Comments on changed text" in the panel. Agents read everything at /api/comments.md?page=<slug>.
  */
 
 interface Comment {
@@ -18,22 +22,41 @@ interface Comment {
 }
 
 interface Anchor {
+  /** Where the 💬 button lives and what the panel scrolls to. */
   readonly node: HTMLElement
+  /** The element whose text is the anchor (differs from `node` for table rows and <summary>). */
+  readonly source: HTMLElement
   readonly text: string
 }
 
+interface Selected {
+  readonly hostId: string
+  readonly quote: string
+  readonly rect: DOMRect
+}
+
 interface State {
-  readonly anchors: ReadonlyMap<string, Anchor>
+  readonly anchors: Map<string, Anchor>
+  readonly owners: Map<Element, string>
   readonly buttons: Map<string, HTMLButtonElement>
+  readonly marked: Set<string>
   readonly fab: HTMLButtonElement
+  readonly selectButton: HTMLButtonElement
+  /** Glow for commented diagram parts, as CSS rules: Pele rewrites its SVG elements' class attributes. */
+  readonly glow: HTMLStyleElement
   comments: ReadonlyArray<Comment>
   popover: HTMLElement | null
   panel: HTMLElement | null
+  selected: Selected | null
 }
 
 const API = '/api/comments'
 const SELECTOR =
   'main h1, main h2, main h3, main .card, main .rule, main tr, main li, main .diagram, main details > summary, main p.lead'
+/** Pele diagram parts that can be commented on (all carry a `data-id`). */
+const PART = '.pele-node, .pele-cluster, .pele-edge, .pele-edge-label, .pele-message'
+const QUOTE_MIN = 3
+const QUOTE_MAX = 280
 const page = location.pathname.replace(/^\/|\/$/g, '') || 'index'
 
 const store = {
@@ -53,6 +76,11 @@ const css = `
   td.cm-host > .cm-btn { top: 50%; transform: translateY(-50%); }
   .diagram.cm-host > .cm-btn { right: auto; left: 6px; } /* Pele's zoom controls sit top-right */
   @media (hover: none) { .cm-btn { opacity: .55; } }
+  .diagram.cm-host :is(.pele-node, .pele-cluster, .pele-edge-label, .pele-message) { cursor: pointer; }
+  .diagram.cm-host :is(.pele-node, .pele-edge-label, .pele-message):hover { filter: drop-shadow(0 0 3px var(--arc, #2f6bff)); }
+  .cm-mark { background: color-mix(in srgb, var(--duck, #f5b700) 38%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; cursor: pointer; }
+  .cm-sel { position: absolute; z-index: 45; border: 0; border-radius: 999px; padding: 6px 10px; background: var(--ink, #111); color: var(--bg, #fff);
+    font: 600 12px system-ui, sans-serif; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.2); display: none; }
   .cm-pop { position: absolute; z-index: 50; width: min(380px, 92vw); background: var(--card, #fff); color: var(--ink, #111);
     border: 1px solid var(--line, #ddd); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.18); padding: 12px; font: 14px/1.45 system-ui, sans-serif; }
   .cm-pop h4 { margin: 0 0 8px; font-size: 12px; color: var(--muted, #666); font-weight: 600; }
@@ -107,7 +135,15 @@ const link = (label: string, onClick: () => void): HTMLAnchorElement => {
 const textOf = (node: Element): string =>
   (node instanceof HTMLElement ? node.innerText : (node.textContent ?? '')).replace(/\s+/g, ' ').trim()
 
+/** SVG labels are split into <tspan> lines with no whitespace between them. */
+const svgText = (node: Element): string => {
+  const lines = [...node.querySelectorAll('tspan')].map((line) => line.textContent ?? '')
+  return (lines.length > 0 ? lines.join(' ') : (node.textContent ?? '')).replace(/\s+/g, ' ').trim()
+}
+
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // ---------- anchors: which elements can be commented on ----------
 
@@ -151,9 +187,155 @@ const collectAnchors = (): Map<string, Anchor> => {
     if (isSkipped(node) || !label) continue
     let id = `${section}/${kindOf(node)}/${hash(label)}`
     while (anchors.has(id)) id += '+'
-    anchors.set(id, { node: hostOf(node), text: textOf(node).slice(0, 160) })
+    anchors.set(id, { node: hostOf(node), source: node, text: textOf(node).slice(0, 160) })
   }
   return anchors
+}
+
+const ownersOf = (anchors: ReadonlyMap<string, Anchor>): Map<Element, string> => {
+  const owners = new Map<Element, string>()
+  for (const [id, anchor] of anchors) {
+    owners.set(anchor.source, id)
+    owners.set(anchor.node, id)
+  }
+  return owners
+}
+
+// ---------- diagram parts ----------
+
+const partKind = (part: Element): string => {
+  if (part.classList.contains('pele-cluster')) return 'group'
+  return part.classList.contains('pele-node') ? 'node' : 'arrow'
+}
+
+const partLabel = (part: Element): string => {
+  const id = part.getAttribute('data-id') ?? ''
+  if (part.classList.contains('pele-cluster')) return svgText(part.querySelector('text') ?? part).slice(0, 120)
+  if (part.classList.contains('pele-node')) return svgText(part)
+  // Arrows and sequence messages: the label is a sibling element sharing the data-id.
+  const label = part.closest('svg')?.querySelector(`.pele-edge-label[data-id="${CSS.escape(id)}"]`)
+  return label ? svgText(label) : id
+}
+
+const partAnchorId = (diagramId: string, part: Element): string =>
+  `${diagramId}/n/${part.getAttribute('data-id') ?? ''}:${hash(partLabel(part))}`
+
+const registerPart = (state: State, diagramId: string, part: Element): string => {
+  const id = partAnchorId(diagramId, part)
+  const diagram = state.anchors.get(diagramId)
+  if (diagram && !state.anchors.has(id)) {
+    state.anchors.set(id, { node: diagram.node, source: diagram.source, text: `${partKind(part)}: ${partLabel(part)}`.slice(0, 280) })
+  }
+  return id
+}
+
+/** Glow on parts with comments (CSS rules keyed by data-id); also registers them so the panel doesn't list them as orphans. */
+const markParts = (state: State): void => {
+  const commented = new Set(state.comments.map((c) => c.anchor))
+  const rules: string[] = []
+  // Collect first: registerPart adds entries to state.anchors while we loop.
+  const diagrams = [...state.anchors].filter(([, anchor]) => anchor.node.classList.contains('diagram'))
+  for (const [diagramId, anchor] of diagrams) {
+    for (const part of anchor.node.querySelectorAll(PART)) {
+      if (!commented.has(partAnchorId(diagramId, part))) continue
+      registerPart(state, diagramId, part)
+      const key = CSS.escape(anchor.node.dataset['cmDiagram'] ?? '')
+      rules.push(`.diagram[data-cm-diagram="${key}"] [data-id="${CSS.escape(part.getAttribute('data-id') ?? '')}"]`)
+    }
+  }
+  state.glow.textContent =
+    rules.length > 0 ? `${rules.join(',\n')} { filter: drop-shadow(0 0 3px var(--duck, #f5b700)) drop-shadow(0 0 2px var(--duck, #f5b700)); }` : ''
+}
+
+// ---------- text quotes ----------
+
+const textNodesOf = (root: Element): Text[] => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) =>
+      node.parentElement?.closest('.cm-btn, .cm-mark, svg, script, style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+  })
+  const nodes: Text[] = []
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) if (node instanceof Text) nodes.push(node)
+  return nodes
+}
+
+/** Wraps the first whitespace-insensitive match of `quote` inside `root` in <mark>s; returns false if not found. */
+const wrapQuote = (root: Element, quote: string, anchorId: string): boolean => {
+  const nodes = textNodesOf(root)
+  const match = new RegExp(quote.split(/\s+/).map(escapeRegExp).join('\\s+')).exec(nodes.map((n) => n.data).join(''))
+  if (!match) return false
+  const start = match.index
+  const end = start + match[0].length
+  let offset = 0
+  for (const node of nodes) {
+    const from = offset
+    offset += node.data.length
+    if (offset <= start || from >= end) continue
+    const range = document.createRange()
+    range.setStart(node, Math.max(start, from) - from)
+    range.setEnd(node, Math.min(end, offset) - from)
+    const mark = el('mark', { className: 'cm-mark' })
+    mark.dataset['anchor'] = anchorId
+    range.surroundContents(mark)
+  }
+  return true
+}
+
+const markQuotes = (state: State): void => {
+  for (const comment of state.comments) {
+    const at = comment.anchor.indexOf('/q/')
+    const host = at > 0 ? state.anchors.get(comment.anchor.slice(0, at)) : undefined
+    if (!host || state.marked.has(comment.anchor)) continue
+    if (wrapQuote(host.source, comment.anchorText, comment.anchor)) {
+      state.marked.add(comment.anchor)
+      state.anchors.set(comment.anchor, { node: host.node, source: host.source, text: comment.anchorText })
+    }
+  }
+}
+
+const ownerIdOf = (state: State, start: Element): string | null => {
+  for (let node: Element | null = start; node; node = node.parentElement) {
+    const id = state.owners.get(node)
+    if (id) return id
+  }
+  return null
+}
+
+const readSelection = (state: State): Selected | null => {
+  const selection = getSelection()
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) return null
+  const quote = selection.toString().replace(/\s+/g, ' ').trim()
+  if (quote.length < QUOTE_MIN || quote.length > QUOTE_MAX) return null
+  const range = selection.getRangeAt(0)
+  const container = range.commonAncestorContainer
+  const start = container instanceof Element ? container : container.parentElement
+  if (!start || start.closest('svg, .cm-pop, .cm-panel, .cm-sel, .cm-btn')) return null
+  const hostId = ownerIdOf(state, start)
+  return hostId ? { hostId, quote, rect: range.getBoundingClientRect() } : null
+}
+
+const showSelectButton = (state: State): void => {
+  state.selected = readSelection(state)
+  const { selectButton } = state
+  if (!state.selected) {
+    selectButton.style.display = 'none'
+    return
+  }
+  selectButton.style.display = 'block'
+  selectButton.style.top = `${window.scrollY + state.selected.rect.bottom + 6}px`
+  selectButton.style.left = `${window.scrollX + state.selected.rect.right - selectButton.offsetWidth}px`
+}
+
+const commentOnSelection = (state: State): void => {
+  const selected = state.selected
+  const host = selected ? state.anchors.get(selected.hostId) : undefined
+  if (!selected || !host) return
+  const id = `${selected.hostId}/q/${hash(selected.quote)}`
+  state.anchors.set(id, { node: host.node, source: host.source, text: selected.quote })
+  state.selectButton.style.display = 'none'
+  // Measure again: the page may have scrolled since the selection was made (rects are viewport-relative).
+  const live = getSelection()
+  openPopover(state, id, live && live.rangeCount > 0 ? live.getRangeAt(0).getBoundingClientRect() : selected.rect)
 }
 
 // ---------- API ----------
@@ -189,9 +371,15 @@ const deleteComment = (id: string): Promise<unknown> =>
 
 const forAnchor = (state: State, id: string): ReadonlyArray<Comment> => state.comments.filter((c) => c.anchor === id)
 
+/** An element's badge counts its own comments plus those on its diagram parts and quotes. */
+const countFor = (state: State, id: string): number =>
+  state.comments.filter((c) => c.anchor === id || c.anchor.startsWith(`${id}/`)).length
+
 const render = (state: State): void => {
+  markParts(state)
+  markQuotes(state)
   for (const [id, btn] of state.buttons) {
-    const count = forAnchor(state, id).length
+    const count = countFor(state, id)
     btn.classList.toggle('cm-has', count > 0)
     btn.textContent = count > 0 ? String(count) : '💬'
   }
@@ -261,6 +449,7 @@ const form = (state: State, id: string, text: string): HTMLElement => {
     postComment(id, text, name.value.trim(), body.value.trim()).then(
       () => {
         closePopover(state)
+        getSelection()?.removeAllRanges()
         refresh(state)
       },
       (failure: unknown) => {
@@ -275,14 +464,13 @@ const form = (state: State, id: string, text: string): HTMLElement => {
   return el('div', {}, name, body, error, actions)
 }
 
-const openPopover = (state: State, id: string, anchorButton: HTMLElement): void => {
+function openPopover(state: State, id: string, rect: DOMRect): void {
   closePopover(state)
   const anchor = state.anchors.get(id)
   if (!anchor) return
   const title = anchor.text.length > 90 ? `${anchor.text.slice(0, 90)}…` : anchor.text
   const popover = el('div', { className: 'cm-pop' }, el('h4', { textContent: title }), ...thread(state, forAnchor(state, id)), form(state, id, anchor.text))
   document.body.appendChild(popover)
-  const rect = anchorButton.getBoundingClientRect()
   const viewport = document.documentElement.clientWidth
   popover.style.top = `${window.scrollY + rect.bottom + 6}px`
   popover.style.left = `${window.scrollX + Math.max(8, Math.min(rect.right - popover.offsetWidth, viewport - popover.offsetWidth - 8))}px`
@@ -318,11 +506,34 @@ const attachButtons = (state: State): void => {
     const btn = el('button', { className: 'cm-btn', type: 'button', title: 'Comment', textContent: '💬' })
     btn.addEventListener('click', (event) => {
       event.stopPropagation()
-      openPopover(state, id, btn)
+      openPopover(state, id, btn.getBoundingClientRect())
     })
     node.appendChild(btn)
     state.buttons.set(id, btn)
   }
+}
+
+/** Click (not drag: Pele pans on drag) a diagram part to comment on it. */
+const watchDiagram = (state: State, diagramId: string, host: HTMLElement): void => {
+  let down: { readonly x: number; readonly y: number } | null = null
+  host.addEventListener('pointerdown', (event) => {
+    down = { x: event.clientX, y: event.clientY }
+  })
+  host.addEventListener('click', (event) => {
+    const dragged = down !== null && Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5
+    const part = event.target instanceof Element ? event.target.closest(PART) : null
+    if (dragged || !part) return
+    event.stopPropagation()
+    openPopover(state, registerPart(state, diagramId, part), part.getBoundingClientRect())
+  })
+}
+
+const openMark = (state: State, target: EventTarget | null): boolean => {
+  const mark = target instanceof Element ? target.closest('.cm-mark') : null
+  const id = mark instanceof HTMLElement ? mark.dataset['anchor'] : undefined
+  if (!mark || !id) return false
+  openPopover(state, id, mark.getBoundingClientRect())
+  return true
 }
 
 const listenGlobally = (state: State): void => {
@@ -332,25 +543,48 @@ const listenGlobally = (state: State): void => {
     closePanel(state)
   })
   document.addEventListener('click', (event) => {
+    if (openMark(state, event.target)) return
     const target = event.target
-    const onButton = target instanceof HTMLElement && target.classList.contains('cm-btn')
+    const onButton = target instanceof HTMLElement && target.matches('.cm-btn, .cm-sel')
     if (state.popover && target instanceof Node && !state.popover.contains(target) && !onButton) closePopover(state)
   })
+  let pending = 0
+  document.addEventListener('selectionchange', () => {
+    window.clearTimeout(pending)
+    pending = window.setTimeout(() => showSelectButton(state), 200)
+  })
+  // Keep the selection alive while pressing the button.
+  state.selectButton.addEventListener('pointerdown', (event) => event.preventDefault())
+  state.selectButton.addEventListener('click', () => commentOnSelection(state))
   state.fab.addEventListener('click', () => (state.panel ? closePanel(state) : openPanel(state)))
 }
 
 const start = (): void => {
   document.head.appendChild(el('style', { textContent: css }))
+  const anchors = collectAnchors()
   const state: State = {
-    anchors: collectAnchors(),
+    anchors,
+    owners: ownersOf(anchors),
     buttons: new Map(),
+    marked: new Set(),
     fab: el('button', { className: 'cm-fab', type: 'button' }),
+    selectButton: el('button', { className: 'cm-sel', type: 'button', textContent: '💬 Comment on selection' }),
+    glow: el('style'),
     comments: [],
     popover: null,
     panel: null,
+    selected: null,
   }
   document.body.appendChild(state.fab)
+  document.body.appendChild(state.selectButton)
+  document.head.appendChild(state.glow)
   attachButtons(state)
+  let diagramIndex = 0
+  for (const [id, { node }] of anchors) {
+    if (!node.classList.contains('diagram')) continue
+    node.dataset['cmDiagram'] = String(diagramIndex++)
+    watchDiagram(state, id, node)
+  }
   listenGlobally(state)
   render(state)
   refresh(state)
