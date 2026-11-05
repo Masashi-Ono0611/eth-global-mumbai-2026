@@ -1,0 +1,227 @@
+// Wallet accounts v2 simulation (eth_call against live Arc mainnet state; nothing broadcast).
+// Saved from the research agent's /tmp workspace on 2026-11-05 as .txt so the repo lint/typecheck gates skip it.
+// To rerun: copy to a scratch dir as spike.ts, `bun add` the deps below, `bun spike.ts`.
+// package.json deps: {"@metamask/smart-accounts-kit":"2.0.0","viem":"2"}
+// Results and explanation: docs/research/wallet-accounts-v2.md (appendix).
+
+// Spike: on Arc mainnet (5042), simulate with eth_call + state overrides (no funds, nothing broadcast):
+//  A. passkey-only HybridDeleGator: deploy via SimpleFactory, WebAuthn-signed root delegation, 3-hop chain
+//     owner(passkey) -> aiClient(EOA) -> robot(EOA) -> ANY_DELEGATE leaf, redeemed by a stand-in relayer.
+//  B. same account: ERC-1271 isValidSignature + USDC EIP-3009 transferWithAuthorization with a passkey signature.
+//  C. EIP-7702 EOA (code override 0xef0100||EIP7702StatelessDeleGator) with an ECDSA root delegation.
+import {
+  createPublicClient, http, defineChain, encodeFunctionData, encodeAbiParameters, encodePacked, parseAbi,
+  zeroAddress, keccak256, toHex, bytesToHex, hexToBytes, concat, sha256, decodeFunctionResult, hashTypedData,
+  type Hex, type Address,
+} from "viem";
+import { toWebAuthnAccount } from "viem/account-abstraction";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import {
+  toMetaMaskSmartAccount, Implementation, createDelegation, createOpenDelegation, getSmartAccountsEnvironment,
+  ExecutionMode, signDelegation, ScopeType,
+} from "@metamask/smart-accounts-kit";
+import { encodeDelegations, hashDelegation, decodeRevertData } from "@metamask/smart-accounts-kit/utils";
+
+const RPC = "https://rpc.mainnet.arc.io";
+const arc = defineChain({ id: 5042, name: "Arc", nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
+const client = createPublicClient({ chain: arc, transport: http(RPC, { retryCount: 10, retryDelay: 2000 }) });
+const nap = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const env = getSmartAccountsEnvironment(5042);
+const USDC: Address = "0x3600000000000000000000000000000000000000";
+const MULTICALL3: Address = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const RELAYER: Address = "0x00000000000000000000000000000000000beef1"; // stand-in tx sender
+const MERCHANT: Address = "0x000000000000000000000000000000000000c0de";
+const ANY_DELEGATE: Address = "0x0000000000000000000000000000000000000a11";
+
+// ---------- software WebAuthn authenticator (stands in for iCloud Keychain / GPM) ----------
+const subtle = globalThis.crypto.subtle;
+const kp = await subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+const raw = new Uint8Array(await subtle.exportKey("raw", kp.publicKey)); // 0x04||x||y
+const x = BigInt(bytesToHex(raw.slice(1, 33)));
+const y = BigInt(bytesToHex(raw.slice(33, 65)));
+const credId = "spike-credential-1";
+const rpId = "wallet.example";
+const b64url = (b: Uint8Array) => Buffer.from(b).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const derFromRaw = (sig: Uint8Array) => {
+  const enc = (v: Uint8Array) => { let i = 0; while (i < v.length - 1 && v[i] === 0) i++; let s = v.slice(i); if (s[0] & 0x80) s = new Uint8Array([0, ...s]); return new Uint8Array([0x02, s.length, ...s]); };
+  const r = enc(sig.slice(0, 32)), s = enc(sig.slice(32));
+  return new Uint8Array([0x30, r.length + s.length, ...r, ...s]);
+};
+const getFn = async (opts: any) => {
+  const challenge = new Uint8Array(opts.publicKey.challenge);
+  const clientDataJSON = `{"type":"webauthn.get","challenge":"${b64url(challenge)}","origin":"https://${rpId}","crossOrigin":false}`;
+  const cdj = new TextEncoder().encode(clientDataJSON);
+  const authData = concat([sha256(new TextEncoder().encode(rpId)), "0x05", "0x00000001"]); // UP|UV, counter 1
+  const msg = concat([authData, sha256(cdj)]);
+  const sig = new Uint8Array(await subtle.sign({ name: "ECDSA", hash: "SHA-256" }, kp.privateKey, hexToBytes(msg)));
+  return { id: credId, rawId: new TextEncoder().encode(credId).buffer, type: "public-key",
+    response: { authenticatorData: hexToBytes(authData).buffer, clientDataJSON: cdj.buffer, signature: derFromRaw(sig).buffer, userHandle: null },
+    getClientExtensionResults: () => ({}) };
+};
+const webAuthnAccount = toWebAuthnAccount({ credential: { id: credId, publicKey: bytesToHex(raw) }, getFn: getFn as any, rpId });
+
+// ---------- A. passkey-only HybridDeleGator ----------
+const owner = await toMetaMaskSmartAccount({
+  client: client as any, implementation: Implementation.Hybrid,
+  deployParams: [zeroAddress, [credId], [x], [y]], deploySalt: "0x01",
+  signer: { webAuthnAccount, keyId: credId },
+});
+const { factory, factoryData } = await owner.getFactoryArgs();
+console.log("hybrid counterfactual address", owner.address, "factory", factory);
+
+const aiKey = generatePrivateKey(); const ai = privateKeyToAccount(aiKey);
+const robotKey = generatePrivateKey(); const robot = privateKeyToAccount(robotKey);
+
+// root: owner -> AI client, max 5 USDC total
+const root = createDelegation({ environment: env, from: owner.address, to: ai.address,
+  scope: { type: ScopeType.Erc20TransferAmount, tokenAddress: USDC, maxAmount: 5_000_000n } as any });
+const rootSig = await owner.signDelegation({ delegation: root });
+const rootSigned = { ...root, signature: rootSig };
+// hop 2: AI client -> robot, narrower: max 2 USDC
+const hop = createDelegation({ environment: env, from: ai.address, to: robot.address, parentDelegation: rootSigned,
+  scope: { type: ScopeType.Erc20TransferAmount, tokenAddress: USDC, maxAmount: 2_000_000n } as any });
+const hopSigned = { ...hop, signature: await signDelegation({ privateKey: aiKey, delegation: hop, delegationManager: env.DelegationManager, chainId: 5042 }) };
+// leaf: robot -> ANY_DELEGATE (a payment voucher anyone may submit), max 2 USDC, open delegation
+const leaf = createOpenDelegation({ environment: env, from: robot.address, parentDelegation: hopSigned,
+  scope: { type: ScopeType.Erc20TransferAmount, tokenAddress: USDC, maxAmount: 2_000_000n } as any });
+const leafSigned = { ...leaf, signature: await signDelegation({ privateKey: robotKey, delegation: leaf, delegationManager: env.DelegationManager, chainId: 5042, allowInsecureUnrestrictedDelegation: true }) };
+
+const usdcAbi = parseAbi([
+  "function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)",
+  "function transferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce,bytes signature)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+]);
+const dmAbi = parseAbi(["function redeemDelegations(bytes[] _permissionContexts, bytes32[] _modes, bytes[] _executionCallDatas)"]);
+const mcAbi = parseAbi(["struct Call3 { address target; bool allowFailure; bytes callData; }", "struct Result { bool success; bytes returnData; }",
+  "function aggregate3(Call3[] calls) payable returns (Result[] returnData)"]);
+const erc1271 = parseAbi(["function isValidSignature(bytes32,bytes) view returns (bytes4)"]);
+
+const pay = (amount: bigint) => encodePacked(["address", "uint256", "bytes"], [USDC, 0n,
+  encodeFunctionData({ abi: usdcAbi, functionName: "transfer", args: [MERCHANT, amount] })]);
+const redeem = (chain: any[], amount: bigint) => encodeFunctionData({ abi: dmAbi, functionName: "redeemDelegations",
+  args: [[encodeDelegations(chain)], [ExecutionMode.SingleDefault], [pay(amount)]] });
+const balOf = (a: Address) => encodeFunctionData({ abi: usdcAbi, functionName: "balanceOf", args: [a] });
+
+const overrides = (extra: any[] = []) => [{ address: owner.address, balance: 50n * 10n ** 18n }, ...extra]; // 50 USDC native = ERC-20 balance
+
+const ONLY = process.env.ONLY?.split(",");
+async function sim(label: string, calls: { target: Address; callData: Hex; allowFailure?: boolean }[], stateOverride: any[]) {
+  if (ONLY && !ONLY.some((o) => label.startsWith(o))) return null;
+  await nap(2500);
+  const data = encodeFunctionData({ abi: mcAbi, functionName: "aggregate3", args: [calls.map((c) => ({ allowFailure: c.allowFailure ?? true, ...c }))] });
+  try {
+    const res = await client.call({ account: RELAYER, to: MULTICALL3, data, stateOverride } as any);
+    const out = decodeFunctionResult({ abi: mcAbi, functionName: "aggregate3", data: res.data! }) as any[];
+    let gas: bigint | string = "n/a";
+    try { gas = await client.estimateGas({ account: RELAYER, to: MULTICALL3, data, stateOverride } as any); } catch (e: any) { gas = "estimate failed: " + (e.shortMessage ?? e.message).slice(0, 80); }
+    console.log(`\n[${label}] OK  gas(estimate, whole multicall)=${gas}`);
+    out.forEach((r, i) => { const d = r.success ? undefined : decodeRevertData(r.returnData); console.log(`  call ${i}: success=${r.success} ret=${r.returnData.slice(0, 74)}${d ? "  revert=" + d.errorName + " " + d.message : r.success ? "" : "  raw=" + r.returnData.slice(0, 140)}`); });
+    return out;
+  } catch (e: any) {
+    console.log(`\n[${label}] REVERT ${(e.shortMessage ?? e.message).split("\n").slice(0, 3).join(" | ")}`);
+    return null;
+  }
+}
+
+const deploy = { target: factory as Address, callData: factoryData as Hex };
+const chain3 = [leafSigned, hopSigned, rootSigned]; // leaf -> root
+
+await sim("A0 deploy only", [deploy], overrides());
+await sim("A1 deploy + 3-hop chain pays 2 USDC", [deploy,
+  { target: env.DelegationManager, callData: redeem(chain3, 2_000_000n) },
+  { target: USDC, callData: balOf(MERCHANT) }, { target: USDC, callData: balOf(owner.address) }], overrides());
+await sim("A2 deploy + 3-hop chain pays 3 USDC (> robot hop cap 2) -> must revert", [deploy,
+  { target: env.DelegationManager, callData: redeem(chain3, 3_000_000n) }], overrides());
+await sim("A3 deploy + root-only (AI client redeems directly) 4 USDC: delegate must be msg.sender -> revert (Multicall3 != AI)", [deploy,
+  { target: env.DelegationManager, callData: redeem([rootSigned], 4_000_000n) }], overrides());
+
+// ---------- B. 1271 + EIP-3009 from the passkey account ----------
+const someDigest = keccak256(toHex("gateway burn intent stand-in"));
+const sig1271 = await owner.signMessage({ message: { raw: someDigest } }).catch(() => null);
+const rawSig = await (async () => { // sign a raw digest the way a contractSigner would (WebAuthn over the digest)
+  const typed = { domain: { name: "USDC", version: "2", chainId: 5042, verifyingContract: USDC },
+    types: { TransferWithAuthorization: [ { name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" } ] },
+    primaryType: "TransferWithAuthorization" as const,
+    message: { from: owner.address, to: MERCHANT, value: 1_500_000n, validAfter: 0n, validBefore: 2n ** 40n, nonce: keccak256(toHex("n1")) } };
+  return { typed, sig: await owner.signTypedData(typed as any), hash: hashTypedData(typed as any) };
+})();
+const sep = await client.readContract({ address: USDC, abi: usdcAbi, functionName: "DOMAIN_SEPARATOR" });
+console.log("\nUSDC DOMAIN_SEPARATOR on Arc", sep);
+await sim("B1 deploy + isValidSignature(3009 digest, passkey sig) + transferWithAuthorization 1.5 USDC", [deploy,
+  { target: owner.address, callData: encodeFunctionData({ abi: erc1271, functionName: "isValidSignature", args: [rawSig.hash, rawSig.sig] }) },
+  { target: USDC, callData: encodeFunctionData({ abi: usdcAbi, functionName: "transferWithAuthorization", args: [owner.address, MERCHANT, 1_500_000n, 0n, 2n ** 40n, keccak256(toHex("n1")), rawSig.sig] }) },
+  { target: USDC, callData: balOf(MERCHANT) }], overrides());
+
+// ---------- C. EIP-7702 EOA with EIP7702StatelessDeleGator (code override = delegation designator) ----------
+const eoaKey = generatePrivateKey(); const eoa = privateKeyToAccount(eoaKey);
+const r7 = createDelegation({ environment: env, from: eoa.address, to: MULTICALL3,
+  scope: { type: ScopeType.Erc20TransferAmount, tokenAddress: USDC, maxAmount: 5_000_000n } as any });
+const r7s = { ...r7, signature: await signDelegation({ privateKey: eoaKey, delegation: r7, delegationManager: env.DelegationManager, chainId: 5042 }) };
+const designator = concat(["0xef0100", env.implementations.EIP7702StatelessDeleGatorImpl as Hex]);
+await sim("C1 7702 EOA (designator override) root delegation -> relayer pays 1 USDC", [
+  { target: env.DelegationManager, callData: redeem([r7s], 1_000_000n) }, { target: USDC, callData: balOf(MERCHANT) }],
+  [{ address: eoa.address, balance: 10n * 10n ** 18n, code: designator }]);
+await sim("C2 7702 EOA, same delegation, but AI-chain style hop to robot + ANY_DELEGATE leaf", (() => {
+  return [{ target: env.DelegationManager, callData: redeem([r7s], 6_000_000n) }];
+})(), [{ address: eoa.address, balance: 10n * 10n ** 18n, code: designator }]);
+
+console.log("\nrootDelegation hash", hashDelegation(rootSigned), "sigLen(bytes)", (rootSig.length - 2) / 2);
+const expectedSep = hashTypedData({ domain: { name: "USDC", version: "2", chainId: 5042, verifyingContract: USDC }, types: { X: [{ name: "a", type: "uint256" }] }, primaryType: "X", message: { a: 1n } } as any);
+import { domainSeparator } from "viem";
+console.log("expected USDC domain sep", domainSeparator({ domain: { name: "USDC", version: "2", chainId: 5042, verifyingContract: USDC } }), "sig1271 via signMessage", sig1271 ? (sig1271.length - 2) / 2 + " bytes" : "n/a", "3009 sig", (rawSig.sig.length - 2) / 2, "bytes");
+// --- B2: unwrap ERC-6492 (kit wraps signatures of undeployed accounts) and retry 1271 + 3009
+import { decodeAbiParameters } from "viem";
+const MAGIC6492 = "6492649264926492649264926492649264926492649264926492649264926492";
+const unwrap = (sig: Hex): Hex => sig.endsWith(MAGIC6492) ? (decodeAbiParameters([{ type: "address" }, { type: "bytes" }, { type: "bytes" }], ("0x" + sig.slice(2, -64)) as Hex)[2] as Hex) : sig;
+console.log("3009 sig was 6492-wrapped:", rawSig.sig.endsWith(MAGIC6492));
+const inner = unwrap(rawSig.sig);
+console.log("inner sig bytes", (inner.length - 2) / 2);
+await sim("B2 deploy + isValidSignature(unwrapped) + transferWithAuthorization(unwrapped passkey sig) 1.5 USDC", [deploy,
+  { target: owner.address, callData: encodeFunctionData({ abi: erc1271, functionName: "isValidSignature", args: [rawSig.hash, inner] }) },
+  { target: USDC, callData: encodeFunctionData({ abi: usdcAbi, functionName: "transferWithAuthorization", args: [owner.address, MERCHANT, 1_500_000n, 0n, 2n ** 40n, keccak256(toHex("n1")), inner] }) },
+  { target: USDC, callData: balOf(MERCHANT) }], overrides());
+// --- A4: owner's own action = one-time delegation owner -> relayer (stand-in Multicall3), limitedCalls 1 + redeemer
+const once = createDelegation({ environment: env, from: owner.address, to: MULTICALL3,
+  scope: { type: ScopeType.Erc20TransferAmount, tokenAddress: USDC, maxAmount: 1_000_000n } as any,
+  caveats: [{ type: "limitedCalls", limit: 1 }, { type: "redeemer", redeemers: [MULTICALL3] }] as any });
+const onceSigned = { ...once, signature: await owner.signDelegation({ delegation: once }) };
+await sim("A4 deploy + owner one-time delegation to relayer pays 1 USDC", [deploy,
+  { target: env.DelegationManager, callData: redeem([onceSigned], 1_000_000n) }, { target: USDC, callData: balOf(MERCHANT) }], overrides());
+await sim("A5 deploy + same one-time delegation replayed twice -> 2nd must fail", [deploy,
+  { target: env.DelegationManager, callData: redeem([onceSigned], 1_000_000n) },
+  { target: env.DelegationManager, callData: redeem([onceSigned], 1_000_000n) }], overrides());
+// --- A6: 2-hop owner(passkey) -> AI client EOA; AI client signs an open leaf for one payment, relayer submits
+const aiLeaf = createOpenDelegation({ environment: env, from: ai.address, parentDelegation: rootSigned,
+  scope: { type: ScopeType.Erc20TransferAmount, tokenAddress: USDC, maxAmount: 1_000_000n } as any });
+const aiLeafSigned = { ...aiLeaf, signature: await signDelegation({ privateKey: aiKey, delegation: aiLeaf, delegationManager: env.DelegationManager, chainId: 5042, allowInsecureUnrestrictedDelegation: true }) };
+await sim("A6 deploy + 2-hop owner->AI, AI open leaf, relayer pays 1 USDC", [deploy,
+  { target: env.DelegationManager, callData: redeem([aiLeafSigned, rootSigned], 1_000_000n) }, { target: USDC, callData: balOf(MERCHANT) }], overrides());
+// --- A7: revoke a grant and add a 2nd passkey, each as an owner one-time delegation (exactExecution + limitedCalls + redeemer)
+const dmFull = parseAbi(["struct Caveat { address enforcer; bytes terms; bytes args; }",
+  "struct Delegation { address delegate; address delegator; bytes32 authority; Caveat[] caveats; uint256 salt; bytes signature; }",
+  "function disableDelegation(Delegation _delegation)"]);
+const hybridAbi = parseAbi(["function addKey(string _keyId, uint256 _x, uint256 _y)", "function getKeyIdHashesCount() view returns (uint256)"]);
+const toStruct = (d: any) => ({ ...d, salt: BigInt(d.salt), caveats: d.caveats.map((c: any) => ({ enforcer: c.enforcer, terms: c.terms, args: c.args ?? "0x" })) });
+const kp2 = await subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+const raw2 = new Uint8Array(await subtle.exportKey("raw", kp2.publicKey));
+const x2 = BigInt(bytesToHex(raw2.slice(1, 33))), y2 = BigInt(bytesToHex(raw2.slice(33, 65)));
+async function ownerOnce(target: Address, callData: Hex, salt: Hex) {
+  const d = createDelegation({ environment: env, from: owner.address, to: MULTICALL3, salt,
+    scope: { type: ScopeType.FunctionCall, targets: [target], selectors: [callData.slice(0, 10) as Hex] } as any,
+    caveats: [{ type: "exactExecution", execution: { target, value: 0n, callData } }, { type: "limitedCalls", limit: 1 }, { type: "redeemer", redeemers: [MULTICALL3] }] as any });
+  return { ...d, signature: await owner.signDelegation({ delegation: d }) };
+}
+const disableCd = encodeFunctionData({ abi: dmFull, functionName: "disableDelegation", args: [toStruct(rootSigned)] });
+const revokeOnce = await ownerOnce(env.DelegationManager, disableCd, "0x07");
+const addKeyCd = encodeFunctionData({ abi: hybridAbi, functionName: "addKey", args: ["second-passkey", x2, y2] });
+const addKeyOnce = await ownerOnce(owner.address, addKeyCd, "0x08");
+const execOf = (target: Address, cd: Hex) => encodePacked(["address", "uint256", "bytes"], [target, 0n, cd]);
+const redeemExec = (chain: any[], target: Address, cd: Hex) => encodeFunctionData({ abi: dmAbi, functionName: "redeemDelegations",
+  args: [[encodeDelegations(chain)], [ExecutionMode.SingleDefault], [execOf(target, cd)]] });
+await sim("A7 deploy + 2-hop pays 1 + owner revokes root (one-time) + 2-hop again must fail + addKey(2nd passkey) + count", [deploy,
+  { target: env.DelegationManager, callData: redeem([aiLeafSigned, rootSigned], 1_000_000n) },
+  { target: env.DelegationManager, callData: redeemExec([revokeOnce], env.DelegationManager, disableCd) },
+  { target: env.DelegationManager, callData: redeem([aiLeafSigned, rootSigned], 1_000_000n) },
+  { target: env.DelegationManager, callData: redeemExec([addKeyOnce], owner.address, addKeyCd) },
+  { target: owner.address, callData: encodeFunctionData({ abi: hybridAbi, functionName: "getKeyIdHashesCount" }) }], overrides());
