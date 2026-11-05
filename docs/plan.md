@@ -193,7 +193,7 @@ Owner action (send, revoke, add passkey) = the owner's passkey signs a one-time 
 | S2 | Our x402 ERC-7710 facilitator: owner → agent → leaf on an Arc fork, then one real $0.01 | Merchant checkout |
 | S3 | 0G key + tool-calling model + latency + `request_id` in streams | AI client; the 0G prize |
 | S4 | Agents SDK `MCPClientManager` ↔ our wallet MCP (OAuth/CIMD) + claude.ai on MCP SDK v2 | Wallet ↔ AI client |
-| S5 | IDKit 4.6 in Foldkit + `/v4/verify` + registry write; Agent Pass device flow end to end | World |
+| S5 | IDKit 4.6 in Foldkit + `/v4/verify` + registry write; Agent Pass device flow end to end. Uses Kris's Orb-verified World ID | World |
 | S6 | Gateway `contractSigner` with a 544-byte passkey signature, Arc → Base, $1 | Cross-chain send |
 | S7 | Robot JPEG over the Durable Object from venue Wi-Fi; Radxa CPU; UVC formats | Robot camera |
 | S8 | Walking policy on the new servos (GPU retrain) | The duck walking |
@@ -206,7 +206,8 @@ Owner action (send, revoke, add passkey) = the owner's passkey signs a one-time 
   - `identityCheck`/`minimum_age` access this weekend
   - Arc verifier issuer keys and root bridging (`propagateState`)
   - whether Cross-App Access is coming to production
-  - does anyone on the team have an Orb-verified ID?
+  - ~~does anyone on the team have an Orb-verified ID?~~ **Answered 2026-11-05: Kris has one.** Real production
+    proofs are possible, so S5 and the Arc verifier test (`world-v2.md` "Uncertain" #1) can run with a real phone
 - **Arc:** can judges open a Studio URL without logging in; a keyed RPC endpoint for the relayer and watcher.
 
 ## 7. What this supersedes
