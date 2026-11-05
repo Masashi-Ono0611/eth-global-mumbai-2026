@@ -241,7 +241,7 @@ All of D1 and plan v3 A–J are recorded in `decisions.md`. Still open:
 | D11 | MetaMask can pause the DelegationManager | Accept; the 4337 break-glass path covers it |
 | D13 | Who may watch or drive the robot | Owner drives; judges view |
 | D15 | **The World token becomes public calldata** when verified on-chain: it carries the owner's per-app `sub` (and an email-like claim), so all of one owner's approvals are linkable on Arc; World's guide says to keep the token server-side (spike S5b) | Accept for the demo with a note; or verify on-chain but send only what's needed (not possible: the signature covers the whole payload); or fall back to the backend co-signer |
-| D16 | **Third partner prize: Arc or ENS.** ETHGlobal caps a project at 3 partner prizes; 0G and World stay. Arc Advanced Stablecoin Logic $3k (one winner, needs Arc Studio) vs ENS "Best Use of ENSv2" $7k (4 places, ENSv2 on Ethereum mainnet or Sepolia, must be central) | Keep Arc if the enforcers are really built and shown in Studio; switch to ENS if Studio is painful or ENS names (robots/merchants as agent namespaces) become central. Decide by Saturday |
+| D16 | **Decided 2026-11-06 (Kris): Arc + 0G + World.** ENS names are an optional add-on (UX, about a day); the prize picks are finalised at submission. Background: **Third partner prize: Arc or ENS.** ETHGlobal caps a project at 3 partner prizes; 0G and World stay. Arc Advanced Stablecoin Logic $3k (one winner, needs Arc Studio) vs ENS "Best Use of ENSv2" $7k (4 places, ENSv2 on Ethereum mainnet or Sepolia, must be central) | Keep Arc if the enforcers are really built and shown in Studio; switch to ENS if Studio is painful or ENS names (robots/merchants as agent namespaces) become central. Decide by Saturday |
 
 ---
 

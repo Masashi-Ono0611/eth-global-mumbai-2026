@@ -21,7 +21,7 @@ Locked unless we deliberately reopen them.
 | Sponsors | Arc, 0G, World. No others | Arc = money, 0G = decisions, World = human approval |
 | Backend / web foundation | Early **styldappv2** commit `370a0e23` (not stylelab v1): stack shell, **no** wardrobe logic | See `foundation.md`; HEAD skills + `repos/foldkit` for patterns |
 | Infra shape (later) | Same family as stylelab / styld: Bun, Effect, Alchemy, Foldkit | One-to-one with how Kris likes to ship |
-| Prize focus | **Arc: Advanced Stablecoin Logic** (built in Arc Studio: `RobotPaymentPolicyEnforcer` + `HumanApprovalEnforcer`, reusable "robot allowance" module) + **0G Physical AI** + **World Agent Pass** (plan v3 G) | Best fit for body + budget + human gate |
+| Prize focus | **Arc + 0G + World confirmed 2026-11-06** (ETHGlobal cap: 3 partners, 1 track each; max $3k + $2.5k + $2.5k = $8k; picks finalised at submission; ENS names only as an optional add-on). **Arc: Advanced Stablecoin Logic** (built in Arc Studio: `RobotPaymentPolicyEnforcer` + `HumanApprovalEnforcer`, reusable "robot allowance" module) + **0G Physical AI** + **World Agent Pass** (plan v3 G) | Best fit for body + budget + human gate |
 | Frame / CROPS | Skip | Dilutes the demo |
 | Restricted-item demo | Mock pack and/or World age / approval story | Safer than real cigarettes at venue |
 
