@@ -1,0 +1,1031 @@
+// =====================================================================================================
+// Spike S5b: on-chain verification of a World IdP (Agent Pass) RS256 ID token on Arc. 2026-11-05.
+// Not audited. Prototype of the HumanApprovalEnforcer core. Write-up: ../spike-s5b-jwt-onchain.md
+//
+// Toolchain: forge 1.8.3 (cae51ad), solc 0.8.35, evm_version = osaka, optimizer 200 runs (no via-IR),
+//            OpenZeppelin Contracts v5.7.0 (forge install OpenZeppelin/openzeppelin-contracts@v5.7.0), Bun 1.4.4.
+//
+// How to rerun (scratch dir, outside the repo):
+//   mkdir -p ~/code/eth-global-mumbai-2026-spikes/s5b-jwt && cd $_
+//   forge init --no-git --force . && rm src/Counter.sol test/Counter.t.sol script/Counter.s.sol
+//   forge install --no-git OpenZeppelin/openzeppelin-contracts@v5.7.0
+//   # split this file back into the files named in the "==== FILE:" banners below
+//   mkdir -p data && curl -s https://auth.world.org/.well-known/jwks.json -o data/jwks-auth.world.org.json
+//   bun gen/gen.ts                      # fresh RSA-2048 test keys + 30 World-shaped tokens -> test/Fixtures.sol
+//   heavy --wait forge test -vv         # 43 tests (42 verifier + 1 gas profile)
+//   gen/e2e-anvil.sh                    # local anvil (Osaka): real tx gasUsed for verifyAndConsume
+//   forge build && cast call --rpc-url https://rpc.mainnet.arc.io --create "$(gen/probe-calldata.sh)"
+//                                       # eth_call CREATE on live Arc mainnet (nothing broadcast)
+// test/Fixtures.sol is generated (≈38 KB, random keys each run) and is not reproduced here.
+// =====================================================================================================
+
+// ==== FILE: foundry.toml ====
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+evm_version = "osaka"
+optimizer = true
+optimizer_runs = 200
+remappings = [
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "forge-std/=lib/forge-std/src/",
+]
+fs_permissions = [{ access = "read", path = "./data" }]
+
+// ==== FILE: src/HumanApprovalVerifier.sol ====
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {RSA} from "@openzeppelin/contracts/utils/cryptography/RSA.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+
+/// @title HumanApprovalVerifier (spike S5b)
+/// @notice Verifies a World IdP (Agent Pass) RS256 ID token on-chain and binds it to one payment.
+///         Prototype of the HumanApprovalEnforcer core. NOT AUDITED.
+/// @dev JSON handling is a deliberately minimal, fail-closed scanner of the TOP-LEVEL object only:
+///      - the payload must be exactly one JSON object (optional surrounding whitespace);
+///      - top-level keys are compared byte-for-byte; any top-level key containing a backslash reverts
+///        (so `"nonce"` cannot alias `nonce`);
+///      - nested objects/arrays and other string values are skipped with full string/escape tracking,
+///        so text that *looks like* `"nonce":"..."` inside a value or a nested object is never a match;
+///      - each claim we read must appear exactly once (duplicates revert: parsers disagree on them);
+///      - string claims we read must contain no backslash (no escape decoding is done, fail closed);
+///      - numeric claims must be plain unsigned integers (no sign, fraction or exponent), <= 15 digits;
+///      - `aud` must be a single string (World issues a string; an array reverts);
+///      - `amr` must be an array of strings.
+contract HumanApprovalVerifier {
+    using Strings for uint256;
+
+    // ---------------------------------------------------------------- errors
+    error NotAdmin();
+    error BadModulus();
+    error MalformedJwt();
+    error UnsupportedAlg();
+    error CritHeader();
+    error UnknownKid();
+    error BadSignature();
+    error MalformedJson(uint256 pos);
+    error EscapedKey(uint256 pos);
+    error EscapedClaim(bytes32 key);
+    error DuplicateClaim(bytes32 key);
+    error MissingClaim(bytes32 key);
+    error WrongType(bytes32 key);
+    error BadIssuer();
+    error BadAudience();
+    error BadSubject();
+    error BadNonce();
+    error Expired();
+    error AuthTooOld();
+    error AuthInFuture();
+    error IssuedInFuture();
+    error NoProofOfPersonhood();
+    error PasskeyOnly();
+    error BadAcr();
+    error JtiUsed();
+    error NonceUsed();
+
+    event KeyRegistered(string kid, bytes32 kidHash);
+    event KeyRevoked(bytes32 kidHash);
+    event ApprovalConsumed(bytes32 indexed nonce, bytes32 indexed subHash, bytes32 jtiHash, uint256 authTime);
+
+    // ------------------------------------------------------------- constants
+    uint8 private constant T_STRING = 1;
+    uint8 private constant T_NUMBER = 2;
+    uint8 private constant T_ARRAY = 3;
+    uint8 private constant T_OTHER = 4;
+
+    bytes32 private constant K_ALG = keccak256("alg");
+    bytes32 private constant K_KID = keccak256("kid");
+    bytes32 private constant K_CRIT = keccak256("crit");
+    bytes32 private constant K_ISS = keccak256("iss");
+    bytes32 private constant K_SUB = keccak256("sub");
+    bytes32 private constant K_AUD = keccak256("aud");
+    bytes32 private constant K_EXP = keccak256("exp");
+    bytes32 private constant K_IAT = keccak256("iat");
+    bytes32 private constant K_AUTH = keccak256("auth_time");
+    bytes32 private constant K_NONCE = keccak256("nonce");
+    bytes32 private constant K_JTI = keccak256("jti");
+    bytes32 private constant K_AMR = keccak256("amr");
+    bytes32 private constant K_ACR = keccak256("acr");
+
+    bytes32 private constant RS256 = keccak256("RS256");
+    bytes32 private constant POP = keccak256("pop");
+    bytes32 private constant MFA = keccak256("mfa");
+    bytes private constant E65537 = hex"010001";
+    uint256 private constant CLOCK_SKEW = 60;
+
+    // ----------------------------------------------------------------- state
+    address public admin;
+    bytes32 public immutable issuerHash; // keccak("https://auth.world.org")
+    uint256 public immutable maxAuthAge; // seconds between World proof (auth_time) and use
+    mapping(bytes32 kidHash => bytes modulus) public modulusOf;
+    mapping(bytes32 acrHash => bool) public acrAllowed;
+    mapping(bytes32 jtiHash => bool) public jtiUsed;
+    mapping(bytes32 nonce => bool) public nonceUsed;
+
+    struct Span {
+        uint256 start; // first byte of the value (inside the quotes for strings)
+        uint256 end; // exclusive
+        uint8 kind; // 0 = absent
+        bool esc; // string value contained a backslash escape
+    }
+
+    struct Claims {
+        bytes32 subHash;
+        bytes32 jtiHash;
+        uint256 exp;
+        uint256 iat;
+        uint256 authTime;
+    }
+
+    constructor(string memory issuer, uint256 maxAuthAge_, string[] memory acrs) {
+        admin = msg.sender;
+        issuerHash = keccak256(bytes(issuer));
+        maxAuthAge = maxAuthAge_;
+        for (uint256 i; i < acrs.length; ++i) acrAllowed[keccak256(bytes(acrs[i]))] = true;
+    }
+
+    // ----------------------------------------------------------------- admin
+    modifier onlyAdmin() {
+        if (msg.sender != admin) revert NotAdmin();
+        _;
+    }
+
+    /// @notice Registers an RSA public key (e = 65537). The kid is DERIVED as the RFC 7638 JWK thumbprint,
+    ///         which is how World IdP's live JWKS names its keys, so the admin cannot mislabel a key.
+    function registerKey(bytes calldata n) external onlyAdmin returns (string memory kid) {
+        if (n.length < 256 || n.length > 512 || n[0] == 0) revert BadModulus();
+        bytes memory jwk = abi.encodePacked('{"e":"AQAB","kty":"RSA","n":"', Base64.encodeURL(n), '"}');
+        kid = Base64.encodeURL(abi.encodePacked(sha256(jwk)));
+        bytes32 h = keccak256(bytes(kid));
+        modulusOf[h] = n;
+        emit KeyRegistered(kid, h);
+    }
+
+    function revokeKey(string calldata kid) external onlyAdmin {
+        bytes32 h = keccak256(bytes(kid));
+        delete modulusOf[h];
+        emit KeyRevoked(h);
+    }
+
+    function setAcr(string calldata acr, bool allowed) external onlyAdmin {
+        acrAllowed[keccak256(bytes(acr))] = allowed;
+    }
+
+    // ------------------------------------------------------------ main entry
+    /// @notice Verify `jwt` and consume its jti and nonce. Reverts on any failure.
+    /// @param nonce the EIP-712 hash of the invoice; the token's `nonce` claim must be its 0x-lowercase-hex form.
+    function verifyAndConsume(bytes calldata jwt, bytes32 nonce, string calldata sub, string calldata aud)
+        external
+        returns (Claims memory c)
+    {
+        c = verify(jwt, nonce, sub, aud);
+        if (jtiUsed[c.jtiHash]) revert JtiUsed();
+        if (nonceUsed[nonce]) revert NonceUsed();
+        jtiUsed[c.jtiHash] = true;
+        nonceUsed[nonce] = true;
+        emit ApprovalConsumed(nonce, c.subHash, c.jtiHash, c.authTime);
+    }
+
+    /// @notice Stateless verification (signature + claims), no replay bookkeeping.
+    function verify(bytes calldata jwt, bytes32 nonce, string calldata sub, string calldata aud)
+        public
+        view
+        returns (Claims memory c)
+    {
+        (uint256 d1, uint256 d2) = _dots(jwt);
+
+        // ---- header: alg == RS256, kid -> registered modulus, no `crit`
+        bytes memory n;
+        {
+            bytes memory h = Base64.decode(string(jwt[:d1]));
+            bytes32[] memory hk = new bytes32[](3);
+            hk[0] = K_ALG;
+            hk[1] = K_KID;
+            hk[2] = K_CRIT;
+            Span[] memory hs = _scan(h, hk);
+            if (hs[2].kind != 0) revert CritHeader();
+            if (_strHash(h, hs[0], K_ALG) != RS256) revert UnsupportedAlg();
+            n = modulusOf[_strHash(h, hs[1], K_KID)];
+            if (n.length == 0) revert UnknownKid();
+        }
+
+        // ---- signature over the ASCII bytes of `header.payload`
+        {
+            bytes memory s = Base64.decode(string(jwt[d2 + 1:]));
+            if (!RSA.pkcs1Sha256(sha256(jwt[:d2]), s, E65537, n)) revert BadSignature();
+        }
+
+        // ---- claims
+        bytes memory p = Base64.decode(string(jwt[d1 + 1:d2]));
+        bytes32[] memory keys = new bytes32[](10);
+        keys[0] = K_ISS;
+        keys[1] = K_SUB;
+        keys[2] = K_AUD;
+        keys[3] = K_EXP;
+        keys[4] = K_IAT;
+        keys[5] = K_AUTH;
+        keys[6] = K_NONCE;
+        keys[7] = K_JTI;
+        keys[8] = K_AMR;
+        keys[9] = K_ACR;
+        Span[] memory v = _scan(p, keys);
+
+        if (_strHash(p, v[0], K_ISS) != issuerHash) revert BadIssuer();
+        c.subHash = _strHash(p, v[1], K_SUB);
+        if (c.subHash != keccak256(bytes(sub))) revert BadSubject();
+        if (_strHash(p, v[2], K_AUD) != keccak256(bytes(aud))) revert BadAudience();
+        if (_strHash(p, v[6], K_NONCE) != keccak256(bytes(uint256(nonce).toHexString(32)))) revert BadNonce();
+        c.jtiHash = _strHash(p, v[7], K_JTI);
+        if (!acrAllowed[_strHash(p, v[9], K_ACR)]) revert BadAcr();
+
+        c.exp = _uint(p, v[3], K_EXP);
+        c.iat = _uint(p, v[4], K_IAT);
+        c.authTime = _uint(p, v[5], K_AUTH);
+        if (block.timestamp >= c.exp) revert Expired();
+        if (c.iat > block.timestamp + CLOCK_SKEW) revert IssuedInFuture();
+        if (c.authTime > block.timestamp + CLOCK_SKEW) revert AuthInFuture();
+        if (c.authTime + maxAuthAge < block.timestamp) revert AuthTooOld();
+
+        _checkAmr(p, v[8]);
+    }
+
+    // ------------------------------------------------------------- internals
+    // Byte loops are in assembly: the checked Solidity versions cost ~140-450 gas/byte (spike measurement).
+
+    uint256 private constant ONES = 0x0101010101010101010101010101010101010101010101010101010101010101;
+    uint256 private constant LOW7 = 0x7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f;
+
+    /// @dev SWAR helpers. `_zeroMask(x)` sets the high bit of every byte of `x` that is 0x00 (exact, no
+    ///      cross-byte carries). `_firstFlag(z)` returns the index (0 = lowest address) of the first flagged
+    ///      byte via a 5-step binary search (no CLZ opcode needed). `_tailMask(n)` keeps the first n bytes.
+    function _zeroMask(uint256 x) internal pure returns (uint256 z) {
+        assembly ("memory-safe") {
+            z := not(or(or(add(and(x, LOW7), LOW7), x), LOW7))
+        }
+    }
+
+    function _firstFlag(uint256 z) internal pure returns (uint256 idx) {
+        assembly ("memory-safe") {
+            let r := 0
+            if gt(z, 0xffffffffffffffffffffffffffffffff) { z := shr(128, z) r := 128 }
+            if gt(z, 0xffffffffffffffff) { z := shr(64, z) r := add(r, 64) }
+            if gt(z, 0xffffffff) { z := shr(32, z) r := add(r, 32) }
+            if gt(z, 0xffff) { z := shr(16, z) r := add(r, 16) }
+            if gt(z, 0xff) { r := add(r, 8) }
+            idx := sub(31, shr(3, r))
+        }
+    }
+
+    function _tailMask(uint256 n) internal pure returns (uint256 m) {
+        assembly ("memory-safe") {
+            m := not(shr(mul(n, 8), not(0))) // n >= 32 -> all ones
+        }
+    }
+
+    /// @dev Positions of the first two '.' separators, 32 bytes per step. A third '.' is rejected later
+    ///      because '.' is outside the base64/base64url alphabet, so the signature segment needs no scan.
+    function _dots(bytes calldata jwt) internal pure returns (uint256 d1, uint256 d2) {
+        uint256 len = jwt.length;
+        uint256 pat = 0x2e * ONES;
+        uint256 found;
+        uint256 off;
+        assembly ("memory-safe") {
+            off := jwt.offset
+        }
+        for (uint256 p; p < len && found < 2;) {
+            uint256 w;
+            assembly ("memory-safe") {
+                w := calldataload(add(off, p))
+            }
+            uint256 z = _zeroMask(w ^ pat) & _tailMask(len - p);
+            if (z == 0) {
+                p += 32;
+                continue;
+            }
+            uint256 q = p + _firstFlag(z);
+            if (found == 0) d1 = q;
+            else d2 = q;
+            ++found;
+            p = q + 1;
+        }
+        if (found != 2 || d1 == 0 || d2 == d1 + 1 || d2 + 1 == len) revert MalformedJwt();
+    }
+
+    function _at(bytes memory j, uint256 i) internal pure returns (uint256 c) {
+        if (i >= j.length) revert MalformedJson(i);
+        assembly ("memory-safe") {
+            c := byte(0, mload(add(add(j, 0x20), i)))
+        }
+    }
+
+    function _hashRange(bytes memory j, uint256 a, uint256 b) internal pure returns (bytes32 h) {
+        assembly ("memory-safe") {
+            h := keccak256(add(add(j, 0x20), a), sub(b, a))
+        }
+    }
+
+    function _strHash(bytes memory j, Span memory s, bytes32 key) internal pure returns (bytes32) {
+        if (s.kind == 0) revert MissingClaim(key);
+        if (s.kind != T_STRING) revert WrongType(key);
+        if (s.esc) revert EscapedClaim(key); // no escape decoding: fail closed
+        return _hashRange(j, s.start, s.end);
+    }
+
+    function _uint(bytes memory j, Span memory s, bytes32 key) internal pure returns (uint256 r) {
+        if (s.kind == 0) revert MissingClaim(key);
+        if (s.kind != T_NUMBER || s.end - s.start > 15) revert WrongType(key);
+        for (uint256 i = s.start; i < s.end; ++i) {
+            uint256 ch = _at(j, i);
+            if (ch < 0x30 || ch > 0x39) revert WrongType(key); // rejects '-', '.', 'e', '+'
+            r = r * 10 + (ch - 0x30);
+        }
+    }
+
+    /// @dev amr must be an array of plain strings, contain "pop" and NOT contain "mfa".
+    ///      World: ["pop"] = World ID proof, ["pop","face","user"] = proof + face check,
+    ///      ["pop","user","mfa"] = passkey assertion WITHOUT a fresh World proof (so "pop" alone is not enough).
+    function _checkAmr(bytes memory j, Span memory s) internal pure {
+        if (s.kind == 0) revert MissingClaim(K_AMR);
+        if (s.kind != T_ARRAY) revert WrongType(K_AMR);
+        uint256 i = _ws(j, s.start + 1); // after '['
+        bool pop;
+        if (_at(j, i) != 0x5d) {
+            while (true) {
+                if (_at(j, i) != 0x22) revert WrongType(K_AMR);
+                (uint256 b,) = _skipString(j, i);
+                bytes32 h = _hashRange(j, i + 1, b - 1);
+                if (h == POP) pop = true;
+                else if (h == MFA) revert PasskeyOnly();
+                i = _ws(j, b);
+                uint256 c = _at(j, i);
+                if (c == 0x2c) i = _ws(j, i + 1);
+                else if (c == 0x5d) break;
+                else revert MalformedJson(i);
+            }
+        }
+        if (!pop) revert NoProofOfPersonhood();
+    }
+
+    /// @dev Scan a single top-level JSON object. For each key in `keys` returns the span of its value.
+    function _scan(bytes memory j, bytes32[] memory keys) internal pure returns (Span[] memory out) {
+        out = new Span[](keys.length);
+        uint256 len = j.length;
+        uint256 i = _ws(j, 0);
+        if (_at(j, i) != 0x7b) revert MalformedJson(i); // '{'
+        i = _ws(j, i + 1);
+        if (_at(j, i) == 0x7d) {
+            if (_ws(j, i + 1) != len) revert MalformedJson(i);
+            return out;
+        }
+        while (true) {
+            // key
+            if (_at(j, i) != 0x22) revert MalformedJson(i);
+            (uint256 ke, bool kesc) = _skipString(j, i);
+            if (kesc) revert EscapedKey(i); // "nonce" must not alias "nonce"
+            bytes32 kh = _hashRange(j, i + 1, ke - 1);
+            i = _ws(j, ke);
+            if (_at(j, i) != 0x3a) revert MalformedJson(i); // ':'
+            i = _ws(j, i + 1);
+            // value
+            uint256 vs = i;
+            uint256 c = _at(j, i);
+            uint8 kind;
+            bool vesc;
+            if (c == 0x22) {
+                kind = T_STRING;
+                (i, vesc) = _skipString(j, i);
+            } else if (c == 0x7b || c == 0x5b) {
+                kind = c == 0x5b ? T_ARRAY : T_OTHER;
+                i = _skipContainer(j, i);
+            } else {
+                // number / true / false / null: run up to a delimiter
+                kind = (c == 0x2d || (c >= 0x30 && c <= 0x39)) ? T_NUMBER : T_OTHER;
+                while (i < len) {
+                    c = _at(j, i);
+                    if (c == 0x2c || c == 0x7d || c == 0x20 || c == 0x0a || c == 0x0d || c == 0x09) break;
+                    if (c == 0x22 || c == 0x7b || c == 0x5b || c == 0x5d || c == 0x3a) revert MalformedJson(i);
+                    ++i;
+                }
+            }
+            // record if wanted
+            for (uint256 k; k < keys.length; ++k) {
+                if (keys[k] == kh) {
+                    if (out[k].kind != 0) revert DuplicateClaim(kh);
+                    out[k] = kind == T_STRING ? Span(vs + 1, i - 1, kind, vesc) : Span(vs, i, kind, false);
+                    break;
+                }
+            }
+            i = _ws(j, i);
+            c = _at(j, i);
+            if (c == 0x2c) {
+                i = _ws(j, i + 1);
+                continue;
+            }
+            if (c != 0x7d) revert MalformedJson(i);
+            if (_ws(j, i + 1) != len) revert MalformedJson(i); // nothing after the object
+            return out;
+        }
+    }
+
+    /// @dev `i` points at an opening quote; returns the index just after the closing quote and whether the
+    ///      string contained a backslash escape. Finds the next '"' or '\\' 32 bytes per step (SWAR).
+    ///      Raw control characters inside strings are NOT rejected (the signer is trusted to emit valid JSON;
+    ///      they cannot change where a string ends).
+    function _skipString(bytes memory j, uint256 i) internal pure returns (uint256 end, bool esc) {
+        uint256 len = j.length;
+        uint256 p = i + 1;
+        while (p < len) {
+            uint256 w;
+            assembly ("memory-safe") {
+                w := mload(add(add(j, 0x20), p))
+            }
+            uint256 z = (_zeroMask(w ^ (0x22 * ONES)) | _zeroMask(w ^ (0x5c * ONES))) & _tailMask(len - p);
+            if (z == 0) {
+                p += 32;
+                continue;
+            }
+            uint256 k = _firstFlag(z);
+            if (uint8(w >> (8 * (31 - k))) == 0x22) return (p + k + 1, esc);
+            esc = true; // backslash: skip it and the escaped byte
+            p = p + k + 2;
+        }
+        revert MalformedJson(p);
+    }
+
+    /// @dev `i` points at '{' or '['; returns the index just after the closer that brings depth back to 0.
+    ///      Strings are skipped with escape tracking, so brackets/quotes inside string values are ignored.
+    ///      Bracket TYPES are not matched (assumes the signer emits valid JSON; see header comment).
+    function _skipContainer(bytes memory j, uint256 i) internal pure returns (uint256) {
+        uint256 depth;
+        while (true) {
+            uint256 c = _at(j, i);
+            if (c == 0x22) {
+                (i,) = _skipString(j, i);
+                continue;
+            }
+            if (c == 0x7b || c == 0x5b) ++depth;
+            else if (c == 0x7d || c == 0x5d) --depth;
+            ++i;
+            if (depth == 0) return i;
+        }
+        revert(); // unreachable
+    }
+
+    function _ws(bytes memory j, uint256 i) internal pure returns (uint256 r) {
+        assembly ("memory-safe") {
+            let base := add(j, 0x20)
+            let len := mload(j)
+            r := i
+            for {} lt(r, len) { r := add(r, 1) } {
+                let c := byte(0, mload(add(base, r)))
+                if iszero(or(or(eq(c, 0x20), eq(c, 0x0a)), or(eq(c, 0x0d), eq(c, 0x09)))) { break }
+            }
+        }
+    }
+}
+
+// ==== FILE: src/ArcProbe.sol ====
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {HumanApprovalVerifier as V} from "./HumanApprovalVerifier.sol";
+
+/// @notice Run as an eth_call CREATE against a live Arc RPC (nothing is broadcast):
+///         deploys the verifier in the call's scratch state, registers the key, verifies a token and returns
+///         abi.encode(modexpOk, modexpGas, modexpOutHash, verifyGas, consumeGas, authTime, chainid, timestamp).
+contract ArcProbe {
+    struct In {
+        bytes jwt;
+        bytes n;
+        bytes sig;
+        bytes32 nonce;
+        string sub;
+        string aud;
+    }
+
+    function _modexp(bytes memory sig, bytes memory n) internal view returns (bool ok, uint256 gasUsed, bytes32 outHash) {
+        bytes memory input = abi.encodePacked(uint256(sig.length), uint256(3), uint256(n.length), sig, hex"010001", n);
+        uint256 g = gasleft();
+        bytes memory out;
+        (ok, out) = address(5).staticcall(input);
+        gasUsed = g - gasleft();
+        outHash = keccak256(out);
+    }
+
+    constructor(In memory a) {
+        // 1. raw modexp precompile (0x05): sig^65537 mod n
+        (bool ok, uint256 modexpGas, bytes32 outHash) = _modexp(a.sig, a.n);
+        bytes memory jwt = a.jwt;
+        bytes32 nonce = a.nonce;
+        string memory sub = a.sub;
+        string memory aud = a.aud;
+        bytes memory n = a.n;
+
+        // 2. full verifier
+        string[] memory acrs = new string[](1);
+        acrs[0] = "https://world.org/oidc/acr/orb";
+        V v = new V("https://auth.world.org", 3600, acrs);
+        v.registerKey(n);
+        uint256 g = gasleft();
+        v.verify(jwt, nonce, sub, aud);
+        uint256 verifyGas = g - gasleft();
+        g = gasleft();
+        V.Claims memory c = v.verifyAndConsume(jwt, nonce, sub, aud);
+        uint256 consumeGas = g - gasleft();
+
+        bytes memory ret = abi.encode(ok, modexpGas, outHash, verifyGas, consumeGas, c.authTime, block.chainid, block.timestamp);
+        assembly {
+            return(add(ret, 0x20), mload(ret))
+        }
+    }
+}
+
+// ==== FILE: test/HumanApprovalVerifier.t.sol ====
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test, console} from "forge-std/Test.sol";
+import {HumanApprovalVerifier as V} from "../src/HumanApprovalVerifier.sol";
+import {Fx} from "./Fixtures.sol";
+
+contract HumanApprovalVerifierTest is Test {
+    V v;
+    string constant ISS = "https://auth.world.org";
+
+    function setUp() public {
+        string[] memory acrs = new string[](2);
+        acrs[0] = "https://world.org/oidc/acr/orb";
+        acrs[1] = "https://world.org/oidc/acr/orb-face";
+        v = new V(ISS, 300, acrs); // World proof must be <= 5 min old
+        string memory kid = v.registerKey(Fx.N1);
+        assertEq(kid, Fx.KID, "derived kid == RFC7638 thumbprint");
+        vm.warp(Fx.NOW);
+    }
+
+    function _ok(bytes memory jwt) internal returns (V.Claims memory) {
+        return v.verifyAndConsume(jwt, Fx.NONCE, Fx.SUB, Fx.AUD);
+    }
+
+    function _bad(bytes memory jwt, bytes memory err) internal {
+        vm.expectRevert(err);
+        v.verifyAndConsume(jwt, Fx.NONCE, Fx.SUB, Fx.AUD);
+    }
+
+    function _sel(bytes4 s) internal pure returns (bytes memory) {
+        return abi.encodePacked(s);
+    }
+
+    // ------------------------------------------------------------ happy paths
+    function test_valid() public {
+        V.Claims memory c = _ok(Fx.VALID);
+        assertEq(c.authTime, Fx.AUTH_TIME);
+        assertEq(c.exp, Fx.EXP);
+        assertTrue(v.nonceUsed(Fx.NONCE));
+        assertTrue(v.jtiUsed(keccak256(bytes(Fx.JTI))));
+    }
+
+    function test_reorderedPrettyPrinted() public {
+        _ok(Fx.REORDERED);
+    }
+
+    function test_headerReordered() public {
+        _ok(Fx.HEADER_REORDERED);
+    }
+
+    function test_faceAuthAmr() public {
+        _ok(Fx.FACE); // amr ["pop","face","user"], acr orb-face
+    }
+
+    function test_unicodeEscapesInIgnoredClaim() public {
+        _ok(Fx.UNICODE_ELSEWHERE);
+    }
+
+    function test_worldLiveKeyThumbprintMatchesKid() public {
+        string memory kid = v.registerKey(Fx.WORLD_N);
+        assertEq(kid, Fx.WORLD_KID);
+    }
+
+    // ---------------------------------------------------------- crypto / jwt
+    function test_tamperedPayload() public {
+        _bad(Fx.TAMPERED, _sel(V.BadSignature.selector));
+    }
+
+    function test_wrongKey() public {
+        _bad(Fx.WRONG_KEY, _sel(V.BadSignature.selector));
+    }
+
+    function test_revokedKey() public {
+        v.revokeKey(Fx.KID);
+        _bad(Fx.VALID, _sel(V.UnknownKid.selector));
+    }
+
+    function test_unknownKid() public {
+        _bad(Fx.UNKNOWN_KID, _sel(V.UnknownKid.selector));
+    }
+
+    function test_algHS256() public {
+        _bad(Fx.ALG_HS256, _sel(V.UnsupportedAlg.selector));
+    }
+
+    function test_algNone() public {
+        _bad(Fx.ALG_NONE, _sel(V.UnsupportedAlg.selector));
+    }
+
+    function test_critHeader() public {
+        _bad(Fx.CRIT_HEADER, _sel(V.CritHeader.selector));
+    }
+
+    function test_fourParts() public {
+        _bad(Fx.FOUR_PARTS, abi.encodeWithSignature("InvalidBase64Char(bytes1)", bytes1(".")));
+    }
+
+    function test_shortSignature() public {
+        _bad(Fx.SIG_SHORT, _sel(V.BadSignature.selector));
+    }
+
+    function test_onlyAdminRegisters() public {
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(V.NotAdmin.selector);
+        v.registerKey(Fx.N2);
+    }
+
+    // ------------------------------------------------------------- bindings
+    function test_wrongNonce() public {
+        vm.expectRevert(V.BadNonce.selector);
+        v.verifyAndConsume(Fx.VALID, Fx.VICTIM_NONCE, Fx.SUB, Fx.AUD);
+    }
+
+    function test_wrongSub() public {
+        vm.expectRevert(V.BadSubject.selector);
+        v.verifyAndConsume(Fx.VALID, Fx.NONCE, Fx.VICTIM_SUB, Fx.AUD);
+    }
+
+    function test_wrongAud() public {
+        vm.expectRevert(V.BadAudience.selector);
+        v.verifyAndConsume(Fx.VALID, Fx.NONCE, Fx.SUB, "app_other");
+    }
+
+    function test_sandboxIssuer() public {
+        _bad(Fx.SANDBOX_ISS, _sel(V.BadIssuer.selector));
+    }
+
+    function test_audArrayRejected() public {
+        _bad(Fx.AUD_ARRAY, abi.encodeWithSelector(V.WrongType.selector, keccak256("aud")));
+    }
+
+    // ----------------------------------------------------------------- time
+    function test_expired() public {
+        vm.warp(Fx.EXP);
+        _bad(Fx.VALID, _sel(V.Expired.selector));
+    }
+
+    function test_staleAuthTime() public {
+        _bad(Fx.STALE_AUTH, _sel(V.AuthTooOld.selector)); // valid exp, auth_time 1h old (session reuse)
+    }
+
+    function test_authTooOldAfterWarp() public {
+        vm.warp(Fx.AUTH_TIME + 301); // still < exp, but proof is > 5 min old
+        _bad(Fx.VALID, _sel(V.AuthTooOld.selector));
+    }
+
+    function test_authInFuture() public {
+        vm.warp(Fx.AUTH_TIME - 61);
+        _bad(Fx.VALID, _sel(V.IssuedInFuture.selector));
+    }
+
+    // ---------------------------------------------------------------- replay
+    function test_reuseSameToken() public {
+        _ok(Fx.VALID);
+        _bad(Fx.VALID, _sel(V.JtiUsed.selector));
+    }
+
+    function test_reuseJtiOtherNonce() public {
+        _ok(Fx.VALID);
+        vm.expectRevert(V.JtiUsed.selector);
+        v.verifyAndConsume(Fx.SAME_JTI_OTHER_NONCE, Fx.VICTIM_NONCE, Fx.SUB, Fx.AUD);
+    }
+
+    function test_reuseNonceOtherJti() public {
+        _ok(Fx.VALID);
+        _bad(Fx.SAME_NONCE_OTHER_JTI, _sel(V.NonceUsed.selector));
+    }
+
+    // ------------------------------------------------------------- amr / acr
+    function test_passkeyOnlyRejected() public {
+        _bad(Fx.PASSKEY, _sel(V.PasskeyOnly.selector)); // ["pop","user","mfa"]
+    }
+
+    function test_amrWithoutPop() public {
+        _bad(Fx.NO_POP, _sel(V.NoProofOfPersonhood.selector));
+    }
+
+    function test_amrString() public {
+        _bad(Fx.AMR_STRING, abi.encodeWithSelector(V.WrongType.selector, keccak256("amr")));
+    }
+
+    function test_selfieAcrRejected() public {
+        _bad(Fx.SELFIE, _sel(V.BadAcr.selector));
+    }
+
+    // ------------------------------------------------------- parser attacks
+    function test_decoyInsideStringIgnored() public {
+        vm.expectRevert(V.BadNonce.selector);
+        v.verifyAndConsume(Fx.DECOY_STRING, Fx.VICTIM_NONCE, Fx.SUB, Fx.AUD);
+        vm.expectRevert(V.BadSubject.selector);
+        v.verifyAndConsume(Fx.DECOY_STRING, Fx.NONCE, Fx.VICTIM_SUB, Fx.AUD);
+        _ok(Fx.DECOY_STRING); // the real top-level claims still verify
+    }
+
+    function test_decoyNestedObjectIgnored() public {
+        vm.expectRevert(V.BadNonce.selector);
+        v.verifyAndConsume(Fx.DECOY_NESTED, Fx.VICTIM_NONCE, Fx.SUB, Fx.AUD);
+        vm.expectRevert(V.BadSubject.selector);
+        v.verifyAndConsume(Fx.DECOY_NESTED, Fx.NONCE, Fx.VICTIM_SUB, Fx.AUD);
+        _ok(Fx.DECOY_NESTED);
+    }
+
+    function test_duplicateNonce() public {
+        _bad(Fx.DUP_NONCE, abi.encodeWithSelector(V.DuplicateClaim.selector, keccak256("nonce")));
+    }
+
+    function test_escapedKeyAlias() public {
+        vm.expectRevert(); // EscapedKey(pos)
+        v.verifyAndConsume(Fx.ESCAPED_KEY, Fx.NONCE, Fx.SUB, Fx.AUD);
+    }
+
+    function test_escapedSubFailsClosed() public {
+        _bad(Fx.ESCAPED_SUB, abi.encodeWithSelector(V.EscapedClaim.selector, keccak256("sub")));
+    }
+
+    function test_trailingGarbage() public {
+        vm.expectRevert(); // MalformedJson(pos)
+        v.verifyAndConsume(Fx.TRAILING_GARBAGE, Fx.NONCE, Fx.SUB, Fx.AUD);
+    }
+
+    function test_missingNonce() public {
+        _bad(Fx.MISSING_NONCE, abi.encodeWithSelector(V.MissingClaim.selector, keccak256("nonce")));
+    }
+
+    function test_negativeExp() public {
+        _bad(Fx.NEG_EXP, abi.encodeWithSelector(V.WrongType.selector, keccak256("exp")));
+    }
+
+    function test_floatExp() public {
+        _bad(Fx.FLOAT_EXP, abi.encodeWithSelector(V.WrongType.selector, keccak256("exp")));
+    }
+
+    // ------------------------------------------------------------------ gas
+    function test_gas() public {
+        console.log("token bytes", Fx.VALID.length);
+        uint256 g = gasleft();
+        v.verify(Fx.VALID, Fx.NONCE, Fx.SUB, Fx.AUD);
+        console.log("verify (view) gas, excl. calldata/base", g - gasleft());
+        g = gasleft();
+        v.verifyAndConsume(Fx.VALID, Fx.NONCE, Fx.SUB, Fx.AUD);
+        console.log("verifyAndConsume gas, excl. calldata/base", g - gasleft());
+    }
+}
+
+// ==== FILE: test/Profile.t.sol ====
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+import {Test, console} from "forge-std/Test.sol";
+import {HumanApprovalVerifier as V} from "../src/HumanApprovalVerifier.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {RSA} from "@openzeppelin/contracts/utils/cryptography/RSA.sol";
+import {Fx} from "./Fixtures.sol";
+
+contract H is V {
+    constructor() V("https://auth.world.org", 300, new string[](0)) {}
+    function prof(bytes calldata jwt) external view {
+        uint256 g = gasleft();
+        (uint256 d1, uint256 d2) = _dots(jwt);
+        console.log("dots", g - gasleft()); g = gasleft();
+        bytes memory h = Base64.decode(string(jwt[:d1]));
+        console.log("b64 header", g - gasleft()); g = gasleft();
+        bytes memory s = Base64.decode(string(jwt[d2 + 1:]));
+        console.log("b64 sig", g - gasleft()); g = gasleft();
+        bytes32 dg = sha256(jwt[:d2]);
+        console.log("sha256", g - gasleft()); g = gasleft();
+        bool ok = RSA.pkcs1Sha256(dg, s, hex"010001", Fx.N1);
+        console.log("rsa", g - gasleft(), ok); g = gasleft();
+        bytes memory p = Base64.decode(string(jwt[d1 + 1:d2]));
+        console.log("b64 payload", g - gasleft(), p.length); g = gasleft();
+        bytes32[] memory keys = new bytes32[](10);
+        for (uint256 i; i < 10; ++i) keys[i] = bytes32(i);
+        _scan(p, keys);
+        console.log("scan payload", g - gasleft()); g = gasleft();
+        _scan(h, keys);
+        console.log("scan header", g - gasleft()); g = gasleft();
+    }
+}
+contract ProfileTest is Test {
+    function test_profile() public { (new H()).prof(Fx.VALID); }
+}
+
+// ==== FILE: gen/gen.ts ====
+// Generates an RSA-2048 test key + World-IdP-shaped RS256 ID tokens and writes test/Fixtures.sol.
+// Run: bun gen/gen.ts   (from the project root)
+import { webcrypto as wc } from "node:crypto";
+const subtle = wc.subtle;
+const enc = new TextEncoder();
+const b64u = (b: Uint8Array | string) =>
+  Buffer.from(typeof b === "string" ? enc.encode(b) : b).toString("base64url");
+const fromB64u = (s: string) => new Uint8Array(Buffer.from(s, "base64url"));
+const hex = (b: Uint8Array) => Buffer.from(b).toString("hex");
+
+const alg = { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" };
+const k1 = await subtle.generateKey(alg, true, ["sign", "verify"]);
+const k2 = await subtle.generateKey(alg, true, ["sign", "verify"]);
+const jwk1 = await subtle.exportKey("jwk", k1.publicKey);
+const jwk2 = await subtle.exportKey("jwk", k2.publicKey);
+const thumb = async (n: string) =>
+  b64u(new Uint8Array(await subtle.digest("SHA-256", enc.encode(`{"e":"AQAB","kty":"RSA","n":"${n}"}`))));
+const KID = await thumb(jwk1.n!);
+
+// Fixed clock used by the tests (vm.warp(NOW)).
+const NOW = 1793000000; // 2026-10-26
+const AUTH = NOW - 30, IAT = NOW - 20, EXP = IAT + 300;
+const ISS = "https://auth.world.org";
+const SUB = "f3c9Qm1yZ0x2b1R0VnNqWlBhY0RkR3Q4cHdKa2ZtQ3U"; // opaque, 43 chars like a b64url SHA-256
+const AUD = "app_4f1d2c9b7a8e46e0b3c5d6a7f8e9a0b1";
+const NONCE = "0x" + "9c".repeat(4) + "1e5a7f00b3d24c6e8a9b0c1d2e3f405162738495a6b7c8d9eaf0b1c2"; // 64 hex
+if (NONCE.length !== 66) throw new Error("nonce len " + NONCE.length);
+const VICTIM_NONCE = "0x" + "ab".repeat(32);
+const VICTIM_SUB = "VICTIMvictimVICTIMvictimVICTIMvictimVICTIMv";
+const JTI = "b7f2a3c4-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+
+// Claim order mirrors World's documented example; email/email_verified are added for inbox-enabled accounts.
+const base: Record<string, unknown> = {
+  iss: ISS, sub: SUB, aud: AUD, exp: EXP, iat: IAT, jti: JTI, auth_time: AUTH,
+  acr: "https://world.org/oidc/acr/orb", amr: ["pop"], nonce: NONCE,
+  email: `${SUB}@inbox.world.org`, email_verified: true,
+};
+const header = { alg: "RS256", kid: KID, typ: "JWT" };
+
+async function sign(h: unknown, payloadJson: string, key = k1.privateKey, headerJson?: string) {
+  const si = `${b64u(headerJson ?? JSON.stringify(h))}.${b64u(payloadJson)}`;
+  const sig = new Uint8Array(await subtle.sign("RSASSA-PKCS1-v1_5", key, enc.encode(si)));
+  return `${si}.${b64u(sig)}`;
+}
+const J = (o: unknown) => JSON.stringify(o);
+const with_ = (o: Record<string, unknown>) => J({ ...base, ...o });
+
+const t: Record<string, string> = {};
+t.VALID = await sign(header, J(base));
+// Same claims, different order + whitespace + pretty printing.
+const rev = Object.fromEntries(Object.entries(base).reverse());
+t.REORDERED = await sign(header, JSON.stringify(rev, null, 2));
+t.FACE = await sign(header, with_({ acr: "https://world.org/oidc/acr/orb-face", amr: ["pop", "face", "user"], jti: JTI + "-face" }));
+// Tampered: valid signature, payload with a different nonce.
+{
+  const [h, , s] = t.VALID.split(".");
+  t.TAMPERED = `${h}.${b64u(with_({ nonce: VICTIM_NONCE }))}.${s}`;
+}
+t.WRONG_KEY = await sign(header, J(base), k2.privateKey);
+t.STALE_AUTH = await sign(header, with_({ auth_time: NOW - 3600, jti: JTI + "-stale" }));
+t.PASSKEY = await sign(header, with_({ amr: ["pop", "user", "mfa"], jti: JTI + "-pk" }));
+t.NO_POP = await sign(header, with_({ amr: ["user"], jti: JTI + "-nopop" }));
+t.AMR_STRING = await sign(header, with_({ amr: "pop", jti: JTI + "-amrstr" }));
+t.SAME_JTI_OTHER_NONCE = await sign(header, with_({ nonce: VICTIM_NONCE }));
+t.SAME_NONCE_OTHER_JTI = await sign(header, with_({ jti: JTI + "-2" }));
+// Decoys: a string value (JSON-escaped by the signer) and a nested object that both contain victim sub/nonce.
+t.DECOY_STRING = await sign(header, J({
+  ...base, jti: JTI + "-decoy",
+  note: `x","nonce":"${VICTIM_NONCE}","sub":"${VICTIM_SUB}"`,
+  email: `"nonce":"${VICTIM_NONCE}"@x`,
+}));
+t.DECOY_NESTED = await sign(header, J({
+  ext: { nonce: VICTIM_NONCE, sub: VICTIM_SUB, arr: [{ nonce: VICTIM_NONCE }] },
+  ...base, jti: JTI + "-nested",
+}));
+// Raw JSON (not via JSON.stringify) for parser edge cases.
+const raw = (s: string) => sign(header, s);
+const baseJson = J(base);
+t.DUP_NONCE = await raw(baseJson.slice(0, -1) + `,"nonce":"${VICTIM_NONCE}"}`);
+t.ESCAPED_KEY = await raw(baseJson.slice(0, -1) + `,"no\\u006ece":"${VICTIM_NONCE}"}`);
+t.ESCAPED_SUB = await sign(header, with_({ sub: SUB.slice(0, 10) + "\\" + SUB.slice(10), jti: JTI + "-esc" }));
+t.UNICODE_ELSEWHERE = await raw(baseJson.slice(0, -1) + `,"name":"Kri\\u0161tjan \\"K\\" \\\\ \\/"}`);
+t.TRAILING_GARBAGE = await raw(baseJson + `x`);
+t.MISSING_NONCE = await sign(header, J(Object.fromEntries(Object.entries(base).filter(([k]) => k !== "nonce"))));
+t.AUD_ARRAY = await sign(header, with_({ aud: [AUD] }));
+t.SANDBOX_ISS = await sign(header, with_({ iss: "https://sandbox.auth.world.org" }));
+t.NEG_EXP = await raw(baseJson.replace(`"exp":${EXP}`, `"exp":-1`));
+t.FLOAT_EXP = await raw(baseJson.replace(`"exp":${EXP}`, `"exp":${EXP}.5`));
+t.SELFIE = await sign(header, with_({ acr: "https://world.org/oidc/acr/selfie", jti: JTI + "-selfie" }));
+t.UNKNOWN_KID = await sign({ ...header, kid: "unknown-kid" }, J(base));
+t.ALG_HS256 = await sign({ ...header, alg: "HS256" }, J(base));
+t.ALG_NONE = await sign({ ...header, alg: "none" }, J(base));
+t.CRIT_HEADER = await sign({ ...header, crit: ["exp"] }, J(base));
+t.HEADER_REORDERED = await sign({ typ: "JWT", kid: KID, alg: "RS256" }, J(base));
+// For the live Arc eth_call probe: real wall-clock times (Arc's block.timestamp), exp +1h.
+{
+  const now = Math.floor(Date.now() / 1000);
+  t.ARC_PROBE = await sign(header, with_({ iat: now, auth_time: now - 10, exp: now + 3600, jti: JTI + "-arc" }));
+}
+{
+  const p = t.VALID.split(".");
+  t.FOUR_PARTS = t.VALID + ".x";
+  t.SIG_SHORT = `${p[0]}.${p[1]}.${p[2].slice(0, -4)}`;
+}
+
+// Sanity: verify VALID with WebCrypto.
+{
+  const [h, p, s] = t.VALID.split(".");
+  const ok = await subtle.verify("RSASSA-PKCS1-v1_5", k1.publicKey, fromB64u(s), enc.encode(`${h}.${p}`));
+  if (!ok) throw new Error("self-check failed");
+}
+
+const world = await (await Bun.file("data/jwks-auth.world.org.json")).json();
+const worldN = world.keys[0].n as string, worldKid = world.keys[0].kid as string;
+
+let out = `// SPDX-License-Identifier: MIT
+// GENERATED by gen/gen.ts — do not edit. Test-only RSA-2048 keys (generated fresh on each run).
+pragma solidity ^0.8.24;
+
+library Fx {
+    uint256 internal constant NOW = ${NOW};
+    uint256 internal constant AUTH_TIME = ${AUTH};
+    uint256 internal constant EXP = ${EXP};
+    string internal constant KID = "${KID}";
+    string internal constant SUB = "${SUB}";
+    string internal constant VICTIM_SUB = "${VICTIM_SUB}";
+    string internal constant AUD = "${AUD}";
+    string internal constant JTI = "${JTI}";
+    bytes32 internal constant NONCE = ${NONCE};
+    bytes32 internal constant VICTIM_NONCE = ${VICTIM_NONCE};
+    bytes internal constant N1 = hex"${hex(fromB64u(jwk1.n!))}";
+    bytes internal constant N2 = hex"${hex(fromB64u(jwk2.n!))}";
+    // Live World IdP production key fetched ${new Date().toISOString()}
+    bytes internal constant WORLD_N = hex"${hex(fromB64u(worldN))}";
+    string internal constant WORLD_KID = "${worldKid}";
+`;
+for (const [k, v] of Object.entries(t)) out += `    bytes internal constant ${k} = "${v}"; // ${v.length} bytes\n`;
+out += "}\n";
+await Bun.write("test/Fixtures.sol", out);
+console.log("VALID token length", t.VALID.length, "payload json", J(base).length, "kid", KID);
+
+// ==== FILE: gen/probe-calldata.sh ====
+#!/usr/bin/env bash
+# Prints CREATE calldata for src/ArcProbe.sol using the ARC_PROBE fixture. Run from project root after forge build.
+set -euo pipefail
+export PATH=$HOME/.foundry/bin:$PATH
+F=test/Fixtures.sol
+get() { grep -E "constant $1 = " $F | sed -E 's/.*= (hex)?"([^"]*)".*/\2/'; }
+JWT=$(get ARC_PROBE); N=0x$(get N1); SUB=$(get SUB); AUD=$(get AUD)
+NONCE=$(grep -E "constant NONCE = " $F | sed -E 's/.*= (0x[0-9a-f]+);/\1/')
+SIG=0x$(echo -n "${JWT##*.}" | tr '_-' '/+' | awk '{l=length($0)%4; if(l==2)$0=$0"=="; if(l==3)$0=$0"="; print}' | base64 -d | xxd -p | tr -d '\n')
+JWTHEX=0x$(echo -n "$JWT" | xxd -p | tr -d '\n')
+ARGS=$(cast abi-encode "f((bytes,bytes,bytes,bytes32,string,string))" "($JWTHEX,$N,$SIG,$NONCE,$SUB,$AUD)")
+BC=$(jq -r .bytecode.object out/ArcProbe.sol/ArcProbe.json)
+echo "${BC}${ARGS#0x}"
+
+// ==== FILE: gen/e2e-anvil.sh ====
+#!/usr/bin/env bash
+# Local anvil (Osaka) end-to-end: deploy, registerKey, send a real verifyAndConsume tx, print receipt gasUsed.
+set -euo pipefail
+export PATH=$HOME/.foundry/bin:$PATH
+RPC=http://127.0.0.1:18547
+anvil --port 18547 --host 127.0.0.1 --hardfork osaka --timestamp $(date +%s) --silent & AP=$!
+trap "kill $AP" EXIT; sleep 2
+PK=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80   # anvil default test key #0
+F=test/Fixtures.sol
+get() { grep -E "constant $1 = " $F | sed -E 's/.*= (hex)?"([^"]*)".*/\2/'; }
+JWT=$(get ARC_PROBE); N=0x$(get N1); SUB=$(get SUB); AUD=$(get AUD)
+NONCE=$(grep -E "constant NONCE = " $F | sed -E 's/.*= (0x[0-9a-f]+);/\1/')
+BC=$(jq -r .bytecode.object out/HumanApprovalVerifier.sol/HumanApprovalVerifier.json)
+ARGS=$(cast abi-encode "c(string,uint256,string[])" "https://auth.world.org" 3600 '["https://world.org/oidc/acr/orb"]')
+ADDR=$(cast send --rpc-url $RPC --private-key $PK --create "${BC}${ARGS#0x}" --json | jq -r .contractAddress)
+cast send --rpc-url $RPC --private-key $PK $ADDR "registerKey(bytes)" $N --json | jq -r '"registerKey gasUsed " + (.gasUsed|tostring)'
+JWTHEX=0x$(echo -n "$JWT" | xxd -p | tr -d '\n')
+R=$(cast send --rpc-url $RPC --private-key $PK $ADDR "verifyAndConsume(bytes,bytes32,string,string)" $JWTHEX $NONCE "$SUB" "$AUD" --json)
+echo "verifyAndConsume tx: status $(echo $R | jq -r .status) gasUsed $(cast to-dec $(echo $R | jq -r .gasUsed)) jwtBytes ${#JWT}"
+R=$(cast send --rpc-url $RPC --private-key $PK $ADDR "verifyAndConsume(bytes,bytes32,string,string)" $JWTHEX $NONCE "$SUB" "$AUD" --gas-limit 2000000 --json 2>&1 || true)
+echo "replay: $(echo "$R" | jq -r .status 2>/dev/null || echo "$R" | head -c 200)"
+
+// ==== FILE: test/Fixtures.sol (excerpt: header only) ====
+// SPDX-License-Identifier: MIT
+// GENERATED by gen/gen.ts — do not edit. Test-only RSA-2048 keys (generated fresh on each run).
+pragma solidity ^0.8.24;
+
+library Fx {
+    uint256 internal constant NOW = 1793000000;
+    uint256 internal constant AUTH_TIME = 1792999970;
+    uint256 internal constant EXP = 1793000280;
+    string internal constant KID = "sdkA3apJxmbTBqFkPSEIi6R_PO2Ud84pT7Ntl1d5P5o";
+    string internal constant SUB = "f3c9Qm1yZ0x2b1R0VnNqWlBhY0RkR3Q4cHdKa2ZtQ3U";
+    string internal constant VICTIM_SUB = "VICTIMvictimVICTIMvictimVICTIMvictimVICTIMv";
+    string internal constant AUD = "app_4f1d2c9b7a8e46e0b3c5d6a7f8e9a0b1";
+    string internal constant JTI = "b7f2a3c4-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+    bytes32 internal constant NONCE = 0x9c9c9c9c1e5a7f00b3d24c6e8a9b0c1d2e3f405162738495a6b7c8d9eaf0b1c2;
+    bytes32 internal constant VICTIM_NONCE = 0xabababababababababababababababababababababababababababababababab;
+    bytes internal constant N1 = hex"d2df398f020acb955ebe72d1546934817ebc3170873b38a7bea054f6b23fb26ae02aa85c8d76efd2960bea1553aec79aa7a7053f22c29fc7a42b79faab0be1c27cbe4f6d2a8fbd7f487d8a5bd9f72ddf1d9
+    bytes internal constant N2 = hex"dac60b780c0e4d2ac2fc59c797ff7bf1fcc974197a0ad299854c53bb0e8d2730bd6a9b53b4446539170f39920e5190cc63e53a6d903fcf21a851f495d819ada569ecdd3f228b5dff9f7e721ae6a10694919
+    // Live World IdP production key fetched 2026-11-05T21:37:19.523Z
+    bytes internal constant WORLD_N = hex"e7c589c39b1170bf19708b4e5bd8fab0d2fb337b063d76d06c085f95665b4c2c970266fc3bf4d4733d5cc4ca71b01e16f5f6c42a3c3b68717fc32e2c1d1520aeed86f7dbd9b84fd23c061975e07ed2
+    string internal constant WORLD_KID = "xDQ0qjmm6_Jlrx61ER2YuxNLQmXgmC7eDQITsMMuDGM";
+    bytes internal constant VALID = "eyJhbGciOiJSUzI1NiIsImtpZCI6InNka0EzYXBKeG1iVEJxRmtQU0VJaTZSX1BPMlVkODRwVDdOdGwxZDVQNW8iLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2F1dGgud29ybGQub3JnIiwic3ViIjoiZjNj
+    bytes internal constant REORDERED = "eyJhbGciOiJSUzI1NiIsImtpZCI6InNka0EzYXBKeG1iVEJxRmtQU0VJaTZSX1BPMlVkODRwVDdOdGwxZDVQNW8iLCJ0eXAiOiJKV1QifQ.ewogICJlbWFpbF92ZXJpZmllZCI6IHRydWUsCiAgImVtYWlsIjog

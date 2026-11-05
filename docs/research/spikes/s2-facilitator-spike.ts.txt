@@ -1,0 +1,429 @@
+// S2 spike (plan v3.1, "grant path"): our own x402 exact/ERC-7710 facilitator settles a chip-signed voucher on Arc mainnet state.
+// Saved from ~/code/eth-global-mumbai-2026-spikes/s2-facilitator on 2026-11-06 as .txt so the repo lint/typecheck gates skip it.
+// Nothing is broadcast and no funds are used: every Arc call is eth_call / eth_estimateGas against https://rpc.mainnet.arc.io with
+// state overrides. anvil (Foundry 1.8.3) is used only to deploy the owner account on a fork and read back its code + storage.
+// Write-up: docs/research/spike-s2-facilitator.md.
+//
+// Three files, concatenated below (split at the "==== FILE" markers):
+//   facilitator.ts  the facilitator (verify + settle), ~125 lines
+//   passkey.ts      software WebAuthn authenticator (same as wallet-accounts-v2-spike.ts.txt)
+//   spike.ts        the harness: owner, grant, chip voucher, happy path, 13 negative/control cases, gas breakdown
+//
+// Rerun:
+//   mkdir s2 && cd s2 && split this file into the three files at the markers
+//   echo '{"type":"module"}' > package.json && bun add viem@2.57.16 @metamask/smart-accounts-kit@2.0.0
+//   heavy --wait bun spike.ts          # needs ~/.foundry/bin/anvil; ~3 min (public RPC throttles; viem retries with backoff)
+// Deps as run: Bun 1.4.4, viem 2.57.16, @metamask/smart-accounts-kit 2.0.0 (-> @metamask/delegation-deployments 2.1.0), anvil 1.8.3.
+// Output: console log + result.json. Exit 0 = all cases passed.
+
+// ==== FILE facilitator.ts ====================================================================
+// S2 facilitator: our own x402 `exact` + ERC-7710 facilitator for Arc (eip155:5042). Spike quality, ~150 lines.
+// verify(): structural checks on the decoded permissionContext + an eth_call of redeemDelegations FROM the relayer.
+// settle(): re-verifies, then either sends the tx (mode "send", anvil/real) or returns the exact tx it would send ("simulate").
+import {
+  encodeFunctionData, encodePacked, parseAbi, getAddress, isAddressEqual, recoverTypedDataAddress, decodeFunctionResult, zeroAddress,
+  BaseError, type Address, type Hex, type PublicClient, type WalletClient,
+} from "viem";
+import { decodeDelegations, hashDelegation, decodeRevertData } from "@metamask/smart-accounts-kit/utils";
+import { ROOT_AUTHORITY, ExecutionMode, type SmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
+
+export type Erc7710Payload = { delegationManager: Address; permissionContext: Hex; delegator: Address };
+export type PaymentPayload = { x402Version: 2; accepted: Requirements; payload: Erc7710Payload };
+export type Requirements = {
+  scheme: "exact"; network: `eip155:${number}`; asset: Address; payTo: Address; amount: string; maxTimeoutSeconds: number;
+  extra: { assetTransferMethod: "erc7710"; invoiceHash: Hex; facilitators: Address[] };
+};
+export type Check = { name: string; ok: boolean; detail?: string };
+export type VerifyResult = { isValid: boolean; invalidReason?: string; payer: Address; checks: Check[];
+  simulation: { ok: boolean; revert?: string; gas?: bigint } };
+export type SimHooks = { stateOverride?: any[]; blockOverrides?: { time?: bigint }; prelude?: { to: Address; data: Hex }[]; multicallCode?: Hex };
+
+const ANY_DELEGATE: Address = "0x0000000000000000000000000000000000000a11";
+const GAS_FLOOR = 20_000_000_000n; // Arc: maxFeePerGas below 20 gwei is silently dropped
+const dmAbi = parseAbi(["function redeemDelegations(bytes[] _permissionContexts, bytes32[] _modes, bytes[] _executionCallDatas)"]);
+const erc20 = parseAbi(["function transfer(address,uint256) returns (bool)"]);
+const mcAbi = parseAbi(["struct Call3 { address target; bool allowFailure; bytes callData; }", "struct Result { bool success; bytes returnData; }",
+  "function aggregate3(Call3[] calls) payable returns (Result[] returnData)"]);
+const dmTypes = { Delegation: [{ name: "delegate", type: "address" }, { name: "delegator", type: "address" }, { name: "authority", type: "bytes32" },
+  { name: "caveats", type: "Caveat[]" }, { name: "salt", type: "uint256" }], Caveat: [{ name: "enforcer", type: "address" }, { name: "terms", type: "bytes" }] } as const;
+
+export const buildRedeem = (asset: Address, payTo: Address, amount: bigint, ctx: Hex) => encodeFunctionData({ abi: dmAbi, functionName: "redeemDelegations",
+  args: [[ctx], [ExecutionMode.SingleDefault], [encodePacked(["address", "uint256", "bytes"], [asset, 0n, encodeFunctionData({ abi: erc20, functionName: "transfer", args: [payTo, amount] })])]] });
+
+/** Pull a revert reason out of a viem error (string reason, DM custom error or raw data). */
+export function revertReason(e: unknown): string {
+  let data: Hex | undefined;
+  if (e instanceof BaseError) e.walk((x: any) => { if (typeof x?.data === "string" && x.data.startsWith("0x")) data = x.data; else if (typeof x?.data?.data === "string") data = x.data.data; return false; });
+  if (data && data !== "0x") return reasonOf(data);
+  return ((e as any)?.shortMessage ?? String(e)).split("\n")[0];
+}
+export function reasonOf(data: Hex): string {
+  if (data === "0x") return "empty revert data";
+  try { const d = decodeRevertData(data); return d.errorName === "Error" ? String(d.message) : `${d.errorName}${d.message ? " " + d.message : ""}`; }
+  catch { return data.slice(0, 74); }
+}
+
+export function createFacilitator(cfg: { client: PublicClient; env: SmartAccountsEnvironment; relayer: Address; chainId: number;
+  wallet?: WalletClient; requireRedeemer?: boolean }) {
+  const allowedManagers = [cfg.env.DelegationManager];
+  const E = cfg.env.caveatEnforcers;
+  const settled = new Set<string>(); // off-chain replay guard (Arc's IdEnforcer is the real one)
+
+  async function simulate(tx: { to: Address; data: Hex }, sim: SimHooks = {}) {
+    const base = { stateOverride: sim.stateOverride, blockOverrides: sim.blockOverrides, gas: 1_500_000n } as any;
+    try {
+      if (!sim.prelude?.length) { // the real thing: eth_call from the relayer EOA straight to the DelegationManager
+        await cfg.client.call({ account: cfg.relayer, ...tx, ...base });
+        return { ok: true, gas: await cfg.client.estimateGas({ account: cfg.relayer, ...tx, ...base, gas: undefined }) };
+      }
+      // simulation of chain history: the relayer address temporarily runs Multicall3 code, so msg.sender is still the relayer
+      const calls = [...sim.prelude, tx].map((c) => ({ target: c.to, allowFailure: true, callData: c.data }));
+      const res = await cfg.client.call({ to: cfg.relayer, data: encodeFunctionData({ abi: mcAbi, functionName: "aggregate3", args: [calls] }), ...base,
+        gas: 8_000_000n, stateOverride: [...(sim.stateOverride ?? []).filter((o: any) => o.address.toLowerCase() !== cfg.relayer.toLowerCase()),
+          { ...(sim.stateOverride ?? []).find((o: any) => o.address.toLowerCase() === cfg.relayer.toLowerCase()), address: cfg.relayer, code: sim.multicallCode }] });
+      const out = decodeFunctionResult({ abi: mcAbi, functionName: "aggregate3", data: res.data! }) as readonly { success: boolean; returnData: Hex }[];
+      const bad = out.slice(0, -1).findIndex((r) => !r.success);
+      if (bad >= 0) return { ok: false, revert: `prelude call ${bad} failed: ${reasonOf(out[bad].returnData)}` };
+      const last = out[out.length - 1];
+      if (last.success) return { ok: true };
+      return { ok: false, revert: reasonOf(last.returnData) };
+    } catch (e) { return { ok: false, revert: revertReason(e) }; }
+  }
+
+  async function verify(p: PaymentPayload, req: Requirements, sim: SimHooks = {}): Promise<VerifyResult> {
+    const checks: Check[] = []; const c = (name: string, ok: boolean, detail?: string) => (checks.push({ name, ok, detail }), ok);
+    const { delegationManager: dm, permissionContext, delegator } = p.payload;
+    c("scheme/network/method", req.scheme === "exact" && req.network === `eip155:${cfg.chainId}` && req.extra.assetTransferMethod === "erc7710");
+    c("accepted == requirements (asset, payTo, amount)", isAddressEqual(p.accepted.asset, req.asset) && isAddressEqual(p.accepted.payTo, req.payTo) && p.accepted.amount === req.amount);
+    if (!c("delegationManager allowlisted", allowedManagers.some((a) => isAddressEqual(a, dm)), dm))
+      return { isValid: false, invalidReason: "unknown_delegation_manager", payer: delegator, checks, simulation: { ok: false, revert: "not simulated" } };
+    let chain: any[] = [];
+    try { chain = decodeDelegations(permissionContext) as any[]; } catch (e) { c("permissionContext decodes", false, String(e)); }
+    if (chain.length) {
+      const leaf = chain[0], root = chain[chain.length - 1];
+      c("root.delegator == payload.delegator", isAddressEqual(root.delegator, delegator));
+      c("root authority is ROOT_AUTHORITY", root.authority.toLowerCase() === ROOT_AUTHORITY.toLowerCase());
+      c("chain links (authority = hash(parent), delegator = parent.delegate)", chain.slice(0, -1).every((d, i) =>
+        d.authority.toLowerCase() === hashDelegation(chain[i + 1]).toLowerCase() && isAddressEqual(d.delegator, chain[i + 1].delegate)));
+      c("leaf delegate is ANY_DELEGATE or a relayer", [ANY_DELEGATE, cfg.relayer].some((a) => isAddressEqual(a, leaf.delegate)));
+      const cav = (enf: string) => leaf.caveats.find((x: any) => isAddressEqual(x.enforcer, enf as Address));
+      const transfer = encodeFunctionData({ abi: erc20, functionName: "transfer", args: [getAddress(req.payTo), BigInt(req.amount)] });
+      const exec = cav(E.ExactExecutionEnforcer)?.terms ?? cav(E.ExactCalldataEnforcer)?.terms;
+      c("leaf ExactExecution == USDC.transfer(payTo, amount)", !!exec && [encodePacked(["address", "uint256", "bytes"], [req.asset, 0n, transfer]), transfer]
+        .some((t) => t.toLowerCase() === exec.toLowerCase()), exec ? `leaf: ${exec.slice(-104)}` : "missing");
+      c("leaf IdEnforcer == invoiceHash", cav(E.IdEnforcer)?.terms?.toLowerCase() === req.extra.invoiceHash.toLowerCase());
+      const red = cav(E.RedeemerEnforcer)?.terms as Hex | undefined;
+      if (cfg.requireRedeemer || red) c("leaf Redeemer includes relayer", !!red && red.toLowerCase().includes(cfg.relayer.slice(2).toLowerCase()));
+      const ts = cav(E.TimestampEnforcer)?.terms as Hex | undefined;
+      const now = sim.blockOverrides?.time ?? BigInt(Math.floor(Date.now() / 1000));
+      c("leaf Timestamp present and not expired", !!ts && BigInt("0x" + ts.slice(34)) > now, ts ? `before=${BigInt("0x" + ts.slice(34))} now=${now}` : "missing");
+      c("invoice not already settled here", !settled.has(req.extra.invoiceHash));
+      if (leaf.signature.length === 132) { // EOA leaf (the chip): recover off-chain too
+        const who = await recoverTypedDataAddress({ domain: { name: "DelegationManager", version: "1", chainId: cfg.chainId, verifyingContract: dm }, types: dmTypes,
+          primaryType: "Delegation", message: { ...leaf, salt: BigInt(leaf.salt) }, signature: leaf.signature }).catch(() => zeroAddress);
+        c("leaf signature recovers to leaf.delegator (chip)", isAddressEqual(who, leaf.delegator), who);
+      }
+    }
+    const simulation = await simulate({ to: dm, data: buildRedeem(req.asset, req.payTo, BigInt(req.amount), permissionContext) }, sim);
+    const failed = checks.find((x) => !x.ok);
+    return { isValid: !failed && simulation.ok, invalidReason: failed ? failed.name : simulation.ok ? undefined : `erc7710_simulation_failed: ${simulation.revert}`, payer: delegator, checks, simulation };
+  }
+
+  async function settle(p: PaymentPayload, req: Requirements, mode: "simulate" | "send", sim: SimHooks = {}) {
+    const v = await verify(p, req, sim);
+    if (!v.isValid) return { success: false as const, errorReason: v.invalidReason, verify: v };
+    const tx = { from: cfg.relayer, to: p.payload.delegationManager, data: buildRedeem(req.asset, req.payTo, BigInt(req.amount), p.payload.permissionContext),
+      chainId: cfg.chainId, gas: v.simulation.gas ? (v.simulation.gas * 12n) / 10n : 400_000n, maxFeePerGas: GAS_FLOOR * 2n, maxPriorityFeePerGas: 1_000_000_000n, type: "eip1559" as const };
+    const costAtFloor = (v.simulation.gas ?? 0n) * GAS_FLOOR; // in wei of native USDC (18 decimals)
+    settled.add(req.extra.invoiceHash);
+    if (mode === "simulate") return { success: true as const, mode, tx, gasUsedEstimate: v.simulation.gas, costAtFloorWei: costAtFloor, verify: v };
+    const hash = await cfg.wallet!.sendTransaction({ ...tx, account: cfg.relayer, chain: null } as any);
+    const receipt = await cfg.client.waitForTransactionReceipt({ hash });
+    return { success: receipt.status === "success", mode, tx, transaction: hash, gasUsed: receipt.gasUsed, receipt, verify: v };
+  }
+  return { verify, settle, markSettled: (h: Hex) => settled.add(h), forget: (h: Hex) => settled.delete(h) };
+}
+
+// ==== FILE passkey.ts ====================================================================
+// Software WebAuthn authenticator (copied from docs/research/spikes/wallet-accounts-v2-spike.ts.txt): stands in for iCloud Keychain / GPM.
+import { bytesToHex, hexToBytes, concat, sha256 } from "viem";
+import { toWebAuthnAccount } from "viem/account-abstraction";
+const subtle = globalThis.crypto.subtle;
+const kp = await subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+const raw = new Uint8Array(await subtle.exportKey("raw", kp.publicKey)); // 0x04||x||y
+const x = BigInt(bytesToHex(raw.slice(1, 33)));
+const y = BigInt(bytesToHex(raw.slice(33, 65)));
+const credId = "spike-credential-1";
+const rpId = "wallet.example";
+const b64url = (b: Uint8Array) => Buffer.from(b).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const derFromRaw = (sig: Uint8Array) => {
+  const enc = (v: Uint8Array) => { let i = 0; while (i < v.length - 1 && v[i] === 0) i++; let s = v.slice(i); if (s[0] & 0x80) s = new Uint8Array([0, ...s]); return new Uint8Array([0x02, s.length, ...s]); };
+  const r = enc(sig.slice(0, 32)), s = enc(sig.slice(32));
+  return new Uint8Array([0x30, r.length + s.length, ...r, ...s]);
+};
+const getFn = async (opts: any) => {
+  const challenge = new Uint8Array(opts.publicKey.challenge);
+  const clientDataJSON = `{"type":"webauthn.get","challenge":"${b64url(challenge)}","origin":"https://${rpId}","crossOrigin":false}`;
+  const cdj = new TextEncoder().encode(clientDataJSON);
+  const authData = concat([sha256(new TextEncoder().encode(rpId)), "0x05", "0x00000001"]); // UP|UV, counter 1
+  const msg = concat([authData, sha256(cdj)]);
+  const sig = new Uint8Array(await subtle.sign({ name: "ECDSA", hash: "SHA-256" }, kp.privateKey, hexToBytes(msg)));
+  return { id: credId, rawId: new TextEncoder().encode(credId).buffer, type: "public-key",
+    response: { authenticatorData: hexToBytes(authData).buffer, clientDataJSON: cdj.buffer, signature: derFromRaw(sig).buffer, userHandle: null },
+    getClientExtensionResults: () => ({}) };
+};
+const webAuthnAccount = toWebAuthnAccount({ credential: { id: credId, publicKey: bytesToHex(raw) }, getFn: getFn as any, rpId });
+export { credId, x, y, webAuthnAccount };
+
+// ==== FILE spike.ts ====================================================================
+// S2 spike harness: owner (passkey HybridDeleGator) -> chip grant -> chip one-time leaf voucher -> OUR facilitator.
+// Live Arc mainnet state (5042) via eth_call + eth_estimateGas with state overrides. Nothing is broadcast.
+// Plain `anvil --fork-url` does not reproduce Arc USDC (see step 0), so anvil is used for one thing only: to produce the
+// post-deploy code+storage of the owner account, which is then injected as a state override on the live-Arc calls.
+import {
+  createPublicClient, createWalletClient, http, defineChain, encodeFunctionData, encodePacked, parseAbi, keccak256, toHex,
+  hashTypedData, zeroAddress, isAddressEqual, formatUnits, type Address, type Hex,
+} from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import {
+  toMetaMaskSmartAccount, Implementation, createDelegation, createOpenDelegation, getSmartAccountsEnvironment, ScopeType,
+} from "@metamask/smart-accounts-kit";
+import { encodeDelegations, hashDelegation } from "@metamask/smart-accounts-kit/utils";
+import { credId, x, y, webAuthnAccount } from "./passkey";
+import { createFacilitator, buildRedeem, revertReason, type PaymentPayload, type Requirements, type SimHooks } from "./facilitator";
+
+const RPC = "https://rpc.mainnet.arc.io";
+const arc = defineChain({ id: 5042, name: "Arc", nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
+const client = createPublicClient({ chain: arc, transport: http(RPC, { retryCount: 12, retryDelay: 2500, timeout: 60_000 }) });
+const nap = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const env = getSmartAccountsEnvironment(5042);
+const E = env.caveatEnforcers;
+const USDC: Address = "0x3600000000000000000000000000000000000000";
+const MULTICALL3: Address = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const MERCHANT: Address = "0x000000000000000000000000000000000000c0de";
+const ANY_DELEGATE: Address = "0x0000000000000000000000000000000000000a11";
+const relayerAcct = privateKeyToAccount(generatePrivateKey());
+const RELAYER = relayerAcct.address;
+const usdcAbi = parseAbi(["function transfer(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"]);
+const dmFull = parseAbi(["struct Caveat { address enforcer; bytes terms; bytes args; }",
+  "struct Delegation { address delegate; address delegator; bytes32 authority; Caveat[] caveats; uint256 salt; bytes signature; }",
+  "function disableDelegation(Delegation _delegation)"]);
+let failures = 0;
+const log = (s: string) => console.log(s);
+const now = Math.floor(Date.now() / 1000);
+
+// ---------- 0. does plain anvil reproduce Arc's USDC? ----------
+const ANVIL = `${process.env.HOME}/.foundry/bin/anvil`, APORT = 18646, AURL = `http://127.0.0.1:${APORT}`;
+const anvil = Bun.spawn([ANVIL, "--fork-url", RPC, "--host", "127.0.0.1", "--port", String(APORT), "--chain-id", "5042", "--retries", "12", "--timeout", "60000", "--silent"], { stdout: "ignore", stderr: "ignore" });
+const ac = createPublicClient({ transport: http(AURL, { retryCount: 3, timeout: 120_000 }) });
+for (let i = 0; i < 60; i++) { try { await ac.getChainId(); break; } catch { await nap(500); } }
+const probe = "0x00000000000000000000000000000000000a1ce1" as Address;
+await ac.request({ method: "anvil_setBalance" as any, params: [probe, toHex(50n * 10n ** 18n)] as any });
+const forkBal = await ac.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [probe] });
+const forkTransfer = await ac.call({ account: probe, to: USDC, data: encodeFunctionData({ abi: usdcAbi, functionName: "transfer", args: [MERCHANT, 1_500_000n] }) })
+  .then(() => "ok").catch((e) => "REVERT " + revertReason(e));
+const liveTransfer = await client.call({ account: probe, to: USDC, data: encodeFunctionData({ abi: usdcAbi, functionName: "transfer", args: [MERCHANT, 1_500_000n] }),
+  stateOverride: [{ address: probe, balance: 50n * 10n ** 18n }] }).then(() => "ok").catch((e) => "REVERT " + revertReason(e));
+log(`== 0. anvil ${(await Bun.$`${ANVIL} --version`.text()).split("\n")[0]} fork of Arc: balanceOf(native 50e18)=${forkBal} (view works), transfer(1.5 USDC): ${forkTransfer}`);
+log(`   same transfer on live Arc via eth_call+stateOverride: ${liveTransfer}  -> anvil lacks Arc's native-coin precompile (0x1800…); payments are simulated on live Arc`);
+
+// ---------- 1. owner = passkey HybridDeleGator via SimpleFactory ----------
+const owner = await toMetaMaskSmartAccount({ client: client as any, implementation: Implementation.Hybrid, deployParams: [zeroAddress, [credId], [x], [y]],
+  deploySalt: "0x01", signer: { webAuthnAccount, keyId: credId } });
+const { factory, factoryData } = await owner.getFactoryArgs();
+// deploy on the anvil fork (no USDC involved), read back the account's code + storage, inject it into live-Arc calls
+const deployer = createWalletClient({ account: privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"), transport: http(AURL) });
+const dHash = await deployer.sendTransaction({ to: factory!, data: factoryData!, chain: null });
+const dRcpt = await ac.waitForTransactionReceipt({ hash: dHash });
+const diff: any = await ac.request({ method: "debug_traceTransaction" as any, params: [dHash, { tracer: "prestateTracer", tracerConfig: { diffMode: true } }] as any });
+const postKey = Object.keys(diff.post).find((k) => isAddressEqual(k as Address, owner.address))!;
+const ownerCode = (await ac.getCode({ address: owner.address }))!;
+const ownerState = Object.entries(diff.post[postKey].storage ?? {}).map(([slot, value]) => ({ slot: slot as Hex, value: value as Hex }));
+anvil.kill();
+let world: any[] = [{ address: owner.address, balance: 50n * 10n ** 18n, code: ownerCode, state: ownerState }, { address: RELAYER, balance: 10n ** 18n }];
+const multicallCode = (await client.getCode({ address: MULTICALL3 }))!;
+log(`\n== 1. owner HybridDeleGator ${owner.address} (passkey ${credId}); factory ${factory}; deploy on anvil fork gasUsed=${dRcpt.gasUsed}, ${ownerState.length} storage slots injected; 50 USDC (native override)`);
+const sanity = await client.readContract({ address: USDC, abi: usdcAbi, functionName: "balanceOf", args: [owner.address], stateOverride: world } as any);
+log(`   live Arc sees owner code ${ownerCode.length / 2 - 1} bytes, USDC.balanceOf(owner)=${formatUnits(sanity as bigint, 6)}`);
+
+// ---------- 2. the grant: owner -> chip ----------
+const chipKey = generatePrivateKey(); const chip = privateKeyToAccount(chipKey); // virtual chip (same leaf format as the Radxa's chip_voucher.py)
+world = [...world, { address: probe, balance: 50n * 10n ** 18n }]; // a funded plain EOA, for the gas breakdown only
+const GRANT_EXPIRY = now + 7 * 86400, PERIOD = 5_000_000n;
+const grant = createDelegation({ environment: env, from: owner.address, to: chip.address,
+  scope: { type: ScopeType.Erc20PeriodTransfer, tokenAddress: USDC, periodAmount: PERIOD, periodDuration: 86400, startDate: now - 3600 } as any,
+  caveats: [{ type: "allowedTargets", targets: [USDC] }, { type: "allowedMethods", selectors: ["0xa9059cbb"] }, // ValueLte(0) comes with the erc20PeriodTransfer scope
+    { type: "timestamp", afterThreshold: 0, beforeThreshold: GRANT_EXPIRY }] as any });
+const grantSigned = { ...grant, signature: await owner.signDelegation({ delegation: grant }) };
+const enfName = (a: string) => Object.entries(E).find(([, v]) => isAddressEqual(v as Address, a as Address))?.[0] ?? a;
+log(`\n== 2. grant owner -> chip ${chip.address}: ${grant.caveats.map((c) => enfName(c.enforcer).replace("Enforcer", "")).join(", ")}; 5 USDC/day, expires +7d; passkey sig ${(grantSigned.signature.length - 2) / 2} B`);
+
+// ---------- 3. chip leaf voucher (C1 format + Redeemer = relayer) ----------
+const invTypes = { Invoice: [{ name: "merchantId", type: "bytes32" }, { name: "invoiceId", type: "bytes16" }, { name: "payTo", type: "address" }, { name: "asset", type: "address" },
+  { name: "amount", type: "uint256" }, { name: "expiresAt", type: "uint64" }, { name: "linesHash", type: "bytes32" }, { name: "rulesHash", type: "bytes32" }] } as const;
+const dmTypes = { Delegation: [{ name: "delegate", type: "address" }, { name: "delegator", type: "address" }, { name: "authority", type: "bytes32" }, { name: "caveats", type: "Caveat[]" },
+  { name: "salt", type: "uint256" }], Caveat: [{ name: "enforcer", type: "address" }, { name: "terms", type: "bytes" }] } as const;
+const transferData = (to: Address, amt: bigint) => encodeFunctionData({ abi: usdcAbi, functionName: "transfer", args: [to, amt] });
+let seq = 0;
+async function voucher(o: { amount?: bigint; payTo?: Address; expiresAt?: number; redeemer?: boolean; invoiceHash?: Hex; salt?: bigint; minimal?: boolean; grant?: any } = {}) {
+  const G = o.grant ?? grantSigned;
+  const amount = o.amount ?? 1_500_000n, payTo = o.payTo ?? MERCHANT, expiresAt = o.expiresAt ?? now + 300;
+  const invoiceId = toHex(crypto.getRandomValues(new Uint8Array(16))); seq++;
+  const invoiceHash = o.invoiceHash ?? hashTypedData({ domain: { name: "AgentMerchant", version: "1", chainId: 5042 }, types: invTypes, primaryType: "Invoice",
+    message: { merchantId: keccak256(toHex("duck-cafe")), invoiceId, payTo, asset: USDC, amount, expiresAt: BigInt(expiresAt),
+      linesHash: keccak256(toHex(`[{"name":"Coffee","qty":1,"sku":"coffee","unitAmount":"${amount}"}]`)), rulesHash: keccak256(toHex("[]")) } });
+  // exactly chip_voucher.py build_leaf(), plus RedeemerEnforcer([relayer])
+  const minimalDrop = [E.AllowedTargetsEnforcer, E.AllowedMethodsEnforcer, E.ValueLteEnforcer, E.LimitedCallsEnforcer]; // redundant with ExactExecution / IdEnforcer
+  const caveats = ([
+    { enforcer: E.AllowedTargetsEnforcer, terms: USDC, args: "0x" }, { enforcer: E.AllowedMethodsEnforcer, terms: "0xa9059cbb", args: "0x" },
+    { enforcer: E.ValueLteEnforcer, terms: toHex(0n, { size: 32 }), args: "0x" },
+    { enforcer: E.ExactExecutionEnforcer, terms: encodePacked(["address", "uint256", "bytes"], [USDC, 0n, transferData(payTo, amount)]), args: "0x" },
+    { enforcer: E.IdEnforcer, terms: invoiceHash, args: "0x" },
+    { enforcer: E.TimestampEnforcer, terms: encodePacked(["uint128", "uint128"], [0n, BigInt(expiresAt)]), args: "0x" },
+    { enforcer: E.LimitedCallsEnforcer, terms: toHex(1n, { size: 32 }), args: "0x" },
+    ...(o.redeemer === false ? [] : [{ enforcer: E.RedeemerEnforcer, terms: RELAYER as Hex, args: "0x" }]),
+  ] as any[]).filter((c) => !o.minimal || !minimalDrop.includes(c.enforcer)) as { enforcer: Address; terms: Hex; args: Hex }[];
+  const leaf = { delegate: ANY_DELEGATE, delegator: chip.address, authority: hashDelegation(G as any), caveats, salt: o.salt ?? 0n };
+  const signature = await chip.signTypedData({ domain: { name: "DelegationManager", version: "1", chainId: 5042, verifyingContract: env.DelegationManager },
+    types: dmTypes, primaryType: "Delegation", message: leaf });
+  const leafSigned = { ...leaf, signature };
+  const req: Requirements = { scheme: "exact", network: "eip155:5042", asset: USDC, payTo, amount: amount.toString(), maxTimeoutSeconds: 120,
+    extra: { assetTransferMethod: "erc7710", invoiceHash, facilitators: [RELAYER] } };
+  const payload: PaymentPayload = { x402Version: 2, accepted: req, payload: { delegationManager: env.DelegationManager,
+    permissionContext: encodeDelegations([leafSigned, G] as any), delegator: owner.address } };
+  return { invoiceHash, leafSigned, req, payload, expiresAt };
+}
+const v1 = await voucher();
+const kitLeaf: any = createOpenDelegation({ environment: env, from: chip.address, parentDelegation: grantSigned as any,
+  scope: { type: ScopeType.FunctionCall, targets: [USDC], selectors: ["0xa9059cbb"] } as any,
+  caveats: [{ type: "exactExecution", execution: { target: USDC, value: 0n, callData: transferData(MERCHANT, 1_500_000n) } }, { type: "id", id: BigInt(v1.invoiceHash) },
+    { type: "timestamp", afterThreshold: 0, beforeThreshold: v1.expiresAt }, { type: "limitedCalls", limit: 1 }, { type: "redeemer", redeemers: [RELAYER] }] as any });
+const sameLeaf = kitLeaf.caveats.length === v1.leafSigned.caveats.length && kitLeaf.caveats.every((c: any, i: number) =>
+  isAddressEqual(c.enforcer, v1.leafSigned.caveats[i].enforcer) && c.terms.toLowerCase() === v1.leafSigned.caveats[i].terms.toLowerCase())
+  && hashDelegation(kitLeaf) === hashDelegation(v1.leafSigned as any);
+if (!sameLeaf) failures++;
+log(`\n== 3. chip leaf: ${v1.leafSigned.caveats.map((c) => enfName(c.enforcer).replace("Enforcer", "")).join(", ")}; ${sameLeaf ? "PASS" : "FAIL"} byte-identical to the kit's createOpenDelegation (hash ${hashDelegation(kitLeaf).slice(0, 14)}…)`);
+log(`   permissionContext ${(v1.payload.payload.permissionContext.length - 2) / 2} B (leaf -> grant)`);
+
+// ---------- 4/5. the facilitator, happy path and negatives ----------
+const fac = createFacilitator({ client: client as any, env, relayer: RELAYER, chainId: 5042, requireRedeemer: true });
+const sim = (extra: Partial<SimHooks> = {}): SimHooks => ({ stateOverride: world, multicallCode, ...extra });
+const settleTx = (v: Awaited<ReturnType<typeof voucher>>) => ({ to: env.DelegationManager, data: buildRedeem(USDC, v.req.payTo, BigInt(v.req.amount), v.payload.payload.permissionContext) });
+const results: { id: string; label: string; expect: string; isValid: boolean; failedChecks: string[]; revert?: string; pass: boolean }[] = [];
+async function kase(id: string, label: string, expect: string | null, run: () => Promise<any>) {
+  await nap(1200);
+  const v = await run();
+  const failedChecks = v.checks.filter((c: any) => !c.ok).map((c: any) => c.name);
+  const pass = expect === null ? v.isValid : !v.isValid && (v.simulation.revert ?? "").includes(expect);
+  if (!pass) failures++;
+  results.push({ id, label, expect: expect ?? "valid", isValid: v.isValid, failedChecks, revert: v.simulation.revert, pass });
+  log(`  ${pass ? "PASS" : "FAIL"} ${id} ${label}\n       isValid=${v.isValid} sim=${v.simulation.ok ? "ok gas=" + v.simulation.gas : "REVERT " + v.simulation.revert}${failedChecks.length ? "\n       off-chain checks failed: " + failedChecks.join("; ") : ""}`);
+  return v;
+}
+log("\n== 4. facilitator verify + settle (simulation mode, from the relayer EOA)");
+const h1 = await kase("H1", "voucher as signed: 1.50 USDC to merchant", null, () => fac.verify(v1.payload, v1.req, sim()));
+const s1: any = await fac.settle(v1.payload, v1.req, "simulate", sim());
+log(`  settle(simulate): success=${s1.success}; the tx it would send:\n    ${JSON.stringify({ ...s1.tx, gas: String(s1.tx.gas), maxFeePerGas: String(s1.tx.maxFeePerGas), maxPriorityFeePerGas: String(s1.tx.maxPriorityFeePerGas), data: s1.tx.data.slice(0, 74) + `…(${(s1.tx.data.length - 2) / 2} B)` })}`);
+fac.forget(v1.invoiceHash); // let the negative cases below exercise the on-chain replay guard, not only the local one
+
+log("\n== 5. negative cases (verify runs every off-chain check AND the simulation; the expected enforcer reason must appear)");
+await kase("N1", "wrong amount: facilitator asked to settle 2.00 for a 1.50 voucher", "ExactExecutionEnforcer:invalid-execution",
+  () => fac.verify(v1.payload, { ...v1.req, amount: "2000000" }, sim()));
+await kase("N2", "wrong payee: settle to 0x…dEaD", "ExactExecutionEnforcer:invalid-execution",
+  () => fac.verify(v1.payload, { ...v1.req, payTo: "0x000000000000000000000000000000000000dEaD" }, sim()));
+fac.markSettled(v1.invoiceHash);
+await kase("N3", "replay: same voucher after it was settled once", "IdEnforcer:id-already-used",
+  () => fac.verify(v1.payload, v1.req, sim({ prelude: [settleTx(v1)] })));
+const twin = await voucher({ invoiceHash: v1.invoiceHash, salt: 1n }); // same invoice, NEW leaf (other salt, fresh chip signature)
+await kase("N3b", "replay with a freshly signed leaf for the already-paid invoice (same IdEnforcer id)", "IdEnforcer:id-already-used",
+  () => fac.verify(twin.payload, twin.req, sim({ prelude: [settleTx(v1)] })));
+fac.forget(v1.invoiceHash); // keep the local guard out of the remaining cases
+await kase("N4", "expired voucher (block time = leaf expiry + 1)", "TimestampEnforcer:expired-delegation",
+  () => fac.verify(v1.payload, v1.req, sim({ blockOverrides: { time: BigInt(v1.expiresAt + 1) } })));
+const vLong = await voucher({ expiresAt: GRANT_EXPIRY + 3600 });
+await kase("N4b", "expired GRANT (block time = grant expiry + 1, leaf still valid)", "TimestampEnforcer:expired-delegation",
+  () => fac.verify(vLong.payload, vLong.req, sim({ blockOverrides: { time: BigInt(GRANT_EXPIRY + 1) } })));
+const vBig = await voucher({ amount: 6_000_000n });
+await kase("N5", "over the cap: one 6.00 USDC voucher vs 5 USDC/day grant", "ERC20PeriodTransferEnforcer:transfer-amount-exceeded",
+  () => fac.verify(vBig.payload, vBig.req, sim()));
+const [p1, p2, p3, p4] = [await voucher(), await voucher(), await voucher(), await voucher()];
+await kase("N5b", "over the cap cumulatively: 3 x 1.50 settled today, 4th 1.50 (6.00 > 5.00)", "ERC20PeriodTransferEnforcer:transfer-amount-exceeded",
+  () => fac.verify(p4.payload, p4.req, sim({ prelude: [settleTx(p1), settleTx(p2), settleTx(p3)] })));
+await kase("N5c", "control: 3rd 1.50 of the day (4.50 <= 5.00) is still valid", null,
+  () => fac.verify(p3.payload, p3.req, sim({ prelude: [settleTx(p1), settleTx(p2)] })));
+// revoke = owner action: passkey signs a one-time delegation to the relayer that can only call disableDelegation(grant)
+const toStruct = (d: any) => ({ ...d, salt: BigInt(d.salt), caveats: d.caveats.map((c: any) => ({ enforcer: c.enforcer, terms: c.terms, args: c.args ?? "0x" })) });
+const disableCd = encodeFunctionData({ abi: dmFull, functionName: "disableDelegation", args: [toStruct(grantSigned)] });
+const once = createDelegation({ environment: env, from: owner.address, to: RELAYER, salt: "0x07",
+  scope: { type: ScopeType.FunctionCall, targets: [env.DelegationManager], selectors: [disableCd.slice(0, 10) as Hex] } as any,
+  caveats: [{ type: "exactExecution", execution: { target: env.DelegationManager, value: 0n, callData: disableCd } }, { type: "limitedCalls", limit: 1 }, { type: "redeemer", redeemers: [RELAYER] }] as any });
+const onceSigned = { ...once, signature: await owner.signDelegation({ delegation: once }) };
+const revokeTx = { to: env.DelegationManager, data: encodeFunctionData({ abi: parseAbi(["function redeemDelegations(bytes[],bytes32[],bytes[])"]), functionName: "redeemDelegations",
+  args: [[encodeDelegations([onceSigned] as any)], ["0x0000000000000000000000000000000000000000000000000000000000000000"], [encodePacked(["address", "uint256", "bytes"], [env.DelegationManager, 0n, disableCd])]] }) };
+const v6 = await voucher();
+await kase("N6", "revoked grant: owner's one-time disableDelegation(grant) settled first", "CannotUseADisabledDelegation",
+  () => fac.verify(v6.payload, v6.req, sim({ prelude: [revokeTx] })));
+const other = privateKeyToAccount(generatePrivateKey()).address;
+const thief = createFacilitator({ client: client as any, env, relayer: other, chainId: 5042 });
+await kase("N7", "another relayer (front-runner) submits the voucher", "RedeemerEnforcer:unauthorized-redeemer",
+  () => thief.verify(v6.payload, v6.req, sim()));
+const badSig = { ...v6, payload: { ...v6.payload, payload: { ...v6.payload.payload, permissionContext: encodeDelegations([{ ...v6.leafSigned,
+  signature: (v6.leafSigned.signature.slice(0, 20) + (v6.leafSigned.signature[20] === "a" ? "b" : "a") + v6.leafSigned.signature.slice(21)) as Hex }, grantSigned] as any) } } };
+await kase("N8", "tampered chip signature", "InvalidEOASignature", () => fac.verify(badSig.payload, badSig.req, sim()));
+const fakeDm = { ...v6.payload, payload: { ...v6.payload.payload, delegationManager: "0x000000000000000000000000000000000000bad0" as Address } };
+await kase("N9", "unknown DelegationManager in the payload (refused, never simulated)", "not simulated", () => fac.verify(fakeDm, v6.req, sim()));
+
+// ---------- 6. gas and cost ----------
+await nap(1500);
+const gasPrice = await client.getGasPrice();
+const g = h1.simulation.gas as bigint;
+const atFloor = g * 20_000_000_000n, atNow = g * gasPrice;
+log(`\n== 6. gas: settle (redeemDelegations, 2-hop: passkey grant + chip leaf, 5+8 caveats) eth_estimateGas from relayer EOA = ${g}`);
+log(`   cost @20 gwei floor = ${formatUnits(atFloor, 18)} USDC (~$${Number(formatUnits(atFloor, 18)).toFixed(5)}); @eth_gasPrice ${formatUnits(gasPrice, 9)} gwei = ${formatUnits(atNow, 18)} USDC`);
+log(`   owner deploy (anvil fork, once at signup) gasUsed=${dRcpt.gasUsed} = ${formatUnits(dRcpt.gasUsed * 20_000_000_000n, 18)} USDC @20 gwei`);
+log(`   calldata ${(s1.tx.data.length - 2) / 2} B`);
+// gas breakdown: what drives the number
+const est = async (label: string, tx: { to: Address; data: Hex }, from: Address = RELAYER) => { await nap(1500);
+  const r = await client.estimateGas({ account: from, ...tx, stateOverride: world } as any).catch((e) => "fail: " + revertReason(e)); log(`   ${label}: ${r}`); return r; };
+log("   breakdown (eth_estimateGas on live Arc, same state):");
+const noRed = await voucher({ redeemer: false });
+const breakdown: Record<string, unknown> = {};
+breakdown.leafWithoutRedeemer = String(await est("same settle, leaf without Redeemer (7 leaf caveats)", settleTx(noRed)));
+breakdown.ownerOneTimeRevoke = String(await est("owner one-time action (1 hop, WebAuthn root, 3 caveats: revoke)", revokeTx));
+breakdown.plainUsdcTransfer = String(await est("plain USDC.transfer from a funded EOA", { to: USDC, data: transferData(MERCHANT, 1_500_000n) }, probe));
+{ // what a leaner chain would cost (design input, not the brief's caveat set)
+  const minLeaf = await voucher({ minimal: true });
+  breakdown.minimalLeaf = String(await est("leaf with only ExactExecution+Id+Timestamp+Redeemer (4 caveats), full grant", settleTx(minLeaf)));
+  const g2 = createDelegation({ environment: env, from: owner.address, to: chip.address, salt: "0x02",
+    scope: { type: ScopeType.Erc20PeriodTransfer, tokenAddress: USDC, periodAmount: PERIOD, periodDuration: 86400, startDate: now - 3600 } as any,
+    caveats: [{ type: "timestamp", afterThreshold: 0, beforeThreshold: GRANT_EXPIRY }] as any });
+  const g2s = { ...g2, signature: await owner.signDelegation({ delegation: g2 }) };
+  const minBoth = await voucher({ minimal: true, grant: g2s });
+  breakdown.minimalBoth = String(await est("4-caveat leaf + grant with only ValueLte+ERC20Period+Timestamp (3 caveats)", settleTx(minBoth)));
+}
+{ // cross-check against the wallet spike's method: Multicall3 estimate of [deploy, redeem] minus [deploy] (owner NOT pre-injected)
+  const mc = parseAbi(["struct Call3 { address target; bool allowFailure; bytes callData; }", "struct Result { bool success; bytes returnData; }", "function aggregate3(Call3[] calls) payable returns (Result[] returnData)"]);
+  const agg = (calls: { to: Address; data: Hex }[]) => encodeFunctionData({ abi: mc, functionName: "aggregate3", args: [calls.map((c) => ({ target: c.to, allowFailure: false, callData: c.data }))] });
+  const ov = [{ address: owner.address, balance: 50n * 10n ** 18n }];
+  const g = async (calls: { to: Address; data: Hex }[]) => { await nap(1500); return client.estimateGas({ account: RELAYER, to: MULTICALL3, data: agg(calls), stateOverride: ov } as any).catch((e) => -1n); };
+  const gd = await g([{ to: factory!, data: factoryData! }]), gdr = await g([{ to: factory!, data: factoryData! }, settleTx(noRed)]);
+  breakdown.multicallDeploy = String(gd); breakdown.multicallDeployPlusSettle = String(gdr);
+  log(`   wallet-spike method (Multicall3, deploy in the same call, leaf without Redeemer): [deploy]=${gd}, [deploy+settle]=${gdr}, difference=${gdr - gd}`);
+  const bytes = Buffer.from(s1.tx.data.slice(2), "hex"); const zeros = bytes.filter((b) => b === 0).length, nz = bytes.length - zeros;
+  breakdown.calldata = { bytes: bytes.length, zero: zeros, nonzero: nz, legacyCost: zeros * 4 + nz * 16, eip7623Floor: 21000 + 10 * (zeros + 4 * nz) };
+  log(`   settle calldata ${bytes.length} B (${zeros} zero, ${nz} non-zero): 4/16 pricing ${zeros * 4 + nz * 16} gas; EIP-7623 floor would be ${21000 + 10 * (zeros + 4 * nz)}`);
+}
+{ // is the RIP-7212 / EIP-7951 P256VERIFY precompile live on Arc (0x…0100)? If not, the Hybrid falls back to a Solidity verifier
+  const k = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+  const pub = new Uint8Array(await crypto.subtle.exportKey("raw", k.publicKey)); const m = new TextEncoder().encode("p256 probe");
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, k.privateKey, m));
+  const input = ("0x" + Buffer.from(await crypto.subtle.digest("SHA-256", m)).toString("hex") + Buffer.from(sig).toString("hex") + Buffer.from(pub.slice(1)).toString("hex")) as Hex;
+  await nap(1500); const out = await client.call({ to: "0x0000000000000000000000000000000000000100", data: input }).then((r) => r.data ?? "0x").catch((e) => "fail " + revertReason(e));
+  await nap(1500); const pg = await client.estimateGas({ to: "0x0000000000000000000000000000000000000100", data: input }).catch(() => 0n);
+  breakdown.p256Precompile = { output: out, txGas: String(pg) };
+  log(`   P256VERIFY precompile 0x…0100: output=${out} (…01 = live), whole-tx gas ${pg}`);
+}
+await Bun.write("result.json", JSON.stringify({ when: new Date().toISOString(), owner: owner.address, chip: chip.address, relayer: RELAYER, gas: String(g), gasPrice: String(gasPrice),
+  deployGas: String(dRcpt.gasUsed), calldataBytes: (s1.tx.data.length - 2) / 2, breakdown, results }, null, 2));
+console.log(failures === 0 ? "\nALL CASES PASSED" : `\n${failures} CASE(S) FAILED`);
+process.exit(failures === 0 ? 0 : 1);
