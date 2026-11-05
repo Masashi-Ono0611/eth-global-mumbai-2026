@@ -17,7 +17,7 @@ const libraries: Record<string, string> = {
 }
 
 /** Folders and files in docs/site that are tooling, not pages. */
-const skip = new Set(['node_modules', 'dist', '.alchemy', 'lib', 'package.json', 'build.ts', 'alchemy.run.ts', 'worker.ts', 'schema.ts', 'drizzle.config.ts', 'migrations', 'README.md', 'tsconfig.json'])
+const skip = new Set(['node_modules', 'dist', '.alchemy', 'lib', 'package.json', 'build.ts', 'alchemy.run.ts', 'worker.ts', 'threads.ts', 'markdown.ts', 'schema.ts', 'drizzle.config.ts', 'migrations', 'README.md', 'tsconfig.json'])
 
 const escape = (text: string) =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')

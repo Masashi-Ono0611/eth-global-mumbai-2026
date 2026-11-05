@@ -1,20 +1,27 @@
 /**
- * The scratch site's only server code: login-free comments on page elements, kept in D1 through Drizzle (`schema.ts`).
- * Everything that is not `/api/comments…` is a static asset (Cloudflare serves those before this Worker runs). There is
- * no auth by choice: it is a team scratch site and its URL is in a public repo, so anyone can post or delete.
+ * The scratch site's only server code: login-free, threaded comments on page elements, kept in D1 through Drizzle
+ * (`schema.ts`, rules in `threads.ts`). Everything that is not `/api/comments…` is a static asset (Cloudflare serves
+ * those before this Worker runs). There is no auth by choice: it is a team scratch site and its URL is in a public
+ * repo, so anyone can post, change a thread's status, move or delete.
+ *
+ *   GET    /api/comments?page=<slug>      → Comment[]  (id, anchor, anchorText, name, body, createdAt, parentId,
+ *                                                       status, statusBy, statusAt)
+ *   GET    /api/comments.md?page=<slug>   → markdown for agents, open threads first, replies nested
+ *   POST   /api/comments                  { page, anchor, anchorText?, name, body, parentId? } → 201 Comment
+ *   PATCH  /api/comments/:id              { status, by } on a root, and/or { parentId: string | null } → 200 Comment
+ *   DELETE /api/comments/:id              → 204, with every reply below it
  */
-import { asc, eq } from 'drizzle-orm'
-import { drizzle } from 'drizzle-orm/d1'
-import { comments } from './schema.ts'
+import { asMarkdown } from './markdown.ts'
+import { commentStatuses, type CommentStatus } from './schema.ts'
+import { Refused, createComment, deleteThread, listComments, setParent, setStatus } from './threads.ts'
 
 interface Env {
   readonly DB: D1Database
 }
 
-type Comment = Omit<typeof comments.$inferSelect, 'page'>
-
 const limits = { page: 64, anchor: 200, anchorText: 300, name: 60, body: 4096 } as const
 const pagePattern = /^[a-z0-9_-]{1,64}$/
+const idPattern = /^[0-9a-f-]{36}$/
 
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), {
@@ -24,34 +31,6 @@ const json = (value: unknown, status = 200) =>
 
 const problem = (status: number, error: string) => json({ error }, status)
 
-const columns = {
-  id: comments.id,
-  anchor: comments.anchor,
-  anchorText: comments.anchorText,
-  name: comments.name,
-  body: comments.body,
-  createdAt: comments.createdAt,
-}
-
-const listComments = (env: Env, page: string): Promise<Comment[]> =>
-  drizzle(env.DB)
-    .select(columns)
-    .from(comments)
-    .where(eq(comments.page, page))
-    .orderBy(asc(comments.createdAt), asc(comments.id))
-
-const asMarkdown = (page: string, thread: Comment[]) => {
-  const byAnchor = new Map<string, Comment[]>()
-  for (const comment of thread) byAnchor.set(comment.anchor, [...(byAnchor.get(comment.anchor) ?? []), comment])
-  const sections = [...byAnchor.values()].map((anchored) => {
-    const first = anchored[0]
-    const heading = `## ${first?.anchorText || first?.anchor} \`#${first?.anchor}\``
-    const items = anchored.map((c) => `- **${c.name}** (${c.createdAt}): ${c.body.replaceAll('\n', '\n  ')}`)
-    return [heading, '', ...items].join('\n')
-  })
-  return `# Comments on /${page}/ (${thread.length})\n\n${sections.join('\n\n')}\n`
-}
-
 const readText = (value: unknown, max: number, required: boolean) => {
   if (typeof value !== 'string') return required ? undefined : ''
   const text = value.trim()
@@ -59,54 +38,85 @@ const readText = (value: unknown, max: number, required: boolean) => {
   return text
 }
 
-const createComment = async (request: Request, env: Env) => {
+/** `undefined` when absent, `null` to clear, an id otherwise; anything else is refused. */
+const readParentId = (value: unknown): string | null | undefined => {
+  if (value === undefined || value === null) return value
+  if (typeof value === 'string' && idPattern.test(value)) return value
+  throw new Refused({ status: 400, message: 'parentId must be a comment id or null' })
+}
+
+const readObject = async (request: Request): Promise<Record<string, unknown>> => {
   const input: unknown = await request.json().catch(() => undefined)
-  if (typeof input !== 'object' || input === null) return problem(400, 'expected a JSON object')
-  // SAFETY: checked just above that `input` is a non-null object; every field is narrowed by readText before use.
-  const fields = input as Record<string, unknown>
-  const page = readText(fields.page, limits.page, true)
-  const anchor = readText(fields.anchor, limits.anchor, true)
-  const anchorText = readText(fields.anchorText, limits.anchorText, false)
-  const name = readText(fields.name, limits.name, true)
-  const body = readText(fields.body, limits.body, true)
-  if (page === undefined || !pagePattern.test(page)) return problem(400, 'page must match [a-z0-9_-]{1,64}')
-  if (anchor === undefined) return problem(400, `anchor is required (≤ ${limits.anchor})`)
-  if (anchorText === undefined) return problem(400, `anchorText must be ≤ ${limits.anchorText}`)
-  if (name === undefined) return problem(400, `name is required (≤ ${limits.name})`)
-  if (body === undefined) return problem(400, `body is required (≤ ${limits.body})`)
-  const comment: Comment = { id: crypto.randomUUID(), anchor, anchorText, name, body, createdAt: new Date().toISOString() }
-  await drizzle(env.DB).insert(comments).values({ ...comment, page })
+  if (typeof input !== 'object' || input === null) throw new Refused({ status: 400, message: 'expected a JSON object' })
+  // SAFETY: checked just above that `input` is a non-null object; every field is narrowed before use.
+  return input as Record<string, unknown>
+}
+
+const required = <A>(value: A | undefined, message: string): A => {
+  if (value === undefined) throw new Refused({ status: 400, message: message })
+  return value
+}
+
+const create = async (request: Request, env: Env) => {
+  const fields = await readObject(request)
+  const parentId = readParentId(fields.parentId) ?? null
+  const page = required(readText(fields.page, limits.page, true), 'page is required')
+  if (!pagePattern.test(page)) throw new Refused({ status: 400, message: 'page must match [a-z0-9_-]{1,64}' })
+  const comment = await createComment(env.DB, {
+    page,
+    parentId,
+    // A reply inherits its parent's anchor, so it may omit one.
+    anchor: required(readText(fields.anchor, limits.anchor, parentId === null), `anchor is required (≤ ${limits.anchor})`),
+    anchorText: required(readText(fields.anchorText, limits.anchorText, false), `anchorText must be ≤ ${limits.anchorText}`),
+    name: required(readText(fields.name, limits.name, true), `name is required (≤ ${limits.name})`),
+    body: required(readText(fields.body, limits.body, true), `body is required (≤ ${limits.body})`),
+  })
   return json(comment, 201)
 }
 
-const deleteComment = async (env: Env, id: string) => {
-  const deleted = await drizzle(env.DB).delete(comments).where(eq(comments.id, id)).returning({ id: comments.id })
-  return deleted.length > 0 ? new Response(null, { status: 204 }) : problem(404, 'no such comment')
+const isStatus = (value: unknown): value is CommentStatus =>
+  typeof value === 'string' && commentStatuses.some((status) => status === value)
+
+const patch = async (request: Request, env: Env, id: string) => {
+  const fields = await readObject(request)
+  const parentId = readParentId(fields.parentId)
+  if (fields.status === undefined && parentId === undefined) throw new Refused({ status: 400, message: 'send status and by, or parentId' })
+  let comment = parentId === undefined ? undefined : await setParent(env.DB, id, parentId)
+  if (fields.status !== undefined) {
+    if (!isStatus(fields.status)) throw new Refused({ status: 400, message: `status must be one of ${commentStatuses.join(', ')}` })
+    const by = required(readText(fields.by, limits.name, true), `by is required (≤ ${limits.name})`)
+    comment = await setStatus(env.DB, id, fields.status, by)
+  }
+  return json(comment)
 }
 
-const handle = async (request: Request, env: Env) => {
-  const url = new URL(request.url)
+const read = async (url: URL, env: Env) => {
   const page = url.searchParams.get('page') ?? ''
+  if (!pagePattern.test(page)) throw new Refused({ status: 400, message: 'page must match [a-z0-9_-]{1,64}' })
+  const all = await listComments(env.DB, page)
+  if (url.pathname === '/api/comments') return json(all)
+  return new Response(asMarkdown(page, all), {
+    headers: { 'content-type': 'text/markdown; charset=utf-8', 'cache-control': 'no-store' },
+  })
+}
+
+const route = async (request: Request, env: Env): Promise<Response> => {
+  const url = new URL(request.url)
+  if (url.pathname === '/api/comments' && request.method === 'POST') return create(request, env)
   if (url.pathname === '/api/comments' || url.pathname === '/api/comments.md') {
-    if (request.method === 'POST' && url.pathname === '/api/comments') return createComment(request, env)
-    if (request.method !== 'GET') return problem(405, 'method not allowed')
-    if (!pagePattern.test(page)) return problem(400, 'page must match [a-z0-9_-]{1,64}')
-    const thread = await listComments(env, page)
-    if (url.pathname === '/api/comments') return json(thread)
-    return new Response(asMarkdown(page, thread), {
-      headers: { 'content-type': 'text/markdown; charset=utf-8', 'cache-control': 'no-store' },
-    })
+    return request.method === 'GET' ? read(url, env) : problem(405, 'method not allowed')
   }
-  const deleting = /^\/api\/comments\/([0-9a-f-]{36})$/.exec(url.pathname)
-  if (deleting?.[1] !== undefined) {
-    return request.method === 'DELETE' ? deleteComment(env, deleting[1]) : problem(405, 'method not allowed')
-  }
-  return problem(404, 'not found')
+  const id = /^\/api\/comments\/([0-9a-f-]{36})$/.exec(url.pathname)?.[1]
+  if (id === undefined) return problem(404, 'not found')
+  if (request.method === 'PATCH') return patch(request, env, id)
+  if (request.method === 'DELETE') return (await deleteThread(env.DB, id), new Response(null, { status: 204 }))
+  return problem(405, 'method not allowed')
 }
 
 export default {
   fetch: (request: Request, env: Env) =>
-    handle(request, env).catch((error: unknown) => {
+    route(request, env).catch((error: unknown) => {
+      if (error instanceof Refused) return problem(error.status, error.message)
       console.error('comments: request failed', error)
       return problem(500, 'internal error')
     }),
