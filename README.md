@@ -75,6 +75,7 @@ Reference clone: `/home/kristjan/code/styldappv2` (`github.com/grmkris/styld.app
 - `docs/foundation.md` — styldappv2 commit pin + Foldkit/skills references
 - `docs/brainstorm-chatgpt-robot-payments.md` — hardware / gate / offline brainstorm
 - `docs/coding-agent-brief.md` — reading order for the coding agent
+- `docs/infrastructure.md` — Cloudflare infrastructure brainstorm (for the team)
 - `docs/open-questions.md` — what still needs answering
 - `docs/research/` — optional copies of deeper research later
 
