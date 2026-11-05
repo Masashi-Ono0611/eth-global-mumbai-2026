@@ -42,7 +42,7 @@
     "test": "bun run test:unit && bun run test:native",
     "test:native": "bun run build && ALCHEMY_TEST_DEV=1 bun test packages/server/test/Runtime.native.test.ts",
     "test:unit": "vitest run --exclude **/*.native.test.ts",
-    "check": "bun run format:check && bun run agents:check && bun run provenance:check && bun run i18n:check && bun run graph:check && bun run suppressions:check && bun run canaries:check && bun run typecheck && bun run lint && bun run unused:check && bun run unused:production && bun run duplicates:check && bun run test && bun run bundle:check",
+    "check": "bun run format:check && bun run agents:check && bun run provenance:check && bun run vendor:check && bun run i18n:check && bun run graph:check && bun run suppressions:check && bun run canaries:check && bun run typecheck && bun run lint && bun run unused:check && bun run unused:production && bun run duplicates:check && bun run test && bun run bundle:check",
     "i18n:check": "bun tools/i18n-check.ts",
     "i18n:generate": "bun tools/i18n-check.ts --write",
     "dev:preview": "alchemy dev --stage local",
@@ -57,7 +57,8 @@
     "canaries:check": "bun tools/checker-canaries.ts",
     "bundle:check": "bun tools/bundle-check.ts",
     "deploy": "alchemy deploy --stage main",
-    "site:deploy": "bun run --cwd docs/site deploy"
+    "site:deploy": "bun run --cwd docs/site deploy",
+    "vendor:check": "bun tools/vendored-repos.ts"
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "catalog:",

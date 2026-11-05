@@ -16,6 +16,7 @@ export default defineConfig({
     '**/.wrangler/**',
     '.agents/**',
     '.claude/**',
+    'repos/**',
     'tools/oxlint/anti-slop/**',
   ],
   options: { typeAware: true, reportUnusedDisableDirectives: 'error' },

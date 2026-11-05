@@ -1,7 +1,7 @@
 {
   "sources": {
     "anti-slop": "https://github.com/dmmulroy/anti-slop/tree/c44ef22ca116d0ba62a3ff663a0bd13a3f3fa40b",
-    "alchemy-domain": "https://github.com/alchemy-run/alchemy/tree/3bb45b0f089597f4b0f9c908b2f5d615201d1405"
+    "alchemy-domain": "https://github.com/alchemy-run/alchemy/tree/c78e72bc1c172ede20747ac0b8a2175ef1de31a1"
   },
   "files": [
     {
@@ -65,34 +65,6 @@
       "sha256": "461f1c2ca5d55b63cb52573994e6be53b8dc9516899f39426963c786aab3aa9b"
     },
     {
-      "path": ".agents/skills/alchemy-domain/SKILL.md",
-      "sha256": "0e70d45940d08a31283ea8c937d8c5a27adc47be8cdebfdf16b77f49c8fe33ed"
-    },
-    {
-      "path": ".agents/skills/alchemy-domain/references/building-blocks.md",
-      "sha256": "b7d228692b095de138940429198b1c70fc9fe3c6b56ba09735abb56e479e380b"
-    },
-    {
-      "path": ".agents/skills/alchemy-domain/references/frontend.md",
-      "sha256": "193ad9fdcbad3bc33bc1eeff7b1071e010c9c8dad087196759967ba63418d667"
-    },
-    {
-      "path": ".agents/skills/alchemy-domain/references/hosting.md",
-      "sha256": "a38a0ebc332d806f209a715691e6cd3e25ac4c0e6b1253439d19617f6f7cb68c"
-    },
-    {
-      "path": ".agents/skills/alchemy-domain/references/layout.md",
-      "sha256": "2d80db62e2deac622b287c5d54695be16be96b44436221a5f34d850f801cbb44"
-    },
-    {
-      "path": ".agents/skills/alchemy-domain/references/modeling.md",
-      "sha256": "89eb88b88140567a5a04242b73653bc41be3d390adef6890a027176d9c5130ea"
-    },
-    {
-      "path": ".agents/skills/alchemy-domain/references/testing.md",
-      "sha256": "0b0e4dca66039fcdbe05b03488211448491f5c57408e1bd2756c5c1fd28159f3"
-    },
-    {
       "path": ".agents/skills/durable-objects/LICENSE",
       "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
     },
@@ -114,7 +86,7 @@
     },
     {
       "path": ".agents/skills/sources.json",
-      "sha256": "1ab87f3ab74650f42942343fe248c72708988978fa84c52504b30048a5343384"
+      "sha256": "d40f4c64700e6b62f992784a16c944d5ff441602d1177012a3ad536390a61e28"
     },
     {
       "path": ".agents/skills/thermo-nuclear-code-quality-review/LICENSE",
@@ -155,6 +127,38 @@
     {
       "path": ".agents/skills/alchemy-domain/LICENSE",
       "sha256": "50e6751797c50dedd75ef1b8a0d9e42f5f8472e9fbce91f34718e9f97b0c780a"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/NOTICE",
+      "sha256": "ee554f2b33790b4127a4f161f2a73b4e5c194b048d0a97daf60418f4b7199073"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/SKILL.md",
+      "sha256": "fb2594c8da307f64c21dc4ac7649fe05ca8e6da40238579ad1da708fd26d200b"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/references/building-blocks.md",
+      "sha256": "7d72f35a1173903065df44c917e0bf07c818c808ab783af6e2c4bfab9b62387d"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/references/frontend.md",
+      "sha256": "dbc9b88a66a02e3dbef6f2f2160eb648c5d506360c4aa5ecfd53b83ce1ae966e"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/references/hosting.md",
+      "sha256": "1a404da91d14de6b6a347fd4ca5587c2f688a9b157666847cae522b1cdade45b"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/references/layout.md",
+      "sha256": "8de891a4a96c7d9bea62daffa0107e8dbd97449576109b9d909adbf27bedb03e"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/references/modeling.md",
+      "sha256": "090d35ce3aef3a7330f956c81e0c0fd575427f3c147850adb1c5c398bee6c55e"
+    },
+    {
+      "path": ".agents/skills/alchemy-domain/references/testing.md",
+      "sha256": "bb053c18d5e1bfb2bf49b2eac0cba1152213196e38c78e0f682597fc87814271"
     }
   ]
 }

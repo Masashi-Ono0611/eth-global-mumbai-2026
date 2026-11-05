@@ -27,5 +27,6 @@ export default {
     },
   },
   // Vendored source is checked byte-for-byte against its recorded upstream hash.
-  ignore: ['tools/oxlint/anti-slop/**'],
+  // repos/ holds read-only upstream snapshots for agents (tools/vendored-repos.ts).
+  ignore: ['tools/oxlint/anti-slop/**', 'repos/**'],
 } satisfies KnipConfig

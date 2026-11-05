@@ -14,6 +14,9 @@ export default defineConfig({
     // Team notes, brainstorm pages and reference pins, written by hand and by agents; not code.
     'docs/**',
     'references/**',
+    'repos/**',
+    // Foldkit's verbatim conventions, verified against repos/foldkit by vendor:check.
+    'FOLDKIT.md',
     'docs/migration/v1-inventory.json',
     'tools/oxlint/anti-slop/**',
     'packages/i18n/catalogs/**',
