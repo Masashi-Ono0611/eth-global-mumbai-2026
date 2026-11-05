@@ -105,3 +105,93 @@ Research notes for each group live in `docs/research/`.
 | `zerodevapp_kernel` | https://github.com/zerodevapp/kernel | `c960b42d2e` | evm-accounts-and-payments |
 | `zerodevapp_kernel-7579-plugins` | https://github.com/zerodevapp/kernel-7579-plugins | `332deed6ee` | evm-accounts-and-payments |
 | `zxing-cpp_zxing-cpp` | https://github.com/zxing-cpp/zxing-cpp | `bae7153616` | robots-and-embedded |
+
+## Added 2026-11-05 (gap round: Radxa bring-up, QR scan, ESP32 gate, signing, accounts, Arc, 0G, Open Duck)
+
+Sparse clones (only the listed paths): `radxa-docs_docs` (English Zero 3 docs and shared snippets), `rockchip-linux_rkbin` (`bin/rk35` loaders) and `wevm_viem` (`src/`). See `docs/research/reference-additions.md` for why each was added.
+
+| Clone | Upstream | Commit | Research note |
+| --- | --- | --- | --- |
+| `rockchip-linux_rkdeveloptool` | https://github.com/rockchip-linux/rkdeveloptool | `304f073752` | reference-additions |
+| `radxa-pkg_radxa-overlays` | https://github.com/radxa-pkg/radxa-overlays | `5df76fec76` | reference-additions |
+| `radxa-docs_docs` | https://github.com/radxa-docs/docs | `c08fbdf11d` | reference-additions |
+| `rockchip-linux_rkbin` | https://github.com/rockchip-linux/rkbin | `3e288fe814` | reference-additions |
+| `paulmillr_qr` | https://github.com/paulmillr/qr | `951806df84` | reference-additions |
+| `mchehab_zbar` | https://github.com/mchehab/zbar | `77ad19ae9b` | reference-additions |
+| `kaiaai_arduino_128x160_display` | https://github.com/kaiaai/arduino_128x160_display | `0141cab16a` | reference-additions |
+| `yoprogramo_ESP_QRcode` | https://github.com/yoprogramo/ESP_QRcode | `57a4044d9e` | reference-additions |
+| `paulmillr_micro-eth-signer` | https://github.com/paulmillr/micro-eth-signer | `0d65b83d23` | reference-additions |
+| `bitcoin-core_secp256k1` | https://github.com/bitcoin-core/secp256k1 | `b97f7f5f9c` | reference-additions |
+| `0xOucan_LeekWallet` | https://github.com/0xOucan/LeekWallet | `78662b42b3` | reference-additions |
+| `This-Is-Captain-Code_shrikevault` | https://github.com/This-Is-Captain-Code/shrikevault | `e262db68a7` | reference-additions |
+| `wevm_viem` | https://github.com/wevm/viem | `9bdccb06c5` | reference-additions |
+| `erc7579_erc7579-implementation` | https://github.com/erc7579/erc7579-implementation | `99cbd34479` | reference-additions |
+| `MetaMask_smart-accounts-kit` | https://github.com/MetaMask/smart-accounts-kit | `555dd2043a` | reference-additions |
+| `pimlicolabs_permissionless.js` | https://github.com/pimlicolabs/permissionless.js | `a536891b73` | reference-additions |
+| `zerodevapp_sdk` | https://github.com/zerodevapp/sdk | `52b0430074` | reference-additions |
+| `erc-8004_erc-8004-contracts` | https://github.com/erc-8004/erc-8004-contracts | `b9e466c250` | reference-additions |
+| `sudeepb02_awesome-erc8004` | https://github.com/sudeepb02/awesome-erc8004 | `6ec3d36896` | reference-additions |
+| `brtvcl_eip-3009-transferWithAuthorization-example` | https://github.com/brtvcl/eip-3009-transferWithAuthorization-example | `4094a9f836` | reference-additions |
+| `circlefin_arc-stablecoin-fx` | https://github.com/circlefin/arc-stablecoin-fx | `53b2b39a40` | reference-additions |
+| `l0vvkey_awesome-arc` | https://github.com/l0vvkey/awesome-arc | `b498dd8c7e` | reference-additions |
+| `Salado210102_arc-smart-orders` | https://github.com/Salado210102/arc-smart-orders | `1e7d02d4fa` | reference-additions |
+| `alexandre-mrt_0g-agent-kit` | https://github.com/alexandre-mrt/0g-agent-kit | `7ac9aea678` | reference-additions |
+| `ddiddi_solo-router` | https://github.com/ddiddi/solo-router | `fd46ecd686` | reference-additions |
+| `OakandSparrowSystemsEnterprises_AI-Infra-Hackathon` | https://github.com/OakandSparrowSystemsEnterprises/AI-Infra-Hackathon | `a253ce32fe` | reference-additions |
+| `IntelligentSystemsLabUTV_hackathon-physical-ai` | https://github.com/IntelligentSystemsLabUTV/hackathon-physical-ai | `e7a080f16a` | reference-additions |
+| `apirrone_Open_Duck_reference_motion_generator` | https://github.com/apirrone/Open_Duck_reference_motion_generator | `3d7bc6fd80` | reference-additions |
+
+## Added 2026-11-05 (research round 2, version-matched stack clones, Pele)
+
+Commits are read from each clone. The `@version` clones match the versions the repo pins (added by the foundation session).
+
+| Clone | Upstream | Commit | Research note |
+| --- | --- | --- | --- |
+| `agentic-commerce-protocol_agentic-commerce-protocol` | https://github.com/agentic-commerce-protocol/agentic-commerce-protocol | `7fdd78df67` | merchant-and-agent-commerce |
+| `agent-intent_verifiable-intent` | https://github.com/agent-intent/verifiable-intent | `356c29635f` | merchant-and-agent-commerce |
+| `ahmad-codex_purser` | https://github.com/ahmad-codex/purser | `088ec08976` | mcp-wallet-and-ai-client |
+| `alchemyplatform_rundler` | https://github.com/alchemyplatform/rundler | `f055885c1f` | wallet-accounts-v2 |
+| `alchemy-run_alchemy@beta.84` | https://github.com/alchemy-run/alchemy | `c78e72bc1c` | stack-references (version-matched) |
+| `AlexxIT_go2rtc` | https://github.com/AlexxIT/go2rtc | `990f4de3cc` | robot-browser-and-mcp |
+| `andy-t-wang_agentbook` | https://github.com/andy-t-wang/agentbook | `bfdb56d1a3` | world-v2 |
+| `cloudflare_agents` | https://github.com/cloudflare/agents | `e0f95e5870` | mcp-wallet-and-ai-client, merchant-and-agent-commerce, robot-browser-and-mcp, stack-references |
+| `cloudflare_realtime-examples` | https://github.com/cloudflare/realtime-examples | `53489c2847` | robot-browser-and-mcp |
+| `cloudflare_workers-oauth-provider` | https://github.com/cloudflare/workers-oauth-provider | `b4cec31730` | mcp-wallet-and-ai-client, nod-froggy-patterns |
+| `coinbase_agents` | https://github.com/coinbase/agents | `1f91fea2b9` | mcp-wallet-and-ai-client |
+| `coinbase_smart-wallet` | https://github.com/coinbase/smart-wallet | `a4e83fd36c` | wallet-accounts-v2 |
+| `Effect-TS_effect@4.0.7` | https://github.com/Effect-TS/effect | `b174739b6b` | stack-references (version-matched) |
+| `etherspot_skandha` | https://github.com/etherspot/skandha | `acba0d8e3a` | wallet-accounts-v2 |
+| `foldkit_foldkit@0.169.0` | https://github.com/foldkit/foldkit | `7ee214268c` | stack-references (version-matched) |
+| `google-agentic-commerce_a2a-x402` | https://github.com/google-agentic-commerce/a2a-x402 | `125db5526a` | merchant-and-agent-commerce |
+| `google-agentic-commerce_AP2` | https://github.com/google-agentic-commerce/AP2 | `e1ea56db72` | mcp-wallet-and-ai-client, merchant-and-agent-commerce |
+| `IliaLarchenko_robot_MCP` | https://github.com/IliaLarchenko/robot_MCP | `5087718375` | robot-browser-and-mcp |
+| `jackccrawford_reachy-mini-mcp` | https://github.com/jackccrawford/reachy-mini-mcp | `0ad7fc888b` | robot-browser-and-mcp |
+| `lpigeon_unitree-go2-mcp-server` | https://github.com/lpigeon/unitree-go2-mcp-server | `e7a6737dc9` | robot-browser-and-mcp |
+| `MetaMask_snap-7715-permissions` | https://github.com/MetaMask/snap-7715-permissions | `60c8a92a9d` | wallet-accounts-v2 |
+| `modelcontextprotocol_ext-apps` | https://github.com/modelcontextprotocol/ext-apps | `19256f52ca` | mcp-wallet-and-ai-client, nod-froggy-patterns |
+| `modelcontextprotocol_ext-auth` | https://github.com/modelcontextprotocol/ext-auth | `15ca394e00` | mcp-wallet-and-ai-client |
+| `modelcontextprotocol_modelcontextprotocol` | https://github.com/modelcontextprotocol/modelcontextprotocol | `3c4d91b7e8` | mcp-wallet-and-ai-client |
+| `modelcontextprotocol_typescript-sdk` | https://github.com/modelcontextprotocol/typescript-sdk | `1e608caeb5` | mcp-wallet-and-ai-client |
+| `modeofO_402-hardware` | https://github.com/modeofO/402-hardware | `e4c8899be7` | merchant-and-agent-commerce |
+| `obsidianmd_pele` | https://github.com/obsidianmd/pele | `3a2f075ee0` | docs/site (diagram renderer) |
+| `OpenZeppelin_openzeppelin-community-contracts` | https://github.com/OpenZeppelin/openzeppelin-community-contracts | `16cb98acc9` | wallet-accounts-v2 |
+| `oportetxyz_oportet` | https://github.com/oportetxyz/oportet | `94b31e739b` | wallet-accounts-v2 |
+| `pimlicolabs_alto` | https://github.com/pimlicolabs/alto | `94b1e46477` | wallet-accounts-v2 |
+| `pollen-robotics_microduck-simulator` | https://huggingface.co/spaces/pollen-robotics/microduck-simulator | `ad9d41a763` | robot-browser-and-mcp |
+| `pollen-robotics_reachy_mini` | https://github.com/pollen-robotics/reachy_mini | `25756e7042` | robot-browser-and-mcp |
+| `pollen-robotics_reachy_mini_conversation_app` | https://github.com/pollen-robotics/reachy_mini_conversation_app | `e901925591` | robot-browser-and-mcp |
+| `robotmcp_ros-mcp-server` | https://github.com/robotmcp/ros-mcp-server | `476591ac05` | robot-browser-and-mcp |
+| `rokbenko_quackd` | https://github.com/rokbenko/quackd | `64876bff42` | robot-browser-and-mcp |
+| `s0nderlabs_remit` | https://github.com/s0nderlabs/remit | `d3ced6cb5f` | mcp-wallet-and-ai-client |
+| `safe-global_safe-modules` | https://github.com/safe-global/safe-modules | `9e5f3d0701` | wallet-accounts-v2 |
+| `tkhq_secure-browser-mcp` | https://github.com/tkhq/secure-browser-mcp | `f5849458bb` | mcp-wallet-and-ai-client |
+| `Universal-Commerce-Protocol_ucp` | https://github.com/Universal-Commerce-Protocol/ucp | `58c7ab92dc` | merchant-and-agent-commerce |
+| `visa_trusted-agent-protocol` | https://github.com/visa/trusted-agent-protocol | `16d59bdf3f` | merchant-and-agent-commerce |
+| `worldcoin_agentkit-shopify-demo` | https://github.com/worldcoin/agentkit-shopify-demo | `3af21dbed6` | merchant-and-agent-commerce, world-v2 |
+| `worldcoin_developer-portal` | https://github.com/worldcoin/developer-portal | `ac44581f8e` | world-v2 |
+| `worldcoin_maitre-demo-plugin` | https://github.com/worldcoin/maitre-demo-plugin | `31d5bf244e` | world-v2 |
+| `worldcoin_simulator` | https://github.com/worldcoin/simulator | `ae8e4b807a` | world-v2 |
+| `worldcoin_walletkit` | https://github.com/worldcoin/walletkit | `3432423a8f` | world-v2 |
+| `worldcoin_web-authenticator` | https://github.com/worldcoin/web-authenticator | `8f3eae8f59` | world-v2 |
+| `worldcoin_world-id-utility-contracts` | https://github.com/worldcoin/world-id-utility-contracts | `6f09724250` | world-v2 |
+| `xanderslabs_norkey` | https://github.com/xanderslabs/norkey | `dc1e026979` | wallet-accounts-v2 |
