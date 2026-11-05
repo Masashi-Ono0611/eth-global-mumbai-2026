@@ -1,87 +1,80 @@
-# ETH Global Mumbai 2026
+# Vitaquack
 
-Repo / folder: `eth-global-mumbai-2026`.
+**Don't give a robot your wallet. Give it a budget.**
 
-ETHGlobal Mumbai project notes for a walking duck robot that can pay with USDC.
+A passkey wallet on [Arc](https://docs.arc.io) grants a USDC budget to a robot's chip. A Robot Agent asks [0G](https://0g.ai)
+what to buy, the chip signs every payment, our x402 facilitator settles it, and Arc enforces every limit when the payment
+lands. Over the limit or for a restricted item, the owner approves once in World App ([World Agent Pass](https://auth.world.org)).
+The duck ([Vitaquack](https://github.com/apirrone/Open_Duck_Mini), our modified Open Duck Mini) is the first robot.
 
-This folder is **docs only** for now. No app code yet. The goal is to lock the story, rules, and prize plan before scaffolding.
+Built at ETHGlobal Mumbai, 5–7 Nov 2026. Prize tracks: Arc (Advanced Stablecoin Logic), 0G (Physical AI: Agents with a
+Body), World (Agent Pass).
 
-## What we are building
+## How it works
 
-A 3D-printed duck robot (Open Duck Mini) that:
+1. **Wallet.** The owner signs up with a passkey. That passkey is the signer of a MetaMask `HybridDeleGator` smart account
+   on Arc mainnet (verified on-chain with the P-256 precompile). The owner funds it with USDC.
+2. **Grant.** The owner grants a robot's chip a budget ("$10/day, max $2 per payment, these merchants, until Sunday") by
+   signing a MetaMask Delegation Framework delegation with the passkey. No transaction, no gas.
+3. **Robot Agent.** One errand state machine per robot: it asks 0G (`pay / ask_human / walk_away`) over structured
+   input, logs the request id, and sends the chip a sign request over HTTPS long-polling.
+4. **Chip.** The chip holds the only spending key, checks the invoice against its policy, builds the one-time payment
+   voucher itself and signs it. No lease from the agent for 35 s → it stops and refuses to sign.
+5. **Merchant.** An x402 checkout. Our facilitator verifies the voucher, simulates, and submits `redeemDelegations`; Arc
+   checks the daily cap, the per-payment cap, the payee allowlist, the invoice replay guard, expiry and revocation.
+6. **World.** Over the cap, or a restricted item (a mock cigarette pack): the owner approves in World App; the backend
+   verifies the token and co-signs that one payment. Deny or expiry means nothing is paid.
+7. **Evidence.** Every decision is logged with its 0G request id; episodes are uploaded to 0G Storage and anchored in an
+   `EpisodeLog` contract. The gate (a web page now, an ESP32 later) opens only on an Ed25519-signed "paid".
 
-1. Has its own wallet on the robot
-2. Gets a spending limit from the owner's passkey wallet
-3. Walks to a merchant, reads a payment QR with its camera
-4. Pays in USDC on Arc mainnet
-5. Optionally asks the owner (via World ID Agent Pass) before restricted or over-limit purchases
-
-Demo beat: ask the duck to buy something, it walks, finds the QR, pays, comes back. Cigarettes are the joke version of the demo; use a mock pack or an age check for the real pitch.
-
-## Why this matters
-
-People should not hand a robot an open wallet. They should hand it a **budget**. The robot can spend inside that budget without the owner babysitting every cent, and the owner can revoke it instantly.
-
-Offline bonus: the robot can sign a payment without network, then the merchant or a relay submits it later. The on-chain limit still applies when it lands.
-
-## Prize tracks we are aiming at
-
-- **Arc / Circle** — advanced stablecoin logic (must start in Arc Studio). One Arc track only.
-- **0G** — Physical AI: Agents with a Body (decision loop + evidence + live booth demo).
-- **World** — World ID Agent Pass (human approval for over-limit or restricted buys, including a denied path).
-
-Easy optional add later: name the duck with ENSv2. Skipping Frame transactions and CROPS for now; they fight the Arc mainnet story.
-
-## Hard rules
-
-1. **On-chain is the authority.** Spending caps, revoke, and (where needed) World approval gates live on Arc. Cloudflare / our website only coordinates and records. A database row is never enough to authorise a payment.
-2. **Mainnet, real USDC.** Keep the demo cap small (for example $20, or much less while testing).
-3. **Robot key stays on the robot.** We never upload or store the ESP32 private key on our servers.
-4. **Honest demos.** Show a denied / cancelled World path. Keep a real commit history. Prefer a mock restricted item if venue rules are awkward.
-5. **Docs first, then foundation, then product.** No business logic until the shell is clean.
-
-## Bootstrap plan (when we code)
-
-Do **not** copy current styld.app / styldappv2 product modules.
-
-Use **styldappv2 commit `370a0e23`** (foundation boundary review): Bun + Effect + Alchemy + Foldkit **without** wardrobe business logic. Not stylelab v1. Details in `docs/foundation.md`.
-
-Then add only:
-
-- owner passkey wallet + robot registration
-- on-chain spending delegation
-- World Agent Pass approval flow
-- 0G decision step for Physical AI
-- robot / ESP32 payment + QR path
-- thin dashboard for the demo
-
-## Software foundation (for the coding agent)
-
-Reference clone: `/home/kristjan/code/styldappv2` (`github.com/grmkris/styld.app`).
-
-- **Bootstrap from commit** `370a0e23` (_foundation boundary review_) — stack shell **without** wardrobe business logic.
-- Wardrobe product starts at `68e12b0e`; do not copy that era as the base.
-- `stylelab` is Styld v1 (maintenance); not the foundation.
-- Latest HEAD’s pattern library: `repos/foldkit/` (only vendored repo snapshot today) plus `.agents/skills/` (Alchemy, Cloudflare Workers/DO, Foldkit, zyzz, Effect, etc.). Details in `docs/foundation.md`.
-- Hardware / gate / offline brainstorm from ChatGPT: `docs/brainstorm-chatgpt-robot-payments.md`.
-- Coding agent entrypoint: `docs/coding-agent-brief.md`.
-
-## Folder layout (docs)
-
-- `README.md` — this file
-- `docs/vision.md` — product story and demo script
-- `docs/prizes.md` — sponsor tracks and qualification checklist
-- `docs/decisions.md` — choices we already made
-- `docs/foundation.md` — styldappv2 commit pin + Foldkit/skills references
-- `docs/brainstorm-chatgpt-robot-payments.md` — hardware / gate / offline brainstorm
-- `docs/coding-agent-brief.md` — reading order for the coding agent
-- `docs/infrastructure.md` — Cloudflare infrastructure brainstorm (for the team)
-- `docs/open-questions.md` — what still needs answering
-- `docs/research/` — optional copies of deeper research later
+The one rule: **Arc is the authority.** Our servers coordinate and relay; they can never authorise, steal or redirect a
+payment, only delay it.
 
 ## Status
 
-- Research done (sponsors, Arc stack, styld inspection)
-- Non-technical foundation: in progress here
-- Code scaffold: not started
-- Hardware print / assemble: owner-owned timeline (start before the event if possible)
+- **Docs and design:** `docs/spec.md` (the build order), `docs/decisions.md`, `docs/plan.md`, the live
+  [architecture page](https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/) and
+  [plan page](https://eth-mumbai-site.kristjan-grm11775.workers.dev/plan/) (both commentable).
+- **Evidence so far:** simulated end-to-end grant chains and our facilitator against live Arc mainnet state
+  (`docs/research/spike-s2-facilitator.md`), a World token verifier prototype (`docs/research/spike-s5b-jwt-onchain.md`),
+  and the real Radxa signing the payment voucher (`docs/spikes/hardware-results.md`). Real broadcasts are recorded in
+  `docs/evidence/` as they happen.
+- **Code:** being built from `docs/spec.md` during the event (see the commit history).
+
+## Repo map
+
+| Path                      | What                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| `apps/web`                | Foldkit SSR app: wallet, robot console, merchant demo, virtual gate                             |
+| `packages/server`         | the API Worker: auth, wallet, robot agent, merchant, chip protocol, World                       |
+| `packages/protocol`       | shared schemas and hashes (invoice hash, chip messages, x402, approval)                         |
+| `packages/chain`          | Arc: delegations, facilitator, relayer (viem + MetaMask Smart Accounts Kit)                     |
+| `contracts`               | `RobotPaymentPolicyEnforcer` (Arc) and `EpisodeLog` (0G Chain), Foundry; authored in Arc Studio |
+| `apps/chip`               | the chip client (mock chip now; the Radxa runs the same code)                                   |
+| `tools/evidence-uploader` | uploads episodes to 0G Storage and records them on 0G Chain                                     |
+| `docs/`                   | spec, decisions, plan, research, spikes, evidence, the team site (`docs/site`)                  |
+| `references/`             | read-only upstream clones (gitignored; pinned in `references/README.md`)                        |
+
+## Run it
+
+```sh
+bun install
+heavy --wait bun run check        # the full gate (format, typecheck, lint, knip, tests, native workerd tests)
+bun run dev:preview               # local Alchemy stage
+```
+
+Deploys go through Alchemy on every green push to `main` (`docs/DEPLOYMENT.md`). Secrets are never in the repo.
+
+## Code that predates the event
+
+The application shell was imported on 5 Nov 2026 as a single commit from the public
+[`grmkris/styld.app`](https://github.com/grmkris/styld.app) repository at commit `370a0e23` (Bun workspaces, Effect 4,
+Alchemy on Cloudflare, Foldkit, D1/R2, quality gates). It contains no product logic; Styld's product was never part of
+this repo. Everything about wallets, grants, robots, merchants, chips, World and 0G was written during the event, in
+small commits. Research notes under `docs/research/` and the spike code under `docs/research/spikes/` were produced
+during the event too.
+
+## Team
+
+Kris (software, orchestrating the agents), two teammates on the physical duck and 0G. Agents: Claude Code sessions on
+this repo (see `AGENTS.md`).
