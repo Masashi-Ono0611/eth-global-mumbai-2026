@@ -17,7 +17,7 @@ import { recoveryRoutes } from './RecoveryFixture.ts'
 import { makeAuthHttp } from '../src/AuthHttp.ts'
 import { DomainLive } from '../src/DomainLive.ts'
 import { StyldDatabase, StyldMedia } from '../src/Resources.ts'
-import { storageHealth } from '../src/StorageHealth.ts'
+import { storageHealth } from './StorageHealth.ts'
 
 // Only the local native-test stack imports this fixture. It has no production declaration.
 export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(

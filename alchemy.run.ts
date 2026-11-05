@@ -1,6 +1,7 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Alchemy from 'alchemy'
 import { Config, Effect } from 'effect'
+import { StyldMedia } from '@styld/server/Resources'
 import StyldWorkerLive, { StyldWorker } from '@styld/server/StyldWorker'
 
 /**
@@ -14,10 +15,15 @@ export default Alchemy.Stack(
   { providers: Cloudflare.providers(), state: Cloudflare.state({ name: 'ethmumbai' }) },
   Effect.gen(function* () {
     const release = yield* Config.String('APP_RELEASE')
+    // Stage `main` is the live deploy; `local` is `alchemy dev`; any other stage is a preview.
+    const stage = yield* Alchemy.Stage
+    const environment = stage === 'main' ? 'production' : stage === 'local' ? 'local' : 'preview'
+    // The stack owns the media bucket even while no Worker serves media yet.
+    yield* StyldMedia
     const api = yield* StyldWorker
     const website = yield* Cloudflare.Website.Foldkit('Website', {
       rootDir: 'apps/web',
-      env: { VITE_APP_ENV: 'preview', VITE_APP_RELEASE: release },
+      env: { VITE_APP_ENV: environment, VITE_APP_RELEASE: release },
       compatibility: { date: '2026-10-19' },
       observability: {
         enabled: true,
@@ -47,7 +53,7 @@ export default Alchemy.Stack(
     yield* api.bind('RuntimeConfiguration', {
       env: {
         AUTH_ORIGIN: edge.url,
-        APP_ENV: 'preview',
+        APP_ENV: environment,
         APP_RELEASE: release,
         AUTH_SECRET: yield* Config.Redacted('APP_AUTH_SECRET'),
         AUTH_SESSION_KEYS: yield* Config.Redacted('APP_AUTH_SESSION_KEYS'),

@@ -163,7 +163,7 @@ test(
 )
 
 test(
-  'serves health and storage through the actual application Worker',
+  'serves health but no storage internals through the actual application Worker',
   Effect.gen(function* () {
     const { styldUrl } = yield* stack
     const health = yield* HttpClient.get(`${styldUrl}/api/health`)
@@ -171,8 +171,7 @@ test(
     expect(yield* health.json).toMatchObject({ service: 'styldappv2', status: 'ok' })
 
     const storage = yield* HttpClient.get(`${styldUrl}/api/storage`)
-    expect(storage.status).toBe(200)
-    expect(yield* storage.json).toMatchObject({ media: { sentinel: false } })
+    expect(storage.status).toBe(404)
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 60000 },
 )
