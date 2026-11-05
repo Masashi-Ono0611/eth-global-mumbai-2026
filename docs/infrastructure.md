@@ -1,5 +1,10 @@
 # Infrastructure brainstorm (Cloudflare)
 
+> **Updated for plan v3 (2026-11-05).** `RobotSession` became the **Robot Agent** (one DO per robot, also the AI
+> client: 0G, wallet MCP, chip WebSocket). The `Relayer` is our **x402 facilitator / relayer** (grant payments and
+> owner actions); **Circle's Facilitator Service** settles float payments. See `docs/plan.md` §2 and `decisions.md`.
+> The picture below is the v1 sketch; the architecture page has the current diagrams.
+
 Status: **brainstorm for the team, nothing built yet.** Written 2026-11-05. It builds on
 `decisions.md` and the notes in `docs/research/`. Where this conflicts with `decisions.md`,
 `decisions.md` wins.
@@ -54,11 +59,11 @@ at all.
 
 | DO | Instances | Why a DO |
 | --- | --- | --- |
-| `RobotSession` | one per robot | Holds the robot's WebSocket (robots sit behind NAT, so they connect out). Live state, a safe-stop button that reaches the robot in under 1 s, and the "what it's doing now" for the dashboard. Hibernation API keeps idle robots cheap |
+| `RobotAgent` (v3; was `RobotSession`) | one per robot | **The robot's AI client**: Agents SDK `Agent` running the pi-ai loop against 0G, holding the wallet MCP OAuth connection, logging every decision. Also holds the chip's WebSocket (chips sit behind NAT, so they connect out): pairing, sign requests to the chip, camera frames, movement with a 300 ms deadman and owner e-stop. Runs with no chip. Hibernation keeps idle robots cheap |
 | `Invoice` | one per invoice | Single-writer status machine `pending → paid → used`, or `→ expired`. Pushes a **server-signed** (Ed25519) status to the gate, which holds only the public key. Idempotent payment endpoint |
 | `Approval` | one per approval | The World device flow: start, show the code, then poll the token endpoint with an **alarm** at `interval` (+5 s on `slow_down`). Hard stop at 20 min. Approved → the approver key signs `{paymentIntentHash, expiry}`. Denied, expired or an outage → nothing is signed, so the payment can't happen |
-| `Relayer` | **one** | The relayer EOA's nonce must be serialised, and one DO is a natural lock. Builds transactions with `maxFeePerGas ≥ 20 gwei` (lower is silently dropped on Arc), retries, records tx hashes. Pays gas in USDC, so users never see gas |
-| `ChainWatcher` | **one** | Follows Arc logs (alarm every ~1 s, or a WebSocket subscription if the RPC supports it), matches payments to invoices, and writes `paid` into the `Invoice` DO. Native USDC also emits `Transfer` logs (EIP-7708), so de-duplicate against the ERC-20 events |
+| `Relayer` = our **x402 facilitator** (v3) | **one** | Settles grant payments (exact / ERC-7710 → `redeemDelegations`) and owner actions (passkey-signed one-time delegations). Float payments (EIP-3009) go to **Circle's Facilitator Service** instead. The relayer EOA's nonce must be serialised, and one DO is a natural lock. Builds transactions with `maxFeePerGas ≥ 20 gwei` (lower is silently dropped on Arc), retries, records tx hashes. Pays gas in USDC, so users never see gas |
+| `ChainWatcher` | **one** (v3: reconcile only; x402 settle already returns the receipt) | Follows Arc logs (alarm every ~1 s, or a WebSocket subscription if the RPC supports it), matches payments to invoices, and writes `paid` into the `Invoice` DO. Native USDC also emits `Transfer` logs (EIP-7708), so de-duplicate against the ERC-20 events |
 
 ### D1: read models only
 - owners, robots (address, label, body type), policies (**a mirror** of on-chain delegations for display),
