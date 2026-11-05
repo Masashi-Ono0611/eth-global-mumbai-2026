@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Template — copy me</title>
+    <link rel="stylesheet" href="/lib/base.css" />
+    <!-- Load only what the page uses. All are self-hosted and pinned in docs/site/package.json. -->
+    <script src="/lib/pele.js"></script>
+    <script src="/lib/mermaid.js"></script>
+    <script src="/lib/d3.js"></script>
+    <script src="/lib/chart.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Template</h1>
+      <p>Copy this folder to <code>docs/site/&lt;name&gt;/</code>, change the title, push to <code>main</code>.</p>
+
+      <div class="card">
+        <h2>Pele (Mermaid syntax, fast SVG)</h2>
+        <div id="pele"></div>
+      </div>
+      <div class="card">
+        <h2>Mermaid</h2>
+        <pre class="mermaid">sequenceDiagram
+  Duck->>Gate: scan QR
+  Duck->>Arc: signed USDC payment
+  Arc-->>Gate: paid
+  Gate->>Gate: open servo</pre>
+      </div>
+      <div class="card">
+        <h2>Chart.js</h2>
+        <canvas id="chart" height="120"></canvas>
+      </div>
+      <div class="card">
+        <h2>d3</h2>
+        <svg id="d3" width="100%" height="60"></svg>
+      </div>
+    </main>
+    <script>
+      pele.mount(document.getElementById('pele'), 'flowchart LR\n  Owner -->|grants cap| Duck -->|pays| Merchant')
+      mermaid.initialize({ startOnLoad: true })
+      new Chart(document.getElementById('chart'), {
+        type: 'bar',
+        data: { labels: ['cap', 'spent', 'left'], datasets: [{ label: 'USDC', data: [20, 7.5, 12.5] }] },
+      })
+      d3.select('#d3')
+        .selectAll('circle')
+        .data([10, 25, 40, 55])
+        .join('circle')
+        .attr('cx', (d, i) => 30 + i * 60)
+        .attr('cy', 30)
+        .attr('r', (d) => d / 4)
+        .attr('fill', 'currentColor')
+    </script>
+  </body>
+</html>

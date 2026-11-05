@@ -1,0 +1,28 @@
+name: Scratch site
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/site/**'
+      - 'bun.lock'
+      - '.github/workflows/site.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: site-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - run: bun run --cwd docs/site deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

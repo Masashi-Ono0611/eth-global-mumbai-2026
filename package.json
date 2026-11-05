@@ -4,7 +4,8 @@
   "workspaces": {
     "packages": [
       "apps/*",
-      "packages/*"
+      "packages/*",
+      "docs/site"
     ],
     "catalog": {
       "effect": "4.0.7",

@@ -1,0 +1,28 @@
+/* Shared look for scratch pages. Optional: pages may style themselves. */
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --card: #ffffff;
+  --ink: #1c1b19;
+  --muted: #6b6760;
+  --line: #e4e1da;
+  --accent: #2f6fde;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151514;
+    --card: #1e1e1c;
+    --ink: #ecebe7;
+    --muted: #a19d95;
+    --line: #34332f;
+    --accent: #7ea6f2;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); }
+main { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+a { color: var(--accent); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.25rem; margin: 1rem 0; }

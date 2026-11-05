@@ -69,7 +69,7 @@ export default defineConfig({
     })),
     // Catalog data and types are regenerated and compared byte-for-byte by i18n:check.
     { files: ['packages/i18n/src/generated.ts', 'packages/i18n/src/catalogs.ts'], rules: { 'max-lines': 'off' } },
-    { files: ['tools/**'], rules: { 'no-console': 'off' } },
+    { files: ['tools/**', 'docs/site/build.ts'], rules: { 'no-console': 'off' } },
     { files: ['**/*.test.ts'], rules: { 'max-lines-per-function': 'off' } },
   ],
 })
