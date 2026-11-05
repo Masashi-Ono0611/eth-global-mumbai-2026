@@ -49,10 +49,14 @@
   footer { margin-top: 72px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 18px; }
   a { color: var(--arc); }
 </style>
+<!-- Hypothesis: select any text on this page to comment on it (threads, replies, private groups).
+     Agents read the comments: https://api.hypothes.is/api/search?uri=<page URL>&limit=200 -->
+<script type="application/json" class="js-hypothesis-config">{ "openSidebar": false, "showHighlights": "always" }</script>
+<script async src="https://hypothes.is/embed.js"></script>
 </head>
 <body>
 <main>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture brainstorm · working draft</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture brainstorm · working draft · <span title="Uses Hypothesis; the comment panel is on the right edge">select any text to comment →</span></div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
   <p class="lead">Owners give their robots USDC allowances, like <em>"this duck may spend $10 a day"</em>. Each robot pays on its own inside that limit, asks a human when it goes over, and can be cut off with one tap. No gas, no chains, just dollars. The duck is robot #1.</p>
 
