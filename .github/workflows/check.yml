@@ -37,6 +37,9 @@ jobs:
         with:
           bun-version: 1.4.4
       - run: bun install --frozen-lockfile
+      # Edge serves apps/web/dist/client; Alchemy skips the website build when its sources are unchanged,
+      # so a fresh checkout must build it first.
+      - run: bun run build
       - run: bun run deploy --no-input --yes
         env:
           APP_RELEASE: ${{ github.sha }}
