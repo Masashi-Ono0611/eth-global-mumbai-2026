@@ -11,7 +11,9 @@ export default defineConfig({
     '**/.wrangler/**',
     '.agents/**',
     '.claude/**',
-    'docs/research/**',
+    // Team notes, brainstorm pages and reference pins, written by hand and by agents; not code.
+    'docs/**',
+    'references/**',
     'docs/migration/v1-inventory.json',
     'tools/oxlint/anti-slop/**',
     'packages/i18n/catalogs/**',

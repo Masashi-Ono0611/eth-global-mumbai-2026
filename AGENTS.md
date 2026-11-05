@@ -12,7 +12,7 @@ Only isolated v2 Cloudflare resources and a workers.dev preview are authorized. 
 
 Use exact manifest/lockfile pins: Bun, Effect 4, Alchemy v2, Foldkit, Yielded Auth, Drizzle SQLite/D1, Domain on Durable Objects, R2, native Cloudflare telemetry. Alchemy owns infrastructure. The single public origin serves pages, API, auth, media and MCP.
 
-The `@yielded/effect-tsrs` gate checks TS and Effect. The editor uses pinned tsrs. Oxlint's type-aware backend is checksum-verified tsrs-lint with no fallback. Oxfmt formats. New code has zero lint debt. Keep anti-slop provenance, graph boundaries, suppression census, Knip and native runtime tests effective.
+The `@yielded/effect-tsrs` gate checks TS and Effect. The editor uses pinned tsrs. Oxlint's type-aware backend is the tsrs-lint the pinned `tsrs` package ships (lockfile-verified), with no fallback. Oxfmt formats. New code has zero lint debt. Keep anti-slop provenance, graph boundaries, suppression census, Knip and native runtime tests effective.
 
 Read installed library source before using unfamiliar APIs. Domain models follow the pinned `.agents/skills/alchemy-domain` instructions. Record deviations from reference applications with reasons; do not inherit their product-specific approval or deployment policy.
 

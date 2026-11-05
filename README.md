@@ -59,7 +59,7 @@ Then add only:
 
 Reference clone: `/home/kristjan/code/styldappv2` (`github.com/grmkris/styld.app`).
 
-- **Bootstrap from commit** `370a0e23` (*foundation boundary review*) — stack shell **without** wardrobe business logic.
+- **Bootstrap from commit** `370a0e23` (_foundation boundary review_) — stack shell **without** wardrobe business logic.
 - Wardrobe product starts at `68e12b0e`; do not copy that era as the base.
 - `stylelab` is Styld v1 (maintenance); not the foundation.
 - Latest HEAD’s pattern library: `repos/foldkit/` (only vendored repo snapshot today) plus `.agents/skills/` (Alchemy, Cloudflare Workers/DO, Foldkit, zyzz, Effect, etc.). Details in `docs/foundation.md`.
@@ -85,4 +85,3 @@ Reference clone: `/home/kristjan/code/styldappv2` (`github.com/grmkris/styld.app
 - Non-technical foundation: in progress here
 - Code scaffold: not started
 - Hardware print / assemble: owner-owned timeline (start before the event if possible)
-

@@ -78,7 +78,7 @@ export const tag = (value: { readonly _tag: 'Ready' | 'Done' }) => value._tag ==
       'json',
       `${directory}/fixture.ts`,
     ],
-    await oxlintEnv(),
+    oxlintEnv(),
   )
   for (const rule of ['no-floating-promises', 'no-reflect-get', 'no-manual-tag-comparison'])
     if (lint.code !== 1 || !lint.stdout.includes(rule))

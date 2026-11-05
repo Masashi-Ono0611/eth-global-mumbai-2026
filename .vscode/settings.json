@@ -3,5 +3,5 @@
   "js/ts.tsdk.path": "node_modules/tsrs/tsdk",
   "oxc.enable": true,
   "oxc.typeAware": true,
-  "oxc.tsgoPath": "/home/kristjan/.cache/tsrs-lint/lint-pr624-0acc433-regions.1/tsrs-lint"
+  "oxc.tsgoPath": "./node_modules/.bin/tsrs-lint"
 }

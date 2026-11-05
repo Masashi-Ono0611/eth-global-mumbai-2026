@@ -13,7 +13,9 @@ export const makeAuthHttp = (database: QueryDatabaseClient, options: AuthHttpOpt
     origin: options.origin,
     cookie: { secure: options.secureCookies },
   })
-  const dependencies = Layer.mergeAll(runtime.layer, Layer.succeed(Sessions.SessionSigningKeys, options.sessionKeys))
+  const dependencies = runtime.layer.pipe(
+    Layer.provideMerge(Layer.succeed(Sessions.SessionSigningKeys, options.sessionKeys)),
+  )
   return {
     layer: http.routes().pipe(Layer.provide(dependencies)),
     runtime,
