@@ -5,6 +5,3 @@ url = "https://mcp.cloudflare.com/mcp"
 
 [mcp_servers.mysi]
 url = "https://mysi.lol/mcp"
-
-[mcp_servers.myplan]
-url = "https://myplan.lol/mcp"

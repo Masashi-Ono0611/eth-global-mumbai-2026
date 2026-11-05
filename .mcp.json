@@ -7,10 +7,6 @@
     "mysi": {
       "type": "http",
       "url": "https://mysi.lol/mcp"
-    },
-    "myplan": {
-      "type": "http",
-      "url": "https://myplan.lol/mcp"
     }
   }
 }
