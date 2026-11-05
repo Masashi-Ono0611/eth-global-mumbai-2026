@@ -12,3 +12,7 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+
+# Upstream reference clones (read-only); pins recorded in references/README.md
+references/*
+!references/README.md
