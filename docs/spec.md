@@ -341,7 +341,10 @@ token on Arc.
 | `APP_ENFORCER_ADDRESS` / `APP_EPISODE_LOG_ADDRESS` / `APP_EVIDENCE_TOKEN` | plain env strings (the token redacted) | `chain/Grant.ts`, `robot/Evidence.ts`, `/api/evidence/*` bearer |
 | `APP_ZG_STORAGE_PRIVATE_KEY`, `ZG_STORAGE_INDEXER` (`https://indexer-storage-testnet-turbo.0g.ai`), `ZG_CHAIN_RPC` (`https://evmrpc-testnet.0g.ai`, 16602), `EPISODE_LOG_ADDRESS`, `EVIDENCE_SERVER_URL`, `EVIDENCE_TOKEN` | netcup `~/.config/secrets.env` only, never the Worker | `tools/evidence-uploader/main.ts` |
 
-All bindings are decoded in `ApiWorker.ts` `onFirstUse` with Schema (`^0x[0-9a-f]{64}$` for keys), `Effect.orDie`.
+Only `AUTH_SESSION_KEYS` and `AUTH_ORIGIN` are decoded fatally in `onFirstUse`. **Every feature secret is decoded
+optionally** (missing or schema-invalid → absent, with a logged warning) and the feature's routes answer 503
+`{error:"not configured: <name>"}` until it is set: a placeholder must never turn every `/api` request into a 500
+behind a green deploy (that happened on 5 Nov). Check `/api/health` after every deploy, not only CI.
 Adding a secret = `alchemy.run.ts` + `check.yml` + `.env.main.local` + the native test bind + the Schema decode **+
 `gh secret set` on the repo** (the deploy job needs every secret present, or it fails after a green check). Removing
 `APP_AUTH_SECRET` = all of those plus `gh secret delete`. Until Kris supplies a value (RPC URL, 0G key, World client),
