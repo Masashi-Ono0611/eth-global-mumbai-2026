@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plan v3: wallet → robot agent → merchant → chip · ETHGlobal Mumbai 2026</title>
+<title>Architecture: wallet → robot agent → merchant → chip · ETHGlobal Mumbai 2026</title>
 <meta name="description" content="A passkey wallet on Arc grants a budget to a robot chip; one Robot Agent per robot thinks on 0G, pays over x402, asks a human via World Agent Pass.">
 <style>
   :root {
@@ -48,10 +48,14 @@
   ol.qs li { margin-bottom: 6px; }
   footer { margin-top: 72px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 18px; }
   a { color: var(--arc); }
+  .tabs { display: flex; gap: 6px; margin: 0 0 22px; border-bottom: 1px solid var(--line); }
+  .tabs a { padding: 8px 14px; border-radius: 10px 10px 0 0; text-decoration: none; color: var(--muted); font-weight: 600; }
+  .tabs a[aria-current="page"] { color: var(--ink); background: var(--card); border: 1px solid var(--line); border-bottom-color: var(--card); margin-bottom: -1px; }
 </style>
 </head>
 <body>
 <main>
+  <nav class="tabs"><a href="/architecture/" aria-current="page">Architecture</a><a href="/plan/">Plan</a></nav>
   <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.3 · Fri 6 Nov 04:30 IST · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
   <p class="lead">A passkey wallet on Arc grants a budget to a robot's chip. One Robot Agent per robot thinks on 0G, pays merchants over x402, and asks a human through World Agent Pass when a purchase is over the limit or restricted. The chip always signs. The wallet never needs to know the grantee is a robot.</p>

@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan v3: wallet → robot agent → merchant → chip · ETHGlobal Mumbai 2026</title>
+<!-- GENERATED from docs/plan.md by docs/render-plan-page.py; edit the markdown, then rerun the script. -->
+<style>
+  :root {
+    --bg: #fbf8f1; --ink: #1d1b16; --muted: #6b665a; --line: #e4ddcc; --card: #fff;
+    --arc: #2f6bff; --world: #111; --og: #8a3ffc; --cf: #f38020; --duck: #f5b700; --deny: #d64545; --ok: #1f9d55;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15140f; --ink: #f1ede2; --muted: #a39d8d; --line: #2e2b22; --card: #1d1b15; --world: #e8e8e8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 20px 96px; }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.05; margin: 0 0 12px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.5rem; margin: 64px 0 8px; letter-spacing: -0.01em; }
+  h3 { font-size: 1.05rem; margin: 0 0 6px; }
+  p.lead { font-size: 1.2rem; color: var(--muted); max-width: 46rem; margin: 0; }
+  .kicker { font: 600 .8rem/1 ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .muted { color: var(--muted); }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .tag { display: inline-block; font: 600 .72rem/1 ui-monospace, monospace; padding: 5px 8px; border-radius: 999px; color: #fff; margin-bottom: 10px; }
+  .t-arc { background: var(--arc); } .t-world { background: var(--world); color: var(--bg); } .t-og { background: var(--og); }
+  .t-cf { background: var(--cf); } .t-duck { background: var(--duck); color: #1d1b16; }
+  .diagram { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-top: 18px; overflow-x: auto; }
+  .diagram pre.mermaid { margin: 0; background: none; white-space: normal; }
+  .flows pre.mermaid { margin: 0; white-space: normal; }
+  pre.mermaid {
+    --pele-bg: var(--card); --pele-fg: var(--ink); --pele-muted: var(--muted); --pele-line: var(--muted);
+    --pele-surface: var(--bg); --pele-surface-alt: var(--line); --pele-border: var(--line);
+    --pele-accent: var(--arc); --pele-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --pele-radius: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: .95rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  code { font: .88em ui-monospace, monospace; background: color-mix(in srgb, var(--line) 55%, transparent); padding: 1px 5px; border-radius: 5px; }
+  .rule { border-left: 4px solid var(--arc); padding: 14px 18px; background: var(--card); border-radius: 0 12px 12px 0; margin-top: 18px; }
+  .flows { display: grid; gap: 18px; }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 10px; }
+  ol.qs li { margin-bottom: 6px; }
+  footer { margin-top: 72px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 18px; }
+  a { color: var(--arc); }
+  .tabs { display: flex; gap: 6px; margin: 0 0 22px; border-bottom: 1px solid var(--line); }
+  .tabs a { padding: 8px 14px; border-radius: 10px 10px 0 0; text-decoration: none; color: var(--muted); font-weight: 600; }
+  .tabs a[aria-current="page"] { color: var(--ink); background: var(--card); border: 1px solid var(--line); border-bottom-color: var(--card); margin-bottom: -1px; }
+
+  .tabs { display: flex; gap: 6px; margin: 0 0 22px; border-bottom: 1px solid var(--line); }
+  .tabs a { padding: 8px 14px; border-radius: 10px 10px 0 0; text-decoration: none; color: var(--muted); font-weight: 600; }
+  .tabs a[aria-current="page"] { color: var(--ink); background: var(--card); border: 1px solid var(--line); border-bottom-color: var(--card); margin-bottom: -1px; }
+
+  .toc { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; margin: 18px 0 8px; columns: 2; column-gap: 28px; }
+  .toc a { display: block; padding: 2px 0; color: var(--ink); text-decoration: none; break-inside: avoid; }
+  .toc a.h3 { padding-left: 14px; color: var(--muted); font-size: .92rem; }
+  @media (max-width: 760px) { .toc { columns: 1; } }
+  main h2 { scroll-margin-top: 16px; padding-top: 6px; border-top: 1px solid var(--line); }
+  main h3 { margin: 28px 0 8px; scroll-margin-top: 16px; }
+  main p, main li { max-width: 52rem; }
+  main pre { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; font: .85rem/1.5 ui-monospace, monospace; }
+  main pre code { background: none; padding: 0; }
+  main table { display: block; overflow-x: auto; }
+  main ul ul { margin-top: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs"><a href="/architecture/">Architecture</a><a href="/plan/" aria-current="page">Plan</a></nav>
+  <div class="kicker">ETHGlobal Mumbai 2026 · the plan in full (from docs/plan.md) · comment with 💬</div>
+<h1>Plan v3: wallet → robot agent → merchant → chip</h1>
+<nav class="toc"><a class="h2" href="#0-battle-plan-to-saturday-09-00-ist-written-fri-6-nov-04-30-">0. Battle plan to Saturday 09:00 IST (written Fri 6 Nov 04:30 IST)</a><a class="h3" href="#0-1-scope-kris-fri-04-30">0.1 Scope (Kris, Fri 04:30)</a><a class="h3" href="#0-2-who-does-what">0.2 Who does what</a><a class="h3" href="#0-3-checkpoints-ist">0.3 Checkpoints (IST)</a><a class="h3" href="#0-4-prerequisites-block-everything-do-first">0.4 Prerequisites (block everything; do first)</a><a class="h3" href="#0-5-submission-checklist">0.5 Submission checklist</a><a class="h3" href="#0-6-demo-script-4-minute-finalist-slot-the-video-follows-the">0.6 Demo script (4-minute finalist slot; the video follows the same story)</a><a class="h3" href="#0-7-fallbacks-decided-in-advance">0.7 Fallbacks, decided in advance</a><a class="h3" href="#0-8-design-gaps-found-in-the-review-fixed-below">0.8 Design gaps found in the review (fixed below)</a><a class="h2" href="#1-the-shape">1. The shape</a><a class="h3" href="#the-grant-unchanged-core">The Grant (unchanged core)</a><a class="h2" href="#2-system-by-system">2. System by system</a><a class="h3" href="#2-1-wallet">2.1 Wallet</a><a class="h3" href="#2-2-robot-agent-iteration-1-headless-iteration-2-with-the-ch">2.2 Robot Agent (iteration 1 headless, iteration 2 with the chip)</a><a class="h3" href="#2-3-payments-grant-float-decision-c">2.3 Payments: grant + float (decision C)</a><a class="h3" href="#2-4-merchant">2.4 Merchant</a><a class="h3" href="#2-5-world-agent-pass-verified-on-arc-decision-f-updated">2.5 World: Agent Pass, verified on Arc (decision F, updated)</a><a class="h3" href="#2-6-venue-network-decision-i-updated-by-bench-h4">2.6 Venue network (decision I, updated by bench H4)</a><a class="h3" href="#2-7-esp32-gate-wiring">2.7 ESP32 gate wiring</a><a class="h3" href="#2-8-bench-results-so-far-docs-spikes-hardware-results-md-202">2.8 Bench results so far (docs/spikes/hardware-results.md, 2026-11-06)</a><a class="h2" href="#3-iterations">3. Iterations</a><a class="h2" href="#4-decisions">4. Decisions</a><a class="h2" href="#5-spikes-in-order">5. Spikes, in order</a><a class="h2" href="#6-booth-questions">6. Booth questions</a><a class="h2" href="#7-alternative-considered-world-chain-0g-ens-2026-11-06-docs-">7. Alternative considered: World Chain + 0G + ENS (2026-11-06, docs/research/worldchain-ens-alternative.md)</a><a class="h2" href="#8-what-v3-supersedes">8. What v3 supersedes</a></nav>
+<p><strong>Versions:</strong></p>
+<ul>
+<li><strong>v3.3, Fri 6 Nov 04:30 IST:</strong> review round. Battle plan to the Saturday 09:00 deadline (§0), MVP scope, D15 decided (co-signer first), design gaps fixed.</li>
+<li><strong>v3.2, 2026-11-06:</strong> spikes S2 + S5b done (simulated / prototype), World Chain + ENS alternative assessed, decisions D15–D16 added.</li>
+<li><strong>v3.1, 2026-11-06:</strong> comment round 2 (on-chain Agent Pass check, mock chip, no simulator, bench results, network, servo wiring).</li>
+<li><strong>v3, 2026-11-05 (late).</strong> Updated from Kris&#39;s 13 comments on the v2 page and the Q&amp;A that followed. The decisions are recorded in <code>decisions.md</code> (plan v3 A–J).</li>
+</ul>
+<p><strong>Sources:</strong></p>
+<ul>
+<li>round-2 research: <code>docs/research/{nod-froggy-patterns, wallet-accounts-v2, mcp-wallet-and-ai-client, merchant-and-agent-commerce, world-v2, robot-browser-and-mcp}.md</code></li>
+<li>three read-only passes on 2026-11-05:<ul>
+<li>Goblin&#39;s agent stack (<code>~/code/goblin</code>)</li>
+<li>x402 facilitators and 4337 on Arc</li>
+<li>World Agent Pass and venue networking (summarised below)</li>
+</ul>
+</li>
+<li>diagrams: the architecture page (<code>docs/site/architecture/</code>)</li>
+</ul>
+<p><strong>Confidence markers:</strong> <strong>Known</strong> (we know how to build it, verified in code or on Arc), <strong>Uncertain</strong> (one spike
+settles it), <strong>Unknown</strong> (needs a sponsor&#39;s answer or research).</p>
+<hr>
+<h2 id="0-battle-plan-to-saturday-09-00-ist-written-fri-6-nov-04-30-">0. Battle plan to Saturday 09:00 IST (written Fri 6 Nov 04:30 IST)</h2>
+<p><strong>Deadline: submissions close Saturday 7 Nov 09:00 IST, no late entries.</strong> As of Friday 04:30 no product code exists, only
+the foundation, these docs and spike prototypes (S2, S5b, bench C1). Everything below is cut to fit about 28 hours.
+Rules from <a href="https://ethglobal.com/events/mumbai/info/details">https://ethglobal.com/events/mumbai/info/details</a>, checked Fri 04:15.</p>
+<h3 id="0-1-scope-kris-fri-04-30">0.1 Scope (Kris, Fri 04:30)</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>What</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MUST</strong> (the demo)</td>
+<td>Passkey wallet on Arc mainnet (HybridDeleGator) → grant to the chip (real Radxa or mock) → Robot Agent asks 0G and buys from our x402 merchant through our facilitator (grant path) → a restricted item needs Agent Pass (approve <strong>and</strong> deny) → revoke stops the next payment → 0G Storage episode log + <code>EpisodeLog</code> contract → our enforcer(s) built in Arc Studio → ESP32 shows the QR, the gate opens on a signed &quot;paid&quot;</td>
+</tr>
+<tr>
+<td><strong>STRETCH</strong> (only after the MUST loop works end to end)</td>
+<td>On-chain Agent Pass verification (S5b prototype ready) replacing the co-signer · float path via Circle&#39;s facilitator · camera in the browser · duck walking to the stand</td>
+</tr>
+<tr>
+<td><strong>CUT</strong> for the event</td>
+<td>MCP OAuth for outside hosts (claude.ai): the Robot Agent is the only MCP client · CCTP/Gateway funding from other chains (fund directly on Arc) · MPP · ENS · 4337 break-glass (document only) · IDKit</td>
+</tr>
+</tbody></table>
+<h3 id="0-2-who-does-what">0.2 Who does what</h3>
+<ul>
+<li><strong>Kris + agents</strong> run all three software lanes. Each lane is its own agent session in this repo, with Kris coordinating.</li>
+<li><strong>The teammates</strong> handle the physical robot (duck build, Radxa OS, ESP32 wiring and servo, H2 QR reading) and the
+booth questions.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Lane</th>
+<th>Builds</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>A: wallet + chain</strong></td>
+<td>Wallet web app (passkey signup, grant/consent page, approval page, revoke, activity); relayer = our x402 facilitator; <code>RobotPaymentPolicyEnforcer</code> (+ <code>HumanApprovalEnforcer</code> co-signer version) in Arc Studio, deployed to Arc mainnet</td>
+<td>A grant from a real phone passkey; one relayed $0.01 payment on Arc mainnet</td>
+</tr>
+<tr>
+<td><strong>B: brain</strong></td>
+<td>Robot Agent DO (Agents SDK + pi-ai on 0G + wallet MCP client); evidence log → 0G Storage + <code>EpisodeLog</code> contract; Agent Pass request + backend check + co-signature</td>
+<td>The agent decides on 0G, the request id is stored, and Agent Pass approve and deny both work</td>
+</tr>
+<tr>
+<td><strong>C: chip + merchant</strong></td>
+<td>Chip protocol (WebSocket: pair, sign request) with a mock chip and the Radxa runtime (Bun + viem; Python fallback from C1); merchant (store, x402 <code>accepts[]</code> ERC-7710, invoice API, signed status for the ESP32)</td>
+<td>The mock chip and the Radxa both sign a grant-path voucher; the merchant settles it; the ESP32 shows PAID</td>
+</tr>
+</tbody></table>
+<h3 id="0-3-checkpoints-ist">0.3 Checkpoints (IST)</h3>
+<table>
+<thead>
+<tr>
+<th>By</th>
+<th>Checkpoint</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Fri 08:00</strong></td>
+<td>Prerequisites done (0.4); spikes S1 (real-phone passkey), S3 (0G model and latency), S5 (Agent Pass returns our nonce) answered</td>
+</tr>
+<tr>
+<td><strong>Fri 14:00</strong></td>
+<td><strong>First end-to-end headless purchase on Arc mainnet</strong> ($0.10, mock chip, our merchant, our facilitator)</td>
+</tr>
+<tr>
+<td><strong>Fri 20:00</strong></td>
+<td>Agent Pass approve/deny, revoke, 0G Storage log, the Radxa signing, the ESP32 gate opening: the full MUST loop</td>
+</tr>
+<tr>
+<td><strong>Sat 02:00</strong></td>
+<td>Stretch work stops; README, architecture diagram, Arc Studio walkthrough</td>
+</tr>
+<tr>
+<td><strong>Sat 06:00</strong></td>
+<td><strong>Feature freeze.</strong> Video recorded, debriefs written, contract addresses listed</td>
+</tr>
+<tr>
+<td><strong>Sat 09:00</strong></td>
+<td>Submitted (aim for 08:00)</td>
+</tr>
+</tbody></table>
+<h3 id="0-4-prerequisites-block-everything-do-first">0.4 Prerequisites (block everything; do first)</h3>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>About $20 of USDC on Arc mainnet</strong> in a test owner flow plus a relayer key. Nobody has funded one yet.</li>
+<li><input disabled="" type="checkbox"> <strong>A keyed Arc RPC.</strong> The public one throttles (−32005).</li>
+<li><input disabled="" type="checkbox"> <strong>0G:</strong> the teammate&#39;s API key in <code>~/.config/secrets.env</code>; 0G Chain gas for Storage and <code>EpisodeLog</code> (Galileo
+faucet, if the booth says testnet is fine).</li>
+<li><input disabled="" type="checkbox"> <strong>World IdP client</strong> registered (HTTPS redirect URI for the browser flow); sandbox and production access confirmed.</li>
+<li><input disabled="" type="checkbox"> <strong>Arc Studio project</strong> created; its shareable URL saved.</li>
+<li><input disabled="" type="checkbox"> <strong>A product name</strong> for the submission. &quot;ETH Global Mumbai 2026&quot; is a placeholder; earlier ideas were Vitaquack,
+Flock and Noah&#39;s Arc.</li>
+</ul>
+<h3 id="0-5-submission-checklist">0.5 Submission checklist</h3>
+<ul>
+<li><strong>ETHGlobal:</strong><ul>
+<li>name and description</li>
+<li>public GitHub with real history (no large product commit)</li>
+<li>a README section on <strong>code that predates the event</strong> (the foundation boilerplate from the public <code>styld.app</code> repo,
+commit <code>370a0e23</code>, imported as one commit on 5 Nov)</li>
+<li>demo video 2–4 min, at least 720p, real narration (no AI voice, not sped up, not filmed on a phone), slides with at
+most 4 bullets</li>
+<li>pick up to 3 partner prizes, each with how we integrated it and feedback</li>
+</ul>
+</li>
+<li><strong>Arc</strong> (Advanced Stablecoin Logic):<ul>
+<li>the shareable Studio URL; Studio <strong>shown in the demo</strong></li>
+<li>working frontend and backend</li>
+<li>an architecture diagram (this page)</li>
+<li>the video, with docs on the Arc and Circle tools used</li>
+<li>GitHub</li>
+<li>name the bounty</li>
+</ul>
+</li>
+<li><strong>0G</strong> (Physical AI):<ul>
+<li>a 0G call in the decision loop</li>
+<li>an <strong>episode log on 0G Storage with a request id per decision</strong></li>
+<li>a live demo at the 0G booth, or a replayable run</li>
+<li>a safe-stop (a faked fallback disqualifies)</li>
+<li><strong>contract deployment addresses</strong></li>
+<li>README setup steps</li>
+<li>0G asks for a video <strong>under 3 min</strong>, so cut it to <strong>2:30–2:59</strong> to satisfy both 0G and ETHGlobal</li>
+</ul>
+</li>
+<li><strong>World</strong> (Agent Pass):<ul>
+<li>the official Agent Pass</li>
+<li>the full journey <strong>including a deny / expired path</strong></li>
+<li>validation in the backend</li>
+<li><strong>a debrief</strong>: time to first success, friction, one top improvement</li>
+</ul>
+</li>
+</ul>
+<h3 id="0-6-demo-script-4-minute-finalist-slot-the-video-follows-the">0.6 Demo script (4-minute finalist slot; the video follows the same story)</h3>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Beat</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0:00</td>
+<td>The problem: don&#39;t give a robot your wallet, give it a budget</td>
+</tr>
+<tr>
+<td>0:20</td>
+<td>Owner (passkey, pre-funded on Arc) grants Vitaquack&#39;s chip $10/day on the consent screen</td>
+</tr>
+<tr>
+<td>0:50</td>
+<td>&quot;Buy me a chai&quot;: the agent asks 0G (show the request id) → the chip signs → paid on Arc (explorer link) → <strong>the ESP32 gate opens</strong></td>
+</tr>
+<tr>
+<td>1:50</td>
+<td>Restricted item (mock cigarette pack) → Agent Pass on the phone → <strong>deny: nothing paid</strong> → approve: paid</td>
+</tr>
+<tr>
+<td>2:50</td>
+<td>Revoke in the wallet → the next attempt fails on-chain</td>
+</tr>
+<tr>
+<td>3:20</td>
+<td>How it works: the architecture, our enforcer in Arc Studio, the episode log on 0G Storage</td>
+</tr>
+<tr>
+<td>3:50</td>
+<td>Close</td>
+</tr>
+</tbody></table>
+<h3 id="0-7-fallbacks-decided-in-advance">0.7 Fallbacks, decided in advance</h3>
+<table>
+<thead>
+<tr>
+<th>If this fails</th>
+<th>Then</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Real-device passkey (S1)</td>
+<td>The 7702 EOA fallback</td>
+</tr>
+<tr>
+<td>On-chain Agent Pass check</td>
+<td>It&#39;s the stretch; the co-signer is the default (D15)</td>
+</tr>
+<tr>
+<td>Bun on the Radxa</td>
+<td>The Python signer from bench C1 (proven), or the mock chip on a laptop</td>
+</tr>
+<tr>
+<td>Camera QR reading (H2)</td>
+<td>The chip gets the invoice id from the merchant API; skip the scan</td>
+</tr>
+<tr>
+<td>Facilitator x402 envelope too big</td>
+<td>Trim caveats, then relay <code>redeemDelegations</code> directly without the x402 header</td>
+</tr>
+<tr>
+<td>0G slow or down</td>
+<td>That&#39;s the safe-stop we must show anyway; never fake a decision</td>
+</tr>
+<tr>
+<td>Venue network</td>
+<td>The <code>duckbench</code> phone hotspot</td>
+</tr>
+</tbody></table>
+<h3 id="0-8-design-gaps-found-in-the-review-fixed-below">0.8 Design gaps found in the review (fixed below)</h3>
+<ol>
+<li><strong>The float path would bypass the merchant allowlist.</strong> The chip can pull to itself and then pay any seller. Fix: the
+pull uses its own small cap (e.g. $1/day float budget). Float is a stretch anyway.</li>
+<li><strong>How does Arc know an item is restricted?</strong> Fix: approval is required when <code>amount &gt; perPaymentCap</code> <strong>or</strong> the payee
+isn&#39;t on the grant&#39;s allowlist. The merchant sends restricted items to a separate payTo address that owners never
+allowlist, so they always need Agent Pass.</li>
+<li><strong>Two ways to submit a payment</strong> (wallet MCP <code>payment_submit</code> vs the x402 header to the merchant). Fix: robot
+payments go through x402 to the merchant only. The wallet MCP keeps balance/history, <code>approval_request</code> and
+<code>grant_change_request</code>. The chip already stores its grant (bench C1), so it builds the leaf itself.</li>
+<li><strong>x402 header size</strong> (≈ 12 KB permission context, more with a World token). <strong>Uncertain:</strong> test it against the
+Worker in S2&#39;s envelope test; trim caveats first.</li>
+<li><strong>No map of the apps.</strong> Fix: <strong>one web app</strong> with three parts: wallet (owner), robot console (camera, control,
+decision log) and merchant (store and checkout page). The ESP32 is the gate.</li>
+<li><strong>Eligibility:</strong> &quot;from scratch&quot; and &quot;large single commits may be disqualified&quot;. Fix: README disclosure (0.5); all
+product code lands as small commits from now on.</li>
+</ol>
+<hr>
+<h2 id="1-the-shape">1. The shape</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>System</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Wallet</strong> (foundation)</td>
+<td>Passkey signup (HybridDeleGator on Arc), fund, send, receive, <strong>grants</strong> to any address, an MCP server whose OAuth consent creates a grant, Agent Pass approvals. No Privy-style services. Prior art: Nod</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Robot Agent</strong></td>
+<td><strong>One Cloudflare Durable Object per robot = the AI client.</strong> It calls 0G, holds the wallet MCP connection, runs the plan/act loop, logs every decision, and talks to the chip over a WebSocket the chip opens. It runs with no chip (headless or sim). Goblin-inspired, robot-specific</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Merchant</strong></td>
+<td>Store config (items, USDC prices, rules: needs approval / restricted), x402 checkout accepting both payment paths, and later the ESP32 gate</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Chip</strong></td>
+<td>The robot&#39;s body and signer: the Radxa (real) or a <strong>mock chip</strong> (a Bun process, iteration 1). It holds the key the grant is delegated to and signs every robot payment. Camera and motors on the real one</td>
+</tr>
+</tbody></table>
+<h3 id="the-grant-unchanged-core">The Grant (unchanged core)</h3>
+<pre><code>Grant   = signed MetaMask Delegation Framework delegation: owner account → chip address
+          caveats: USDC only (AllowedTargets/Methods), ValueLte(0), period cap, expiry,
+                   + ours: RobotPaymentPolicyEnforcer (per-payment cap, merchant allowlist, a small separate float cap
+                           for pulls to the chip itself),
+                           HumanApprovalEnforcer (Agent Pass approval required when amount &gt; per-payment cap OR the payee
+                           is not on the allowlist; restricted items use a merchant payTo that is never allowlisted)
+Payment = the chip signs a one-time leaf (exact USDC.transfer(payee, amount), IdEnforcer(invoiceHash), Timestamp);
+          a facilitator calls redeemDelegations; Arc checks every caveat.
+Owner action = the passkey signs a one-time delegation to the relayer (send, revoke, add passkey).
+</code></pre>
+<ul>
+<li><strong>Known:</strong> the grant chain was simulated on live Arc mainnet state (<code>wallet-accounts-v2.md</code> A1–A7).</li>
+<li><strong>Passkey-native is still a DeleGator.</strong> &quot;DeleGator&quot; is MetaMask&#39;s name for their smart accounts that can create and
+redeem delegations:<ul>
+<li>our owner account is a <code>HybridDeleGator</code>: its own contract, its own address, the passkey as signer</li>
+<li>the 7702 fallback is an EOA whose code points to <code>EIP7702StatelessDeleGator</code></li>
+<li>both use the same DelegationManager and caveats</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="2-system-by-system">2. System by system</h2>
+<h3 id="2-1-wallet">2.1 Wallet</h3>
+<p>The wallet design is unchanged from v2, except for owner actions and approvals:</p>
+<ul>
+<li><strong>Account:</strong> passkey-native <code>HybridDeleGator</code> via <code>SimpleFactory</code>, live on Arc. Decided (D1).<ul>
+<li><strong>Uncertain:</strong> real-device passkeys (S1).</li>
+</ul>
+</li>
+<li><strong>Signup:</strong> our relayer deploys the account (≈ $0.005).</li>
+<li><strong>Funding:</strong> USDC on Arc; other chains via CCTP or Gateway. &quot;Connect MetaMask&quot; means a funding source, or an extra signer.</li>
+<li><strong>MCP server:</strong> <code>workers-oauth-provider</code> + <code>createMcpHandler</code> (for the event the Robot Agent is the only client;
+outside hosts like claude.ai are cut). <strong>The OAuth consent page is the grant ceremony:</strong> it
+shows the robot&#39;s name and <strong>chip address</strong> and the budget; the passkey signs.</li>
+<li><strong>Raising a budget:</strong> the agent calls <code>grant_change_request</code>, which returns a link (or an in-chat prompt where the
+host supports it). The owner opens the wallet and the passkey signs a new grant.</li>
+<li><strong>MCP tools</strong> (review fix: robot payments go over x402 to the merchant, never through the wallet MCP; the chip stores
+its grant and builds the leaf itself, as in bench C1):<ul>
+<li><code>wallet_overview</code>, <code>payments_list</code>, <code>payment_status</code></li>
+<li><code>approval_request</code> (Agent Pass for one payment), <code>grant_change_request</code> (raise the budget)</li>
+<li>stretch: <code>float_pull</code> (exact-amount pull to the chip, capped by the float cap)</li>
+</ul>
+</li>
+<li><strong>Owner actions (decision H):</strong> the passkey signs a one-time delegation and <strong>our relayer (the facilitator code)</strong>
+submits it (≈ $0.006).<ul>
+<li><strong>Break-glass:</strong> if MetaMask pauses the DelegationManager, an ERC-4337 v0.7 user operation via Pimlico&#39;s public
+bundler, with gas paid by the account in USDC from its own balance. HybridDeleGator v1.3.0 uses EntryPoint v0.7.</li>
+<li><strong>Other chains</strong> (gas isn&#39;t USDC): 4337 + a USDC paymaster, as in Goblin ADR 0050.</li>
+<li><strong>Trust:</strong> signatures bind exact actions and caps are on-chain, so no relayer or bundler can steal or redirect
+funds; at worst they delay.</li>
+<li>Self-hosted bundler: no. No public Arc RPC exposes <code>debug_traceCall</code>; only paid Alchemy or our own node do.</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-2-robot-agent-iteration-1-headless-iteration-2-with-the-ch">2.2 Robot Agent (iteration 1 headless, iteration 2 with the chip)</h3>
+<ul>
+<li><strong>Runtime:</strong> a Cloudflare Agents SDK <code>Agent</code>, one per robot, with <code>schedule</code> for timeouts and wakes. Copy from Goblin
+(<code>~/code/goblin/apps/runtime/src/</code>):<ul>
+<li><code>agent.ts</code>: the <code>Agent</code> + <code>schedule</code> pattern</li>
+<li><code>pi/model.ts</code>: pi-ai <code>openai-completions</code> pointed at the 0G router. Add the <code>onResponse</code> hook to capture 0G request
+ids, which Goblin doesn&#39;t do yet</li>
+<li><code>mcp/oauth/oauth-provider.ts</code> + <code>mcp/oauth/auth.ts</code>: the MCP OAuth client</li>
+<li><code>mcp/approvals/*</code>: hold the exact call, end the turn, continue on approval</li>
+<li><code>telemetry/pi.ts</code>: append-only run events (evidence)</li>
+</ul>
+</li>
+<li><strong>Not copied:</strong> personas, topics, subagents, apps, inbound MCP, the AG-UI shell, Effect layers.</li>
+<li><strong>0G:</strong> standard providers (decision E), with the teammate&#39;s credits.<ul>
+<li><strong>Uncertain:</strong> which tool-calling model, ideally with images (<code>glm-5.3-flash</code> / <code>qwen3.8-flash</code>), and latency (S3).</li>
+<li>If 0G fails, the step takes no action. That&#39;s the prize&#39;s safe-stop.</li>
+</ul>
+</li>
+<li><strong>Pairing (decision B):</strong><ol>
+<li>The owner adds a robot in the wallet and gets a pairing code.</li>
+<li>The chip (real or virtual) generates its key, opens a WebSocket to its Robot Agent with the code, and proves its
+address by signing a challenge.</li>
+<li>Only then does the Agent connect to the wallet MCP. The consent screen shows &quot;Vitaquack (0xChip…) wants $10/day&quot;,
+and <strong>the grant&#39;s delegate is the chip address</strong>.</li>
+</ol>
+</li>
+<li><strong>Paying (decision C):</strong><ol>
+<li>The Agent decides on 0G and fetches the merchant&#39;s x402 requirements.</li>
+<li>It sends the invoice to the chip, which builds the leaf from its stored grant.</li>
+<li><strong>The chip checks the invoice (on the real chip, one it scanned itself) and signs.</strong></li>
+<li>The Agent submits.</li>
+</ol>
+<ul>
+<li>The Agent never holds a spending key.</li>
+</ul>
+</li>
+<li><strong>Body:</strong> camera frames (JPEG over the chip&#39;s WebSocket, fanned out to browsers while someone watches) and movement
+(<code>move {vx,vy,vyaw}</code>, 300 ms deadman, owner e-stop, human beats AI). From <code>robot-browser-and-mcp.md</code>.</li>
+<li><strong>No simulator</strong> (dropped): iteration 1.5 is a virtual x402 resource instead.</li>
+</ul>
+<h3 id="2-3-payments-grant-float-decision-c">2.3 Payments: grant + float (decision C)</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Grant path</th>
+<th>Float path</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>For</td>
+<td>Our merchant (accepts ERC-7710)</td>
+<td>Any x402 seller that only takes EIP-3009</td>
+</tr>
+<tr>
+<td>How</td>
+<td>Chip signs a one-time leaf → <strong>our facilitator</strong> → <code>redeemDelegations</code></td>
+<td>The chip pulls the exact amount (a grant payment <em>to itself</em>: <code>ExactCalldata(transfer(chip, amount))</code>, <code>IdEnforcer(invoice)</code>), waits for the receipt, then signs EIP-3009 (<code>validBefore</code> ≤ 120 s) → <strong>Circle&#39;s Facilitator Service</strong></td>
+</tr>
+<tr>
+<td>Limits enforced</td>
+<td>All of them, on Arc, at payment time</td>
+<td>All of them at the <strong>pull</strong>, plus a <strong>separate small float cap</strong> (review fix: otherwise the chip could pull to itself and pay any seller, bypassing the allowlist); the seller payment itself is a plain transfer</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>1 tx: <strong>≈ 663k gas ≈ $0.013</strong> measured in spike S2 (≈ 505k / $0.010 with redundant caveats dropped; the passkey check and ~13 caveats dominate)</td>
+<td>2 txs, about 1 s on Arc, invisible to the user</td>
+</tr>
+<tr>
+<td>On failure</td>
+<td>Revert: nothing paid</td>
+<td>Let the authorization expire (or call <code>cancelAuthorization</code>), then sweep the float back to the owner</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>Our facilitator:</strong><ul>
+<li><strong>Known:</strong> no shipping open-source ERC-7710 facilitator exists. x402 PR #1837 is a stalled draft; MetaMask&#39;s
+facilitator is hosted on Base and Monad only.</li>
+<li>So we write ~150 lines with viem, from <code>references/danfinlay_x402@7710-implementation</code> (PR #1837) and
+<code>references/fireblocks_x402-facilitator</code> (<code>Erc7710Mechanism.ts</code>: DelegationManager allowlist, packed calldata).</li>
+<li>Simulate with <code>account: relayer</code>, or the Redeemer caveat fails.</li>
+</ul>
+</li>
+<li><strong>Circle&#39;s Facilitator Service</strong> (<strong>Known</strong>, live check):<ul>
+<li>base URL <code>https://api.circle.com/v1/facilitator/x402</code>, x402 v2, <code>eip155:5042</code> with <code>exact</code> (+ <code>upto</code>)</li>
+<li>auth: API key, or the keyless <code>Facilitator-Seller-Proof</code> (an EIP-712 signature by the payTo)</li>
+<li>payer may be an EOA or a deployed ERC-1271 account; Circle pays gas; both sides are sanctions-screened</li>
+</ul>
+</li>
+<li><strong>Our merchant lists both in <code>accepts[]</code>, EIP-3009 first,</strong> because stock clients take <code>accepts[0]</code>. One routing
+facilitator client sends <code>authorization</code> payloads to Circle and <code>permissionContext</code> payloads to ours.</li>
+<li><strong>Prior art:</strong> Goblin&#39;s archived wallet (tag <code>hackathon-2026-10</code>, ADRs 0045/0050) did ERC-7710 period allowances with
+<strong>just-in-time top-ups</strong> and x402/MPP on Base. Coinbase Sub Accounts&#39; auto-spend (<code>references/base_account-sdk</code>) does
+the same pull-then-pay.</li>
+<li><strong>MPP later (decision D):</strong> Circle&#39;s USDC MPP method is EIP-3009 and works on Arc by chain id
+(<code>references/tempoxyz_mpp-specs</code>, <code>references/wevm_mppx</code>). It would reuse the float path.</li>
+</ul>
+<h3 id="2-4-merchant">2.4 Merchant</h3>
+<ul>
+<li><strong>Store config:</strong> items, USDC prices, flags <code>needsApproval</code> / <code>restricted</code>, and a payout account.</li>
+<li><strong>Checkout:</strong> x402 v2 with both entries in <code>accepts[]</code>, plus <code>payment-identifier</code> (idempotency).</li>
+<li><strong>Invoice binding:</strong> <code>IdEnforcer(invoiceHash)</code>. One receipt is final.</li>
+<li><strong>Iteration 2:</strong> the ESP32 gate keeps the <code>bench-answers.md</code> endpoints:<ul>
+<li>Ed25519-signed status with a gate nonce, verified with Monocypher <code>crypto_ed25519_check</code></li>
+<li>a <code>used</code> state, so a cached <code>paid</code> can&#39;t reopen the gate</li>
+</ul>
+</li>
+<li><strong>Restricted items</strong> (the mock cigarette pack) need a <strong>fresh Agent Pass approval</strong>, not an age proof (see 2.5).</li>
+</ul>
+<h3 id="2-5-world-agent-pass-verified-on-arc-decision-f-updated">2.5 World: Agent Pass, verified on Arc (decision F, updated)</h3>
+<ul>
+<li><strong>What Agent Pass is:</strong> ETHGlobal&#39;s name for <strong>World IdP</strong>, World&#39;s OIDC sign-in at <code>auth.world.org</code>.<ul>
+<li><strong>Known:</strong> World IdP itself uses no chain. World <em>does</em> have its own chain (World Chain) for its wallet and on-chain
+World ID proofs, but Agent Pass doesn&#39;t touch it.</li>
+<li>It returns an <strong>RS256-signed ID token</strong> (JWKS at <code>/.well-known/jwks.json</code>, RSA-2048).</li>
+</ul>
+</li>
+<li><strong>Decided: the approval is verified on Arc itself</strong> (Kris, 2026-11-05), so our backend is no longer a trusted approver.<ul>
+<li><strong>Flow:</strong> World IdP&#39;s <strong>browser (authorization-code) flow</strong>, not the device flow, because only the browser flow
+accepts a <code>nonce</code> and echoes it into the token. We set <code>nonce</code> = the EIP-712 hash of
+<code>{invoiceHash, amount, payee, expiry}</code> and use <code>max_age=0</code> / <code>prompt=login</code> to force a fresh World ID check. The
+owner opens the approval on their phone from our wallet page, which shows item, amount, payee and invoice. World
+App itself can&#39;t show what is approved.</li>
+<li><strong>On-chain check:</strong> <code>HumanApprovalEnforcer</code> (built in Arc Studio) receives the raw token in the caveat args,
+RSA-verifies it with OpenZeppelin <code>RSA.pkcs1Sha256</code> (modexp precompile, ≈ 33k gas) and parses the claims (≈ 100–300k
+gas; &lt; $0.01 total). It checks:<ul>
+<li><code>iss</code>, <code>aud</code>, <code>exp</code>, <code>sub</code> = the owner&#39;s World pseudonym (stored at setup)</li>
+<li><code>nonce</code> = this payment</li>
+<li><code>auth_time</code> recent</li>
+<li><code>amr</code> contains <code>pop</code> <strong>and not <code>mfa</code></strong> (spike S5b: a passkey-only sign-in is <code>[&quot;pop&quot;,&quot;user&quot;,&quot;mfa&quot;]</code>, so <code>pop</code> alone isn&#39;t enough)</li>
+<li><code>jti</code> not used before (stored)</li>
+</ul>
+</li>
+<li><strong>Remaining trust:</strong> World IdP, plus whoever registers World&#39;s public key on Arc (a key-admin role; handle key
+rotation). Arc itself is permissioned proof-of-authority (Circle + about 11 validators).</li>
+<li><strong>For the 09:00 deadline (D15): the backend co-signer is the default.</strong> Our backend verifies the token (same
+checks) and co-signs EIP-712; <code>HumanApprovalEnforcer</code> checks the co-signature. The on-chain verifier (S5b
+prototype, 43 tests) is the stretch swap.</li>
+</ul>
+</li>
+<li><strong>Deny / cancel:</strong> the owner refuses in World App, or never completes it. Then no token exists, so the voucher can&#39;t
+pass the enforcer and nothing is paid.</li>
+<li><strong>Agent Pass vs the MCP grant:</strong> the grant is the <strong>standing budget</strong> (passkey, in our wallet). Agent Pass is a
+<strong>one-off exception</strong> for one over-limit or restricted payment (World App). Raising the budget is a new grant, not
+Agent Pass.</li>
+<li><strong>World&#39;s wallet can&#39;t replace ours:</strong> &quot;World Money&quot; is a Safe on World Chain only. World&#39;s SDK refuses other chains
+for transactions, a Safe can&#39;t be a Delegation Framework delegator, and World resets allowances after each
+transaction. A World mini app could at most fund our Arc account (World Chain → Arc via CCTP/Gateway).</li>
+<li><strong>Setup:</strong> register a client at <code>auth.world.org/portal</code> (HTTPS redirect URI, <code>client_secret_basic</code>); sandbox at
+<code>sandbox.auth.world.org</code>; Kris has an Orb-verified ID.</li>
+<li><strong>Dropped:</strong> the IDKit <code>HumanRegistry</code> / 18+ path. AgentKit (archived, no age).</li>
+</ul>
+<h3 id="2-6-venue-network-decision-i-updated-by-bench-h4">2.6 Venue network (decision I, updated by bench H4)</h3>
+<ul>
+<li><strong>Bench H4 finding:</strong> the venue Wi-Fi is unusable for the robots: about 3 KB/s, pings up to 2.5 s, a 1 MB <code>scp</code> never
+finished.</li>
+<li><strong>Primary: a dedicated phone hotspot.</strong> Pixel, 2.4 GHz, WPA2, name <code>duckbench</code>, shared by the Radxa, the ESP32 and the
+laptops. Use its own mobile data (a local SIM) as the uplink.</li>
+<li><strong>Alternative: macOS Internet Sharing</strong> from a <em>wired</em> Ethernet uplink. Settings:<ul>
+<li>channel 1, 6 or 11</li>
+<li>WPA2/WPA3 (never WPA3-only)</li>
+<li>Radxa <code>key-mgmt wpa-psk</code>; ESP32 <code>setMinSecurity(WPA2_PSK)</code></li>
+<li>run <code>caffeinate -dis</code></li>
+</ul>
+</li>
+<li><strong>Doesn&#39;t work:</strong> reverse-tethering into the Android hotspot (hotspot clients bypass gnirehtet&#39;s VPN).</li>
+</ul>
+<h3 id="2-7-esp32-gate-wiring">2.7 ESP32 gate wiring</h3>
+<ul>
+<li><strong>A micro servo (SG90 / MG90S) needs no extra chip:</strong><ul>
+<li>signal to a GPIO (e.g. GPIO 13; 3.3 V logic is fine)</li>
+<li><strong>power from a separate 5 V supply of at least 1 A</strong>, not the ESP32&#39;s 3.3 V pin</li>
+<li>grounds joined</li>
+<li>a 470 µF capacitor across the servo supply</li>
+<li>code: ESP32Servo <code>attach(pin, 500, 2400)</code></li>
+</ul>
+</li>
+<li>Powering the servo from the ESP32 over the Mac&#39;s USB can brown-out-reset the board. A PCA9685 driver only matters for
+many servos.</li>
+</ul>
+<h3 id="2-8-bench-results-so-far-docs-spikes-hardware-results-md-202">2.8 Bench results so far (<code>docs/spikes/hardware-results.md</code>, 2026-11-06)</h3>
+<table>
+<thead>
+<tr>
+<th>Spike</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C1: the chip signs the plan-v3 voucher</td>
+<td><strong>Pass, 20/20 checks</strong>: hashes and caveats match MetaMask&#39;s kit; on live Arc the voucher pays the merchant, a different amount or payee fails, a replay fails</td>
+</tr>
+<tr>
+<td>H1: Radxa health</td>
+<td>Partial: OS and camera known, ≤ 57 °C in a short capture. The overheating was the camera ribbon: fixed by reseating it striped face up</td>
+</tr>
+<tr>
+<td>H3: signing speed</td>
+<td>Python signing works but takes 187 ms (pure-Python recovery); Bun + viem or libsecp256k1 needed. <strong>Bun not yet tested</strong></td>
+</tr>
+<tr>
+<td>H4: venue network</td>
+<td>Venue Wi-Fi unusable, so a dedicated phone hotspot (above)</td>
+</tr>
+<tr>
+<td>H2, H5, H6</td>
+<td>Not yet run: QR read from the ESP32 screen, frames over WebSocket, the signed bench loop</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-iterations">3. Iterations</h2>
+<table>
+<thead>
+<tr>
+<th>Iteration</th>
+<th>Build</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>0: Wallet</strong></td>
+<td>Passkey signup and deploy, fund, send/receive, grants UI, MCP server with OAuth-consent-as-grant, Agent Pass approvals</td>
+<td>Sign up with a passkey only, receive $1, send $0.10, connect a client with a $2/day grant, revoke it, on Arc mainnet with no gas shown</td>
+</tr>
+<tr>
+<td><strong>1: Headless commerce</strong></td>
+<td>Robot Agent DO + <strong>mock chip</strong> (a Bun script with its own key, one per teammate; the real Radxa pairs over the internet with the same code) + merchant (both payment paths) + our facilitator</td>
+<td>The agent (0G) buys a normal item (grant path); a restricted or over-limit item (Agent Pass approve → paid, deny → nothing); an item from an EIP-3009-only seller (float path via Circle); revoke stops everything; every 0G decision is logged</td>
+</tr>
+<tr>
+<td><strong>1.5: Virtual resource</strong> (no simulator)</td>
+<td>The chip buys a virtual resource: an x402 API (data, an image, a song)</td>
+<td>The full flow without hardware: 0G decides, the chip signs, payment settles, Agent Pass for a restricted item, verified on Arc</td>
+</tr>
+<tr>
+<td><strong>2: Hardware</strong></td>
+<td>Radxa chip (same TS code), webcam, ESP32 gate</td>
+<td>The duck scans the ESP32 QR, the chip signs, the gate opens on a signed &quot;paid&quot;</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="4-decisions">4. Decisions</h2>
+<p>All of D1 and plan v3 A–J are recorded in <code>decisions.md</code>. Still open:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Decision</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>D7</td>
+<td>Who pays relayer gas</td>
+<td>We absorb it (≈ $0.013 per payment measured in S2; ≈ $0.006 per owner action)</td>
+</tr>
+<tr>
+<td>D9</td>
+<td>Recovery</td>
+<td>Several passkeys now; guardians later</td>
+</tr>
+<tr>
+<td>D10</td>
+<td>Accounts on other chains</td>
+<td>Arc-only; other chains are funding routes</td>
+</tr>
+<tr>
+<td>D11</td>
+<td>MetaMask can pause the DelegationManager</td>
+<td>Accept; the 4337 break-glass path covers it</td>
+</tr>
+<tr>
+<td>D13</td>
+<td>Who may watch or drive the robot</td>
+<td>Owner drives; judges view</td>
+</tr>
+<tr>
+<td>D15</td>
+<td><strong>Decided (Kris, Fri 04:30): backend co-signer first, on-chain verification as a stretch</strong> (with the privacy note in the pitch). Background: <strong>The World token becomes public calldata</strong> when verified on-chain: it carries the owner&#39;s per-app <code>sub</code> (and an email-like claim), so all of one owner&#39;s approvals are linkable on Arc; World&#39;s guide says to keep the token server-side (spike S5b)</td>
+<td>Accept for the demo with a note; or verify on-chain but send only what&#39;s needed (not possible: the signature covers the whole payload); or fall back to the backend co-signer</td>
+</tr>
+<tr>
+<td>D16</td>
+<td><strong>Decided 2026-11-06 (Kris): Arc + 0G + World.</strong> ENS names are an optional add-on (UX, about a day); the prize picks are finalised at submission. Background: <strong>Third partner prize: Arc or ENS.</strong> ETHGlobal caps a project at 3 partner prizes; 0G and World stay. Arc Advanced Stablecoin Logic $3k (one winner, needs Arc Studio) vs ENS &quot;Best Use of ENSv2&quot; $7k (4 places, ENSv2 on Ethereum mainnet or Sepolia, must be central)</td>
+<td>Keep Arc if the enforcers are really built and shown in Studio; switch to ENS if Studio is painful or ENS names (robots/merchants as agent namespaces) become central. Decide by Saturday</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-spikes-in-order">5. Spikes, in order</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Spike</th>
+<th>Settles</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>S1</td>
+<td>Real-device passkey → HybridDeleGator on Arc → passkey-signed grant → $0.01 relayed payment</td>
+<td>The wallet</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>Our ERC-7710 facilitator: owner → chip leaf, then $0.01 real. <strong>Done (simulated, 2026-11-06): 14/14 cases on live Arc state</strong> via <code>eth_call</code> with state overrides (a plain anvil fork can&#39;t move Arc USDC: the native-coin precompile is missing). Correct revert reasons for wrong amount/payee, replay, expiry, cap, revoke. Left: a real broadcast, receipt logs, the x402 envelope (≈ 12 KB header)</td>
+<td>Grant path</td>
+</tr>
+<tr>
+<td>S2b</td>
+<td>Float path: pull to chip → EIP-3009 through Circle&#39;s facilitator on Arc, $0.01</td>
+<td>Float path</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>0G with the teammate&#39;s credits: tool-calling model, latency, request ids via pi-ai <code>onResponse</code></td>
+<td>Robot Agent brain; 0G prize</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>Robot Agent DO: pi-ai loop + MCP OAuth client ↔ our wallet MCP</td>
+<td>Agent ↔ wallet</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>Agent Pass <strong>browser flow with <code>nonce</code></strong> (approve and deny) with Kris&#39;s Orb ID: confirm the token echoes the nonce, plus the <code>acr</code>/<code>amr</code>/<code>auth_time</code> values</td>
+<td>World</td>
+</tr>
+<tr>
+<td>S5b</td>
+<td><code>HumanApprovalEnforcer</code> verifies a World RS256 token on Arc. <strong>Done (prototype, 2026-11-06): 43 forge tests pass; also run on live Arc via <code>eth_call</code>; ≈ 409k gas ≈ $0.008.</strong> The kid is the RFC 7638 thumbprint, computed on-chain at registration. Left: a real World token carrying our nonce (S5, Kris&#39;s phone), key rotation, wrapping it as the caveat</td>
+<td>Trust-minimised approval</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>Mock chip ↔ Robot Agent WebSocket: pairing, sign request; then the real Radxa with Bun + viem (H3 retry)</td>
+<td>Chip protocol</td>
+</tr>
+<tr>
+<td>S7</td>
+<td>The <code>duckbench</code> phone hotspot with the Radxa, ESP32 and laptops; H2, H5 and H6 on it</td>
+<td>Venue network, camera, bench loop</td>
+</tr>
+<tr>
+<td>S8</td>
+<td>Walking policy on the new servos</td>
+<td>Teammate</td>
+</tr>
+</tbody></table>
+<h2 id="6-booth-questions">6. Booth questions</h2>
+<ul>
+<li><strong>0G:</strong> the Physical AI prize <strong>requires an episode log on 0G Storage</strong> (plus a contract address), so Storage + <code>EpisodeLog</code> are build items, not optional; ask only whether Galileo testnet is acceptable. (Credits: we have them. Standard providers: decided.)</li>
+<li><strong>World:</strong> what &quot;mocked proofs&quot; covers for Agent Pass; time to get a production client.</li>
+<li><strong>Arc:</strong> can judges open a Studio URL without logging in; is a Studio-built enforcer module deployed to mainnet by us
+acceptable; Circle facilitator minimum amount; a keyed RPC.</li>
+</ul>
+<h2 id="7-alternative-considered-world-chain-0g-ens-2026-11-06-docs-">7. Alternative considered: World Chain + 0G + ENS (2026-11-06, <code>docs/research/worldchain-ens-alternative.md</code>)</h2>
+<ul>
+<li><strong>Not worth it:</strong><ul>
+<li>no World Chain or mini-app prize exists at Mumbai, and World&#39;s tracks don&#39;t depend on the chain</li>
+<li>MetaMask&#39;s delegation contracts aren&#39;t on World Chain (≈ 45 contracts to deploy, every Arc simulation and bench C1 to redo)</li>
+<li>Circle&#39;s facilitator doesn&#39;t support chain 480</li>
+<li>gas is ≈ 5× cheaper but paid in ETH</li>
+<li>the World App wallet still can&#39;t grant a standing allowance</li>
+</ul>
+</li>
+<li><strong>What survives: ENS names on top of Arc.</strong> Robots and merchants as subnames under our own <code>.eth</code>, holding their Arc
+address (ENSIP-11) and agent records. About 0.5–1 dev-day, ≈ 8 USDC/year for the parent name. It matters only if
+ENS takes the third prize pick (D16).</li>
+</ul>
+<h2 id="8-what-v3-supersedes">8. What v3 supersedes</h2>
+<ul>
+<li><strong>v2&#39;s separate AI client + RobotSession + robot MCP</strong> → one Robot Agent per robot.</li>
+<li><strong>v2&#39;s &quot;sub-grant to the robot&quot;</strong> → the grant&#39;s delegate is the chip directly.</li>
+<li><strong>The IDKit <code>HumanRegistry</code> and 18+ age rule</strong> → dropped: restricted items need Agent Pass.</li>
+<li><strong>Agent Pass via device flow + backend co-signer</strong> → browser flow with <code>nonce</code> = invoice hash; backend co-signer as the default for the event, on-chain verification as the stretch (D15).</li>
+<li><strong>Iteration 1.5 simulator</strong> → a virtual x402 resource; <strong>virtual chip</strong> → mock chip per teammate.</li>
+<li><strong>&quot;Our relayer submits everything&quot;</strong> → our facilitator/relayer for grant payments and owner actions, Circle&#39;s
+facilitator for float payments, 4337 as break-glass.</li>
+<li><strong>Reverse-tether network idea</strong> → a dedicated phone hotspot (macOS Internet Sharing from wired Ethernet as the alternative).</li>
+</ul>
+
+  <footer>Generated from <code>docs/plan.md</code> · diagrams on the <a href="/architecture/">Architecture</a> page ·
+    <a href="https://github.com/grmkris/eth-global-mumbai-2026/blob/main/docs/plan.md">source on GitHub</a></footer>
+</main>
+<script src="/lib/comments.js" defer></script>
+</body>
+</html>

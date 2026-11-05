@@ -1,10 +1,10 @@
 # Plan v3: wallet → robot agent → merchant → chip
 
-**v3.3, Fri 6 Nov 04:30 IST:** review round. Battle plan to the Saturday 09:00 deadline (§0), MVP scope, D15 decided (co-signer first), design gaps fixed.
-**v3.2, 2026-11-06:** spikes S2 + S5b done (simulated / prototype), World Chain + ENS alternative assessed, decisions D15–D16 added.
-**v3.1, 2026-11-06:** comment round 2 (on-chain Agent Pass check, mock chip, no simulator, bench results, network, servo wiring).
-**v3, 2026-11-05 (late).** Updated from Kris's 13 comments on the v2 page and the Q&A that followed. The decisions are
-recorded in `decisions.md` (plan v3 A–J).
+**Versions:**
+- **v3.3, Fri 6 Nov 04:30 IST:** review round. Battle plan to the Saturday 09:00 deadline (§0), MVP scope, D15 decided (co-signer first), design gaps fixed.
+- **v3.2, 2026-11-06:** spikes S2 + S5b done (simulated / prototype), World Chain + ENS alternative assessed, decisions D15–D16 added.
+- **v3.1, 2026-11-06:** comment round 2 (on-chain Agent Pass check, mock chip, no simulator, bench results, network, servo wiring).
+- **v3, 2026-11-05 (late).** Updated from Kris's 13 comments on the v2 page and the Q&A that followed. The decisions are recorded in `decisions.md` (plan v3 A–J).
 
 **Sources:**
 - round-2 research: `docs/research/{nod-froggy-patterns, wallet-accounts-v2, mcp-wallet-and-ai-client, merchant-and-agent-commerce, world-v2, robot-browser-and-mcp}.md`
