@@ -83,7 +83,8 @@
     "infra/**/*.ts",
     "*.config.ts",
     "alchemy.run.ts",
-    "docs/site/*.ts"
+    "docs/site/*.ts",
+    "docs/site/lib/*.ts"
   ],
   "exclude": ["node_modules", "**/dist/**", "tools/oxlint/anti-slop/**", ".agents/**"]
 }

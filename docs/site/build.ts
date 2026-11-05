@@ -17,7 +17,7 @@ const libraries: Record<string, string> = {
 }
 
 /** Folders and files in docs/site that are tooling, not pages. */
-const skip = new Set(['node_modules', 'dist', '.alchemy', 'lib', 'package.json', 'build.ts', 'alchemy.run.ts', 'README.md', 'tsconfig.json'])
+const skip = new Set(['node_modules', 'dist', '.alchemy', 'lib', 'package.json', 'build.ts', 'alchemy.run.ts', 'worker.ts', 'migrations', 'README.md', 'tsconfig.json'])
 
 const escape = (text: string) =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
@@ -30,7 +30,16 @@ mkdirSync(path.join(out, 'lib'), { recursive: true })
 for (const [name, specifier] of Object.entries(libraries)) {
   cpSync(path.join(root, 'node_modules', specifier), path.join(out, 'lib', name))
 }
-cpSync(path.join(root, 'lib'), path.join(out, 'lib'), { recursive: true })
+cpSync(path.join(root, 'lib'), path.join(out, 'lib'), { recursive: true, filter: (source) => !source.endsWith('.ts') })
+
+// Browser scripts written in TypeScript (`lib/<name>.ts`) are served as `/lib/<name>.js`.
+const scripts = readdirSync(path.join(root, 'lib'))
+  .filter((name) => name.endsWith('.ts'))
+  .map((name) => path.join(root, 'lib', name))
+if (scripts.length > 0) {
+  const result = await Bun.build({ entrypoints: scripts, outdir: path.join(out, 'lib'), target: 'browser', format: 'iife', minify: true })
+  if (!result.success) throw new AggregateError(result.logs, 'site: lib/*.ts failed to build')
+}
 
 const pages: { slug: string; title: string }[] = []
 for (const entry of readdirSync(root, { withFileTypes: true })) {

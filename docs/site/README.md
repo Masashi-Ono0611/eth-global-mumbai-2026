@@ -26,9 +26,24 @@ Copy `_template/` to `docs/site/<name>/`, set its `<title>`, push to `main`. The
 
 Add a library: add it to `package.json`, map its browser bundle in `build.ts` (`libraries`), and list it here.
 
+## Comments (`worker.ts`, D1)
+
+Login-free comments on page elements. Pages opt in with `<script src="/lib/comments.js" defer></script>`.
+Writes need the shared team code (GitHub secret `TEAM_CODE`; locally in the ignored `docs/site/.env`).
+
+| Route | Auth | Result |
+| --- | --- | --- |
+| `GET /api/comments?page=<slug>` | none | `[{ id, anchor, anchorText, name, body, createdAt }]` |
+| `GET /api/comments.md?page=<slug>` | none | Markdown grouped by anchor — the way for agents to read feedback |
+| `POST /api/comments` `{ page, anchor, anchorText, name, body }` | `x-team-code` | 201 + the comment; 400 / 401 otherwise |
+| `DELETE /api/comments/:id` | `x-team-code` | 204 / 404 |
+
+Limits: page `[a-z0-9_-]{1,64}`, anchor ≤ 200, anchorText ≤ 300, name ≤ 60, body ≤ 4096. Bodies are stored as typed;
+clients render them as text. Browser scripts in `lib/*.ts` are compiled by `build.ts` to `/lib/<name>.js`.
+
 ## How it deploys
 
-Alchemy owns it: `alchemy.run.ts` is the `EthMumbaiSite` stack — one assets-only Worker, `eth-mumbai-site`, on the
+Alchemy owns it: `alchemy.run.ts` is the `EthMumbaiSite` stack — one Worker, `eth-mumbai-site` (static assets first, `worker.ts` for `/api/comments…`), a D1 database `Comments`, on the
 personal Cloudflare account (`bceaeae4788dce3493514fde194b4a7e`). `build.ts` writes `dist/` (pages, `/lib/`, the index).
 `.github/workflows/site.yml` deploys on every push to `main` that touches `docs/site/**` (about a minute, no app gates).
 
