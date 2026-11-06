@@ -35,11 +35,15 @@ payment, only delay it.
 - **Docs and design:** `docs/spec.md` (the build order), `docs/decisions.md`, `docs/plan.md`, the live
   [architecture page](https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/) and
   [plan page](https://eth-mumbai-site.kristjan-grm11775.workers.dev/plan/) (both commentable).
-- **Evidence so far:** simulated end-to-end grant chains and our facilitator against live Arc mainnet state
-  (`docs/research/spike-s2-facilitator.md`), a World token verifier prototype (`docs/research/spike-s5b-jwt-onchain.md`),
-  and the real Radxa signing the payment voucher (`docs/spikes/hardware-results.md`). Real broadcasts are recorded in
-  `docs/evidence/` as they happen.
-- **Code:** being built from `docs/spec.md` during the event (see the commit history).
+- **Evidence so far:** the first real payment on Arc mainnet (6 Nov 06:10 IST: a chip-signed $0.01 voucher under a
+  grant, replay refused, revoke, next payment refused; `docs/evidence/2026-11-06-smoke.md`), the
+  `RobotPaymentPolicyEnforcer` deployed on Arc (`docs/evidence/contracts.md`), simulated grant chains and approvals
+  against live Arc state (`packages/chain/test`), a World token verifier prototype
+  (`docs/research/spike-s5b-jwt-onchain.md`), and the real Radxa signing the payment voucher
+  (`docs/spikes/hardware-results.md`). Not yet proven: a passkey-signed grant broadcast, a real 0G decision, the
+  uploader against 0G Storage, World approve/deny.
+- **Code:** built from `docs/spec.md` during the event (see the commit history); the passkey wallet, merchant, chip
+  protocol, Robot Agent and facilitator are deployed by CI from `main`.
 
 ## Repo map
 
