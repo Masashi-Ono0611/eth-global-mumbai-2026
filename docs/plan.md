@@ -13,15 +13,15 @@ v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the fo
 **Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.** On Fri 05:00 no product code existed. Three Opus
 workers build from `docs/spec.md` while Kris does the prerequisites and the teammates build the physical duck.
 
-### Status board (Fri 6 Nov 12:05 IST)
+### Status board (Fri 6 Nov 12:45 IST)
 
 | Lane | State | Blocker |
 | --- | --- | --- |
-| Chain (M0–M2) | **Done, on mainnet:** $0.01 chip-signed payment, replay/revoke proven; enforcer `0x7c21…e4D3` deployed; passkey-signed grants accepted on-chain from the deployed app | none |
-| Contracts (M1) | **Done:** 50 Foundry tests; Arc Studio project built (42 tests, Arc testnet deploys) | EpisodeLog on Galileo deploying now (signer funded 0.5 0G) |
-| Wallet (M0a, M7, M6) | **Done, deployed:** passkey auth, wallet/robots/console/approval pages, World routes; browser journey proven on the deployed app | **World client**: the production portal says Kris's Google account is not eligible for self-service (booth ask: enable it, or a client with redirect `…/api/world/callback`, `client_secret_basic`). Rehearsal: a labelled stub issuer in our Worker (building) |
-| Merchant + Robot (M3–M5) | **Done, deployed:** x402 402/pay, Ed25519 gate, chip pairing + 25 s long-polls through the edge, errands with 0G decide + safe_stop, counter-invoice claim, evidence uploader | **0G Compute credits**: no router key yet; direct broker route needs ≥ 4 Galileo 0G (wallet has 0.5). Rehearsal brain: LiteLLM → DeepSeek (labelled, not 0G) wired 12:00, probe passes (chai → pay, cigarettes → ask_human) |
-| Next proofs | paid chai + gate OPEN on the deployed app (rehearsal brain, after the redeploy); EpisodeLog deploy + first upload; approve/deny via the stub; then the same with real 0G and real World | the two booth asks above |
+| **Full loop on the deployed app** | **Proven 12:06–12:40 IST, Arc mainnet:** passkey owner → grant with the enforcer → account deployed → mock chip paired → "buy chai" decided → chip signs → settled (`0x29a477f9…f29f`, `0x782f8dfc…8875`) → the gate's invoice `paid` → `used` → episode on 0G Storage + `EpisodeLog.record` (`0xd2fe9e75…aa21`); revoke, then a chai refused on-chain (`CannotUseADisabledDelegation`). API driver and real UI (virtual passkey) both | the decision came from the **labelled rehearsal brain** (LiteLLM → DeepSeek), not 0G |
+| Chain / contracts | Done: enforcer `0x7c21…e4D3` (Arc), `EpisodeLog` `0x4C94…206A` (Galileo), Arc Studio project | none; relayer at ≈ 7 USDC (top-up before the demo) |
+| Wallet / World | Done, deployed; approve/deny rehearsal through the in-Worker stub running now (prompt fixed 12:40: restricted → `ask_human`) | **World client**: production portal says Kris's Google account is not eligible (booth: enable it, or a client with redirect `…/api/world/callback`, `client_secret_basic`) |
+| Merchant / Robot / evidence | Done, deployed; first 0G Storage upload done; uploader `--once` drains the rest | **0G Compute credits**: router key, or ≥ 4 Galileo 0G to `0xc6fF…1fcD` (has 0.5) for the direct broker route (script ready) |
+| Next | approve/deny evidence (stub) → real World and real 0G when credentials arrive → demo rehearsal (`docs/demo.md`) → video (`docs/video-script.md`) Sat 06:00 → submit by 08:00 | the two booth asks |
 
 ### Scope
 
