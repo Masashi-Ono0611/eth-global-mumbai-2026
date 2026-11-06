@@ -28,6 +28,7 @@ import {
 } from './RobotAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
+import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
 import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 
 // The 0G router stand-in runs in this process; the Worker reaches it on 127.0.0.1.
@@ -327,4 +328,5 @@ registerChipAcceptance(test, stack)
 registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
 registerWalletAcceptance(test, stack)
+registerConsoleAcceptance(test, stack, zeroG)
 registerChainAcceptance(test, stack)
