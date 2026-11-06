@@ -1,0 +1,62 @@
+// チームの repo(grmkris/eth-global-mumbai-2026)の 0G 判断(decide)呼び出しを、そのままの形で複数モデルに投げて比べる。
+// 使い方: node --env-file=.env.local scripts/team-decide-probe.mjs [model ...]   (OG_ROUTER_API_KEY が要る)
+// 本文は、チームの packages/server/src/robot/ZeroGClient.ts の decideRequestBody と同じ(強制ツール呼び出し、temperature 0、構造化入力のみ)。
+// 出力: モデルごとに HTTP・遅延・request_id・provider・解析できた action。チームの 10 秒タイムアウトを超えたものは印を付ける。
+const KEY = process.env.OG_ROUTER_API_KEY;
+if (!KEY) { console.error('OG_ROUTER_API_KEY 未設定'); process.exit(2); }
+const BASE = (process.env.OG_ROUTER_BASE_URL || 'https://router-api.0g.ai/v1').replace(/\/+$/, '');
+const TEAM_TIMEOUT_MS = 10_000;
+
+const SYSTEM_PROMPT = 'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool. Never pay when approvalRequired is true or merchant trust is untrusted.';
+const DECIDE_TOOL = { type: 'function', function: { name: 'decide', parameters: { type: 'object', required: ['action', 'reason'], properties: { action: { type: 'string', enum: ['pay', 'ask_human', 'walk_away'] }, reason: { type: 'string', maxLength: 200 } } } } };
+const bodyFor = (model, input, extra = {}) => ({
+  model, temperature: 0,
+  messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: JSON.stringify(input) }],
+  tools: [DECIDE_TOOL], tool_choice: { type: 'function', function: { name: 'decide' } }, ...extra,
+});
+const sample = (kind) => {
+  const chai = kind !== 'cigarettes';
+  const amount = chai ? '100000' : '500000';
+  return {
+    requested: kind, catalogue: { itemId: kind, name: chai ? 'Chai' : 'Cigarettes', amount, restricted: !chai },
+    invoice: { id: 'probeprobeprobeprobeprobea', payTo: chai ? '0x000000000000000000000000000000000000c0de' : '0x000000000000000000000000000000000000dead', amount, expiresAt: Math.floor(Date.now() / 1000) + 600 },
+    budget: { dailyCap: '1000000', spentToday: '0', remainingToday: '1000000', perPaymentCap: '300000' },
+    policy: { payeeAllowlisted: chai, restricted: !chai, approvalRequired: !chai },
+    merchant: { id: 'duck-cafe', trust: 'known' },
+  };
+};
+const EXTRAS = { 'qwen3.8-flash': { enable_thinking: false }, 'qwen3-vl-plus': { enable_thinking: false }, '0gm-1.0-35b-a3b': { chat_template_kwargs: { enable_thinking: false } }, 'glm-5.3': { chat_template_kwargs: { enable_thinking: false } } };
+const NO_EXTRAS = process.argv.includes('--no-extras'); // チームの本文そのまま(推論オフ等の追加なし)で試す
+const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const models = args.length ? args : ['0gm-1.0-35b-a3b', 'glm-5.3', 'qwen3.8-flash', 'qwen3-vl-plus', 'deepseek-v4-flash-vision-exp'];
+
+async function one(model, kind, extra) {
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`${BASE}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` }, body: JSON.stringify(bodyFor(model, sample(kind), extra)), signal: AbortSignal.timeout(30_000) });
+    const text = await res.text(); const ms = Math.round(performance.now() - t0);
+    let j = null; try { j = JSON.parse(text); } catch { /* not json */ }
+    const tool = j?.choices?.[0]?.message?.tool_calls?.find((t) => t.function?.name === 'decide');
+    let args = null; try { args = tool ? JSON.parse(tool.function.arguments) : null; } catch { /* bad args */ }
+    const trace = j?.x_0g_trace;
+    return { model, kind, http: res.status, ms, slow: ms > TEAM_TIMEOUT_MS, action: args?.action ?? null, reason: args?.reason ? String(args.reason).slice(0, 80) : null, toolCall: Boolean(tool), request_id: trace?.request_id ?? j?.request_id ?? null, provider: trace?.provider ?? null, tee_verified: trace?.tee_verified ?? null, chatId: res.headers.get('zg-res-key'), cost_usd_micro: trace?.billing?.total_cost_usd_micro ?? null, error: res.ok ? null : text.slice(0, 160) };
+  } catch (e) { return { model, kind, http: null, ms: Math.round(performance.now() - t0), error: String(e?.message ?? e).slice(0, 120) }; }
+}
+const rows = [];
+for (const model of models) {
+  for (const kind of ['chai', 'cigarettes']) {
+    for (const rep of [1, 2]) {
+      const r = await one(model, kind, NO_EXTRAS ? {} : (EXTRAS[model] ?? {}));
+      rows.push({ ...r, rep });
+      console.log(JSON.stringify(r));
+    }
+  }
+}
+console.log('\n=== summary (期待: chai=pay, cigarettes=ask_human)');
+for (const model of models) {
+  const mine = rows.filter((r) => r.model === model);
+  const okTool = mine.filter((r) => r.toolCall).length;
+  const right = mine.filter((r) => (r.kind === 'chai' && r.action === 'pay') || (r.kind === 'cigarettes' && r.action === 'ask_human')).length;
+  const ms = mine.map((r) => r.ms).sort((a, b) => a - b);
+  console.log(`${model.padEnd(32)} tool_call ${okTool}/${mine.length}  正解 ${right}/${mine.length}  遅延 中央 ${ms[Math.floor(ms.length / 2)]}ms 最大 ${ms[ms.length - 1]}ms  10秒超 ${mine.filter((r) => r.slow).length}  http ${[...new Set(mine.map((r) => r.http))].join('/')}`);
+}
