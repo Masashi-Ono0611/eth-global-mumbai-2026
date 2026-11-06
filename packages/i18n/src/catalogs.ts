@@ -356,6 +356,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'proof.log': 'EpisodeLog record',
   'proof.saving': 'Saving to 0G...',
   'proof.failed': 'Not saved to 0G yet: {error}',
+  'proof.notSaved': 'Not saved to 0G yet',
   'proof.noReason': 'the uploader has not said why',
   'proof.tee': 'TEE-verified',
   'proof.onZeroG': 'on 0G',

@@ -19,7 +19,7 @@ import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
 import { dock } from './RobotDockView.ts'
-import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
+import { seenBubble, teeMark, zeroGStatus, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 import { workingDots } from '../Busy.ts'
@@ -51,6 +51,7 @@ const quoteClassName = 'mt-1 block border-l-[2.5px] border-ink/25 pl-2.5 text-[0
 const receiptAmountClassName = 'block font-display text-2xl leading-tight font-extrabold'
 const paidClassName = 'inline-flex items-center gap-1 font-semibold text-paid'
 const proofClassName = 'text-[0.92rem] font-semibold decoration-ink/30'
+const arcLinkClassName = 'text-[0.85rem] text-muted decoration-muted/40'
 const systemClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-center text-sm text-muted'
 const stepTextClassName = 'transition-opacity duration-150 starting:opacity-0'
 /** The live errand's messages enter (DESIGN.md "Motion"); the history above never moves. A contents box, so the
@@ -179,15 +180,15 @@ const receipt = (
       h.span([h.Class(paidClassName)], [format(locale, 'thread.paidWithChip', {})]),
       amount === undefined ? h.empty : h.span([h.Class(receiptAmountClassName)], [`${usdc(amount)} USDC`]),
       h.span(
-        [h.Class('flex flex-wrap gap-x-3')],
+        [h.Class('flex flex-wrap items-baseline gap-x-4')],
         [
+          h.a([h.Href(episodeRouter({ episodeId })), h.Class(proofClassName)], [format(locale, 'thread.proof', {})]),
           txHash === null
             ? h.empty
-            : h.a([h.Href(explorerTx(txHash)), h.Class(proofClassName)], [format(locale, 'thread.onArc', {})]),
-          h.a([h.Href(episodeRouter({ episodeId })), h.Class(proofClassName)], [format(locale, 'thread.proof', {})]),
+            : h.a([h.Href(explorerTx(txHash)), h.Class(arcLinkClassName)], [format(locale, 'thread.onArc', {})]),
         ],
       ),
-      zeroGLine(record, locale, h),
+      zeroGStatus(record, locale, h),
     ],
   )
 
@@ -206,7 +207,7 @@ const outcome = (
     h.keyed('div')(
       `${key}-end`,
       [h.Class(failed ? errorBubbleClassName : robotBubbleClassName)],
-      [h.p([], [text]), zeroGLine(record, locale, h)],
+      [h.p([], [text]), zeroGStatus(record, locale, h)],
     )
   const reason = episode.result ?? '—'
   switch (episode.state) {

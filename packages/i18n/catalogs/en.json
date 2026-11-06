@@ -356,6 +356,7 @@
     "log": "EpisodeLog record",
     "saving": "Saving to 0G...",
     "failed": "Not saved to 0G yet: {error}",
+    "notSaved": "Not saved to 0G yet",
     "noReason": "the uploader has not said why",
     "tee": "TEE-verified",
     "onZeroG": "on 0G",

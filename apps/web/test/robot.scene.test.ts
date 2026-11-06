@@ -74,7 +74,7 @@ describe('/robot/:id', () => {
     )
   })
 
-  test('a receipt says where its record is on 0G, and a TEE-verified decision is marked', () => {
+  test('a receipt says whether its record is saved on 0G (the links are behind Show proof), and a TEE-verified decision is marked', () => {
     const saved = {
       ...summary('e1', 'chai', 'paid', 'within budget'),
       decision: {
@@ -97,11 +97,10 @@ describe('/robot/:id', () => {
       given(loadedConsole([saved, saving])),
       expect(text('TEE-verified')).toExist(),
       expect(text('Saved on 0G')).toExist(),
-      expect(role('link', { name: '0G Storage' })).toHaveAttr('href', 'https://storagescan-galileo.0g.ai/file/0xroot'),
-      expect(role('link', { name: 'EpisodeLog record' })).toHaveAttr(
-        'href',
-        'https://chainscan-galileo.0g.ai/tx/0xlog',
-      ),
+      // The thread only says where the record is; its 0G links are on the errand's page, behind Show proof.
+      expect(role('link', { name: '0G Storage' })).not.toExist(),
+      expect(role('link', { name: 'EpisodeLog record' })).not.toExist(),
+      expect(role('link', { name: 'Show proof' })).toHaveAttr('href', '/app/wallet/episodes/e1'),
       expect(text('Saving to 0G...')).toExist(),
     )
   })
@@ -126,10 +125,9 @@ describe('/robot/:id', () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole([stored])),
-      expect(role('link', { name: 'Frame on 0G Storage' })).toHaveAttr(
-        'href',
-        'https://storagescan-galileo.0g.ai/file/0xframe',
-      ),
+      expect(text('Duck Café: Chai, 0.10 USDC')).toExist(),
+      // The frame's copy on 0G Storage is linked from the errand's page, not from the thread.
+      expect(role('link', { name: 'Frame on 0G Storage' })).not.toExist(),
     )
     scene(
       { update: RobotConsole.update, view },

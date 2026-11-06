@@ -239,6 +239,7 @@ export interface MessageArgumentsByKey<T = string> {
   'proof.frameSaving': Readonly<Record<string, never>>
   'proof.log': Readonly<Record<string, never>>
   'proof.noReason': Readonly<Record<string, never>>
+  'proof.notSaved': Readonly<Record<string, never>>
   'proof.onZeroG': Readonly<Record<string, never>>
   'proof.saved': Readonly<Record<string, never>>
   'proof.saving': Readonly<Record<string, never>>
@@ -346,4 +347,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '1b3fcddf4d7325e9d8974e1884bc5e81dbacaccd46ac8e12ceca5d51ab75714f'
+export const catalogVersion = '5534a3f2f47ed3346954bf94bbe3c04183bfcf565c8ca56cefa101a289d9d653'
