@@ -5,7 +5,9 @@ export type RichTextValue<T = string> = FormatXMLElementFn<T>
 export interface MessageArgumentsByKey<T = string> {
   'approval.amount': Readonly<Record<string, never>>
   'approval.approveWithWorld': Readonly<Record<string, never>>
+  'approval.back': { readonly robot: string | number }
   'approval.deny': Readonly<Record<string, never>>
+  'approval.details': Readonly<Record<string, never>>
   'approval.errandEnded': { readonly state: string | number }
   'approval.explainer': {
     readonly why: string | number
@@ -23,6 +25,8 @@ export interface MessageArgumentsByKey<T = string> {
   'approval.status': { readonly status: string | number }
   'approval.title': Readonly<Record<string, never>>
   'approval.viewOnArc': Readonly<Record<string, never>>
+  'approval.wants': { readonly robot: string | number; readonly item: string | number }
+  'approval.yourRobot': Readonly<Record<string, never>>
   'auth.createWallet': Readonly<Record<string, never>>
   'auth.creatingWallet': Readonly<Record<string, never>>
   'auth.displayName': Readonly<Record<string, never>>
@@ -262,4 +266,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '20096434a1858d26c96e43cd335cc46898d399ca714315de98a069bf13248179'
+export const catalogVersion = '0c48201101d29d918ed5c977b074cc26b11731103eb175d20fb1424a3f789de3'

@@ -9,7 +9,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
     '{state, select, refused {Refused by the chip: nothing is paid} failed {The payment failed: nothing is paid} expired {Expired: nothing is paid} safe_stop {Stopped safely: nothing is paid} walked_away {The robot walked away: nothing is paid} other {Ended ({state}): nothing is paid}}',
   'approval.explainer':
     "{why, select, restricted {This is a restricted item, so it needs your fresh approval in World App. Nothing is paid without it.} overCap {This payment is over the robot's per-payment limit ({amount} > {cap} USDC), so it needs your fresh approval in World App. Nothing is paid without it.} offList {This payee is not on the robot's allowlist, so the payment needs your fresh approval in World App. Nothing is paid without it.} other {This payment needs your fresh approval in World App. Nothing is paid without it.}}",
-  'approval.followStopped': 'No final state after 2 minutes; the console shows the latest.',
+  'approval.followStopped': 'No final state after 2 minutes; the conversation shows the latest.',
   'approval.following': "Following the robot's payment…",
   'approval.heading':
     '{why, select, restricted {Approval for a restricted item} overCap {Approval for a payment over the limit} offList {Approval for a new payee} other {Approval for this payment}}',
@@ -22,6 +22,10 @@ export const en: Readonly<Record<MessageKey, string>> = {
     '{status, select, requested {Waiting for your answer} opened {Waiting for World App} approved {Approved: the chip signs the payment now} denied {Denied: nothing is paid} expired {Expired: nothing is paid} consumed {Used for the payment} other {{status}}}',
   'approval.title': 'Approval needed',
   'approval.viewOnArc': 'view on Arc',
+  'approval.back': 'Back to {robot}',
+  'approval.wants': '{robot} wants to buy {item}',
+  'approval.yourRobot': 'Your robot',
+  'approval.details': 'Payee and invoice',
   'auth.createWallet': 'Create passkey wallet',
   'auth.creatingWallet': 'Creating your wallet...',
   'auth.displayName': 'Your name',

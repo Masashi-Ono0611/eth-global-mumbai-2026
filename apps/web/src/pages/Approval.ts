@@ -10,7 +10,8 @@ import { getJson, isSignedOut, postJson } from '../api/Http.ts'
 import { loadErrand, terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { explorerTx, usdc } from '../api/Wallet.ts'
 import { robotConsoleRouter } from '../route.ts'
-import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
+import { failedView, loadingView, signedOutView } from './Shared.ts'
+import { duck } from '../Duck.ts'
 
 // MODEL
 
@@ -200,20 +201,42 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 /** World IdP's sign-in for this approval: a full navigation, so the browser follows the 302 to World. */
 
+// STYLES
+
+const mainClassName = 'grid gap-4 px-1 pt-4 pb-8'
+const backClassName =
+  'inline-flex min-h-11 items-center gap-1.5 justify-self-start rounded-full bg-surface px-3.5 font-semibold no-underline transition-transform active:scale-[0.96]'
+const cardClassName = 'grid gap-3 rounded-[24px_24px_24px_8px] bg-duck px-4 pt-4 pb-4'
+const whoClassName = 'flex items-center gap-2.5'
+const faceClassName = 'grid size-12 shrink-0 place-items-center rounded-full bg-ink'
+const titleClassName = 'font-display text-[1.7rem] leading-tight font-bold text-balance'
+const amountClassName = 'font-display text-5xl leading-none font-extrabold tracking-[-0.02em]'
+const unitClassName = 'ml-1.5 text-lg font-bold tracking-normal'
+const whyClassName = 'text-[1.02rem] leading-snug'
+const detailsClassName =
+  'rounded-card bg-surface px-4 text-[0.95rem] [&_dd]:mb-2 [&_dd]:break-all [&_dt]:text-muted [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-3 [&_summary]:font-semibold'
+const actionsClassName = 'grid grid-cols-[1fr_auto] gap-2'
+const approveClassName =
+  'inline-flex min-h-12 items-center justify-center rounded-control bg-black px-3 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
+const denyClassName =
+  'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+const statusClassName = 'rounded-card bg-surface px-4 py-3 font-semibold'
+const hintClassName = 'mt-1 block text-[0.92rem] font-normal text-muted'
+const arcLinkClassName = 'font-semibold text-paid'
+
+// VIEW
+
 const actions = (model: Model, approval: ApprovalView, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const denying = Denial.guards.Denying(model.denial)
   return h.div(
-    [h.Class('approval-actions')],
+    [h.Class(actionsClassName)],
     [
       approval.worldConfigured
-        ? h.a(
-            [h.Href(worldAuthorizeUrl(approval.id)), h.Class('primary-action')],
-            [format(locale, 'approval.approveWithWorld', {})],
-          )
+        ? h.a([h.Href(worldAuthorizeUrl(approval.id)), h.Class(approveClassName)], [format(locale, 'home.approve', {})])
         : h.p([h.Role('alert')], [format(locale, 'approval.notConfigured', {})]),
       h.button(
-        [h.Type('button'), h.Class('secondary-action'), h.Disabled(denying), h.OnClick(Message.ClickedDeny())],
-        [format(locale, 'approval.deny', {})],
+        [h.Type('button'), h.Class(denyClassName), h.Disabled(denying), h.OnClick(Message.ClickedDeny())],
+        [format(locale, denying ? 'home.declining' : 'home.decline', {})],
       ),
       Denial.guards.Failed(model.denial)
         ? h.p([h.Role('alert')], [format(locale, 'common.errorDetail', { message: model.denial.error })])
@@ -225,14 +248,22 @@ const actions = (model: Model, approval: ApprovalView, locale: Locale, h: HtmlBu
 /** The answer's status, replaced by the errand's end once it has one: paid (with the Arc link), denied or why not. */
 const statusLine = (model: Model, approval: ApprovalView, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const answered = h.p([h.Role('status')], [format(locale, 'approval.status', { status: approval.status })])
-  const hint = (text: string | null) => (text === null ? h.empty : h.p([h.Class('hint')], [text]))
+  const hint = (text: string | null) => (text === null ? h.empty : h.span([h.Class(hintClassName)], [text]))
   return Follow.match(model.follow, {
-    Idle: () => h.div([], [answered, hint(approval.error)]),
-    Following: () => h.div([], [answered, hint(approval.error), hint(format(locale, 'approval.following', {}))]),
-    GaveUp: () => h.div([], [answered, hint(approval.error), hint(format(locale, 'approval.followStopped', {}))]),
+    Idle: () => h.div([h.Class(statusClassName)], [answered, hint(approval.error)]),
+    Following: () =>
+      h.div(
+        [h.Class(statusClassName)],
+        [answered, hint(approval.error), hint(format(locale, 'approval.following', {}))],
+      ),
+    GaveUp: () =>
+      h.div(
+        [h.Class(statusClassName)],
+        [answered, hint(approval.error), hint(format(locale, 'approval.followStopped', {}))],
+      ),
     Ended: ({ state, txHash, reason }) =>
       h.div(
-        [],
+        [h.Class(statusClassName)],
         [
           state === 'paid'
             ? h.p(
@@ -241,7 +272,10 @@ const statusLine = (model: Model, approval: ApprovalView, locale: Locale, h: Htm
                   `${format(locale, 'approval.paid', {})} · `,
                   txHash === null
                     ? h.empty
-                    : h.a([h.Href(explorerTx(txHash)), h.Class('tx-link')], [format(locale, 'approval.viewOnArc', {})]),
+                    : h.a(
+                        [h.Href(explorerTx(txHash)), h.Class(arcLinkClassName)],
+                        [format(locale, 'approval.viewOnArc', {})],
+                      ),
                 ],
               )
             : h.p(
@@ -258,55 +292,77 @@ const statusLine = (model: Model, approval: ApprovalView, locale: Locale, h: Htm
   })
 }
 
-const approvalView = (model: Model, approval: ApprovalView, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.section(
-    [h.Class('approval')],
+const approvalView = (model: Model, approval: ApprovalView, locale: Locale, h: HtmlBuilder<Message>): Html => {
+  const robot = approval.robotName ?? format(locale, 'approval.yourRobot', {})
+  return h.div(
+    [h.Class('contents')],
     [
-      h.p(
-        [h.Class('lead')],
-        [
-          format(locale, 'approval.explainer', {
-            why: whyOf(approval),
-            amount: usdc(approval.amount),
-            cap: approval.reasons.perPaymentCap === null ? '—' : usdc(approval.reasons.perPaymentCap),
-          }),
-        ],
+      h.a(
+        [h.Href(robotConsoleRouter({ robotId: approval.robotId })), h.Class(backClassName)],
+        [h.span([h.AriaHidden(true)], ['‹']), format(locale, 'approval.back', { robot })],
       ),
-      h.dl(
-        [],
+      h.section(
+        [h.Class(cardClassName)],
         [
-          h.dt([], [format(locale, 'approval.item', {})]),
-          h.dd([], [`${approval.item ?? '—'} · ${approval.robotName ?? '—'}`]),
-          h.dt([], [format(locale, 'approval.amount', {})]),
-          h.dd([], [`${usdc(approval.amount)} USDC`]),
-          h.dt([], [format(locale, 'approval.payee', {})]),
-          h.dd([h.Class('chip-address')], [approval.payee]),
-          h.dt([], [format(locale, 'approval.invoice', {})]),
-          h.dd([], [approval.invoiceId]),
+          h.div(
+            [h.Class(whoClassName)],
+            [
+              h.span([h.Class(faceClassName)], [duck('size-9', false, h)]),
+              h.h2(
+                [h.Class(titleClassName)],
+                [format(locale, 'approval.wants', { robot, item: approval.item ?? '—' })],
+              ),
+            ],
+          ),
+          h.p([h.Class(amountClassName)], [usdc(approval.amount), h.span([h.Class(unitClassName)], ['USDC'])]),
+          h.p(
+            [h.Class(whyClassName)],
+            [
+              format(locale, 'approval.explainer', {
+                why: whyOf(approval),
+                amount: usdc(approval.amount),
+                cap: approval.reasons.perPaymentCap === null ? '—' : usdc(approval.reasons.perPaymentCap),
+              }),
+            ],
+          ),
+          answerable(approval.status) ? actions(model, approval, locale, h) : h.empty,
         ],
       ),
       statusLine(model, approval, locale, h),
-      answerable(approval.status) ? actions(model, approval, locale, h) : h.empty,
-      h.a(
-        [h.Href(robotConsoleRouter({ robotId: approval.robotId })), h.Class('secondary-action')],
-        [format(locale, 'robots.openConsole', {})],
+      h.details(
+        [h.Class(detailsClassName)],
+        [
+          h.summary([], [format(locale, 'approval.details', {})]),
+          h.dl(
+            [],
+            [
+              h.dt([], [format(locale, 'approval.payee', {})]),
+              h.dd([], [approval.payee]),
+              h.dt([], [format(locale, 'approval.invoice', {})]),
+              h.dd([], [approval.invoiceId]),
+            ],
+          ),
+        ],
       ),
     ],
   )
+}
 
-/** `/wallet/approvals/:id`: a restricted item, a payment over the per-payment limit or to an unknown payee, answered
- * once in World App (spec §9). */
+/** `/wallet/approvals/:id` (World's callback lands here): a restricted item, a payment over the per-payment limit or
+ * to an unknown payee, answered once in World App (spec §9). */
 export const view = Submodel.defineView<Model, Message, { readonly locale: Locale }>((model, { locale }, h) =>
-  ownerMain(
-    ApprovalState.guards.Loaded(model.state)
-      ? format(locale, 'approval.heading', { why: whyOf(model.state.approval) })
-      : format(locale, 'approval.title', {}),
-    ApprovalState.match(model.state, {
-      Loading: () => loadingView(locale, h),
-      SignedOut: () => signedOutView(locale, h),
-      Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
-      Loaded: ({ approval }) => approvalView(model, approval, locale, h),
-    }),
-    h,
+  h.main(
+    [h.Id('main'), h.Class(mainClassName)],
+    [
+      ApprovalState.guards.Loaded(model.state)
+        ? h.h1([h.Class('sr-only')], [format(locale, 'approval.heading', { why: whyOf(model.state.approval) })])
+        : h.h1([h.Class(titleClassName)], [format(locale, 'approval.title', {})]),
+      ApprovalState.match(model.state, {
+        Loading: () => loadingView(locale, h),
+        SignedOut: () => signedOutView(locale, h),
+        Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
+        Loaded: ({ approval }) => approvalView(model, approval, locale, h),
+      }),
+    ],
   ),
 )

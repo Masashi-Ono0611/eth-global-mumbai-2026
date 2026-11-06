@@ -61,11 +61,11 @@ describe('/wallet/approvals/:id', () => {
       { update: Approval.update, view },
       given(loaded('requested')),
       expect(role('heading', { name: 'Approval for a restricted item' })).toExist(),
-      expect(text('cigarettes · Duck')).toExist(),
-      expect(text('0.50 USDC')).toExist(),
+      expect(role('heading', { name: 'Duck wants to buy cigarettes' })).toExist(),
+      expect(text('0.50')).toExist(),
       expect(role('status')).toHaveText('Waiting for your answer'),
-      expect(role('link', { name: 'Approve with World' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
-      click(role('button', { name: 'Deny' })),
+      expect(role('link', { name: 'Approve with World ID' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
+      click(role('button', { name: 'No' })),
       Command.expectExact(Approval.DenyApproval({ approvalId: 'ap1' })),
       Command.resolve(Approval.DenyApproval, Approval.Message.SucceededDenyApproval()),
       Command.expectExact(Approval.LoadApproval({ approvalId: 'ap1', delayMillis: 0 })),
@@ -77,8 +77,8 @@ describe('/wallet/approvals/:id', () => {
       Command.resolve(Approval.FollowErrand, ended('denied', { reason: 'denied by the owner' })),
       expect(role('status')).toHaveText('Denied: nothing is paid'),
       expect(text('denied by the owner')).toExist(),
-      expect(role('link', { name: 'Approve with World' })).toBeAbsent(),
-      expect(role('link', { name: 'Open console' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(role('link', { name: 'Approve with World ID' })).toBeAbsent(),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
     )
   })
 
@@ -88,14 +88,14 @@ describe('/wallet/approvals/:id', () => {
       ...reloadedAs('approved'),
       expect(role('status')).toHaveText('Approved: the chip signs the payment now'),
       expect(text("Following the robot's payment…")).toExist(),
-      expect(role('button', { name: 'Deny' })).toBeAbsent(),
+      expect(role('button', { name: 'No' })).toBeAbsent(),
       Command.expectExact(follow(0)),
       Command.resolve(Approval.FollowErrand, ended('signing')),
       Command.expectExact(follow(2000)),
       Command.resolve(Approval.FollowErrand, ended('paid', { txHash })),
       expect(role('status')).toHaveText('Paid · view on Arc'),
       expect(role('link', { name: 'view on Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
-      expect(role('link', { name: 'Open console' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
     )
   })
 
@@ -107,7 +107,7 @@ describe('/wallet/approvals/:id', () => {
       expect(role('status')).toHaveText('The payment failed: nothing is paid'),
       expect(text('CannotUseADisabledDelegation')).toExist(),
       expect(role('link', { name: 'view on Arc' })).toBeAbsent(),
-      expect(role('link', { name: 'Open console' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
     )
   })
 
@@ -120,8 +120,8 @@ describe('/wallet/approvals/:id', () => {
     scene(
       { update: Approval.update, view },
       given(stopped.model),
-      expect(text('No final state after 2 minutes; the console shows the latest.')).toExist(),
-      expect(role('link', { name: 'Open console' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(text('No final state after 2 minutes; the conversation shows the latest.')).toExist(),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
     )
   })
 
@@ -144,9 +144,9 @@ describe('/wallet/approvals/:id', () => {
         ),
       ).toExist(),
       expect(text('restricted', { exact: false })).toBeAbsent(),
-      expect(text('thali · Duck')).toExist(),
-      expect(role('link', { name: 'Approve with World' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
-      expect(role('button', { name: 'Deny' })).toExist(),
+      expect(role('heading', { name: 'Duck wants to buy thali' })).toExist(),
+      expect(role('link', { name: 'Approve with World ID' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
+      expect(role('button', { name: 'No' })).toExist(),
     )
   })
 })
