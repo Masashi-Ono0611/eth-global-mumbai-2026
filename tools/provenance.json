@@ -87,7 +87,7 @@
     },
     {
       "path": ".agents/skills/sources.json",
-      "sha256": "58e709c538dffeb5e22bfc856fd55814a4dcdb9f782ee0dba8f2ef309f5138cd"
+      "sha256": "557dd037671931162239786dc37229893af51465f648f1fa98da2be3945004f2"
     },
     {
       "path": ".agents/skills/thermo-nuclear-code-quality-review/LICENSE",
