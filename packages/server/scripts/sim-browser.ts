@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util'
 import { makeArcClient } from '@ethmumbai/chain/Arc'
 import { sendUsdc } from '@ethmumbai/chain/Fund'
 import { isHex } from '@ethmumbai/protocol/Hex'
+import { APP_BASE } from '@ethmumbai/protocol/Pages'
 import { IntentView, isOpenIntent, type NavCall, type NavTurnView } from '@ethmumbai/protocol/Intent'
 import { usdcToUnits } from '@ethmumbai/protocol/Invoice'
 import { Effect, Option, Schema } from 'effect'
@@ -26,15 +27,15 @@ import { addVirtualAuthenticator } from '../test/PasskeyBrowserAcceptance.ts'
 const { values: options } = parseArgs({
   args: Bun.argv.slice(2),
   options: {
-    'base-url': {
-      type: 'string',
-      default: 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev',
-    },
+    // The public origin (the passkey's rp id). Before the vitaquack.com cutover, pass the workers.dev origin.
+    'base-url': { type: 'string', default: 'https://vitaquack.com' },
     fund: { type: 'string', default: '0.12' },
     only: { type: 'string', multiple: true, default: [] },
   },
 })
 const base = new URL(options['base-url']).origin
+/** The wallet pages live under /app (the APIs and /sim/ stay at the root). */
+const app = `${base}${APP_BASE}`
 const fund = options.fund
 const runs = (step: string) => options.only.length === 0 || options.only.includes(step)
 const screens = join(import.meta.dir, '../../../docs/evidence/screens')
@@ -180,7 +181,7 @@ const reportErrand = async (context: BrowserContext, robotId: string, episodeId:
 // --- the journey ----------------------------------------------------------------------------------------------------
 
 const signup = async (page: Page) => {
-  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.goto(`${app}/`, { waitUntil: 'networkidle' })
   await page.locator('#display-name').fill('Sim Owner')
   await page.getByRole('button', { name: 'Create passkey wallet' }).click()
   await page.waitForURL(/\/wallet/, { timeout: 60_000 })
@@ -212,7 +213,7 @@ const fundOwner = async (address: string) => {
 
 /** Add robot → Simulator → name → the code bubble's "Open simulator", opened in a second tab with `debug=1`. */
 const addSimulator = async (page: Page, context: BrowserContext) => {
-  await page.goto(`${base}/wallet/robots`, { waitUntil: 'networkidle' })
+  await page.goto(`${app}/wallet/robots`, { waitUntil: 'networkidle' })
   await page.locator('label[for="robot-kind-sim"]').click()
   await page.locator('#robot-name').fill('Sim duck')
   await page.getByRole('button', { name: 'Next' }).click()
