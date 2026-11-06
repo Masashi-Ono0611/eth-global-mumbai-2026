@@ -85,9 +85,8 @@ const pairRobot = async (page: Page) => {
 }
 
 const grant = async (page: Page) => {
+  // The form's defaults (1.00 a day, 0.30 per payment): chai 0.10 + an approved 0.50 stay under the daily cap.
   await page.getByRole('button', { name: 'Grant a budget' }).click()
-  await page.locator('#grant-daily').fill('0.50')
-  await page.locator('#grant-per-payment').fill('0.25')
   await page.locator('.consent').waitFor()
   await shot(page, '04-grant-consent')
   await page.getByRole('button', { name: 'Sign grant with passkey' }).click()
