@@ -21,8 +21,8 @@ import { addVirtualAuthenticator } from '../test/PasskeyBrowserAcceptance.ts'
 // Prints ids, timings and explorer links only, never keys, tokens or prompts. Screenshots: docs/evidence/screens/sim-*.
 // Usage: bun --env-file=.env.main.local packages/server/scripts/sim-browser.ts [--base-url URL] [--fund 0.12]
 //   [--only chai|thali|mismatch (repeatable, default all)]. --fund (at most 0.30; 0 skips funding) is sent from the
-//   relayer to the throwaway owner just before the first errand; a paid chai needs 0.10. Its passkey dies with the
-//   run, so whatever is left stays stranded in that account.
+//   relayer to the throwaway owner right after signup, while its account is still counterfactual; a paid chai needs
+//   0.10. Its passkey dies with the run, so whatever is left stays stranded in that account.
 const { values: options } = parseArgs({
   args: Bun.argv.slice(2),
   options: {
@@ -206,6 +206,7 @@ const fundOwner = async (address: string) => {
       units,
     }),
   )
+  if (!funded.success) throw new Error(`the funding transfer reverted: ${explorer(funded.hash)}`)
   say(`funded ${fund} USDC ${explorer(funded.hash)}`)
 }
 
@@ -363,9 +364,11 @@ const main = async () => {
     const page = await context.newPage()
     await addVirtualAuthenticator(context, page)
     const owner = await signup(page)
+    // Fund while the account is still counterfactual: sendUsdc is a 21,000-gas plain transfer, which reverts out of gas
+    // once the grant has deployed the account (6 Nov run, tx 0xa691c2ea…0acf).
+    if (runs('chai')) await fundOwner(owner)
     const { robotId, sim } = await addSimulator(page, context)
     await grant(page)
-    if (runs('chai')) await fundOwner(owner)
     if (runs('chai')) results.chai = await chai(page, sim, robotId)
     if (runs('thali')) results.thali = await thali(page, sim, robotId)
     if (runs('mismatch')) results.mismatch = await mismatch(page, sim, robotId)
