@@ -361,8 +361,6 @@
   "voice": {
     "hold": "Hold to talk to {name}",
     "listeningLabel": "Listening, let go to send",
-    "hint": "Hold to talk",
-    "hintKeyboard": "Hold the button (or Space) to talk",
     "listening": "Listening",
     "letGo": "let go to send",
     "thinking": "{name} is listening to you…",

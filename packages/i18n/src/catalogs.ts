@@ -356,8 +356,6 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'proof.frameSaving': 'Saving the frame to 0G...',
   'voice.hold': 'Hold to talk to {name}',
   'voice.listeningLabel': 'Listening, let go to send',
-  'voice.hint': 'Hold to talk',
-  'voice.hintKeyboard': 'Hold the button (or Space) to talk',
   'voice.listening': 'Listening',
   'voice.letGo': 'let go to send',
   'voice.thinking': '{name} is listening to you…',

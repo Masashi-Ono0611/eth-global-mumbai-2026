@@ -14,11 +14,12 @@ import { workingDots } from '../Busy.ts'
 
 // One colour set per state, never two at once (Tailwind cannot order two backgrounds on one element).
 const micClassName =
-  'grid size-16 shrink-0 cursor-pointer touch-none place-items-center rounded-full transition-[transform,background-color,box-shadow] duration-150 select-none [-webkit-touch-callout:none] active:scale-[0.96] disabled:cursor-wait'
-const micIdleClassName = 'bg-ink text-surface shadow-[0_6px_16px_-6px_rgb(31_45_54/0.5)]'
+  'grid size-11 shrink-0 cursor-pointer touch-none place-items-center rounded-full transition-[transform,background-color,box-shadow] duration-150 select-none [-webkit-touch-callout:none] active:scale-[0.96] disabled:cursor-wait'
+// Quiet at rest, so the composer's ink Send stays the primary action; duck yellow only while it listens.
+const micIdleClassName = 'bg-paper text-ink hover:bg-rule'
 const micListeningClassName =
-  'bg-duck text-ink shadow-[0_0_0_8px_rgb(255_224_122/0.45),0_0_0_18px_rgb(255_224_122/0.2)] motion-reduce:shadow-[0_0_0_6px_rgb(255_224_122/0.6)]'
-const micBusyClassName = 'bg-surface text-muted shadow-[0_1px_2px_rgb(31_45_54/0.08)]'
+  'bg-duck text-ink shadow-[0_0_0_4px_rgb(255_224_122/0.45),0_0_0_9px_rgb(255_224_122/0.2)] motion-reduce:shadow-[0_0_0_4px_rgb(255_224_122/0.6)]'
+const micBusyClassName = 'bg-paper text-muted'
 const statusClassName = 'flex min-h-6 items-center justify-end gap-1.5 pr-1 text-[0.85rem] text-muted'
 const listeningClassName = 'flex items-center gap-2.5 rounded-[18px] bg-surface px-3.5 py-2.5 font-semibold'
 const waveClassName = 'inline-flex h-[18px] items-center gap-[3px]'
@@ -120,7 +121,8 @@ const micButton = (voice: RobotVoice.Model, name: string, locale: Locale, h: Htm
 const voiceStatus = (voice: RobotVoice.Model, name: string, locale: Locale, h: HtmlBuilder<Message>): Html =>
   RobotVoice.Status.match(voice.status, {
     Unavailable: () => h.empty,
-    Idle: () => h.p([h.Class(statusClassName)], [format(locale, 'voice.hint', {})]),
+    // At rest the line says nothing: the empty thread and the mic's own name say how to talk.
+    Idle: () => h.empty,
     Starting: () => h.p([h.Class(statusClassName)], [format(locale, 'voice.micOnlyWhileHeld', {})]),
     Listening: () =>
       h.p(
@@ -183,12 +185,12 @@ const entryView = (entry: RobotVoice.Entry, name: string, locale: Locale, h: Htm
 
 type ViewInputs = { readonly name: string; readonly locale: Locale }
 
-/** The hold-to-talk mic, for the dock. */
+/** The hold-to-talk mic, inside the composer beside Send. */
 export const micView = Submodel.defineView<RobotVoice.Model, Message, ViewInputs>((voice, { name, locale }, h) =>
   micButton(voice, name, locale, h),
 )
 
-/** The line under the dock's rows. */
+/** The line under the composer: what the voice is doing, only while it is doing something. */
 export const statusView = Submodel.defineView<RobotVoice.Model, Message, ViewInputs>((voice, { name, locale }, h) =>
   voiceStatus(voice, name, locale, h),
 )

@@ -352,8 +352,6 @@ export interface MessageArgumentsByKey<T = string> {
   'voice.failed': { readonly reason: string | number; readonly detail: string | number }
   'voice.headerListening': Readonly<Record<string, never>>
   'voice.headerSpeaking': Readonly<Record<string, never>>
-  'voice.hint': Readonly<Record<string, never>>
-  'voice.hintKeyboard': Readonly<Record<string, never>>
   'voice.hold': { readonly name: string | number }
   'voice.letGo': Readonly<Record<string, never>>
   'voice.listening': Readonly<Record<string, never>>
@@ -385,4 +383,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '5ebf6a2e28e14b543b1314b0ff4f310a339f149092f0b6d8691cc841dd18d412'
+export const catalogVersion = 'd83d1ea25e5d5549bb3542150a0844c831af4a3775dd3c1e150f4b2c2f84280b'

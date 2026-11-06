@@ -20,13 +20,13 @@ const pillsClassName =
 const pillClassName =
   'inline-flex min-h-11 shrink-0 cursor-pointer snap-start items-center gap-1.5 rounded-full bg-surface px-4 text-[0.95rem] font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
 const pillAsksClassName = 'text-[0.75rem] font-semibold text-duck-deep'
-/** Vita's mic sits at the end of the Get me row, the row a spoken request stands for. */
-const withMicClassName = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2'
 const composerClassName =
   'rounded-card border border-rule bg-surface shadow-[0_1px_2px_rgb(31_45_54/0.06)] transition-[border-color,box-shadow] focus-within:border-focus focus-within:ring-2 focus-within:ring-focus/20'
 const composerRowClassName = 'flex items-center gap-1 pr-1.5'
 const inputClassName =
   'min-h-12 w-full min-w-0 flex-1 bg-transparent px-4 text-base text-ink placeholder:text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-60'
+/** Vita's mic and Send, side by side at the composer's right edge. */
+const actionsClassName = 'flex shrink-0 items-center gap-1.5'
 const toolbarClassName = 'flex items-center justify-between gap-2 pr-1.5 pb-1.5 pl-1'
 const sendClassName =
   'grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-ink text-surface transition-[transform,opacity] active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-25'
@@ -124,6 +124,7 @@ const composer = (
   view: ConsoleRobot,
   blocked: boolean,
   described: boolean,
+  mic: Html,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html => {
@@ -162,10 +163,13 @@ const composer = (
             [h.Class('grid')],
             [
               h.div([h.Class('pt-1')], [input]),
-              h.div([h.Class(toolbarClassName)], [brainMenu(model, brains, first, blocked, locale, h), send]),
+              h.div(
+                [h.Class(toolbarClassName)],
+                [brainMenu(model, brains, first, blocked, locale, h), h.div([h.Class(actionsClassName)], [mic, send])],
+              ),
             ],
           )
-        : h.div([h.Class(composerRowClassName)], [input, send]),
+        : h.div([h.Class(composerRowClassName)], [input, mic, send]),
     ],
   )
 }
@@ -241,23 +245,17 @@ export const dock = (
   const blocked = busy || noAllowance || talking
   const line = hint(noAllowance, busy, stopped)
   const pills = suggestions(catalogue, blocked, line !== null, locale, h)
-  const withMic = RobotVoice.Status.guards.Unavailable(model.voice.status)
-    ? pills
-    : h.div(
-        [h.Class('grid gap-1')],
-        [
-          h.div([h.Class(withMicClassName)], [pills, voiceIn(model, view, 'mic', micView, locale, h)]),
-          voiceIn(model, view, 'status', statusView, locale, h),
-        ],
-      )
+  const voiceOn = !RobotVoice.Status.guards.Unavailable(model.voice.status)
+  const mic = voiceOn ? voiceIn(model, view, 'mic', micView, locale, h) : h.empty
   return h.div(
     [h.Class(dockClassName)],
     [
       line === null
         ? h.empty
         : h.p([h.Class(dockHintClassName), h.Id('dock-hint')], [format(locale, line, { name: view.robot.name })]),
-      withMic,
-      composer(model, view, blocked, line !== null, locale, h),
+      pills,
+      composer(model, view, blocked, line !== null, mic, locale, h),
+      voiceOn ? voiceIn(model, view, 'status', statusView, locale, h) : h.empty,
     ],
   )
 }

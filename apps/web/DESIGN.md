@@ -110,10 +110,11 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   Selection is ink, never duck yellow.
 - Dock line: shown only when the robot can't be sent or the owner should know something first (on an errand, no
   allowance, allowance stopped); the pills and the field point to it with aria-describedby. A ready dock says nothing.
-- Mic (when the Worker has voice on): a round ink button at the end of the Get me row. Hold it (or Space while it is
-  focused): it turns duck yellow with a soft halo, the header says "Listening…" and a faint owner bubble waits in the
-  thread. The mic is open only while held. The line under the row says what the voice is doing: the hint, "listening
-  to you…", "speaking…", or a failure in error red. While the owner talks, the pills and the composer rest.
+- Mic (when the Worker has voice on): a round paper button inside the composer, left of Send and the same size, so
+  Send stays the ink primary. Hold it (or Space while it is focused): it turns duck yellow with a small halo, the
+  header says "Listening…" and a faint owner bubble waits in the thread. The mic is open only while held. A line under
+  the composer says what the voice is doing ("listening to you…", "speaking…", or a failure in error red) and nothing
+  at rest. While the owner talks, the pills and the composer rest.
 - Spoken bubbles: what Vita heard is an owner bubble with a small "you said"; Vita's line is a white bubble with a duck
   ring, its opener and closer in duck yellow, and "Vita said" under it. Vita's lines come from the Worker, built from
   the errand's real state; 0G's own reason sits under them as a quote, never spoken.

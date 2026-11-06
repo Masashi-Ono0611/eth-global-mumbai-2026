@@ -250,7 +250,8 @@ describe('/robot/:id voice', () => {
       { update: RobotConsole.update, view: consoleView },
       Scene.given(voiceOn()),
       Scene.expect(mic).toHaveAttr('aria-pressed', 'false'),
-      Scene.expect(Scene.text('Hold to talk')).toExist(),
+      // At rest the mic sits in the composer and the line under it says nothing.
+      Scene.expect(Scene.text('Hold to talk')).not.toExist(),
     )
     Scene.scene(
       { update: RobotConsole.update, view: consoleView },
