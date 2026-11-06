@@ -71,6 +71,9 @@ const signup = async (page: Page) => {
   await page.goto(`${app}/`, { waitUntil: 'networkidle' })
   await page.locator('#display-name').fill('Browser Owner')
   await page.getByRole('button', { name: 'Create passkey wallet' }).click()
+  // A new owner lands on the first steps (/app/welcome); this run goes on from the wallet.
+  await page.waitForURL(/\/app\/welcome/, { timeout: 30_000 })
+  await page.goto(`${app}/wallet`, { waitUntil: 'networkidle' })
   const address = (await page.locator('.smart-account').textContent({ timeout: 30_000 })) ?? ''
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) throw new Error('no counterfactual address after signup')
   say(`owner ${address}`)
