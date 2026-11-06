@@ -24,7 +24,10 @@
       .rail ol { display: contents; }
       .rail li { display: grid; justify-items: center; gap: 0.55rem; list-style: none; }
       .mark { position: relative; z-index: 1; width: 3.9rem; height: 3.9rem; }
-      .dot, .cursor { z-index: 2; }
+      .cursor { z-index: 2; } .dot { z-index: 0; }
+      .mark.on { animation: absorb 0.7s ease-out; }
+      @keyframes absorb { 0% { background: rgb(63 214 196 / 0.95); color: var(--night); } 100% { background: var(--night); color: var(--lamp); } }
+      .mark.off { opacity: 1; border-color: rgb(255 231 176 / 0.25); color: rgb(255 231 176 / 0.35); }
       .mark svg { width: 1.95rem; height: 1.95rem; }
       .name { font-size: 0.95rem; }
       .line { position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: calc(1.2rem + 1.95rem); height: 2px; background: rgb(255 231 176 / 0.35); }
