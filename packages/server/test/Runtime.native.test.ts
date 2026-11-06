@@ -281,6 +281,7 @@ test(
           'robots',
           'telegram_links',
           'used_nonces',
+          'wallet_balances',
         ],
       },
       media: { sentinel: false },
