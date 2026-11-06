@@ -377,7 +377,14 @@ export const notifications = sqliteTable(
     id: text('id').primaryKey(),
     accountId: text('account_id').notNull(),
     kind: text('kind', {
-      enum: ['approval_needed', 'payment_settled', 'approval_denied', 'approval_expired', 'grant_revoked'],
+      enum: [
+        'approval_needed',
+        'payment_settled',
+        'approval_denied',
+        'approval_expired',
+        'grant_revoked',
+        'funds_received',
+      ],
     }).notNull(),
     subjectId: text('subject_id').notNull(),
     payloadJson: text('payload_json'),
@@ -448,6 +455,16 @@ export const navTurns = sqliteTable(
  * merchant. Only `POST /api/merchants/:id/counter` writes it, so invoices minted through `POST …/invoices` (the sim's
  * stalls, the web gate) never take over the screen. `set_at` is seconds.
  */
+/**
+ * The last USDC balance (base units) the minute sweep read on Arc for a wallet with a linked Telegram chat; a higher
+ * read queues `funds_received`. A mirror for the message only: Arc holds the money.
+ */
+export const walletBalances = sqliteTable('wallet_balances', {
+  accountId: text('account_id').primaryKey(),
+  units: text('units').notNull(),
+  observedAt: integer('observed_at').notNull(),
+})
+
 export const counterDisplay = sqliteTable('counter_display', {
   merchantId: text('merchant_id').primaryKey(),
   invoiceId: text('invoice_id').notNull(),
@@ -476,4 +493,5 @@ export const appSchema = {
   intents,
   navTurns,
   counterDisplay,
+  walletBalances,
 }

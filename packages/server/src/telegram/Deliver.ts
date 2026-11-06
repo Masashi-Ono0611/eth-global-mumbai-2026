@@ -27,7 +27,14 @@ const SWEEP_SECONDS = 5
 const OutboxRow = Schema.Struct({
   id: Schema.String,
   account_id: Schema.String,
-  kind: Schema.Literals(['approval_needed', 'payment_settled', 'approval_denied', 'approval_expired', 'grant_revoked']),
+  kind: Schema.Literals([
+    'approval_needed',
+    'payment_settled',
+    'approval_denied',
+    'approval_expired',
+    'grant_revoked',
+    'funds_received',
+  ]),
   subject_id: Schema.String,
   attempts: Schema.Finite,
 })

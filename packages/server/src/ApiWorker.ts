@@ -133,7 +133,7 @@ export default ApiWorker.make(
           handle: Effect.provideContext(handle, services),
           observabilityBase,
           notify,
-          sweep: sweep({ database, origin: authOrigin, telegram }),
+          sweep: sweep({ database, origin: authOrigin, telegram, arc: chain.arc }),
         }
       }),
     )

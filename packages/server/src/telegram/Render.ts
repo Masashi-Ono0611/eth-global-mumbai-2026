@@ -8,6 +8,7 @@ import { firstRow } from '../Sql.ts'
 import { formatUsdc } from '../wallet/Activity.ts'
 import { type Button, escapeHtml, type OutgoingMessage } from './Bot.ts'
 import type { NotificationKind } from './Enqueue.ts'
+import { fundsReceived } from './Funds.ts'
 import { approvalLinkPath, mintApprovalLink } from '../world/Link.ts'
 
 // The robot's voice in Telegram (spec §14): built from D1 at send time, so a hook only records which event happened.
@@ -203,6 +204,8 @@ export const renderNotification = (
       return approvalNeeded(database, origin, row.subject_id)
     case 'grant_revoked':
       return grantRevoked(database, origin, row.subject_id)
+    case 'funds_received':
+      return Effect.succeed(fundsReceived(origin, row.subject_id))
     case 'payment_settled':
     case 'approval_denied':
     case 'approval_expired':

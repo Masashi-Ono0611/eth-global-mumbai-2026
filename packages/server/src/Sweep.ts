@@ -4,6 +4,8 @@ import { LIVE_STATES, tickRobot } from './robot/Errands.ts'
 import { allRows } from './Sql.ts'
 import type { TelegramConfig } from './telegram/Config.ts'
 import { flushOutbox } from './telegram/Deliver.ts'
+import { watchBalances } from './telegram/Funds.ts'
+import type { ArcClient } from '@ethmumbai/chain/Arc'
 
 // The once-a-minute sweep (Cron Trigger on the API Worker). Timeouts and notifications are otherwise lazy: they run on
 // the next read or after the next response, so an errand nobody looks at would never expire and its Telegram message
@@ -23,13 +25,21 @@ export const sweepLiveErrands = Effect.fn('EthMumbai.Sweep.errands')(function* (
   yield* Effect.forEach(robots, (robot) => tickRobot(database, robot.robot_id), { discard: true })
 })
 
-/** One sweep: errand timeouts first (they may queue notifications), then the Telegram outbox. Never fails. */
+/** One sweep: errand timeouts first (they may queue notifications), money received, then the Telegram outbox. Never
+ * fails. */
 export const sweep = (deps: {
   readonly database: QueryDatabaseClient
   readonly origin: string
   readonly telegram: Option.Option<TelegramConfig>
+  readonly arc: Option.Option<ArcClient>
 }) =>
   sweepLiveErrands(deps.database).pipe(
+    Effect.andThen(
+      // Money in for a wallet with a linked chat: "Received …" (only with a bot to send it).
+      Option.isSome(deps.telegram) && Option.isSome(deps.arc)
+        ? watchBalances(deps.database, deps.arc.value)
+        : Effect.void,
+    ),
     Effect.catchCause((cause) =>
       Effect.logWarning('sweep: errand timeouts failed').pipe(Effect.annotateLogs({ cause })),
     ),
