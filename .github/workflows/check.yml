@@ -49,7 +49,21 @@ jobs:
       - run: bun run deploy --no-input --yes
         env:
           APP_RELEASE: ${{ github.sha }}
-          APP_AUTH_SECRET: ${{ secrets.APP_AUTH_SECRET }}
           APP_AUTH_SESSION_KEYS: ${{ secrets.APP_AUTH_SESSION_KEYS }}
+          APP_RELAYER_PRIVATE_KEY: ${{ secrets.APP_RELAYER_PRIVATE_KEY }}
+          APP_APPROVER_PRIVATE_KEY: ${{ secrets.APP_APPROVER_PRIVATE_KEY }}
+          APP_GATE_ED25519_SEED: ${{ secrets.APP_GATE_ED25519_SEED }}
+          APP_ARC_RPC_URL: ${{ secrets.APP_ARC_RPC_URL }}
+          APP_ZG_API_KEY: ${{ secrets.APP_ZG_API_KEY }}
+          APP_ZG_BASE_URL: ${{ secrets.APP_ZG_BASE_URL }}
+          APP_ZG_MODEL: ${{ secrets.APP_ZG_MODEL }}
+          APP_WORLD_CLIENT_ID: ${{ secrets.APP_WORLD_CLIENT_ID }}
+          APP_WORLD_CLIENT_SECRET: ${{ secrets.APP_WORLD_CLIENT_SECRET }}
+          APP_WORLD_ISSUER: ${{ secrets.APP_WORLD_ISSUER }}
+          APP_ENFORCER_ADDRESS: ${{ secrets.APP_ENFORCER_ADDRESS }}
+          APP_EPISODE_LOG_ADDRESS: ${{ secrets.APP_EPISODE_LOG_ADDRESS }}
+          APP_EVIDENCE_TOKEN: ${{ secrets.APP_EVIDENCE_TOKEN }}
+          APP_MERCHANT_PAY_TO: ${{ secrets.APP_MERCHANT_PAY_TO }}
+          APP_RESTRICTED_PAY_TO: ${{ secrets.APP_RESTRICTED_PAY_TO }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
