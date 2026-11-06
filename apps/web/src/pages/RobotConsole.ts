@@ -236,7 +236,7 @@ export const init = (robotId: string): UpdateReturn => ({
     maybeBrain: Option.none(),
     brainPicker: initBrainPicker(),
   },
-  commands: [LoadConsole({ robotId }), ...Command.mapMessages([RobotVoice.CheckVoice()], toVoice)],
+  commands: [LoadConsole({ robotId }), ...Command.mapMessages([RobotVoice.CheckVoice({ robotId })], toVoice)],
 })
 
 // UPDATE

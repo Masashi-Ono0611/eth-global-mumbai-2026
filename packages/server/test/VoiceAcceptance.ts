@@ -10,7 +10,8 @@ import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './Pas
 import { postTo, STUB_SPEECH, TEST_ZG_API_KEY, type ZeroGStub } from './RobotAcceptance.ts'
 import { scanErrand, seedScanningRobot } from './ScanAcceptance.ts'
 import { TRANSCRIBE_MODEL, VOICE_MODEL } from '../src/robot/Voice.ts'
-import { BOSS, SNACKS } from '../src/robot/VoiceLines.ts'
+import { merchants } from '../src/merchant/Catalogue.ts'
+import { BOSS, fixedLines, SNACKS } from '../src/robot/VoiceLines.ts'
 
 // Vita's voice (`POST /api/robots/:robotId/voice`, `…/voice/say`; no flag, mounted whenever the Worker runs) against the
 // 0G stand-in: whisper's transcript and the classifier's JSON drive the turn, a `buy` turn creates the same intent a
@@ -21,7 +22,8 @@ type Urls = { readonly appUrl: string; readonly url: string; readonly apiUrl: st
 /** A WAV header's first bytes: the stub never decodes audio, the route only checks the data URI's shape. */
 const CLIP = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA='
 const Minted = Schema.Struct({ id: Schema.String })
-/** The classifier call: the sealed 0GM with thinking off, the hearing prompt and the transcript as the user's words. */
+const TranscriptionFile = Schema.Struct({ body: Schema.Struct({ file: Schema.Struct({ type: Schema.String }) }) })
+/** The classifier call:the sealed 0GM with thinking off, the hearing prompt and the transcript as the user's words. */
 const ClassifierCall = Schema.Struct({
   model: Schema.Literal(VOICE_MODEL),
   chat_template_kwargs: Schema.Struct({ enable_thinking: Schema.Literal(false) }),
@@ -96,16 +98,19 @@ const expectSentToZeroG = (calls: ZeroGStub['voiceSeen'], transcript: string, li
   Effect.gen(function* () {
     const [transcribed, heardCall, spokenCall, ...again] = calls
     expect(again).toEqual([])
-    expect(transcribed).toEqual({
+    expect(transcribed).toMatchObject({
       path: '/v1/audio/transcriptions',
       authorization: `Bearer ${TEST_ZG_API_KEY}`,
       body: {
         model: TRANSCRIBE_MODEL,
         language: 'en',
         response_format: 'json',
-        file: { type: 'audio/wav', name: 'clip.wav', size: atob(CLIP.slice(CLIP.indexOf(',') + 1)).length },
+        file: { name: 'clip.wav', size: atob(CLIP.slice(CLIP.indexOf(',') + 1)).length },
       },
     })
+    // workerd sends the part as audio/x-wav (the router takes either, checked 7 Nov).
+    const { body } = yield* Schema.decodeUnknownEffect(TranscriptionFile)(transcribed)
+    expect(['audio/wav', 'audio/x-wav']).toContain(body.file.type)
     expect(heardCall?.authorization).toBe(`Bearer ${TEST_ZG_API_KEY}`)
     const sent = yield* Schema.decodeUnknownEffect(ClassifierCall)(heardCall?.body)
     expect(sent.messages[1].content).toBe(transcript)
@@ -163,7 +168,7 @@ export const registerVoiceOnByDefaultAcceptance = (test: TestApi['test'], stack:
     'voice: with no flag the voice routes exist before the restart (refused without Origin, not 404) and health reports voice on',
     Effect.gen(function* () {
       const { apiUrl } = yield* stack
-      for (const path of ['voice', 'voice/say']) {
+      for (const path of ['voice', 'voice/say', 'voice/warm']) {
         const response = yield* HttpClient.post(`${apiUrl}/api/robots/${randomId()}/${path}`, {
           body: HttpBody.text('{}', 'application/json'),
         })
@@ -301,6 +306,65 @@ export const registerVoiceStopAcceptance = (test: TestApi['test'], stack: Effect
       const coffee = yield* me.talk(robot.robotId)
       expect(coffee).toMatchObject({ intent: 'buy', item: null, errand: null })
       expect(coffee.line.text).toContain('only has chai, samosa or thali')
+    }).pipe(Effect.provide(freshConnections)),
+    { timeout: 60000 },
+  )
+
+const Warm = Schema.Struct({ lines: Schema.Finite, ready: Schema.Finite, made: Schema.Finite, failed: Schema.Finite })
+const speechCalls = (stub: ZeroGStub, from: number) =>
+  stub.voiceSeen.slice(from).filter((call) => call.path === '/v1/audio/speech')
+
+/**
+ * The fixed lines' speech made ahead. Registered after the other voice tests: the speech cache is shared by every
+ * robot, and they check the first play of a line that is not made yet.
+ */
+export const registerVoiceWarmAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>, stub: ZeroGStub) =>
+  test(
+    'voice: warm makes every fixed line once, then a spoken buy plays without asking 0G for speech',
+    Effect.gen(function* () {
+      const urls = yield* stack
+      const me = yield* owner(urls, 'Voice Warmer')
+      const robot = yield* seedScanningRobot(urls.url, me.accountId, DEMO_CAPS)
+      stub.setSpeech(true)
+      const total = fixedLines(merchants[0]?.items ?? []).length
+      const warmUp = () =>
+        me
+          .call(`/api/robots/${robot.robotId}/voice/warm`, {})
+          .pipe(
+            Effect.flatMap(({ status, json }) =>
+              Effect.map(Schema.decodeUnknownEffect(Warm)(json), (warm) => ({ status, warm })),
+            ),
+          )
+
+      // The first warm-up makes what earlier conversations did not, one speech call per line it made.
+      const before = stub.voiceSeen.length
+      const first = yield* warmUp()
+      expect(first.status).toBe(200)
+      expect(first.warm).toMatchObject({ lines: total, failed: 0 })
+      expect(first.warm.made + first.warm.ready).toBe(total)
+      expect(first.warm.made).toBeGreaterThan(0)
+      expect(speechCalls(stub, before)).toHaveLength(first.warm.made)
+      // The second finds them all and asks 0G for nothing.
+      const again = stub.voiceSeen.length
+      expect((yield* warmUp()).warm).toEqual({ lines: total, ready: total, made: 0, failed: 0 })
+      expect(stub.voiceSeen.length).toBe(again)
+
+      // A spoken buy's line was made ahead: it plays from the bucket, with no speech call.
+      stub.setHearing({ heard: 'Get me a samosa.', intent: 'buy', item: 'samosa' })
+      const samosa = yield* me.talk(robot.robotId)
+      const played = stub.voiceSeen.length
+      expect(yield* me.play(samosa.speech?.url ?? '')).toEqual({
+        status: 200,
+        type: 'audio/mpeg',
+        bytes: [...STUB_SPEECH],
+      })
+      expect(speechCalls(stub, played)).toEqual([])
+
+      // Another owner's warm-up on this robot: it does not exist for them, and 0G is not asked.
+      const other = yield* owner(urls, 'Other Voice Warmer')
+      const calls = stub.voiceSeen.length
+      expect((yield* other.call(`/api/robots/${robot.robotId}/voice/warm`, {})).status).toBe(404)
+      expect(stub.voiceSeen.length).toBe(calls)
     }).pipe(Effect.provide(freshConnections)),
     { timeout: 60000 },
   )

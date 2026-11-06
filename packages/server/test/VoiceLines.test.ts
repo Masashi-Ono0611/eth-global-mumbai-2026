@@ -1,3 +1,4 @@
+import { EpisodeState } from '@ethmumbai/protocol/Errand'
 import type { IntentView } from '@ethmumbai/protocol/Intent'
 import { Option } from 'effect'
 import { expect, test } from 'vitest'
@@ -5,6 +6,7 @@ import { merchants } from '../src/merchant/Catalogue.ts'
 import {
   answerLine,
   BOSS,
+  fixedLines,
   hearingPrompt,
   intentLine,
   parseHearing,
@@ -134,4 +136,25 @@ test('a spoken buy stores a sentence built from the catalogue, never the transcr
   const [first, , last] = items
   expect(first === undefined ? '' : voiceInstruction(first)).toBe('Get me a chai')
   expect(last === undefined ? '' : voiceInstruction(last)).toBe('Get me a thali')
+})
+
+test("the fixed lines are every line Vita says from an intent's state, and none quotes a grant's limits", () => {
+  const fixed = new Set(fixedLines(items).map((line) => line.text))
+  const states: ReadonlyArray<IntentView['state']> = ['running', 'scanned', 'stopped', 'expired', 'finished']
+  const said = [
+    ...states.flatMap((state) =>
+      [chai, thali, Option.none()].map((item) => intentLine(intent({ state, episodeState: null }), item).text),
+    ),
+    ...EpisodeState.literals.map((episodeState) => intentLine(intent({ episodeState }), chai).text),
+    answerLine('limits', { items, limits: Option.none() }).text,
+    stoppedLine(false, true).text,
+  ]
+  expect(said.filter((text) => !fixed.has(text))).toEqual([])
+  expect(fixedLines(items).length).toBe(fixed.size)
+  const limits = answerLine('limits', {
+    items,
+    limits: Option.some({ perPayment: 1_000_000n, daily: 3_000_000n, spentToday: 100_000n }),
+  })
+  expect(fixed.has(limits.text)).toBe(false)
+  expect([...fixed].filter((text) => text.includes('per payment'))).toEqual([])
 })

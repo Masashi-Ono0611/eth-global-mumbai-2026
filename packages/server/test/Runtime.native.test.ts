@@ -50,6 +50,7 @@ import {
   registerVoiceAcceptance,
   registerVoiceOnByDefaultAcceptance,
   registerVoiceStopAcceptance,
+  registerVoiceWarmAcceptance,
 } from './VoiceAcceptance.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
@@ -398,6 +399,7 @@ registerCounterAcceptance(test, stack)
 registerChipIntentAcceptance(test, stack, zeroG)
 registerVoiceAcceptance(test, stack, zeroG)
 registerVoiceStopAcceptance(test, stack, zeroG)
+registerVoiceWarmAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)
 registerLiveAcceptance(test, stack)
 registerWalletAcceptance(test, stack)

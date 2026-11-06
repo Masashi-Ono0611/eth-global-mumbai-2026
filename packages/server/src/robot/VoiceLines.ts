@@ -1,4 +1,4 @@
-import type { EpisodeState } from '@ethmumbai/protocol/Errand'
+import { EpisodeState } from '@ethmumbai/protocol/Errand'
 import type { IntentView } from '@ethmumbai/protocol/Intent'
 import { VoiceIntent, type VoiceLine } from '@ethmumbai/protocol/Voice'
 import { Option, Schema } from 'effect'
@@ -217,19 +217,42 @@ const episodeLine = (state: EpisodeState): VoiceLine => {
   }
 }
 
+const offTo = (thing: string) => line('off', `Off to the counter for ${thing}; I pay only when 0G says so.`, SNACKS)
+const noScanLine = () => line('surprised', 'No counter QR code in time, so I stopped and paid nothing.', BOSS)
+const finishedLine = () => line('quack', 'That errand is finished.', SNACKS)
+
 /** Vita's line for an intent as it is now: from its state and its episode's state only. */
 export const intentLine = (intent: IntentView, item: Option.Option<CatalogueItem>) => {
   if (intent.episodeState !== null) return episodeLine(intent.episodeState)
-  const thing = Option.match(item, { onNone: () => 'your errand', onSome: article })
   switch (intent.state) {
     case 'running':
     case 'scanned':
-      return line('off', `Off to the counter for ${thing}; I pay only when 0G says so.`, SNACKS)
+      return offTo(Option.match(item, { onNone: () => 'your errand', onSome: article }))
     case 'stopped':
       return stoppedLine(true)
     case 'expired':
-      return line('surprised', 'No counter QR code in time, so I stopped and paid nothing.', BOSS)
+      return noScanLine()
     case 'finished':
-      return line('quack', 'That errand is finished.', SNACKS)
+      return finishedLine()
   }
+}
+
+/**
+ * Every line Vita can say for this menu that depends on no robot's state: all of them but the answer quoting a signed
+ * grant's limits. Their speech can be made ahead (`POST …/voice/warm`), so those lines play at once.
+ */
+export const fixedLines = (items: ReadonlyArray<CatalogueItem>): ReadonlyArray<VoiceLine> => {
+  const lines = [
+    ...VoiceTopic.literals.map((topic) => answerLine(topic, { items, limits: Option.none() })),
+    offMenuLine(items),
+    busyLine(),
+    notPairedLine(),
+    ...[false, true].flatMap((stopped) => [stoppedLine(stopped, false), stoppedLine(stopped, true)]),
+    ...EpisodeState.literals.map(episodeLine),
+    offTo('your errand'),
+    ...items.map((item) => offTo(article(item))),
+    noScanLine(),
+    finishedLine(),
+  ]
+  return lines.filter((each, index) => lines.findIndex((other) => other.text === each.text) === index)
 }

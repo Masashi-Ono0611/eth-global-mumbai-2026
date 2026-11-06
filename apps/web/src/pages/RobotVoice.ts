@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import type * as HttpClient from 'effect/http/HttpClient'
-import { sayIntent, sendVoiceTurn, voiceAvailable } from '../api/Voice.ts'
+import { sayIntent, sendVoiceTurn, voiceAvailable, warmSpeech } from '../api/Voice.ts'
 import { playSpeech, startListening, stopListening } from '../Microphone.ts'
 
 // Vita's voice in the robot conversation (issue #5, Kris's voice mock). Hold to talk: the clip goes to the Worker, which
@@ -90,12 +90,19 @@ export type OutMessage = typeof OutMessage.Type
 
 // COMMAND
 
+/**
+ * Whether the voice is on; when it is, the Worker is also asked, without waiting, to make the fixed lines' speech
+ * ahead (`warmSpeech`), so Vita's first words play at once. A failed warm-up changes nothing: lines speak on first play.
+ */
 export const CheckVoice = Command.define('CheckVoice', {
+  args: { robotId: Schema.String },
   messages: [Message.CompletedCheckVoice],
-  execute: voiceAvailable.pipe(
-    Effect.map((available) => Message.CompletedCheckVoice({ available })),
-    Effect.catch(() => Effect.succeed(Message.CompletedCheckVoice({ available: false }))),
-  ),
+  execute: ({ robotId }) =>
+    voiceAvailable.pipe(
+      Effect.tap((available) => (available ? Effect.forkDetach(Effect.ignore(warmSpeech(robotId))) : Effect.void)),
+      Effect.map((available) => Message.CompletedCheckVoice({ available })),
+      Effect.catch(() => Effect.succeed(Message.CompletedCheckVoice({ available: false }))),
+    ),
 })
 
 /** @internal Exported for the voice tests; this page's update is its only production caller. */

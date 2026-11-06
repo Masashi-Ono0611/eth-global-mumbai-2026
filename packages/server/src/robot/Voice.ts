@@ -6,6 +6,7 @@ import {
   type VoiceSay,
   type VoiceTurn,
   VoiceTurnRequest,
+  type VoiceWarm,
 } from '@ethmumbai/protocol/Voice'
 import { Clock, type Duration, Effect, Option, Redacted, Result, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
@@ -24,6 +25,7 @@ import { ErrandRefused, MERCHANT_ID, need } from './Start.ts'
 import {
   answerLine,
   busyLine,
+  fixedLines,
   hearingPrompt,
   intentLine,
   notPairedLine,
@@ -60,8 +62,13 @@ export const TRANSCRIBE_MODEL = 'whisper-large-v3'
 export const VOICE_MODEL = '0gm-1.0-35b-a3b'
 /** Thinking is on by default for 0GM; off, the classification fits the turn (the field is per model). */
 const VOICE_EXTRA = { chat_template_kwargs: { enable_thinking: false } }
-/** The 0G Router's text-to-speech model; the page pitches it up for the duck. */
-export const SPEECH_MODEL = 'minimax-speech-2.8-turbo'
+/**
+ * The 0G Router's text-to-speech model; the page pitches it up for the duck. 2.6 Turbo over 2.8 Turbo (7 Nov): the
+ * whole MP3 in a median 3.6 s (at most 4.0 s) against 5.3 s (at most 6.9 s), the same voice and tempo.
+ */
+export const SPEECH_MODEL = 'minimax-speech-2.6-turbo'
+/** How many fixed lines `…/voice/warm` asks the speech model for at once. */
+const WARM_CONCURRENCY = 4
 const SPEECH_VOICE = 'English_PlayfulGirl'
 /** The demo kit's tempo (0.95) over its browser pitch-up (1.16), so the heard pace stays normal. */
 const SPEECH_SPEED = 0.82
@@ -391,6 +398,38 @@ const speech = (deps: VoiceDeps) =>
     return HttpServerResponse.uint8Array(bytes, { contentType: 'audio/mpeg', headers: audioHeaders })
   }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
 
+/** One fixed line's speech in the bucket: already there, made now, or not made (the line still shows as text). */
+const ensureSpeech = Effect.fnUntraced(function* (media: ReadWriteBucketClient, zeroG: ZeroGConfig, text: string) {
+  const path = audioPath(yield* speechKey(text))
+  const there = yield* media.head(path).pipe(Effect.option)
+  if (Option.isSome(there) && there.value !== null) return 'ready' as const
+  const bytes = yield* speak(zeroG, text, SPEECH_TIMEOUT)
+  if (bytes === null) return 'failed' as const
+  const saved = yield* media.put(path, bytes, { httpMetadata: { contentType: 'audio/mpeg' } }).pipe(Effect.result)
+  return Result.isSuccess(saved) ? ('made' as const) : ('failed' as const)
+})
+
+/**
+ * `POST …/voice/warm` (owner): makes the speech of every fixed line (`fixedLines`) that is not in the bucket yet, so
+ * those lines play at once instead of after the 3 to 4 s the speech model takes. The page calls it when the conversation
+ * opens; a line made once serves every robot (the speech path is the text's hash). A line that fails stays as it was and
+ * is made on its first play, as before.
+ */
+const warm = (deps: VoiceDeps) =>
+  Effect.gen(function* () {
+    yield* ownRobot(deps)
+    const zeroG = yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY')
+    const merchant = yield* need(findMerchant(MERCHANT_ID), 500, 'merchant catalogue is missing')
+    const lines = fixedLines(merchant.items)
+    const results = yield* Effect.forEach(lines, (line) => ensureSpeech(deps.media, zeroG, line.text), {
+      concurrency: WARM_CONCURRENCY,
+    })
+    const count = (result: (typeof results)[number]) => results.filter((each) => each === result).length
+    const answer = { lines: lines.length, ready: count('ready'), made: count('made'), failed: count('failed') }
+    yield* Effect.logInfo('voice warm').pipe(Effect.annotateLogs(answer))
+    return yield* json(answer satisfies VoiceWarm)
+  }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
+
 /** The voice routes need the private bucket too: a line's text and its speech live there. */
 export interface VoiceDeps extends ErrandDeps {
   readonly media: ReadWriteBucketClient
@@ -401,5 +440,6 @@ export const voiceRoutes = (deps: VoiceDeps) =>
   HttpRouter.addAll([
     HttpRouter.route('POST', '/api/robots/:robotId/voice', requireSession(turn(deps))),
     HttpRouter.route('POST', '/api/robots/:robotId/voice/say', requireSession(say(deps))),
+    HttpRouter.route('POST', '/api/robots/:robotId/voice/warm', requireSession(warm(deps))),
     HttpRouter.route('GET', '/api/robots/:robotId/voice/speech/:key', requireSession(speech(deps))),
   ])

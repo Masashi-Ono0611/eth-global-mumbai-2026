@@ -70,3 +70,15 @@ export const VoiceSay = Schema.Struct({
   speechError: Schema.NullOr(Schema.String),
 })
 export type VoiceSay = typeof VoiceSay.Type
+
+/**
+ * `POST /api/robots/:robotId/voice/warm` (owner, no body): the fixed lines' speech made ahead, so they play at once.
+ * `ready` were already in the bucket, `made` were made now, `failed` are made on their first play as before.
+ */
+export const VoiceWarm = Schema.Struct({
+  lines: Schema.Finite,
+  ready: Schema.Finite,
+  made: Schema.Finite,
+  failed: Schema.Finite,
+})
+export type VoiceWarm = typeof VoiceWarm.Type
