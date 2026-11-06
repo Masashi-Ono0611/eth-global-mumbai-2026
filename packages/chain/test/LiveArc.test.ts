@@ -1,34 +1,28 @@
 import { generateId } from '@ethmumbai/protocol/Base32'
 import { delegationDigest, type Delegation } from '@ethmumbai/protocol/Delegation'
-import { ARC_USDC, invoiceHash, jsonHash } from '@ethmumbai/protocol/Invoice'
-import type { PaymentPayload, PaymentRequirements } from '@ethmumbai/protocol/X402'
-import { Effect } from 'effect'
 import { hexToBytes, type StateOverride } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { describe, expect, test } from 'vitest'
 import {
   arcAddresses,
   buildGrant,
-  buildLeaf,
   buildRevoke,
   counterfactualAccount,
-  delegationHashOf,
   encodeDeleGatorSignature,
   encodePermissionContext,
   makeArcClient,
   redeemCalldata,
   revokeExecution,
   settlementCall,
-  signLeaf,
   verifyPayment,
 } from '../src/index.ts'
+import { paymentFor, run } from './LivePayments.ts'
 import { keyId, makeAuthenticator } from './SoftwarePasskey.ts'
 
 // Tag live-arc (spec §5): eth_call / eth_estimateGas against live Arc mainnet state, nothing broadcast. A software
 // passkey owns a counterfactual HybridDeleGator, deployed inside the simulated history; the passkey signs the grant's
 // EIP-712 digest and our encoder produces the signature Arc's P-256 verifier checks. Skipped without ARC_RPC_URL.
 const rpcUrl = process.env.ARC_RPC_URL
-const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect)
 const relayer = privateKeyToAccount(generatePrivateKey()).address
 const payTo = privateKeyToAccount(generatePrivateKey()).address
 const amount = 10_000n
@@ -60,63 +54,6 @@ const passkeyOwnedGrant = async () => {
   return { owner, passkey, accountId, chip, grant, forged: { ...grant, signature: otherSignature } }
 }
 
-const paymentFor = async (chip: ReturnType<typeof privateKeyToAccount>, grant: Delegation, owner: `0x${string}`) => {
-  const id = await run(generateId)
-  const expiresAt = Math.floor(Date.now() / 1000) + 600
-  const fields = {
-    merchantId: 'duck-cafe',
-    id,
-    payTo,
-    asset: ARC_USDC,
-    amount: amount.toString(),
-    expiresAt,
-    linesHash: jsonHash([]),
-    rulesHash: jsonHash([]),
-  }
-  const hash = invoiceHash(fields)
-  const leaf = await run(
-    signLeaf(
-      chip,
-      buildLeaf({
-        chip: chip.address,
-        grantHash: delegationHashOf(grant),
-        relayer,
-        invoiceHash: hash,
-        payTo,
-        amount,
-        expiresAt,
-      }),
-    ),
-  )
-  const requirements: PaymentRequirements = {
-    scheme: 'exact',
-    network: 'eip155:5042',
-    asset: ARC_USDC,
-    payTo,
-    amount: amount.toString(),
-    maxTimeoutSeconds: 120,
-    extra: {
-      assetTransferMethod: 'erc7710',
-      invoiceHash: hash,
-      invoiceId: id,
-      expiresAt,
-      delegationManager: arcAddresses.delegationManager,
-      facilitators: [relayer],
-      paymentIdentifier: id,
-    },
-  }
-  const payment: PaymentPayload = {
-    x402Version: 2,
-    accepted: requirements,
-    payload: {
-      delegationManager: arcAddresses.delegationManager,
-      permissionContext: encodePermissionContext([leaf, grant]),
-      delegator: owner,
-    },
-  }
-  return { payment, requirements }
-}
-
 describe.skipIf(rpcUrl === undefined)('live Arc (simulation only)', () => {
   const client = makeArcClient(rpcUrl ?? 'https://rpc.mainnet.arc.io')
   const context = { client, relayer }
@@ -126,7 +63,7 @@ describe.skipIf(rpcUrl === undefined)('live Arc (simulation only)', () => {
     const { grant, chip, owner, passkey } = setup
     const stateOverride: StateOverride = [{ address: owner.smartAccount, balance: 10n ** 18n }]
     const deploy = { to: owner.factory, data: owner.factoryData }
-    const first = await paymentFor(chip, grant, owner.smartAccount)
+    const first = await paymentFor({ chip, grant, owner: owner.smartAccount, relayer, payTo, amount })
 
     const settle = await run(
       verifyPayment(context, first.payment, first.requirements, { prelude: [deploy], stateOverride }),
@@ -149,13 +86,13 @@ describe.skipIf(rpcUrl === undefined)('live Arc (simulation only)', () => {
       to: arcAddresses.delegationManager,
       data: redeemCalldata(encodePermissionContext([revoke]), revokeExecution(grant)),
     }
-    const next = await paymentFor(chip, grant, owner.smartAccount)
+    const next = await paymentFor({ chip, grant, owner: owner.smartAccount, relayer, payTo, amount })
     const afterRevoke = await run(
       verifyPayment(context, next.payment, next.requirements, { prelude: [deploy, revokeCall], stateOverride }),
     )
     expect(afterRevoke.simulation.revert).toContain('CannotUseADisabledDelegation')
 
-    const tampered = await paymentFor(chip, setup.forged, owner.smartAccount)
+    const tampered = await paymentFor({ chip, grant: setup.forged, owner: owner.smartAccount, relayer, payTo, amount })
     const refused = await run(
       verifyPayment(context, tampered.payment, tampered.requirements, { prelude: [deploy], stateOverride }),
     )
