@@ -198,7 +198,15 @@ const rules = (model: Model, grant: ActiveGrant, inputs: ViewInputs, h: HtmlBuil
               }),
             ],
           ),
-          h.li([], [format(locale, 'allowance.ruleAsks', {})]),
+          h.li(
+            [],
+            [
+              format(locale, 'allowance.ruleAsks', {
+                perPayment: usdc(grant.perPaymentCap),
+                daily: usdc(grant.dailyCap),
+              }),
+            ],
+          ),
         ],
       ),
       h.button(

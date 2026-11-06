@@ -249,7 +249,7 @@ describe('/robot/:id', () => {
       click(role('radio', { name: '1 week' })),
       expect(
         text(
-          'Duck can spend up to 5.00 USDC a day, at most 1.00 at a time, only at Duck Café, for the next week. Anything else asks you first. Arc enforces this, so not even our server can go past it.',
+          'Duck can spend up to 5.00 USDC a day, only at Duck Café, for the next week. A purchase over 1.00 asks you first in World App; nothing goes past 5.00 a day. Arc enforces this, so not even our server can go past it.',
         ),
       ).toExist(),
       click(role('button', { name: 'Confirm with passkey' })),

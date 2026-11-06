@@ -29,7 +29,7 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.openNone': Readonly<Record<string, never>>
   'allowance.perDay': Readonly<Record<string, never>>
   'allowance.perPurchase': Readonly<Record<string, never>>
-  'allowance.ruleAsks': Readonly<Record<string, never>>
+  'allowance.ruleAsks': { readonly perPayment: string | number; readonly daily: string | number }
   'allowance.rulePerPurchase': { readonly amount: string | number }
   'allowance.ruleUntil': { readonly time: string | number }
   'allowance.ruleWhere': { readonly payee: string | number }
@@ -39,9 +39,9 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.summary': {
     readonly name: string | number
     readonly daily: string | number
-    readonly perPayment: string | number
     readonly payee: string | number
     readonly hours: number
+    readonly perPayment: string | number
   }
   'allowance.title': { readonly name: string | number }
   'allowance.where': Readonly<Record<string, never>>
@@ -247,4 +247,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '6c46ab243e3f20697f4f38120c65bf937efc5166fae205dff4f46a2bbc440ad9'
+export const catalogVersion = '164aaed6531f790b4e8ef23090eb90cf4acb68bb2f21aa996a7dd169b7152933'
