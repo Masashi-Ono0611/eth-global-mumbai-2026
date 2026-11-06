@@ -5,7 +5,15 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import type * as HttpClient from 'effect/http/HttpClient'
 import { isSignedOut } from '../api/Http.ts'
-import { ConsoleRobot, ErrandDetail, loadConsoleRobot, loadErrand, startErrand, terminalStates } from '../api/Robot.ts'
+import {
+  ConsoleRobot,
+  ErrandDetail,
+  invoiceIdFrom,
+  loadConsoleRobot,
+  loadErrand,
+  startErrand,
+  terminalStates,
+} from '../api/Robot.ts'
 import { Catalogue, loadActivity, loadCatalogue } from '../api/Wallet.ts'
 
 // MODEL
@@ -27,7 +35,12 @@ export const Errand = defineTaggedUnion({
   Refused: { error: Schema.String },
 })
 export type Errand = typeof Errand.Type
-export const Model = Schema.Struct({ robotId: Schema.String, state: ConsoleState, errand: Errand })
+export const Model = Schema.Struct({
+  robotId: Schema.String,
+  state: ConsoleState,
+  errand: Errand,
+  invoiceInput: Schema.String,
+})
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -40,6 +53,7 @@ export const Message = defineMessageUnion({
   },
   FailedLoadConsole: { error: Schema.String, signedOut: Schema.Boolean },
   ClickedStartErrand: { item: Schema.String },
+  UpdatedInvoiceInput: { value: Schema.String },
   SucceededStartErrand: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
   FailedStartErrand: { error: Schema.String },
   SucceededLoadErrand: { episodeId: Schema.String, detail: ErrandDetail },
@@ -77,10 +91,10 @@ export const LoadConsole = Command.define('LoadConsole', {
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const StartErrand = Command.define('StartErrand', {
-  args: { robotId: Schema.String, item: Schema.String },
+  args: { robotId: Schema.String, item: Schema.String, invoiceId: Schema.NullOr(Schema.String) },
   messages: [Message.SucceededStartErrand, Message.FailedStartErrand],
-  execute: ({ robotId, item }) =>
-    startErrand(robotId, item).pipe(
+  execute: ({ robotId, item, invoiceId }) =>
+    startErrand(robotId, item, invoiceId).pipe(
       Effect.map((created) =>
         Message.SucceededStartErrand({
           episodeId: created.episodeId,
@@ -114,7 +128,7 @@ type UpdateReturn = Update.Return<Model, Message, Services>
 const POLL_MILLIS = 1500
 
 export const init = (robotId: string): UpdateReturn => ({
-  model: { robotId, state: ConsoleState.Loading(), errand: Errand.Idle() },
+  model: { robotId, state: ConsoleState.Loading(), errand: Errand.Idle(), invoiceInput: '' },
   commands: [LoadConsole({ robotId })],
 })
 
@@ -154,10 +168,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ? { model }
         : {
             model: modifyFields(model, { errand: () => Errand.Starting({ item }) }),
-            commands: [StartErrand({ robotId: model.robotId, item })],
+            commands: [StartErrand({ robotId: model.robotId, item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
           },
+    UpdatedInvoiceInput: ({ value }) => ({ model: modifyFields(model, { invoiceInput: () => value }) }),
     SucceededStartErrand: ({ episodeId, maybeApprovalUrl }) => ({
-      model: modifyFields(model, { errand: () => running(episodeId, maybeApprovalUrl) }),
+      model: modifyFields(model, { errand: () => running(episodeId, maybeApprovalUrl), invoiceInput: () => '' }),
       commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
     }),
     FailedStartErrand: ({ error }) => ({ model: modifyFields(model, { errand: () => Errand.Refused({ error }) }) }),

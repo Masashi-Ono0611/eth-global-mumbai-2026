@@ -2,7 +2,7 @@ import { format, type Locale } from '@ethmumbai/i18n'
 import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import type { ConsoleRobot, Decision, ErrandDetail } from '../api/Robot.ts'
+import { type ConsoleRobot, type Decision, type ErrandDetail, invoiceIdFrom } from '../api/Robot.ts'
 import { type Catalogue, explorerTx, usdc } from '../api/Wallet.ts'
 import { ConsoleState, Errand, isLive, Message, type Model } from './RobotConsole.ts'
 import { robotsRouter } from '../route.ts'
@@ -33,6 +33,25 @@ const robotHeader = (view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>
               }),
             ],
           ),
+    ],
+  )
+
+/** Optional: the invoice the gate shows (its id or its payment URL); empty = the counter's open invoice for the item. */
+const invoiceField = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('auth-form invoice-field')],
+    [
+      h.label([h.For('gate-invoice')], [format(locale, 'console.gateInvoice', {})]),
+      h.input([
+        h.Id('gate-invoice'),
+        h.Type('text'),
+        h.Value(model.invoiceInput),
+        h.Placeholder(format(locale, 'console.gateInvoiceHint', {})),
+        h.OnInput((value) => Message.UpdatedInvoiceInput({ value })),
+      ]),
+      model.invoiceInput.trim().length > 0 && invoiceIdFrom(model.invoiceInput) === null
+        ? h.p([h.Role('alert'), h.Class('form-error')], [format(locale, 'console.gateInvoiceInvalid', {})])
+        : h.empty,
     ],
   )
 
@@ -157,6 +176,7 @@ export const robotConsoleView = Submodel.defineView<Model, Message, { readonly l
         Loaded: ({ robot, catalogue }) => [
           h.h1([], [robot.robot.name]),
           robotHeader(robot, locale, h),
+          invoiceField(model, locale, h),
           itemButtons(catalogue, isLive(model.errand) || robot.grant === null, locale, h),
           errandView(model, locale, h),
           h.button(

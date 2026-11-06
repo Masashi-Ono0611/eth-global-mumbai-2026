@@ -72,8 +72,15 @@ export const ErrandDetail = Schema.Struct({
 export type ErrandDetail = typeof ErrandDetail.Type
 
 export const loadConsoleRobot = (robotId: string) => getJson(`/api/robots/${robotId}`, ConsoleRobot)
-export const startErrand = (robotId: string, item: string) =>
-  postJson(`/api/robots/${robotId}/errands`, { item }, ErrandCreated)
+/** Starts an errand; `invoiceId` pays that pending invoice (the one the gate shows) instead of the counter's default. */
+export const startErrand = (robotId: string, item: string, invoiceId: string | null) =>
+  postJson(`/api/robots/${robotId}/errands`, invoiceId === null ? { item } : { item, invoiceId }, ErrandCreated)
+
+/** A 26-character invoice id, typed or pasted as the gate's payment URL (`…/api/i/<id>`). */
+export const invoiceIdFrom = (text: string): string | null => {
+  const match = /^(?:\S*\/i\/)?([a-z2-7]{26})$/.exec(text.trim())
+  return match?.[1] ?? null
+}
 export const loadErrand = (robotId: string, episodeId: string) =>
   getJson(`/api/robots/${robotId}/errands/${episodeId}`, ErrandDetail)
 

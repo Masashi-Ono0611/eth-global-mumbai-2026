@@ -43,6 +43,9 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'console.errandState':
     '{item}: {state, select, queued {queued} deciding {deciding} awaiting_approval {waiting for approval} signing {chip signing} settling {settling} paid {paid} walked_away {walked away} safe_stop {safe stop} denied {denied} refused {refused by the chip} failed {failed} expired {expired} other {{state}}}',
   'console.evidence': 'Episode log: {status}',
+  'console.gateInvoice': 'Invoice from the gate (optional)',
+  'console.gateInvoiceHint': "Invoice id or the gate's payment link; empty = the counter's open invoice",
+  'console.gateInvoiceInvalid': 'That is not a 26-character invoice id or a payment link.',
   'console.leaseOffline': 'Chip offline: motors stay stopped until it polls again.',
   'console.leaseOnline': 'Chip online: its lease is current.',
   'console.noGrant': 'No grant yet: grant a budget on the robots page first.',
@@ -168,6 +171,9 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'console.errandState':
     '{item}: {state, select, queued {v vrsti} deciding {odloča} awaiting_approval {čaka na odobritev} signing {čip podpisuje} settling {poravnava} paid {plačano} walked_away {odšel} safe_stop {varna ustavitev} denied {zavrnjeno} refused {čip je zavrnil} failed {neuspešno} expired {poteklo} other {{state}}}',
   'console.evidence': 'Dnevnik epizode: {status}',
+  'console.gateInvoice': 'Račun z vrat (neobvezno)',
+  'console.gateInvoiceHint': 'ID računa ali povezava za plačilo z vrat; prazno = odprt račun na blagajni',
+  'console.gateInvoiceInvalid': 'To ni 26-mestni ID računa ali povezava za plačilo.',
   'console.leaseOffline': 'Čip ni na zvezi: motorji mirujejo, dokler se ne oglasi.',
   'console.leaseOnline': 'Čip je na zvezi: njegov zakup velja.',
   'console.noGrant': 'Še ni pooblastila: najprej odobrite proračun na strani robotov.',
@@ -293,6 +299,9 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'console.errandState':
     '{item}：{state, select, queued {待機中} deciding {判断中} awaiting_approval {承認待ち} signing {チップが署名中} settling {決済中} paid {支払い済み} walked_away {立ち去った} safe_stop {安全停止} denied {拒否} refused {チップが拒否} failed {失敗} expired {期限切れ} other {{state}}}',
   'console.evidence': 'エピソードログ：{status}',
+  'console.gateInvoice': 'ゲートの請求書（任意）',
+  'console.gateInvoiceHint': '請求書 ID またはゲートの支払いリンク。空欄ならカウンターの未払い請求書',
+  'console.gateInvoiceInvalid': '26 文字の請求書 ID または支払いリンクではありません。',
   'console.leaseOffline': 'チップはオフラインです。再接続までモーターは停止したままです。',
   'console.leaseOnline': 'チップはオンラインです（リース有効）。',
   'console.noGrant': 'まだ権限がありません。先にロボットページで予算を付与してください。',
@@ -418,6 +427,9 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'console.errandState':
     '{item}: {state, select, queued {कतार में} deciding {निर्णय हो रहा है} awaiting_approval {मंज़ूरी की प्रतीक्षा} signing {चिप हस्ताक्षर कर रही है} settling {भुगतान निपट रहा है} paid {भुगतान हो गया} walked_away {चला गया} safe_stop {सुरक्षित रोक} denied {अस्वीकृत} refused {चिप ने मना किया} failed {विफल} expired {समय समाप्त} other {{state}}}',
   'console.evidence': 'एपिसोड लॉग: {status}',
+  'console.gateInvoice': 'गेट का इनवॉइस (वैकल्पिक)',
+  'console.gateInvoiceHint': 'इनवॉइस आईडी या गेट का भुगतान लिंक; खाली = काउंटर का खुला इनवॉइस',
+  'console.gateInvoiceInvalid': 'यह 26 अक्षरों वाली इनवॉइस आईडी या भुगतान लिंक नहीं है।',
   'console.leaseOffline': 'चिप ऑफ़लाइन है: दोबारा जुड़ने तक मोटर रुकी रहेंगी।',
   'console.leaseOnline': 'चिप ऑनलाइन है: उसकी लीज़ चालू है।',
   'console.noGrant': 'अभी कोई अनुमति नहीं: पहले रोबोट पेज पर बजट दें।',
@@ -542,6 +554,9 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'console.errandState':
     '{item}: {state, select, queued {रांगेत} deciding {निर्णय होत आहे} awaiting_approval {मंजुरीची प्रतीक्षा} signing {चिप स्वाक्षरी करत आहे} settling {पेमेंट पूर्ण होत आहे} paid {पेमेंट झाले} walked_away {निघून गेला} safe_stop {सुरक्षित थांबा} denied {नाकारले} refused {चिपने नकार दिला} failed {अयशस्वी} expired {मुदत संपली} other {{state}}}',
   'console.evidence': 'एपिसोड लॉग: {status}',
+  'console.gateInvoice': 'गेटचे बीजक (पर्यायी)',
+  'console.gateInvoiceHint': 'बीजक आयडी किंवा गेटची पेमेंट लिंक; रिकामे = काउंटरचे खुले बीजक',
+  'console.gateInvoiceInvalid': 'हा 26 अक्षरी बीजक आयडी किंवा पेमेंट लिंक नाही.',
   'console.leaseOffline': 'चिप ऑफलाइन आहे: पुन्हा जोडले जाईपर्यंत मोटर थांबलेल्या राहतील.',
   'console.leaseOnline': 'चिप ऑनलाइन आहे: तिची लीज चालू आहे.',
   'console.noGrant': 'अजून परवानगी नाही: आधी रोबोट पानावर बजेट द्या.',

@@ -255,7 +255,7 @@ describe('/robot/:id', () => {
       given(loaded),
       expect(text('Chip online: its lease is current.')).toExist(),
       click(role('button', { name: 'Buy Chai (0.10 USDC)' })),
-      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai' })),
+      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId: null })),
       Command.resolve(
         RobotConsole.StartErrand,
         RobotConsole.Message.SucceededStartErrand({ episodeId: 'e1', maybeApprovalUrl: Option.none() }),
@@ -284,6 +284,25 @@ describe('/robot/:id', () => {
         RobotConsole.Message.FailedLoadConsole({ error: 'offline', signedOut: false }),
       ),
       expect(role('alert')).toHaveText('Something went wrong: offline'),
+    )
+  })
+
+  test("a pasted gate payment link pays the gate's invoice; a typo is flagged", () => {
+    const invoiceId = 'abcdefghijklmnopqrstuvwxyz'
+    scene(
+      { update: RobotConsole.update, view },
+      given(loaded),
+      type(label('Invoice from the gate (optional)'), 'oops'),
+      expect(role('alert')).toHaveText('That is not a 26-character invoice id or a payment link.'),
+      type(label('Invoice from the gate (optional)'), `https://app.example/api/i/${invoiceId}`),
+      expect(role('alert')).toBeAbsent(),
+      click(role('button', { name: 'Buy Chai (0.10 USDC)' })),
+      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId })),
+      Command.resolve(
+        RobotConsole.StartErrand,
+        RobotConsole.Message.FailedStartErrand({ error: 'invoice already paid' }),
+      ),
+      expect(role('alert')).toHaveText('Something went wrong: invoice already paid'),
     )
   })
 

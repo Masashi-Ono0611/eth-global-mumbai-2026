@@ -39,6 +39,9 @@ export interface MessageArgumentsByKey<T = string> {
   'console.episodeLog': Readonly<Record<string, never>>
   'console.errandState': { readonly item: string | number; readonly state: string | number }
   'console.evidence': { readonly status: string | number }
+  'console.gateInvoice': Readonly<Record<string, never>>
+  'console.gateInvoiceHint': Readonly<Record<string, never>>
+  'console.gateInvoiceInvalid': Readonly<Record<string, never>>
   'console.leaseOffline': Readonly<Record<string, never>>
   'console.leaseOnline': Readonly<Record<string, never>>
   'console.noGrant': Readonly<Record<string, never>>
@@ -130,4 +133,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'bdcdfb004398fa9a3517dcee5de761203cc4e6fdf5693ef40c960c722e26f06a'
+export const catalogVersion = '317c6f07707bc4dbba713ff5acca2e2600b7a52867c67555d8542b5c6f7f044f'
