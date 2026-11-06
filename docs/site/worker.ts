@@ -17,6 +17,7 @@ import { Refused, createComment, deleteThread, listComments, setParent, setStatu
 
 interface Env {
   readonly DB: D1Database
+  readonly ASSETS: Fetcher
 }
 
 const limits = { page: 64, anchor: 200, anchorText: 300, name: 60, body: 4096 } as const
@@ -113,9 +114,35 @@ const route = async (request: Request, env: Env): Promise<Response> => {
   return problem(405, 'method not allowed')
 }
 
+/**
+ * Films under `/story/media/` run through this Worker (`runWorkerFirst` in alchemy.run.ts) because the asset layer
+ * answers a Range request with the whole file, and Safari on iPhone will not play an mp4 without a 206. The files are
+ * under 1 MB, so the slice is taken from the whole asset in memory.
+ */
+const media = async (request: Request, env: Env): Promise<Response> => {
+  const asset = await env.ASSETS.fetch(new Request(request.url, { method: 'GET' }))
+  if (!asset.ok) return asset
+  const headers = new Headers(asset.headers)
+  headers.set('accept-ranges', 'bytes')
+  headers.set('cache-control', 'public, max-age=3600')
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') ?? '')
+  if (range === null) return new Response(request.method === 'HEAD' ? null : asset.body, { status: 200, headers })
+  const bytes = new Uint8Array(await asset.arrayBuffer())
+  const size = bytes.byteLength
+  const [, from, to] = range
+  const start = from === '' ? Math.max(0, size - Number(to)) : Number(from)
+  const end = from === '' || to === '' ? size - 1 : Math.min(Number(to), size - 1)
+  if (start > end || start >= size) {
+    return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } })
+  }
+  headers.set('content-range', `bytes ${start}-${end}/${size}`)
+  headers.set('content-length', String(end - start + 1))
+  return new Response(request.method === 'HEAD' ? null : bytes.slice(start, end + 1), { status: 206, headers })
+}
+
 export default {
   fetch: (request: Request, env: Env) =>
-    route(request, env).catch((error: unknown) => {
+    (new URL(request.url).pathname.startsWith('/story/media/') ? media(request, env) : route(request, env)).catch((error: unknown) => {
       if (error instanceof Refused) return problem(error.status, error.message)
       console.error('comments: request failed', error)
       return problem(500, 'internal error')

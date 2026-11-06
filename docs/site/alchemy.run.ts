@@ -32,6 +32,8 @@ export default Alchemy.Stack(
       outdir: 'dist',
       memo: false,
       workersDev: true,
+      // The story films need byte ranges (Safari); worker.ts serves them from the ASSETS binding.
+      assets: { runWorkerFirst: ['/story/media/*'] },
       compatibility: { date: '2026-10-19' },
     })
     return { url: site.url.as<string>() }
