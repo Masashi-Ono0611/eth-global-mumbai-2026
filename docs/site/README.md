@@ -9,6 +9,7 @@ Shareable pages for the team (architecture, brainstorms, spikes), not product co
 | Plan (generated from `docs/plan.md` by `docs/render-plan-page.py`) | `plan/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/plan |
 | Architecture | `architecture/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/ |
 | Story: the pitch in four screens (films: Qwen Image 3.0 Pro keyframes + Wan 3.0 loops, made in `~/code/vitaquack-film/`, not in Git) | `story/index.html`, `story/media/` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/story/ |
+| Pitch: the main presentation, vision first (everyone gets a robot; the key belongs on the robot; who holds what), then the proof (six real screens with their Arc and 0G transactions), the live demo and what's next. Films: the Open Duck Mini look, Qwen Image 3.0 Pro + Wan 3.0, made in `~/code/vitaquack-film/` | `pitch/index.html`, `pitch/media/` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/pitch/ |
 | Template | `_template/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/_template/ |
 
 ## Add a page
@@ -48,7 +49,7 @@ clients render them as text. Browser scripts in `lib/*.ts` are compiled by `buil
 ## Films and byte ranges
 
 The asset layer answers a `Range` request with the whole file, and Safari on iPhone will not play an mp4 without a
-206. So `/story/media/*` runs through `worker.ts` first (`assets.runWorkerFirst` in `alchemy.run.ts`), which slices
+206. So `/story/media/*` and `/pitch/media/*` run through `worker.ts` first (`assets.runWorkerFirst` in `alchemy.run.ts`), which slices
 the asset from the `ASSETS` binding. Keep films small (H.264, silent, faststart, under 1 MB each).
 
 ## How it deploys
