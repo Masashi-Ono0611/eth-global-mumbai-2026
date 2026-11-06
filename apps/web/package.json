@@ -16,12 +16,14 @@
     "@ethmumbai/i18n": "workspace:*",
     "@ethmumbai/observability": "workspace:*",
     "@ethmumbai/protocol": "workspace:*",
+    "@foldkit/ui": "catalog:",
     "effect": "catalog:",
-    "foldkit": "catalog:",
-    "zyzz": "catalog:"
+    "foldkit": "catalog:"
   },
   "devDependencies": {
     "@foldkit/vite-plugin": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "tailwindcss": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   }

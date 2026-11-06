@@ -180,7 +180,7 @@ test(
     expect(script.status, `edge asset ${scriptPath}`).toBe(200)
     expect(yield* script.text).toContain('hydrate')
     expect(stylesheet.status, `edge asset ${stylesheetPath}`).toBe(200)
-    expect(yield* stylesheet.text).toContain('--paper')
+    expect(yield* stylesheet.text).toContain('--color-paper')
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 60000 },
 )

@@ -29,7 +29,9 @@
       "@types/node": "26.6.6",
       "viem": "2.57.16",
       "@metamask/smart-accounts-kit": "2.0.0",
-      "zyzz": "0.0.44"
+      "@foldkit/ui": "0.169.0",
+      "tailwindcss": "4.3.4",
+      "@tailwindcss/vite": "4.3.4"
     }
   },
   "type": "module",
@@ -95,8 +97,7 @@
     "tsrs": "0.22.0-ts7.1.0-beta",
     "typescript": "7.0.2",
     "vite": "catalog:",
-    "vitest": "catalog:",
-    "zyzz": "catalog:"
+    "vitest": "catalog:"
   },
   "overrides": {
     "@effect/platform-browser": "4.0.7",

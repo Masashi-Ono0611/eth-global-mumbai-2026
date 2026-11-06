@@ -1,225 +1,324 @@
-/* Class rules inherited from the styldappv2 foundation, waiting for the redesign. Tokens and document defaults now
- * live in zyzz (zyzz.config.ts, GlobalStyles.ts); restyled views move their rules into `<View>.styles.ts` and out of
- * this file. These custom properties repeat the zyzz colour tokens for the rules below; change them together. */
-:root {
-  --paper: oklch(94.5% 0.01 76);
-  --ink: oklch(19% 0.024 52);
-  --muted: oklch(47% 0.014 60);
-  --rule: oklch(81% 0.011 70);
+@import 'tailwindcss';
+
+/* Design tokens: Tailwind generates a utility for each (`bg-paper`, `text-muted`, `border-rule`, `font-display`,
+ * `rounded-control`) and exposes it as a CSS variable (`var(--color-ink)`). The values are the palette inherited from
+ * the styldappv2 foundation (light only); the redesign replaces them here. Add a token before using a new colour. */
+@theme {
+  --color-paper: oklch(94.5% 0.01 76);
+  --color-ink: oklch(19% 0.024 52);
+  /* Secondary text, hints and empty states. */
+  --color-muted: oklch(47% 0.014 60);
+  /* Hairlines and field edges. */
+  --color-rule: oklch(81% 0.011 70);
+  /* The keyboard focus ring. */
+  --color-focus: oklch(50% 0.095 248);
+  /* Error text, and an invalid field's edge. */
+  --color-error: oklch(48% 0.16 25);
+  --color-invalid: oklch(58% 0.16 25);
+  --color-online: oklch(45% 0.12 150);
+  --color-gate-open: oklch(50% 0.15 150);
+  --color-gate-closed: oklch(50% 0.16 25);
+
+  --font-sans: 'Hanken Grotesk', system-ui, sans-serif;
+  --font-display: 'Sentient', Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --radius-control: 3px;
 }
-.site {
-  max-inline-size: 78rem;
-  margin-inline: auto;
-  padding-inline: max(1.25rem, env(safe-area-inset-left), env(safe-area-inset-right));
-}
-.masthead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1.5rem;
-  padding-block: calc(1rem + env(safe-area-inset-top)) 1rem;
-}
-.brand {
-  display: inline-flex;
-}
-.brand img {
-  display: block;
-}
-.language-picker {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  margin-inline-start: auto;
-}
-.language-picker p {
-  flex-basis: 100%;
-}
-.intro {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  gap: 1.5rem;
-  padding-block: clamp(3rem, 10vw, 8rem);
-}
-.lead {
-  font-size: 1.2rem;
-  max-inline-size: 45ch;
-  color: var(--muted);
-}
-.primary-action {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: 48px;
-  background: var(--ink);
-  color: var(--paper);
-  padding: 0.65rem 1.5rem;
-  border-radius: 3px;
-  text-decoration: none;
-}
-.primary-action:active {
-  opacity: 0.8;
-}
-.secondary-action {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: 48px;
-  padding: 0.65rem 1.5rem;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-}
-.secondary-action:active {
-  opacity: 0.8;
-}
-.auth-page {
-  max-inline-size: 32rem;
-  min-block-size: 65svh;
-  padding-block: clamp(3rem, 8vw, 6rem);
-}
-.auth-form {
-  display: grid;
-  gap: 0.65rem;
-  margin-block-start: 1.5rem;
-}
-.auth-form input {
-  font: inherit;
-  font-size: 1rem;
-  inline-size: 100%;
-  min-block-size: 48px;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: color-mix(in oklch, var(--paper) 88%, var(--ink));
-  color: var(--ink);
-}
-.auth-form input:user-invalid {
-  border-color: oklch(58% 0.16 25);
-}
-.auth-form button {
-  justify-self: start;
-  margin-block-start: 0.75rem;
-  border: 0;
-  cursor: pointer;
-}
-.form-error {
-  color: oklch(48% 0.16 25);
-}
-.account-details {
-  display: grid;
-  justify-items: start;
-  gap: 1.5rem;
-  overflow-wrap: anywhere;
-}
-.account-details dd {
-  margin: 0;
-  margin-block-end: 1rem;
-}
-.inspiration {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-block: 2rem 5rem;
-  border-block-start: 1px solid var(--rule);
-  scroll-margin-block-start: 2rem;
-}
-.empty-state {
-  padding-block: 2rem;
-  color: var(--muted);
-}
-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding-block: 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
-  border-block-start: 1px solid var(--rule);
-}
-footer a {
-  margin-inline-start: auto;
-  min-block-size: 44px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .primary-action:hover {
-    opacity: 0.85;
+
+/* Document defaults, on top of Tailwind's preflight. */
+@layer base {
+  :root {
+    color-scheme: light;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    line-height: 1.55;
+    font-synthesis: none;
   }
-  .secondary-action:hover {
-    background: color-mix(in oklch, var(--paper) 90%, var(--ink));
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-gutter: stable;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 300;
+    line-height: 1.12;
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: clamp(2.5rem, 1.5rem + 4vw, 5rem);
+    letter-spacing: -0.022em;
+    max-inline-size: 15ch;
+  }
+  h2 {
+    font-size: 2rem;
+  }
+  p {
+    max-inline-size: 65ch;
+    text-wrap: pretty;
+  }
+  a {
+    color: inherit;
+    text-decoration-line: underline;
+    text-underline-offset: 0.2em;
+    touch-action: manipulation;
+  }
+  button,
+  select {
+    font-size: 1rem;
+    min-block-size: 44px;
+    touch-action: manipulation;
+  }
+  select {
+    border: 1px solid var(--color-muted);
+    border-radius: var(--radius-control);
+    max-inline-size: 100%;
+    padding: 0.45rem;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 4px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    a:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+  /* The Latin faces above have no CJK or Devanagari glyphs, so these scripts prefer their system face. */
+  :lang(ja) {
+    font-family: 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif;
+  }
+  :lang(hi),
+  :lang(mr) {
+    font-family: 'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Nirmala UI', system-ui, sans-serif;
+  }
+  :lang(ja) :is(h1, h2),
+  :lang(hi) :is(h1, h2),
+  :lang(mr) :is(h1, h2) {
+    font-family: inherit;
   }
 }
 
-.passkey-panel {
-  display: grid;
-  justify-items: start;
-  gap: 0.75rem;
-  inline-size: min(100%, 32rem);
-}
-.passkey-panel .auth-form {
-  inline-size: 100%;
-}
-.hint {
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-.smart-account {
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 0.95rem;
-  overflow-wrap: anywhere;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-}
-.copy-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-.consent {
-  padding: 0.75rem 1rem;
-  border-inline-start: 3px solid var(--ink);
-  background: color-mix(in oklch, var(--paper) 92%, var(--ink));
-}
-.owner-nav {
-  display: flex;
-  gap: 1rem;
-}
-.online {
-  color: oklch(45% 0.12 150);
-}
-.offline {
-  color: var(--muted);
-}
-.robot-list,
-.activity-list,
-.decision-list {
-  display: grid;
-  gap: 1rem;
-  padding: 0;
-  list-style: none;
-}
-.robot-card,
-.wallet-card,
-.approval,
-.errand {
-  display: grid;
-  justify-items: start;
-  gap: 0.75rem;
-  padding-block: 1.5rem;
-  border-block-start: 1px solid var(--rule);
-  overflow-wrap: anywhere;
-}
-.gate-light {
-  font-size: clamp(3rem, 2rem + 6vw, 7rem);
-  font-weight: 700;
-}
-.gate-open {
-  color: oklch(50% 0.15 150);
-}
-.gate-closed {
-  color: oklch(50% 0.16 25);
-}
-.item-buttons,
-.approval-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+/* The foundation's class rules, kept so every page renders as before until the redesign restyles it with utilities
+ * in its view (Foldkit's convention: class-name constants at the top of the view module). Delete a rule here once no
+ * view uses its class. In the components layer, so utilities on the same element win. */
+@layer components {
+  .site {
+    max-inline-size: 78rem;
+    margin-inline: auto;
+    padding-inline: max(1.25rem, env(safe-area-inset-left), env(safe-area-inset-right));
+  }
+  .masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+    padding-block: calc(1rem + env(safe-area-inset-top)) 1rem;
+  }
+  .brand {
+    display: inline-flex;
+  }
+  .brand img {
+    display: block;
+  }
+  .language-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-inline-start: auto;
+  }
+  .language-picker p {
+    flex-basis: 100%;
+  }
+  .intro {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 1.5rem;
+    padding-block: clamp(3rem, 10vw, 8rem);
+  }
+  .lead {
+    font-size: 1.2rem;
+    max-inline-size: 45ch;
+    color: var(--color-muted);
+  }
+  .primary-action {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 48px;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    padding: 0.65rem 1.5rem;
+    border-radius: var(--radius-control);
+    text-decoration: none;
+  }
+  .primary-action:active {
+    opacity: 0.8;
+  }
+  .secondary-action {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 48px;
+    padding: 0.65rem 1.5rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-control);
+  }
+  .secondary-action:active {
+    opacity: 0.8;
+  }
+  .auth-page {
+    max-inline-size: 32rem;
+    min-block-size: 65svh;
+    padding-block: clamp(3rem, 8vw, 6rem);
+  }
+  .auth-form {
+    display: grid;
+    gap: 0.65rem;
+    margin-block-start: 1.5rem;
+  }
+  .auth-form input {
+    font: inherit;
+    font-size: 1rem;
+    inline-size: 100%;
+    min-block-size: 48px;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-control);
+    background: color-mix(in oklch, var(--color-paper) 88%, var(--color-ink));
+    color: var(--color-ink);
+  }
+  .auth-form input:user-invalid {
+    border-color: var(--color-invalid);
+  }
+  .auth-form button {
+    justify-self: start;
+    margin-block-start: 0.75rem;
+    border: 0;
+    cursor: pointer;
+  }
+  .form-error {
+    color: var(--color-error);
+  }
+  .account-details {
+    display: grid;
+    justify-items: start;
+    gap: 1.5rem;
+    overflow-wrap: anywhere;
+  }
+  .account-details dd {
+    margin: 0;
+    margin-block-end: 1rem;
+  }
+  .inspiration {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-block: 2rem 5rem;
+    border-block-start: 1px solid var(--color-rule);
+    scroll-margin-block-start: 2rem;
+  }
+  .empty-state {
+    padding-block: 2rem;
+    color: var(--color-muted);
+  }
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-block: 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+    border-block-start: 1px solid var(--color-rule);
+  }
+  footer a {
+    margin-inline-start: auto;
+    min-block-size: 44px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .primary-action:hover {
+      opacity: 0.85;
+    }
+    .secondary-action:hover {
+      background: color-mix(in oklch, var(--color-paper) 90%, var(--color-ink));
+    }
+  }
+
+  .passkey-panel {
+    display: grid;
+    justify-items: start;
+    gap: 0.75rem;
+    inline-size: min(100%, 32rem);
+  }
+  .passkey-panel .auth-form {
+    inline-size: 100%;
+  }
+  .hint {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+  }
+  .smart-account {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-control);
+  }
+  .copy-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .consent {
+    padding: 0.75rem 1rem;
+    border-inline-start: 3px solid var(--color-ink);
+    background: color-mix(in oklch, var(--color-paper) 92%, var(--color-ink));
+  }
+  .owner-nav {
+    display: flex;
+    gap: 1rem;
+  }
+  .online {
+    color: var(--color-online);
+  }
+  .offline {
+    color: var(--color-muted);
+  }
+  .robot-list,
+  .activity-list,
+  .decision-list {
+    display: grid;
+    gap: 1rem;
+    padding: 0;
+    list-style: none;
+  }
+  .robot-card,
+  .wallet-card,
+  .approval,
+  .errand {
+    display: grid;
+    justify-items: start;
+    gap: 0.75rem;
+    padding-block: 1.5rem;
+    border-block-start: 1px solid var(--color-rule);
+    overflow-wrap: anywhere;
+  }
+  .gate-light {
+    font-size: clamp(3rem, 2rem + 6vw, 7rem);
+    font-weight: 700;
+  }
+  .gate-open {
+    color: var(--color-gate-open);
+  }
+  .gate-closed {
+    color: var(--color-gate-closed);
+  }
+  .item-buttons,
+  .approval-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 }

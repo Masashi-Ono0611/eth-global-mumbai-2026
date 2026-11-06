@@ -12,8 +12,16 @@ import { isZeroGDecision } from '../api/Robot.ts'
 import { explorerTx, listRobots } from '../api/Wallet.ts'
 import { episodeRouter } from '../route.ts'
 import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
-import { styled } from '../Styled.ts'
-import { episodeTable, filterRow, tableScroll } from './Episodes.styles.ts'
+
+// STYLES
+
+/** The robot filter above the errand table. */
+const filterRowClassName = 'my-6 flex flex-wrap items-center gap-[0.6rem]'
+/** The table scrolls sideways on a phone instead of squeezing its columns. */
+const tableScrollClassName = 'mb-8 overflow-x-auto'
+
+const episodeTableClassName =
+  'w-full border-collapse [&_td]:border-b [&_td]:border-rule [&_td]:py-[0.65rem] [&_td]:ps-3 [&_td]:align-top [&_td:first-child]:text-sm [&_td:first-child]:whitespace-nowrap [&_td:first-child]:text-muted [&_td:first-child]:tabular-nums [&_th]:border-b [&_th]:border-ink [&_th]:py-2 [&_th]:ps-3 [&_th]:text-start [&_th]:text-sm [&_th]:font-semibold [&_th]:whitespace-nowrap [&_th]:text-muted [&_:is(th,td):first-child]:ps-0'
 
 // MODEL
 
@@ -111,16 +119,19 @@ const filter = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => 
   // The robot in the URL is an option even before the robot list arrives.
   const known = model.robots.some((robot) => robot.id === selected) || selected === ''
   const options = known ? model.robots : [...model.robots, { id: selected, name: selected }]
-  return h.div(styled(h, filterRow()), [
-    h.label([h.For('episode-robot')], [format(locale, 'episodes.filter', {})]),
-    h.select(
-      [h.Id('episode-robot'), h.Value(selected), h.OnChange((value) => Message.ChangedRobotFilter({ value }))],
-      [
-        h.keyed('option')('', [h.Value('')], [format(locale, 'episodes.allRobots', {})]),
-        ...options.map((robot) => h.keyed('option')(robot.id, [h.Value(robot.id)], [robot.name])),
-      ],
-    ),
-  ])
+  return h.div(
+    [h.Class(filterRowClassName)],
+    [
+      h.label([h.For('episode-robot')], [format(locale, 'episodes.filter', {})]),
+      h.select(
+        [h.Id('episode-robot'), h.Value(selected), h.OnChange((value) => Message.ChangedRobotFilter({ value }))],
+        [
+          h.keyed('option')('', [h.Value('')], [format(locale, 'episodes.allRobots', {})]),
+          ...options.map((robot) => h.keyed('option')(robot.id, [h.Value(robot.id)], [robot.name])),
+        ],
+      ),
+    ],
+  )
 }
 
 const brainLabel = (provider: string | null, locale: Locale) =>
@@ -174,33 +185,39 @@ const table = (episodes: ReadonlyArray<EpisodeSummary>, inputs: Inputs, h: HtmlB
   if (episodes.length === 0) return h.p([h.Class('hint')], [format(locale, 'episodes.empty', {})])
   const heading = (key: 'when' | 'robot' | 'item' | 'state' | 'decision' | 'payment' | 'world' | 'evidence' | 'open') =>
     h.th([], [format(locale, 'episodes.column', { column: key })])
-  return h.div(styled(h, tableScroll()), [
-    h.table(styled(h, episodeTable()), [
-      h.thead(
-        [],
+  return h.div(
+    [h.Class(tableScrollClassName)],
+    [
+      h.table(
+        [h.Class(episodeTableClassName)],
         [
-          h.tr(
+          h.thead(
             [],
             [
-              heading('when'),
-              heading('robot'),
-              heading('item'),
-              heading('state'),
-              heading('decision'),
-              heading('payment'),
-              heading('world'),
-              heading('evidence'),
-              heading('open'),
+              h.tr(
+                [],
+                [
+                  heading('when'),
+                  heading('robot'),
+                  heading('item'),
+                  heading('state'),
+                  heading('decision'),
+                  heading('payment'),
+                  heading('world'),
+                  heading('evidence'),
+                  heading('open'),
+                ],
+              ),
             ],
+          ),
+          h.tbody(
+            [],
+            episodes.map((episode) => row(episode, inputs, h)),
           ),
         ],
       ),
-      h.tbody(
-        [],
-        episodes.map((episode) => row(episode, inputs, h)),
-      ),
-    ]),
-  ])
+    ],
+  )
 }
 
 /** `/wallet/episodes`: every errand of the owner's robots with what decided it, what it paid and what proves it. */

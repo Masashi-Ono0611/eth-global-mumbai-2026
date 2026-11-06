@@ -17,8 +17,11 @@ import {
 } from './Robots.ts'
 import { robotConsoleRouter, walletRouter } from '../route.ts'
 import { failedView, loadingView, signedOutView } from './Shared.ts'
-import { styled } from '../Styled.ts'
-import { pairingCode } from './RobotsView.styles.ts'
+
+// STYLES
+
+/** The code a new robot is paired with, read off the screen and typed on the chip. */
+const pairingCodeClassName = 'font-mono text-[2rem] tracking-[0.2em]'
 
 // VIEW
 
@@ -57,7 +60,7 @@ const addRobotView = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Ht
             [h.Class('pairing-card'), h.Role('status')],
             [
               h.p([], [format(locale, 'robots.pairWith', { name: robot.name })]),
-              h.code(styled(h, pairingCode()), [robot.pairingCode]),
+              h.code([h.Class(pairingCodeClassName)], [robot.pairingCode]),
               h.p([h.Class('hint')], [format(locale, 'robots.pairHint', { code: robot.pairingCode })]),
             ],
           ),
