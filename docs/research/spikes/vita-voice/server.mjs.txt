@@ -1,11 +1,14 @@
-// Talk to Vita: a local demo with two voices for the same duck, to compare them side by side.
-//   A (/)      0G only, push to talk: 0G omni hears and answers in character, 0G TTS speaks, the closing QUACK is a slow clip.
-//   B (/live)  GPT-Live (OpenAI), always listening: the same persona, spoken live.
-//   /compare   switches between A and B and keeps your scores.
+// Talk to Vita: the voice demo for the Vitaquack duck. The robot has no microphone or speaker, so the conversation runs
+// on a laptop next to it.
+//   A (/)         THE TEAM'S PICK. 0G only, push to talk: 0G omni hears and answers in character, 0G TTS speaks, and the
+//                 closing QUACK is a slow clip. Needs only the 0G Router key.
+//   B (/live)     GPT-Live (OpenAI), kept for comparison only, NOT recommended: the voice leaves 0G and needs an OpenAI key.
+//   /compare      switches between A and B.
 // Keys stay in this process (the browser never sees them). Listens on 127.0.0.1 only. Node 22, no dependencies.
-// Run: put server.mjs, talk-0g.html, talk-live.html and compare.html in one folder (drop the .txt), then
-//   OG_ROUTER_API_KEY=… OPENAI_API_KEY=… node server.mjs      → http://127.0.0.1:8820/compare
-// (or node --env-file=<file with those two keys> server.mjs; without OPENAI_API_KEY only A works.)
+// Run (from the repo root):
+//   mkdir -p /tmp/vita && for f in docs/research/spikes/vita-voice/*.txt; do cp "$f" "/tmp/vita/$(basename "$f" .txt)"; done
+//   node --env-file=<a file with APP_ZG_API_KEY> /tmp/vita/server.mjs     → open http://127.0.0.1:8820/
+// (OG_ROUTER_API_KEY works too. Add OPENAI_API_KEY to the file only to try B.)
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -30,10 +33,10 @@ class LiveLimiter {
   }
 }
 
-const KEY = process.env.OG_ROUTER_API_KEY;
+const KEY = process.env.APP_ZG_API_KEY || process.env.OG_ROUTER_API_KEY;
 const PORT = Number(process.env.DUCK_PORT || 8820);
 const ROUTER = 'https://router-api.0g.ai/v1';
-// omni-plus follows the reply shape (4/4 on 6 Nov); omni-flash often skipped the answer and put QUACK mid-sentence.
+// omni-plus follows the reply shape (8/8 on 6 Nov); omni-flash often skipped the answer and put QUACK mid-sentence.
 const CHAT_MODEL = process.env.DUCK_CHAT_MODEL || 'qwen3.5-omni-plus';
 const TTS_MODEL = 'minimax-speech-2.8-turbo';
 const VOICES = ['English_PlayfulGirl', 'English_Cute_Girl', 'English_radiant_girl', 'English_Upbeat_Woman', 'English_captivating_female1', 'English_expressive_narrator'];
@@ -222,6 +225,6 @@ const server = createServer(async (req, res) => {
 });
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  if (!KEY) { console.error('not configured: OG_ROUTER_API_KEY'); process.exit(1); }
-  server.listen(PORT, '127.0.0.1', () => console.log(`duck-talk: http://127.0.0.1:${PORT}/compare  (0G: chat ${CHAT_MODEL}, voice ${TTS_MODEL}; GPT-Live: ${LIVE.apiKey ? `${LIVE.model}, voice ${LIVE.voice}` : 'disabled, OPENAI_API_KEY unset'})`));
+  if (!KEY) { console.error('not configured: APP_ZG_API_KEY (or OG_ROUTER_API_KEY), the 0G Router key'); process.exit(1); }
+  server.listen(PORT, '127.0.0.1', () => console.log(`Vita (A, 0G): http://127.0.0.1:${PORT}/   chat ${CHAT_MODEL}, voice ${TTS_MODEL}\nGPT-Live (B, comparison only): ${LIVE.apiKey ? `http://127.0.0.1:${PORT}/live  ${LIVE.model}, voice ${LIVE.voice}` : 'off (no OPENAI_API_KEY)'}`));
 }
