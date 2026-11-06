@@ -19,10 +19,14 @@
       :root {
         --ink: #08080c;
       }
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      /* The lowest layer (styles.css names the order): unlayered, this reset beat every Tailwind padding and margin
+         utility in our overlay. The engine's own styles are unlayered and still win over it. */
+      @layer reset {
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
       }
       html,
       body {
