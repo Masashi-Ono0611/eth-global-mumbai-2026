@@ -124,3 +124,28 @@ Checks, for each of the three:
 - The file downloaded back from the turbo indexer equals the app's payload.
 - `decisions[0].outcome` is set (`paid`, `denied`, `paid`), and the approved episode names its `approvalId`. Uploaded
   15:00:16, 15:00:33 and 15:00:51 IST.
+
+# First glm-5.3 episode (TeeML provider), uploaded 17:17 IST
+
+This is the Lead's run 11 on the switched brain. The provider is `router-api.0g.ai/glm-5.3@0xD179F4526064846dE9a9E9D93683AF75CB72E503`, a
+**TeeML** service in the 0G Compute registry (mainnet inference contract `0x47340d900bdFec2BD393c626E12ea0656F938d84`).
+Its TEE signer is `0x0766BC72beB6dAe764eE51C781c0A68117E69179`, with TargetSeparated `false`.
+
+One `heavy --wait bun tools/evidence-uploader/main.ts --once --server $APP` uploaded the one pending episode, with 0
+failures. The log contains no storage key, evidence token or 0G API key (checked). The run's cigarettes errand
+`4jgwtprffwze4dhpfsulme3heq` is still `awaiting_approval`, and it uploads when it ends.
+
+| Episode | Item → errand | 0G decision → outcome (router request id, chat id, latency) | Arc tx | 0G Storage root | Storage tx | EpisodeLog.record tx |
+| --- | --- | --- | --- | --- | --- | --- |
+| `nvrriucl5b5wh5ncvtxve7wffm` | chai → paid | pay → paid (`3c745d60-4b0a-4a11-bcfd-d7dbb6d4935e`, chat `ed7d55f5-70b9-4041-9726-f4c41ef728df`, 5916 ms) | [`0xf2460044…2854`](https://explorer.arc.io/tx/0xf2460044adf6921de3242318a1fca95429198600f7bbac3e076fc3c006552854) | `0x60fb712305fffdc9f7730c350a83994cca658b50b7bd0a6b79ee74d98a4c5f50` | [`0x6e7568f3…d2a8`](https://chainscan-galileo.0g.ai/tx/0x6e7568f398557bca8bacf2ae1bd2551d8e7b209468cf436102d7fbf6f5ecd2a8) | [`0x2263b84a…ac65`](https://chainscan-galileo.0g.ai/tx/0x2263b84abc9613f09db59c527a7b527e3e354a3f0c1d9c6abc3b633cea9dac65) |
+
+Checks:
+- `GET $APP/api/evidence/nvrriucl5b5wh5ncvtxve7wffm` → `uploaded`.
+- On Galileo, `EpisodeLog.records(keccak256(id))` holds root `0x60fb…5f50`. Its `requestIdsHash` `0xd442…8900` equals
+  `keccak256("3c745d60-4b0a-4a11-bcfd-d7dbb6d4935e")`. The recorder is `0xc6fF…1fcD`, recorded 17:17:23 IST.
+- Both transactions have status 1 (blocks 64161830 and 64161846).
+- The 680 bytes downloaded back from the turbo indexer equal the app's payload.
+- `decisions[0]` names the brain above, `outcome: paid`.
+
+This evidence was written before the Worker stored TEE proofs, so its decision has no `tee` key. The provider's
+signature for chat `ed7d55f5-…` is verified offline from the chat id (result added by the orchestrator).
