@@ -33,6 +33,7 @@ import {
 } from './RobotAcceptance.ts'
 import { registerLiveAcceptance, registerLiveOffAcceptance } from './LiveAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
+import { registerShopAcceptance } from './ShopAcceptance.ts'
 import {
   registerChipScanListenerAcceptance,
   registerScanAcceptance,
@@ -279,6 +280,9 @@ test(
           'payments',
           'relayer_txs',
           'robots',
+          'shop_cursor',
+          'shop_orders',
+          'shop_payments',
           'telegram_links',
           'used_nonces',
           'wallet_balances',
@@ -392,4 +396,5 @@ registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
 registerWorldStubAcceptance(test, stack, zeroG)
 registerTelegramAcceptance(test, stack, zeroG, telegram)
+registerShopAcceptance(test, stack)
 registerChainAcceptance(test, stack)

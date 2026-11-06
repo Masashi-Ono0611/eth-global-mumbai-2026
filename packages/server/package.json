@@ -17,6 +17,7 @@
     "@ethmumbai/protocol": "workspace:*",
     "alchemy": "catalog:",
     "effect": "catalog:",
+    "uqr": "catalog:",
     "viem": "catalog:"
   }
 }
