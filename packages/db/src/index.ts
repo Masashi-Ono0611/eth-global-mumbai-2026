@@ -1,1 +1,1 @@
-export { accounts, appSchema } from './schema.ts'
+export * from './schema.ts'

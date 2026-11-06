@@ -67,13 +67,29 @@ export type GrantInput = {
   /** Unix seconds; the period enforcer refuses transfers before it. */
   readonly startAt: number
   readonly expiresAt: number
-  readonly enforcer: Address
-  readonly approver: Address
+  /** RobotPaymentPolicyEnforcer and its approver; omitted until the enforcer is deployed (stock enforcers only). */
+  readonly enforcer?: Address
+  readonly approver?: Address
 }
+
+const policyCaveat = (input: GrantInput) =>
+  input.enforcer === undefined || input.approver === undefined
+    ? []
+    : [
+        {
+          enforcer: getAddress(input.enforcer),
+          terms: policyTerms({
+            perPaymentCap: input.perPaymentCap,
+            allowlist: input.allowlist,
+            approver: input.approver,
+          }),
+          args: '0x' as const,
+        },
+      ]
 
 /**
  * The root grant owner → chip (§5), caveats in order: ValueLte(0) · ERC20PeriodTransfer(USDC, dailyCap, 1 day,
- * startAt) · Timestamp(0, expiresAt) · RobotPaymentPolicyEnforcer(perPaymentCap, allowlist, approver).
+ * startAt) · Timestamp(0, expiresAt) · RobotPaymentPolicyEnforcer(perPaymentCap, allowlist, approver) when configured.
  */
 export const buildGrant = (input: GrantInput): UnsignedDelegation => ({
   delegate: getAddress(input.chip),
@@ -94,7 +110,7 @@ export const buildGrant = (input: GrantInput): UnsignedDelegation => ({
       terms: encodePacked(['uint128', 'uint128'], [0n, BigInt(input.expiresAt)]),
       args: '0x',
     },
-    { enforcer: getAddress(input.enforcer), terms: policyTerms(input), args: '0x' },
+    ...policyCaveat(input),
   ],
   salt: saltOf(`grant:${input.grantId}`),
 })

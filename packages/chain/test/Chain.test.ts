@@ -137,6 +137,10 @@ describe('grant, revoke and leaf builders', () => {
       approver: input.approver,
     })
     expect(buildGrant({ ...input, grantId: 'bbbbbbbbbbbbbbbbbbbbbbbbba' }).salt).not.toBe(grant.salt)
+    const { enforcer: _enforcer, approver: _approver, ...stockOnly } = input
+    expect(buildGrant(stockOnly).caveats.map((caveat) => caveat.enforcer)).toEqual(
+      grant.caveats.slice(0, 3).map((caveat) => caveat.enforcer),
+    )
   })
 
   test('leaf: signed by the chip, round-trips through the permission context, hash equals the kit', async () => {
