@@ -83,7 +83,8 @@ export type Message = typeof Message.Type
 // COMMAND
 
 const DAY_MILLIS = 86_400_000
-/** While an errand runs, or a new robot waits for its chip, the page re-reads on this period. */
+/** While an errand runs, or a new robot waits for its chip, the page re-reads on this period.
+ * @internal Exported for the scene tests. */
 export const POLL_MILLIS = 3000
 
 const spentSince = (episodes: ReadonlyArray<EpisodeActivity>, since: number): string =>
