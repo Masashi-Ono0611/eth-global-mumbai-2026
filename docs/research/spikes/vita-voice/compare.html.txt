@@ -39,10 +39,10 @@
     <header>
       <h1>Vita: 0G or GPT-Live?</h1>
       <div role="tablist" aria-label="Which duck">
-        <button role="tab" id="tabA" aria-selected="true" aria-controls="frame" data-src="/">A · 0G push-to-talk</button>
-        <button role="tab" id="tabB" aria-selected="false" aria-controls="frame" data-src="/live">B · GPT-Live</button>
+        <button role="tab" id="tabA" aria-selected="true" aria-controls="frame" data-src="/">A · 0G push-to-talk (team pick)</button>
+        <button role="tab" id="tabB" aria-selected="false" aria-controls="frame" data-src="/live">B · GPT-Live (not recommended)</button>
       </div>
-      <p class="note">One at a time (switching closes the other, so the mic and speakers never overlap). Same duck, same catchphrases.</p>
+      <p class="note">The team demos A. B stays only to show why: it is faster, but the voice leaves 0G and needs an OpenAI key. One at a time (switching closes the other).</p>
     </header>
     <div class="split">
       <iframe id="frame" src="/" title="The duck being tested" allow="microphone; autoplay"></iframe>
@@ -51,10 +51,10 @@
         <table>
           <tr><th></th><th>A · 0G</th><th>B · GPT-Live</th></tr>
           <tr><th>How you talk</th><td class="a">hold to talk, one turn at a time</td><td class="b">always listening, can interrupt</td></tr>
-          <tr><th>Reply starts after</th><td class="a">~5–7 s (measured)</td><td class="b">~1–2 s (measured, typed turns)</td></tr>
+          <tr><th>Reply starts after</th><td class="a">~5–9 s (measured)</td><td class="b">~1–2 s (measured, typed turns)</td></tr>
           <tr><th>Big QUACK</th><td class="a">separate slow clip + quack sounds, always</td><td class="b">the voice stretches it itself ("QUAAAACK!" in 3 of 3), no added sounds</td></tr>
           <tr><th>Runs on</th><td class="a">0G Router only (omni-plus + minimax TTS)</td><td class="b">OpenAI (no 0G in the voice)</td></tr>
-          <tr><th>Cost</th><td class="a">under 1 cent per turn (estimate)</td><td class="b">$0.05 per minute connected</td></tr>
+          <tr><th>Cost</th><td class="a">under 1 cent per turn (estimate)</td><td class="b">billed per minute while connected</td></tr>
           <tr><th>Prize story</th><td class="a">"the duck's voice is 0G too"</td><td class="b">voice is OpenAI; 0G stays the brain</td></tr>
         </table>
         <div class="score" id="score">
