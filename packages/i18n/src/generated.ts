@@ -45,10 +45,7 @@ export interface MessageArgumentsByKey<T = string> {
   }
   'allowance.title': { readonly name: string | number }
   'allowance.where': Readonly<Record<string, never>>
-  'approval.amount': Readonly<Record<string, never>>
-  'approval.approveWithWorld': Readonly<Record<string, never>>
   'approval.back': { readonly robot: string | number }
-  'approval.deny': Readonly<Record<string, never>>
   'approval.details': Readonly<Record<string, never>>
   'approval.errandEnded': { readonly state: string | number }
   'approval.explainer': {
@@ -60,7 +57,6 @@ export interface MessageArgumentsByKey<T = string> {
   'approval.following': Readonly<Record<string, never>>
   'approval.heading': { readonly why: string | number }
   'approval.invoice': Readonly<Record<string, never>>
-  'approval.item': Readonly<Record<string, never>>
   'approval.notConfigured': Readonly<Record<string, never>>
   'approval.paid': Readonly<Record<string, never>>
   'approval.payee': Readonly<Record<string, never>>
@@ -72,6 +68,7 @@ export interface MessageArgumentsByKey<T = string> {
   'auth.createWallet': Readonly<Record<string, never>>
   'auth.creatingWallet': Readonly<Record<string, never>>
   'auth.displayName': Readonly<Record<string, never>>
+  'auth.openingWallet': Readonly<Record<string, never>>
   'auth.passkeyFailed': Readonly<Record<string, never>>
   'auth.passkeyHint': Readonly<Record<string, never>>
   'auth.serverFailed': Readonly<Record<string, never>>
@@ -86,11 +83,9 @@ export interface MessageArgumentsByKey<T = string> {
   'common.loading': Readonly<Record<string, never>>
   'common.notFoundDescription': Readonly<Record<string, never>>
   'common.notFoundTitle': Readonly<Record<string, never>>
-  'common.refresh': Readonly<Record<string, never>>
   'common.retry': Readonly<Record<string, never>>
   'console.brainRehearsal': Readonly<Record<string, never>>
   'console.brainZeroG': Readonly<Record<string, never>>
-  'console.buy': { readonly item: string | number; readonly amount: string | number }
   'console.chipState': { readonly status: string | number; readonly refusal: string | number }
   'console.decision': {
     readonly brain: string | number
@@ -98,23 +93,11 @@ export interface MessageArgumentsByKey<T = string> {
     readonly reason: string | number
   }
   'console.episodeLog': Readonly<Record<string, never>>
-  'console.errandState': { readonly item: string | number; readonly state: string | number }
-  'console.evidence': { readonly status: string | number }
   'console.gateInvoice': Readonly<Record<string, never>>
   'console.gateInvoiceHint': Readonly<Record<string, never>>
   'console.gateInvoiceInvalid': Readonly<Record<string, never>>
-  'console.leaseOffline': Readonly<Record<string, never>>
-  'console.leaseOnline': Readonly<Record<string, never>>
-  'console.noGrant': Readonly<Record<string, never>>
-  'console.openApproval': Readonly<Record<string, never>>
   'console.paymentTx': Readonly<Record<string, never>>
   'console.reason': { readonly reason: string | number }
-  'console.requestId': {
-    readonly requestId: string | number
-    readonly model: string | number
-    readonly latency: string | number
-  }
-  'console.starting': { readonly item: string | number }
   'console.storage': Readonly<Record<string, never>>
   'console.title': Readonly<Record<string, never>>
   'episode.action': { readonly action: string | number }
@@ -204,9 +187,6 @@ export interface MessageArgumentsByKey<T = string> {
   'landing.browse': Readonly<Record<string, never>>
   'landing.contact': Readonly<Record<string, never>>
   'landing.description': Readonly<Record<string, never>>
-  'landing.feedDescription': Readonly<Record<string, never>>
-  'landing.feedEmpty': Readonly<Record<string, never>>
-  'landing.feedTitle': Readonly<Record<string, never>>
   'landing.lead': { readonly italic: RichTextValue<T> }
   'landing.title': Readonly<Record<string, never>>
   'merchant.createInvoice': Readonly<Record<string, never>>
@@ -219,7 +199,6 @@ export interface MessageArgumentsByKey<T = string> {
   'profile.howItWorks': Readonly<Record<string, never>>
   'profile.open': Readonly<Record<string, never>>
   'profile.records': Readonly<Record<string, never>>
-  'profile.signedInAs': { readonly name: string | number }
   'receive.copied': Readonly<Record<string, never>>
   'receive.copy': Readonly<Record<string, never>>
   'receive.copyFailed': Readonly<Record<string, never>>
@@ -227,37 +206,7 @@ export interface MessageArgumentsByKey<T = string> {
   'receive.qrAlt': Readonly<Record<string, never>>
   'receive.title': Readonly<Record<string, never>>
   'robot.state': { readonly state: string | number }
-  'robots.add': Readonly<Record<string, never>>
-  'robots.allowlist': { readonly payees: string | number }
-  'robots.allowlistLabel': Readonly<Record<string, never>>
-  'robots.consent': {
-    readonly daily: string | number
-    readonly perPayment: string | number
-    readonly payees: string | number
-    readonly hours: number
-  }
-  'robots.dailyCap': Readonly<Record<string, never>>
-  'robots.grantBudget': Readonly<Record<string, never>>
-  'robots.grantTerms': {
-    readonly daily: string | number
-    readonly perPayment: string | number
-    readonly status: string | number
-  }
-  'robots.hours': Readonly<Record<string, never>>
-  'robots.name': Readonly<Record<string, never>>
-  'robots.none': Readonly<Record<string, never>>
   'robots.openConsole': Readonly<Record<string, never>>
-  'robots.pairHint': { readonly code: string | number }
-  'robots.pairWith': { readonly name: string | number }
-  'robots.pairingCode': { readonly code: string | number }
-  'robots.perPaymentCap': Readonly<Record<string, never>>
-  'robots.revoke': Readonly<Record<string, never>>
-  'robots.revokeTx': Readonly<Record<string, never>>
-  'robots.revoking': Readonly<Record<string, never>>
-  'robots.signGrant': Readonly<Record<string, never>>
-  'robots.signingGrant': Readonly<Record<string, never>>
-  'robots.status': { readonly status: string | number; readonly online: string | number }
-  'robots.title': Readonly<Record<string, never>>
   'thread.askOk': { readonly item: string | number }
   'thread.asksYou': Readonly<Record<string, never>>
   'thread.atCounter': Readonly<Record<string, never>>
@@ -291,24 +240,10 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.specificQr': Readonly<Record<string, never>>
   'thread.walkedAway': Readonly<Record<string, never>>
   'thread.zeroGDecided': { readonly action: string | number }
-  'wallet.activity': Readonly<Record<string, never>>
-  'wallet.address': Readonly<Record<string, never>>
-  'wallet.addressNote': Readonly<Record<string, never>>
-  'wallet.balance': Readonly<Record<string, never>>
-  'wallet.balanceUnknown': Readonly<Record<string, never>>
-  'wallet.copied': Readonly<Record<string, never>>
-  'wallet.copyAddress': Readonly<Record<string, never>>
-  'wallet.copyFailed': Readonly<Record<string, never>>
-  'wallet.deployed': Readonly<Record<string, never>>
-  'wallet.fundInstructions': Readonly<Record<string, never>>
-  'wallet.fundTitle': Readonly<Record<string, never>>
-  'wallet.noActivity': Readonly<Record<string, never>>
   'wallet.open': Readonly<Record<string, never>>
   'wallet.signInFirst': Readonly<Record<string, never>>
-  'wallet.signedInAs': { readonly name: string | number }
   'wallet.title': Readonly<Record<string, never>>
-  'wallet.viewTx': Readonly<Record<string, never>>
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'd76ddab2bfe51dc9173869115f1c1a1a18b2a103a5a633290bf6d393aebacab7'
+export const catalogVersion = 'c46d7ff7b3591f7422bd203c55140865dbb93c849b77784911e624de4067cb6c'

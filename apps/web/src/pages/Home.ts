@@ -1,9 +1,29 @@
-import type { SessionView } from '@ethmumbai/auth/config'
 import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Message } from '../message.ts'
 import { type AuthFailure, AuthState, type Model } from '../model.ts'
+import { duck } from '../Duck.ts'
 import { walletRouter } from '../route.ts'
+
+// STYLES
+
+const mainClassName = 'grid min-h-[calc(100svh-2rem)] content-center gap-6 px-2 py-8'
+const heroClassName = 'grid justify-items-start gap-3'
+const faceClassName = 'grid size-20 place-items-center rounded-full bg-ink'
+const titleClassName = 'font-display text-[2.6rem] leading-[1.05] font-extrabold tracking-[-0.015em] text-balance'
+const leadClassName = 'max-w-[34ch] text-[1.1rem] text-muted text-pretty'
+const panelClassName = 'grid gap-3'
+const formClassName = 'grid gap-2'
+const labelClassName = 'text-sm font-semibold text-muted'
+const inputClassName =
+  'min-h-12 w-full rounded-control border border-rule bg-surface px-3.5 text-base text-ink placeholder:text-muted'
+const primaryClassName =
+  'min-h-12 cursor-pointer rounded-control bg-ink px-4 font-semibold text-surface transition-transform active:scale-[0.96] disabled:opacity-60'
+const secondaryClassName =
+  'min-h-12 cursor-pointer rounded-control bg-surface px-4 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+const hintClassName = 'text-sm text-muted text-pretty'
+const errorClassName = 'text-error'
+const linkClassName = 'justify-self-start text-sm font-semibold'
 
 // VIEW
 
@@ -14,7 +34,7 @@ type Ceremony = 'idle' | 'creating' | 'signingIn'
 
 const failureAlert = (failure: AuthFailure, locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.p(
-    [h.Role('alert'), h.Class('form-error')],
+    [h.Role('alert'), h.Class(errorClassName)],
     [format(locale, failure === 'passkey' ? 'auth.passkeyFailed' : 'auth.serverFailed', {})],
   )
 
@@ -22,16 +42,17 @@ const signUpView = (model: Model, ceremony: Ceremony, maybeFailure: Html, h: Htm
   const { locale } = model.context
   const busy = ceremony !== 'idle'
   return h.section(
-    [h.Class('passkey-panel')],
+    [h.Class(panelClassName)],
     [
       h.form(
-        [h.Class('auth-form'), h.OnSubmit(Message.SubmittedCreateWallet()), h.AriaBusy(ceremony === 'creating')],
+        [h.Class(formClassName), h.OnSubmit(Message.SubmittedCreateWallet()), h.AriaBusy(ceremony === 'creating')],
         [
-          h.label([h.For('display-name')], [format(locale, 'auth.displayName', {})]),
+          h.label([h.For('display-name'), h.Class(labelClassName)], [format(locale, 'auth.displayName', {})]),
           h.input([
             h.Id('display-name'),
             h.Name('displayName'),
             h.Type('text'),
+            h.Class(inputClassName),
             h.Autocomplete('nickname'),
             h.Required(true),
             h.Maxlength(64),
@@ -40,34 +61,28 @@ const signUpView = (model: Model, ceremony: Ceremony, maybeFailure: Html, h: Htm
             h.OnInput((value) => Message.UpdatedDisplayName({ value })),
           ]),
           h.button(
-            [h.Type('submit'), h.Disabled(busy), h.Class('primary-action')],
+            [h.Type('submit'), h.Disabled(busy), h.Class(primaryClassName)],
             [format(locale, ceremony === 'creating' ? 'auth.creatingWallet' : 'auth.createWallet', {})],
           ),
         ],
       ),
       h.button(
-        [h.Type('button'), h.Disabled(busy), h.Class('secondary-action'), h.OnClick(Message.ClickedSignIn())],
+        [h.Type('button'), h.Disabled(busy), h.Class(secondaryClassName), h.OnClick(Message.ClickedSignIn())],
         [format(locale, ceremony === 'signingIn' ? 'auth.signingIn' : 'auth.signInWithPasskey', {})],
       ),
       maybeFailure,
-      h.p([h.Class('hint')], [format(locale, 'auth.passkeyHint', {})]),
+      h.p([h.Class(hintClassName)], [format(locale, 'auth.passkeyHint', {})]),
     ],
   )
 }
 
-const walletView = (session: SessionView, signingOut: boolean, locale: Locale, h: HtmlBuilder<Message>): Html =>
+/** Signed in on this page: the wallet opens (a full load) — the link is there if it does not. */
+const openingView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.section(
-    [h.Class('account-details')],
+    [h.Class(panelClassName)],
     [
-      h.p([], [format(locale, 'wallet.signedInAs', { name: session.displayName })]),
-      h.h2([], [format(locale, 'wallet.address', {})]),
-      h.code([h.Class('smart-account')], [session.smartAccount]),
-      h.p([h.Class('hint')], [format(locale, 'wallet.addressNote', {})]),
-      h.a([h.Href(walletRouter()), h.Class('primary-action')], [format(locale, 'wallet.open', {})]),
-      h.button(
-        [h.Type('button'), h.Class('secondary-action'), h.Disabled(signingOut), h.OnClick(Message.ClickedSignOut())],
-        [format(locale, 'auth.signOut', {})],
-      ),
+      h.p([h.Role('status')], [format(locale, 'auth.openingWallet', {})]),
+      h.a([h.Href(walletRouter()), h.Class(linkClassName)], [format(locale, 'wallet.open', {})]),
     ],
   )
 
@@ -79,15 +94,15 @@ const authView = (model: Model, h: HtmlBuilder<Message>): Html => {
     Refused: ({ failure }) => signUpView(model, 'idle', failureAlert(failure, locale, h), h),
     CreatingWallet: () => signUpView(model, 'creating', h.empty, h),
     SigningIn: () => signUpView(model, 'signingIn', h.empty, h),
-    SignedIn: ({ session }) => walletView(session, false, locale, h),
-    SigningOut: ({ session }) => walletView(session, true, locale, h),
+    SignedIn: () => openingView(locale, h),
+    SigningOut: () => openingView(locale, h),
     Unavailable: () =>
       h.section(
-        [],
+        [h.Class(panelClassName)],
         [
           h.p([h.Role('alert')], [format(locale, 'common.error', {})]),
           h.button(
-            [h.Type('button'), h.Class('primary-action'), h.OnClick(Message.ClickedRetrySession())],
+            [h.Type('button'), h.Class(primaryClassName), h.OnClick(Message.ClickedRetrySession())],
             [format(locale, 'common.retry', {})],
           ),
         ],
@@ -95,25 +110,23 @@ const authView = (model: Model, h: HtmlBuilder<Message>): Html => {
   })
 }
 
-/** `/`: what Vitaquack is, then passkey signup or login, or the signed-in owner's smart account. */
+/** `/` (and any owner page without a session): what Vitaquack is, then passkey signup or sign-in. The landing page
+ *  replaces the pitch here in iteration 2. */
 export const homeView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const { locale } = model.context
   return h.main(
-    [h.Id('main')],
+    [h.Id('main'), h.Class(mainClassName)],
     [
       h.section(
-        [h.Class('intro')],
+        [h.Class(heroClassName)],
         [
-          h.h1([], [format(locale, 'landing.title', {})]),
-          h.p([h.Class('lead')], [format(locale, 'landing.description', {})]),
-          authView(model, h),
-          h.a([h.Href(architectureUrl)], [format(locale, 'landing.browse', {})]),
+          h.span([h.Class(faceClassName)], [duck('size-14', false, h)]),
+          h.h1([h.Class(titleClassName)], [format(locale, 'landing.title', {})]),
+          h.p([h.Class(leadClassName)], [format(locale, 'landing.description', {})]),
         ],
       ),
-      h.section(
-        [h.Id('inspiration'), h.Class('inspiration')],
-        [h.h2([], [format(locale, 'landing.feedTitle', {})]), h.p([], [format(locale, 'landing.feedDescription', {})])],
-      ),
+      authView(model, h),
+      h.a([h.Href(architectureUrl), h.Class(linkClassName)], [format(locale, 'landing.browse', {})]),
     ],
   )
 }

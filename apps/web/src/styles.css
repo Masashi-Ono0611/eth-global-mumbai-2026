@@ -203,61 +203,6 @@
   .secondary-action:active {
     opacity: 0.8;
   }
-  .auth-page {
-    max-inline-size: 32rem;
-    min-block-size: 65svh;
-    padding-block: clamp(3rem, 8vw, 6rem);
-  }
-  .auth-form {
-    display: grid;
-    gap: 0.65rem;
-    margin-block-start: 1.5rem;
-  }
-  .auth-form input {
-    font: inherit;
-    font-size: 1rem;
-    inline-size: 100%;
-    min-block-size: 48px;
-    padding: 0.65rem 0.8rem;
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-control);
-    background: color-mix(in oklch, var(--color-paper) 88%, var(--color-ink));
-    color: var(--color-ink);
-  }
-  .auth-form input:user-invalid {
-    border-color: var(--color-invalid);
-  }
-  .auth-form button {
-    justify-self: start;
-    margin-block-start: 0.75rem;
-    border: 0;
-    cursor: pointer;
-  }
-  .form-error {
-    color: var(--color-error);
-  }
-  .account-details {
-    display: grid;
-    justify-items: start;
-    gap: 1.5rem;
-    overflow-wrap: anywhere;
-  }
-  .account-details dd {
-    margin: 0;
-    margin-block-end: 1rem;
-  }
-  .inspiration {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding-block: 2rem 5rem;
-    border-block-start: 1px solid var(--color-rule);
-    scroll-margin-block-start: 2rem;
-  }
-  .empty-state {
-    padding-block: 2rem;
-    color: var(--color-muted);
-  }
   footer {
     display: flex;
     flex-wrap: wrap;
@@ -278,66 +223,9 @@
     }
   }
 
-  .passkey-panel {
-    display: grid;
-    justify-items: start;
-    gap: 0.75rem;
-    inline-size: min(100%, 32rem);
-  }
-  .passkey-panel .auth-form {
-    inline-size: 100%;
-  }
   .hint {
     color: var(--color-muted);
     font-size: 0.95rem;
-  }
-  .smart-account {
-    font-family: var(--font-mono);
-    font-size: 0.95rem;
-    overflow-wrap: anywhere;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--color-rule);
-    border-radius: var(--radius-control);
-  }
-  .copy-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .consent {
-    padding: 0.75rem 1rem;
-    border-inline-start: 3px solid var(--color-ink);
-    background: color-mix(in oklch, var(--color-paper) 92%, var(--color-ink));
-  }
-  .owner-nav {
-    display: flex;
-    gap: 1rem;
-  }
-  .online {
-    color: var(--color-online);
-  }
-  .offline {
-    color: var(--color-muted);
-  }
-  .robot-list,
-  .activity-list,
-  .decision-list {
-    display: grid;
-    gap: 1rem;
-    padding: 0;
-    list-style: none;
-  }
-  .robot-card,
-  .wallet-card,
-  .approval,
-  .errand {
-    display: grid;
-    justify-items: start;
-    gap: 0.75rem;
-    padding-block: 1.5rem;
-    border-block-start: 1px solid var(--color-rule);
-    overflow-wrap: anywhere;
   }
   .gate-light {
     font-size: clamp(3rem, 2rem + 6vw, 7rem);
@@ -348,11 +236,5 @@
   }
   .gate-closed {
     color: var(--color-gate-closed);
-  }
-  .item-buttons,
-  .approval-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
   }
 }
