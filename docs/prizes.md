@@ -58,7 +58,7 @@ registry). On-chain verification of the token on Arc is a stretch (S5b prototype
 ## Not entered
 
 - Other Arc tracks (DeFi app, Marketplace Discovery, Bridge Kit, Continuity)
-- **ENS: cut.** Names could sit on top of Arc later (`docs/research/worldchain-ens-alternative.md`)
+- ENS: cut. Names could sit on top of Arc later.
 - World IDKit
 - Frame Transaction Alternative Mempool (needs EF alt-mempool devnets; fights the Arc mainnet story), CROPS, Hedera,
   Whitechain, Uniswap, 1inch, Definitive, Arkiv

@@ -1,23 +1,22 @@
-# Research notes: index and status
+# Research notes
 
-Research is evidence, not the plan. Build from `docs/spec.md`; decide from `docs/decisions.md`. Status as of Fri 6 Nov 2026.
+These notes were written on 5 and 6 Nov 2026, before and during the build. They are evidence, not the plan: build from
+`docs/spec.md` and take decisions from `docs/decisions.md`. Notes about options we did not build (7702 session keys, a
+wallet over MCP, the robot as an MCP server, the Nod/Froggy patterns, World Chain with ENS, and the two long World
+notes) were removed on 7 Nov; git history has them, and `references/README.md` still names them in its last column.
 
-| Note | Status | Notes |
+| Note | What it holds | Still true? |
 | --- | --- | --- |
-| `arc-and-circle.md` | current evidence | Arc facts, Gateway/CCTP, Studio, prize text |
-| `wallet-accounts-v2.md` | current evidence | HybridDeleGator on Arc, simulated grant chains. Its sub-delegation chain (owner → AI client → robot) is superseded: the grant goes to the chip directly |
-| `spike-s2-facilitator.md` | current evidence (simulated) | our ERC-7710 facilitator, 14/14 on live Arc state; port source for `packages/chain` |
-| `spike-s5b-jwt-onchain.md` | stretch only | on-chain World token verification; the event uses the backend co-signer |
-| `bench-spikes.md`, `../spikes/hardware-results.md` | current evidence | the real Radxa signs the voucher (C1); Radxa bring-up, venue Wi-Fi |
-| `0g.md` | current evidence | 0G router/storage/chain facts. `0gm-1.0` TeeML is gone from the catalogue; standard providers are the decision |
-| `robots-and-embedded.md` | current evidence | QR, ESP32, signing options. "Pick Microduck" is superseded: the duck is our modified Open Duck Mini |
-| `stack-references.md`, `reference-additions.md` | current | what is cloned under `references/` and why |
-| `merchant-and-agent-commerce.md` | partly superseded | x402 shapes and facilitator findings stand; the 18+ rule / `buyer-eligibility`, wallet-MCP `pay` and EIP-3009 acceptance are not the plan |
-| `evm-accounts-and-payments.md` | superseded by decision | 7702 + session keys → passkey-native HybridDeleGator; offline/float paths dropped |
-| `mcp-wallet-and-ai-client.md` | superseded by decision | Agents SDK DO + OAuth grant + sub-delegation → Effect service + D1, no MCP on the critical path |
-| `nod-froggy-patterns.md` | superseded by decision | OAuth/MCP grant ceremony and a DO per wallet → consent page + D1 |
-| `robot-browser-and-mcp.md` | superseded by decision | WebSocket + robot MCP + Microduck sim → HTTPS long-polling, no frames, no sim |
-| `world.md`, `world-v2.md` | partly superseded | Agent Pass facts stand; device flow → browser flow with `nonce`; HumanRegistry/18+ dropped |
-| `worldchain-ens-alternative.md` | decided against | stay on Arc; ENS optional later; prize picks Arc + 0G + World |
+| `arc-and-circle.md` | Arc facts, Gateway and CCTP, Arc Studio, the prize text | Yes |
+| `0g.md` | 0G Router, Storage and Chain facts | Yes, except `0gm-1.0` TeeML, which left the catalogue |
+| `0g-measurements.md` | Masashi's 6 Nov measurements: model choice, TEE verification, the prize checklist | Yes |
+| `wallet-accounts-v2.md` | `HybridDeleGator` on Arc and simulated grant chains | Yes, except the owner → AI client → robot sub-delegation: the grant goes to the chip directly |
+| `spike-s2-facilitator.md` | Our ERC-7710 facilitator, 14/14 on live Arc state; the source `packages/chain` was ported from | Yes |
+| `spike-s5b-jwt-onchain.md` | Verifying a World token in an Arc contract | A stretch we did not build; the backend co-signs instead |
+| `merchant-and-agent-commerce.md` | x402 shapes and facilitator findings | The x402 findings hold. The 18+ rule, a wallet-MCP `pay` and EIP-3009 acceptance were dropped |
+| `bench-spikes.md` | The real Radxa signs the voucher (C1), Radxa bring-up, venue Wi-Fi | Yes; results in `../spikes/hardware-results.md` |
+| `robots-and-embedded.md` | QR, ESP32 and signing options | Yes, except "pick Microduck": the duck is our modified Open Duck Mini |
+| `voice-gpt-live.md`, `vita-voice-demo.md` | The talking duck on a laptop: 0G push-to-talk chosen over GPT-Live | Demo only, no app code |
+| `stack-references.md`, `reference-additions.md` | Why each clone under `references/` exists | Yes |
 
-Spike code (text copies): `spikes/`. Mainnet smoke evidence will live in `docs/evidence/`.
+Spike code is kept as text copies in `spikes/`. Proven runs are in `docs/evidence/`.

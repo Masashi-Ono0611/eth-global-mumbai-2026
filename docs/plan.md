@@ -162,8 +162,7 @@ Details: `docs/spikes/hardware-results.md`.
 ## 5. Alternatives considered and rejected
 
 - **World Chain + 0G + ENS instead of Arc:** no World Chain prize; MetaMask's delegation contracts aren't on World
-  Chain; gas in ETH; World's wallet can't grant allowances. ENS names could sit on top of Arc later
-  (`docs/research/worldchain-ens-alternative.md`).
+  Chain; gas in ETH; World's wallet can't grant allowances. ENS names could sit on top of Arc later.
 - **The float path** (pull to the chip, then EIP-3009 via Circle): after the pull, Arc no longer binds payee, invoice
   or revocation. Later fix: a policy-bound escrow.
 - **Verifying the World token on Arc by default:** publishes the owner's World pseudonym in calldata. Stretch only.

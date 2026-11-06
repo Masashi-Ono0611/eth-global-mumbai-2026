@@ -4,7 +4,8 @@ Read-only clones of upstream repos that agents read for patterns. Not committed:
 clone with its own `.git` (`GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1`), named `<owner>_<repo>`.
 The table below records the upstream and commit each clone was taken at. Never edit a clone in place.
 
-Research notes for each group live in `docs/research/`.
+Research notes for each group live in `docs/research/`. A note named in the last column that is no longer there was
+removed on 7 Nov 2026 (its option was not built); git history has it.
 
 | Clone | Upstream | Commit | Research note |
 | --- | --- | --- | --- |
