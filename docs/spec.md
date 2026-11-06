@@ -226,7 +226,7 @@ timeout 10 s, `temperature 0`):
 
 ```json
 {"model":"<ZG_MODEL>","messages":[
- {"role":"system","content":"You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool. Never pay when approvalRequired is true or merchant trust is untrusted."},
+ {"role":"system","content":"You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool. Never pay when approvalRequired is true or merchant trust is untrusted. When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown."},
  {"role":"user","content":"<input JSON>"}],
  "tools":[{"type":"function","function":{"name":"decide","parameters":{"type":"object","required":["action","reason"],
   "properties":{"action":{"type":"string","enum":["pay","ask_human","walk_away"]},"reason":{"type":"string","maxLength":200}}}}}],
