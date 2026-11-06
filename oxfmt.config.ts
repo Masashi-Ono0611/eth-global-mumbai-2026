@@ -18,6 +18,9 @@ export default defineConfig({
     // Foldkit's verbatim conventions, verified against repos/foldkit by vendor:check.
     'FOLDKIT.md',
     'tools/oxlint/anti-slop/**',
+    // Pollen's vendored Microduck engine (hash-pinned) and the sim build copied into apps/web.
+    'apps/sim/vendor/**',
+    'apps/web/public/sim/**',
     'packages/i18n/catalogs/**',
   ],
 })

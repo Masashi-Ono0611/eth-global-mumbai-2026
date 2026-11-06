@@ -18,6 +18,9 @@ export default defineConfig({
     '.claude/**',
     'repos/**',
     'tools/oxlint/anti-slop/**',
+    // Pollen's vendored Microduck engine (hash-pinned in tools/provenance.json) and the sim build copied into apps/web.
+    'apps/sim/vendor/**',
+    'apps/web/public/sim/**',
   ],
   options: { typeAware: true, reportUnusedDisableDirectives: 'error' },
   categories: { correctness: 'error', suspicious: 'error' },

@@ -8,6 +8,8 @@
     "**/node_modules/**",
     "**/dist/**",
     "tools/oxlint/anti-slop/**",
+    "apps/sim/vendor/**",
+    "apps/web/public/sim/**",
     "packages/i18n/src/catalogs.ts",
     "packages/i18n/src/generated.ts"
   ],

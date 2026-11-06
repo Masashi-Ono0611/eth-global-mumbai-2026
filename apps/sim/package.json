@@ -2,10 +2,38 @@
   "name": "@ethmumbai/sim",
   "private": true,
   "type": "module",
+  "sideEffects": [
+    "./src/main.ts",
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
   "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
     "@ethmumbai/chip": "workspace:*",
     "@ethmumbai/protocol": "workspace:*",
+    "@mui/material": "9.3.1",
+    "@mujoco/mujoco": "3.11.0",
+    "@react-three/fiber": "9.7.0",
+    "clsx": "catalog:",
     "effect": "catalog:",
-    "viem": "catalog:"
+    "jsqr": "1.4.0",
+    "onnxruntime-web": "1.27.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.164.1",
+    "uqr": "catalog:",
+    "viem": "catalog:",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "catalog:",
+    "@types/three": "0.164.1",
+    "@vitejs/plugin-react": "6.1.0",
+    "tailwindcss": "catalog:",
+    "vite": "catalog:"
   }
 }

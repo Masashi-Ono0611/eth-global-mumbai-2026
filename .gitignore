@@ -12,6 +12,8 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+# The simulator build (apps/sim), copied into the edge's assets by every apps/web build
+apps/web/public/sim/
 
 # Upstream reference clones (read-only); pins recorded in references/README.md
 references/*

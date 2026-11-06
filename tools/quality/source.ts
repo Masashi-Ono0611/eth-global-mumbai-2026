@@ -8,7 +8,17 @@ export const sourceFiles = async (root = '.') => {
     ['apps', 'packages', 'tools', 'infra']
       .map((directory) => `${directory}/**/*.${extensions}`)
       .concat(`*.${extensions}`),
-    { cwd: root, exclude: ['**/node_modules/**', '**/dist/**', 'tools/oxlint/anti-slop/**'] },
+    {
+      cwd: root,
+      // Vendored upstream code is verified by hash (tools/provenance.json), not audited as ours.
+      exclude: [
+        '**/node_modules/**',
+        '**/dist/**',
+        'tools/oxlint/anti-slop/**',
+        'apps/sim/vendor/**',
+        'apps/web/public/sim/**',
+      ],
+    },
   ))
     files.push(file)
   return files.toSorted()
