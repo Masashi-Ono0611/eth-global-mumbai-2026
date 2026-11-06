@@ -17,9 +17,23 @@ voice ──▶ GPT-Live (OpenAI, gpt-live-1) ──tool: run_errand {item}─�
                 └──── facts built by code: state, 0G action, request id ◀─────────┘  0G decide → Arc → World
 ```
 
-Why not 0G for the voice itself: on 2026-11-05 every `minimax-speech` TTS model on the 0G Router returned upstream 401,
-and `whisper-large-v3` (speech to text, TeeML) is back in the catalog but was not retested. Raw audio therefore goes to
-OpenAI, never to 0G; the 0G call inside the loop is still the `decide` call. The submission must not say voice runs on 0G.
+In this design raw audio goes to OpenAI, never to 0G, and the 0G call inside the loop is still the `decide` call; the
+submission must not say voice runs on 0G.
+
+### 0G-only alternative: voice through 0G (measured 2026-11-06 07:30 UTC)
+
+The prize text lists "vision, voice or decision model" for the 0G call, so a voice command handled on 0G adds a second 0G
+call. What works on the 0G Router today:
+
+| Step | Model | Result |
+|---|---|---|
+| Speech to text + item | `qwen3.5-omni-flash`, `qwen3-omni-flash`, `qwen3.5-omni-plus` (chat completions, `input_audio` with a `data:audio/wav;base64,…` URI; raw base64 gives 400) | **9/9** clips mapped to the right item (English "buy me a chai", "go buy me cigarettes", Japanese "チャイを買ってきて"), 1.7 to 3.5 s, about $0.00006 to $0.0002 per clip. The synthetic English voice's "Duck" came back as "Doc"/"Dog". **No TEE claim**: their provider is not a registered 0G service (`processResponse` → "Service provider does not exist"). |
+| Speech to text, sealed | `whisper-large-v3` (TeeML) | **HTTP 502** `provider_error` for wav, mp3 and m4a (5 calls). Not usable right now. |
+| Text to speech | `minimax-speech-2.8-turbo` | **HTTP 200**, `audio/mpeg` (on 2026-11-05 it returned 401). |
+
+So a cheaper, 0G-only voice is possible: "push to talk" → omni turns the clip into `{item}` → the existing errand route →
+0G `decide` → minimax reads the result. It is turn-based, not a live conversation, and the speech step carries no TEE
+claim until `whisper-large-v3` answers. Scripts: the PoC's `poc/scripts/omni-probe.mjs` and `whisper-probe.mjs`.
 
 ## 2. How it would fit Vitaquack
 
@@ -69,6 +83,7 @@ team decision; OpenAI cost is unmeasured; a new secret (`OPENAI_API_KEY`) in the
 ## 5. Our opinion
 
 Do **not** start this before the MUST loop has a real 0G decision on the deployed app and the World approve and deny
-evidence exists. If those are green with time left, the cheapest version is a voice button on the robot console that
-calls the same errand route (sections 2 and 4), shown live at the booth and kept out of the narrated video. Otherwise
-list it as future work in the README.
+evidence exists. If those are green with time left, prefer the **0G-only push-to-talk** (section 1): it adds a second 0G
+call to the loop, needs no new vendor or secret, and is smaller than GPT-Live (no WebRTC). Keep GPT-Live for a later,
+conversational version. Either way the voice button calls the same errand route, is shown live at the booth and stays
+out of the narrated video. Otherwise list it as future work in the README.
