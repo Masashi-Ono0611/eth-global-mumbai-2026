@@ -41,6 +41,7 @@ header h1 {
   gap: 1rem;
 }
 .menu-item {
+  align-content: start;
   display: grid;
   gap: 0.35rem;
   padding: 1.5rem;
@@ -129,4 +130,24 @@ header h1 {
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Items over the demo per-payment cap: the owner approves with World ID before the robot can pay. */
+.badge {
+  justify-self: start;
+  margin-top: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, white);
+  border-radius: 999px;
+}
+.approval {
+  max-width: 30rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 8%, white);
+  border-radius: 10px;
 }
