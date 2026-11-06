@@ -477,6 +477,48 @@ export const counterDisplay = sqliteTable('counter_display', {
   setAt: integer('set_at').notNull(),
 })
 
+// The shop (vitaquack.com/shop/): preorders and reservations paid in USDC on Arc. An order asks for an exact amount
+// (the price plus a few millionths that make it unique among open orders); a USDC transfer of that amount to the shop
+// address marks it paid. `shop_payments` records every transfer seen once, `shop_cursor` the last Arc block read.
+export const shopOrders = sqliteTable(
+  'shop_orders',
+  {
+    id: text('id').primaryKey(),
+    kit: text('kit', { enum: ['full', 'dev'] }).notNull(),
+    pay: text('pay', { enum: ['full', 'reserve'] }).notNull(),
+    founding: integer('founding', { mode: 'boolean' }).notNull(),
+    amount: text('amount').notNull(),
+    email: text('email').notNull(),
+    name: text('name').notNull(),
+    address: text('address').notNull(),
+    country: text('country').notNull(),
+    status: text('status', { enum: ['pending', 'paid', 'expired'] }).notNull(),
+    paidTx: text('paid_tx'),
+    paidAt: integer('paid_at'),
+    expiresAt: integer('expires_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index('shop_orders_amount').on(table.amount),
+    index('shop_orders_kit_status').on(table.kit, table.status),
+  ],
+)
+
+export const shopPayments = sqliteTable('shop_payments', {
+  id: text('id').primaryKey(),
+  txHash: text('tx_hash').notNull(),
+  fromAddress: text('from_address').notNull(),
+  amount: text('amount').notNull(),
+  block: integer('block').notNull(),
+  orderId: text('order_id'),
+  seenAt: integer('seen_at').notNull(),
+})
+
+export const shopCursor = sqliteTable('shop_cursor', {
+  id: text('id').primaryKey(),
+  block: integer('block').notNull(),
+})
+
 export const appSchema = {
   accounts,
   passkeys,
@@ -500,4 +542,7 @@ export const appSchema = {
   navTurns,
   counterDisplay,
   walletBalances,
+  shopOrders,
+  shopPayments,
+  shopCursor,
 }

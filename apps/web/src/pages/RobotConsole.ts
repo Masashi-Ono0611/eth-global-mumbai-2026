@@ -1,6 +1,6 @@
 import { Effect, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
-import { Dialog, RadioGroup } from '@foldkit/ui'
+import { Dialog, Listbox } from '@foldkit/ui'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -9,7 +9,6 @@ import { isSignedOut } from '../api/Http.ts'
 import {
   ConsoleRobot,
   ErrandDetail,
-  invoiceIdFrom,
   loadConsoleRobot,
   createIntent,
   loadEpisodeApproval,
@@ -17,7 +16,6 @@ import {
   loadLive,
   stopIntent,
   loadErrand,
-  startErrand,
   terminalStates,
 } from '../api/Robot.ts'
 import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
@@ -28,7 +26,7 @@ import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
 import { sheetFolds } from '../Sheet.ts'
-import { BrainRadioGroup, initBrainPicker, RequestModel, requestModel } from './RobotBrain.ts'
+import { BrainListbox, initBrainPicker, RequestModel, requestModel } from './RobotBrain.ts'
 
 // MODEL
 
@@ -56,20 +54,17 @@ export const Intent = defineTaggedUnion({
 export type Intent = typeof Intent.Type
 export const Errand = defineTaggedUnion({
   Idle: {},
-  Starting: { item: Schema.String },
   Running: {
     episodeId: Schema.String,
     maybeDetail: Schema.Option(ErrandDetail),
     maybeApprovalUrl: Schema.Option(Schema.String),
   },
-  Refused: { error: Schema.String },
 })
 export type Errand = typeof Errand.Type
 export const Model = Schema.Struct({
   robotId: Schema.String,
   state: ConsoleState,
   errand: Errand,
-  invoiceInput: Schema.String,
   decline: Decline,
   allowance: Allowance.Model,
   allowanceSheet: Dialog.Model,
@@ -79,7 +74,7 @@ export const Model = Schema.Struct({
   maybeLiveIntentId: Schema.Option(Schema.String),
   /** The 0G brain the owner picked for the next messages (RobotBrain.ts); none = the Worker's ZG_MODEL. */
   maybeBrain: Schema.Option(Schema.String),
-  brainPicker: RadioGroup.Model,
+  brainPicker: Listbox.Model,
 })
 export type Model = typeof Model.Type
 
@@ -94,12 +89,8 @@ export const Message = defineMessageUnion({
     maybeLatestEpisode: Schema.Option(Schema.String),
   },
   FailedLoadConsole: { error: Schema.String, signedOut: Schema.Boolean },
-  ClickedStartErrand: { item: Schema.String },
   /** "Get me a chai": an intent the robot's own scan claims (a real chip robot's camera, or the simulator). */
   ClickedAskFor: { item: Schema.String },
-  UpdatedInvoiceInput: { value: Schema.String },
-  SucceededStartErrand: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
-  FailedStartErrand: { error: Schema.String },
   SucceededLoadErrand: { episodeId: Schema.String, detail: ErrandDetail },
   FailedLoadErrand: { episodeId: Schema.String },
   CompletedFindApproval: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
@@ -121,7 +112,7 @@ export const Message = defineMessageUnion({
   FailedStopIntent: { error: Schema.String },
   GotAllowanceSheetMessage: { message: Dialog.Message },
   GotAllowanceMessage: { message: Allowance.Message },
-  GotBrainPickerMessage: { message: RadioGroup.Message },
+  GotBrainPickerMessage: { message: Listbox.Message },
 })
 export type Message = typeof Message.Type
 
@@ -163,22 +154,6 @@ export const LoadConsole = Command.define('LoadConsole', {
     ),
 })
 
-/** @internal Exported for the scene tests; the page update is its only production caller. */
-export const StartErrand = Command.define('StartErrand', {
-  args: { robotId: Schema.String, item: Schema.String, invoiceId: Schema.NullOr(Schema.String), model: RequestModel },
-  messages: [Message.SucceededStartErrand, Message.FailedStartErrand],
-  execute: ({ robotId, item, invoiceId, model }) =>
-    startErrand(robotId, item, invoiceId, model).pipe(
-      Effect.map((created) =>
-        Message.SucceededStartErrand({
-          episodeId: created.episodeId,
-          maybeApprovalUrl: Option.fromNullishOr(created.approvalUrl),
-        }),
-      ),
-      Effect.catch((failure) => Effect.succeed(Message.FailedStartErrand({ error: failure.error }))),
-    ),
-})
-
 /**
  * Reads the errand after `delayMillis`: the console polls while the errand is live (spec §6 moves lazily on reads).
  * @internal Exported for the scene tests; the page update is its only production caller.
@@ -194,11 +169,8 @@ export const PollErrand = Command.define('PollErrand', {
     ),
 })
 
-/**
- * The approval page of an errand waiting for the owner, after a reload lost the link from the errand's creation.
- * @internal Exported for the scene tests; the page update is its only production caller.
- */
-export const FindApproval = Command.define('FindApproval', {
+/** The approval page of an errand waiting for the owner (a resumed errand carries no link of its own). */
+const FindApproval = Command.define('FindApproval', {
   args: { episodeId: Schema.String },
   messages: [Message.CompletedFindApproval],
   execute: ({ episodeId }) =>
@@ -281,7 +253,6 @@ export const init = (robotId: string): UpdateReturn => ({
     robotId,
     state: ConsoleState.Loading(),
     errand: Errand.Idle(),
-    invoiceInput: '',
     decline: Decline.Idle(),
     allowance: Allowance.init(robotId, Option.none(), false),
     allowanceSheet: Dialog.init({ id: 'allowance', isAnimated: true }),
@@ -297,24 +268,21 @@ export const init = (robotId: string): UpdateReturn => ({
 // UPDATE
 
 export const isLive = (errand: Errand) =>
-  Errand.guards.Starting(errand) ||
-  (Errand.guards.Running(errand) &&
-    Option.match(errand.maybeDetail, {
-      onNone: () => true,
-      onSome: (detail) => !terminalStates.has(detail.episode.state),
-    }))
+  Errand.guards.Running(errand) &&
+  Option.match(errand.maybeDetail, {
+    onNone: () => true,
+    onSome: (detail) => !terminalStates.has(detail.episode.state),
+  })
 
 /** The duck is out on an instruction (it has not ended), so no new errand starts. */
 export const isIntentOpen = (intent: Intent) =>
   Intent.guards.Sending(intent) || (Intent.guards.Open(intent) && isOpenIntent(intent.intent.state))
 
-/** A catalogue item's display name, for the instruction a Buy chip sends. */
+/** A catalogue item's display name, for the instruction a Get me pill sends. */
 const itemNameOf = (model: Model, itemId: string): string =>
   ConsoleState.guards.Loaded(model.state)
     ? (model.state.catalogue.items.find((entry) => entry.itemId === itemId)?.name ?? itemId)
     : itemId
-
-const isSim = (model: Model) => ConsoleState.guards.Loaded(model.state) && model.state.robot.robot.kind === 'sim'
 
 /** Who a message goes to and which brain answers it (the owner's pick, else the Worker's ZG_MODEL). */
 const addressed = (model: Model) => ({ robotId: model.robotId, model: requestModel(model.maybeBrain) })
@@ -340,7 +308,7 @@ const liveRead = (
   }
 }
 
-/** A simulator robot gets an intent (the owner's words, and the item from a Buy chip); the duck walks and scans. */
+/** The owner's words, or a Get me pill's item, become an intent: the duck walks (simulator) or waits for its scan. */
 const sendIntent = (model: Model, instruction: string, item: string | null): UpdateReturn =>
   isLive(model.errand) || isIntentOpen(model.intent) || instruction.trim().length === 0
     ? { model }
@@ -438,17 +406,17 @@ const allowanceChild = {
 }
 const foldAllowance = Update.foldChild({ update: Allowance.update, ...allowanceChild })
 
-/** The owner's pick goes with every next message (a Buy chip, Get me, typed words) until changed. */
+/** The owner's pick goes with every next message (Get me, typed words) until changed. */
 const foldBrainPicker = Update.foldChild({
-  update: BrainRadioGroup.update,
+  update: BrainListbox.update,
   read: (model: Model) => Option.some(model.brainPicker),
-  write: (model: Model, next: RadioGroup.Model) => modifyFields(model, { brainPicker: () => next }),
-  toParentMessage: (message: RadioGroup.Message) => Message.GotBrainPickerMessage({ message }),
-  foldOutMessage:
-    ({ value }: RadioGroup.Selected) =>
-    (model: Model) => ({
-      model: modifyFields(model, { maybeBrain: () => Option.some(value) }),
-    }),
+  write: (model: Model, next: Listbox.Model) => modifyFields(model, { brainPicker: () => next }),
+  toParentMessage: (message: Listbox.Message) => Message.GotBrainPickerMessage({ message }),
+  foldOutMessage: Listbox.OutMessage.match<Update.Step<Model, Message, Services>>({
+    Selected:
+      ({ value }) =>
+      (model) => ({ model: modifyFields(model, { maybeBrain: () => Option.some(value) }) }),
+  }),
 })
 const configureAllowance = (model: Model, catalogue: Catalogue, robot: ConsoleRobot) =>
   Update.foldChildStep({
@@ -545,25 +513,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         state: () => (signedOut ? ConsoleState.SignedOut() : ConsoleState.Failed({ error })),
       }),
     }),
-    ClickedStartErrand: ({ item }) =>
-      isSim(model)
-        ? sendIntent(
-            model,
-            format('en', 'thread.instructionFor', { item: itemNameOf(model, item).toLowerCase() }),
-            item,
-          )
-        : isLive(model.errand)
-          ? { model }
-          : {
-              model: modifyFields(model, { errand: () => Errand.Starting({ item }) }),
-              commands: [StartErrand({ ...addressed(model), item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
-            },
-    UpdatedInvoiceInput: ({ value }) => ({ model: modifyFields(model, { invoiceInput: () => value }) }),
-    SucceededStartErrand: ({ episodeId, maybeApprovalUrl }) => ({
-      model: modifyFields(model, { errand: () => running(episodeId, maybeApprovalUrl), invoiceInput: () => '' }),
-      commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
-    }),
-    FailedStartErrand: ({ error }) => ({ model: modifyFields(model, { errand: () => Errand.Refused({ error }) }) }),
     SucceededLoadErrand: ({ episodeId, detail }) => loadedErrand(model, episodeId, detail),
     CompletedFindApproval: ({ episodeId, maybeApprovalUrl }) => {
       const { errand } = model

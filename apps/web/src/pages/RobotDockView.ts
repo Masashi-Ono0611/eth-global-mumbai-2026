@@ -1,147 +1,200 @@
 import { format, type Locale } from '@ethmumbai/i18n'
-import type { RadioGroup } from '@foldkit/ui'
-import { clsx } from 'clsx'
 import { Option } from 'effect'
-import type { Html, HtmlBuilder } from 'foldkit/html'
-import { type ConsoleRobot, invoiceIdFrom } from '../api/Robot.ts'
-import { type Catalogue, usdc } from '../api/Wallet.ts'
-import { BrainRadioGroup } from './RobotBrain.ts'
+import { childAttributes, type Html, type HtmlBuilder } from 'foldkit/html'
+import type { ConsoleRobot } from '../api/Robot.ts'
+import type { Catalogue } from '../api/Wallet.ts'
+import { arrowUp, check, chevronDown } from '../Icon.ts'
+import { BrainListbox } from './RobotBrain.ts'
 import { isIntentOpen, isLive, Message, type Model } from './RobotConsole.ts'
-import { instructionForm } from './RobotIntentView.ts'
 
 // STYLES
 
+/** Solid paper, so the thread never shows through the controls; a fixed 24 px fade above it softens the edge. */
 const dockClassName =
-  'sticky bottom-0 grid gap-2 bg-gradient-to-b from-paper/0 via-paper to-paper px-1 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
-const dockHintClassName = 'pl-1.5 text-[0.85rem] text-muted'
-const chipsClassName = 'grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-1.5'
-const chipClassName =
-  'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
-const chipPriceClassName = 'text-[0.8rem] font-medium text-muted'
-const askChipClassName = 'text-[0.75rem] font-semibold text-duck-deep'
-const detailsClassName = 'px-1.5 text-sm text-muted [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-2.5'
-const invoiceInputClassName =
-  'mt-1 min-h-11 w-full rounded-control border border-rule bg-surface px-3 text-base text-ink placeholder:text-muted'
-const brainRowClassName = 'flex flex-wrap items-center gap-x-2 gap-y-1 pl-1.5'
-const brainLabelClassName = 'text-[0.85rem] text-muted'
-const brainGroupClassName = 'flex flex-wrap gap-1.5'
-const brainOptionClassName =
-  'inline-flex min-h-11 cursor-pointer items-center rounded-full bg-surface px-3.5 text-[0.85rem] font-semibold text-muted shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,background-color,color] active:scale-[0.96] data-[checked]:bg-duck data-[checked]:text-ink'
+  'sticky bottom-0 z-10 grid gap-2 bg-paper px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-6 before:bg-gradient-to-b before:from-paper/0 before:to-paper'
+const dockHintClassName = 'px-1.5 text-[0.85rem] leading-snug text-muted'
+const pillsClassName =
+  '-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+const pillClassName =
+  'inline-flex min-h-11 shrink-0 cursor-pointer snap-start items-center gap-1.5 rounded-full bg-surface px-4 text-[0.95rem] font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
+const pillAsksClassName = 'text-[0.75rem] font-semibold text-duck-deep'
+const composerClassName =
+  'rounded-card border border-rule bg-surface shadow-[0_1px_2px_rgb(31_45_54/0.06)] transition-[border-color,box-shadow] focus-within:border-focus focus-within:ring-2 focus-within:ring-focus/20'
+const composerRowClassName = 'flex items-center gap-1 pr-1.5'
+const inputClassName =
+  'min-h-12 w-full min-w-0 flex-1 bg-transparent px-4 text-base text-ink placeholder:text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-60'
+const toolbarClassName = 'flex items-center justify-between gap-2 pr-1.5 pb-1.5 pl-1'
+const sendClassName =
+  'grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-ink text-surface transition-[transform,opacity] active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-25'
+const brainWrapperClassName = 'relative min-w-0'
+const brainButtonClassName =
+  'inline-flex min-h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full px-3 text-[0.9rem] font-semibold text-ink transition-colors hover:bg-paper data-[open]:bg-paper data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
+const brainNameClassName = 'truncate'
+const teeTagClassName =
+  'inline-flex shrink-0 items-center rounded-full bg-paid/10 px-1.5 text-[0.72rem] font-semibold text-paid'
+const chevronClassName = 'size-3.5 shrink-0 text-muted'
+const brainItemsClassName =
+  'z-30 w-72 max-w-[calc(100vw-1rem)] rounded-card bg-surface p-1.5 shadow-[0_10px_32px_rgb(31_45_54/0.18)] ring-1 ring-black/5 outline-none'
+const brainItemClassName =
+  'group grid cursor-pointer grid-cols-[1fr_auto] items-center gap-x-3 rounded-[14px] px-3 py-2.5 data-[active]:bg-paper'
+const brainItemNameClassName = 'flex items-center gap-1.5 font-semibold'
+const brainItemNoteClassName = 'block text-[0.85rem] leading-snug text-muted'
+const brainCheckClassName = 'invisible size-4 text-ink group-data-[selected]:visible'
+
+/** The menu opens above its button, over the thread (the composer sits at the bottom of the screen). */
+const BRAIN_ANCHOR = { placement: 'top-start' as const, gap: 8, padding: 8 }
 
 // VIEW
 
-/** Pay one exact invoice: the gate's payment link or its 26-character id; empty = the counter's open invoice. */
-const invoiceDetails = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => {
-  const invoiceInvalid = model.invoiceInput.trim().length > 0 && invoiceIdFrom(model.invoiceInput) === null
-  return h.details(
-    [h.Class(detailsClassName)],
-    [
-      h.summary([], [format(locale, 'thread.specificQr', {})]),
-      h.label([h.For('gate-invoice')], [format(locale, 'console.gateInvoice', {})]),
-      h.input([
-        h.Id('gate-invoice'),
-        h.Type('text'),
-        h.Class(clsx(invoiceInputClassName, { 'border-invalid': invoiceInvalid })),
-        h.Value(model.invoiceInput),
-        h.Placeholder(format(locale, 'console.gateInvoiceHint', {})),
-        h.AriaInvalid(invoiceInvalid),
-        h.AriaDescribedBy('gate-invoice-error'),
-        h.OnInput((value) => Message.UpdatedInvoiceInput({ value })),
-      ]),
-      invoiceInvalid
-        ? h.p(
-            [h.Id('gate-invoice-error'), h.Role('alert'), h.Class('mt-1 text-error')],
-            [format(locale, 'console.gateInvoiceInvalid', {})],
-          )
-        : h.empty,
-    ],
-  )
-}
+type Brain = Readonly<{ model: string; tee: boolean }>
+
+const teeTag = (tee: boolean, locale: Locale, h: HtmlBuilder<Message>): Html =>
+  tee ? h.span([h.Class(teeTagClassName)], [format(locale, 'thread.brainTee', {})]) : h.empty
 
 /**
- * Which 0G brain answers the next message (Kris, 7 Nov): the Worker's ZG_MODEL, whose provider is a TEE, or an
- * allowlisted model without one. The pick goes with each request; what answered is recorded per call. Hidden while
- * the Worker offers only one brain.
+ * Which 0G brain answers the next message (Kris, 7 Nov), as a model menu like other AI clients': the Worker's ZG_MODEL,
+ * whose provider is a TEE, or an allowlisted model without one. The pick goes with each request; what answered is
+ * recorded per call. Hidden while the Worker offers only one brain.
  */
-const brainChoice = (model: Model, view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Html => {
-  const brains = view.brains ?? []
-  const first = brains[0]
-  if (first === undefined || brains.length < 2) return h.empty
-  const teeOf = (value: string) => (brains.find((brain) => brain.model === value)?.tee === true ? 'yes' : 'no')
-  const options = ({ group, options: rendered }: RadioGroup.RenderInfo): Html =>
-    h.div(
-      [...group, h.Class(brainGroupClassName)],
-      rendered.map((option) =>
-        h.button(
-          [...option.option, h.Class(brainOptionClassName)],
+const brainMenu = (
+  model: Model,
+  brains: ReadonlyArray<Brain>,
+  first: Brain,
+  disabled: boolean,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const selected = Option.getOrElse(model.maybeBrain, () => first.model)
+  const teeOf = (value: string) => brains.find((brain) => brain.model === value)?.tee === true
+  return h.submodel({
+    slotId: model.brainPicker.id,
+    model: model.brainPicker,
+    view: BrainListbox.view,
+    viewInputs: {
+      anchor: BRAIN_ANCHOR,
+      items: brains.map((brain) => brain.model),
+      maybeSelectedValue: Option.some(selected),
+      isDisabled: disabled,
+      itemToConfig: (value) => ({
+        className: brainItemClassName,
+        content: h.div(
+          [h.Class('contents')],
           [
             h.span(
-              [...option.label],
-              [format(locale, 'thread.brainOption', { model: option.value, tee: teeOf(option.value) })],
+              [],
+              [
+                h.span([h.Class(brainItemNameClassName)], [value, teeTag(teeOf(value), locale, h)]),
+                h.span(
+                  [h.Class(brainItemNoteClassName)],
+                  [format(locale, 'thread.brainNote', { tee: teeOf(value) ? 'yes' : 'no' })],
+                ),
+              ],
             ),
-            h.span(
-              [...option.description, h.Class('sr-only')],
-              [format(locale, 'thread.brainNote', { tee: teeOf(option.value) })],
-            ),
+            check(brainCheckClassName, h),
           ],
         ),
-      ),
-    )
-  return h.div(
-    [h.Class(brainRowClassName)],
-    [
-      h.span([h.Class(brainLabelClassName), h.AriaHidden(true)], [format(locale, 'thread.brainLabel', {})]),
-      h.submodel({
-        slotId: model.brainPicker.id,
-        model: model.brainPicker,
-        view: BrainRadioGroup.view,
-        viewInputs: {
-          options: brains.map((brain) => brain.model),
-          selectedValue: Option.orElse(model.maybeBrain, () => Option.some(first.model)),
-          ariaLabel: format(locale, 'thread.brainGroup', {}),
-          orientation: 'Horizontal',
-          hasOptionDescription: () => true,
-          toView: options,
-        },
-        toParentMessage: (message) => Message.GotBrainPickerMessage({ message }),
       }),
+      buttonContent: h.span(
+        [h.Class('flex min-w-0 items-center gap-1.5')],
+        [
+          h.span([h.Class(brainNameClassName)], [selected]),
+          teeTag(teeOf(selected), locale, h),
+          chevronDown(chevronClassName, h),
+        ],
+      ),
+      buttonClassName: brainButtonClassName,
+      buttonAttributes: childAttributes([
+        h.AriaLabel(format(locale, 'thread.brainButton', { model: selected, tee: teeOf(selected) ? 'yes' : 'no' })),
+      ]),
+      itemsClassName: brainItemsClassName,
+      itemsAttributes: childAttributes([h.AriaLabel(format(locale, 'thread.brainGroup', {}))]),
+      className: brainWrapperClassName,
+    },
+    toParentMessage: (message) => Message.GotBrainPickerMessage({ message }),
+  })
+}
+
+/** The owner's words, sent as the same intent a Get me pill makes; a round Send arrow and, with a choice, the brain menu. */
+const composer = (
+  model: Model,
+  view: ConsoleRobot,
+  blocked: boolean,
+  described: boolean,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const name = view.robot.name
+  const brains = view.brains ?? []
+  const first = brains[0]
+  const input = h.input([
+    h.Id('instruction'),
+    h.Type('text'),
+    h.Class(inputClassName),
+    h.Maxlength(200),
+    h.Autocomplete('off'),
+    h.EnterKeyHint('send'),
+    h.Placeholder(format(locale, 'thread.instructionPlaceholder', { name })),
+    h.Value(model.instruction),
+    h.Disabled(blocked),
+    ...(described ? [h.AriaDescribedBy('dock-hint')] : []),
+    h.OnInput((value) => Message.UpdatedInstruction({ value })),
+  ])
+  const send = h.button(
+    [
+      h.Type('submit'),
+      h.Class(sendClassName),
+      h.AriaLabel(format(locale, 'thread.send', {})),
+      h.Disabled(blocked || model.instruction.trim().length === 0),
+    ],
+    [arrowUp('size-5', h)],
+  )
+  const withMenu = first !== undefined && brains.length > 1
+  return h.form(
+    [h.Class(composerClassName), h.OnSubmit(Message.SubmittedInstruction()), h.AriaBusy(blocked)],
+    [
+      h.label([h.For('instruction'), h.Class('sr-only')], [format(locale, 'thread.instructionLabel', { name })]),
+      withMenu
+        ? h.div(
+            [h.Class('grid')],
+            [
+              h.div([h.Class('pt-1')], [input]),
+              h.div([h.Class(toolbarClassName)], [brainMenu(model, brains, first, blocked, locale, h), send]),
+            ],
+          )
+        : h.div([h.Class(composerRowClassName)], [input, send]),
     ],
   )
 }
 
-/** A real robot's "Get me …" row: an intent that waits for the duck's own scan (its Buy row pays the counter now). */
-const askChips = (
-  view: ConsoleRobot,
+/** "Get me a chai": one pill per item, the same intent for a real robot (it waits for the duck's scan) and a simulator. */
+const suggestions = (
   catalogue: Catalogue,
-  disabled: boolean,
+  blocked: boolean,
+  described: boolean,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
-    [h.Class('grid gap-1')],
-    [
-      h.p([h.Class(dockHintClassName)], [format(locale, 'thread.askRowHint', { name: view.robot.name })]),
-      h.div(
-        [h.Class(chipsClassName)],
-        catalogue.items.map((item) =>
-          h.keyed('button')(
-            `ask-${item.itemId}`,
-            [
-              h.Type('button'),
-              h.Class(chipClassName),
-              h.Disabled(disabled),
-              h.OnClick(Message.ClickedAskFor({ item: item.itemId })),
-            ],
-            [format(locale, 'thread.askChip', { item: item.name.toLowerCase() })],
-          ),
-        ),
+    [h.Class(pillsClassName)],
+    catalogue.items.map((item) =>
+      h.keyed('button')(
+        `ask-${item.itemId}`,
+        [
+          h.Type('button'),
+          h.Class(pillClassName),
+          h.Disabled(blocked),
+          ...(described ? [h.AriaDescribedBy('dock-hint')] : []),
+          h.OnClick(Message.ClickedAskFor({ item: item.itemId })),
+        ],
+        [
+          format(locale, 'thread.askChip', { item: item.name.toLowerCase() }),
+          item.restricted ? h.span([h.Class(pillAsksClassName)], [format(locale, 'thread.asksYou', {})]) : h.empty,
+        ],
       ),
-      h.p([h.Class(dockHintClassName)], [format(locale, 'thread.buyRowHint', {})]),
-    ],
+    ),
   )
 
-/** The conversation's keyboard: the buy chips (and, for a simulator, the owner's own words), disabled while the robot is
- *  out or without any allowance, with the reason. */
+/** The conversation's keyboard: Get me pills and the composer. A line says why only while the robot can't be sent. */
 export const dock = (
   model: Model,
   view: ConsoleRobot,
@@ -150,58 +203,20 @@ export const dock = (
   h: HtmlBuilder<Message>,
 ): Html => {
   // Never granted: nothing can be paid. Stopped (revoked, expired): the errand still runs and Arc refuses it on-chain,
-  // which is the proof the revoke worked (spec §0 "done").
+  // which is the proof the revoke worked (spec §0 "done"), so the dock says so but stays open.
   const noAllowance = view.grant === null
   const stopped = view.grant !== null && view.grant.status !== 'active'
   const busy = isLive(model.errand) || isIntentOpen(model.intent)
-  const sim = view.robot.kind === 'sim'
+  const blocked = busy || noAllowance
+  const hint = noAllowance ? 'thread.dockNoAllowance' : busy ? 'thread.dockBusy' : stopped ? 'thread.dockStopped' : null
   return h.div(
     [h.Class(dockClassName)],
     [
-      h.p(
-        [h.Class(dockHintClassName), h.Id('dock-hint')],
-        [
-          format(
-            locale,
-            noAllowance
-              ? 'thread.dockNoAllowance'
-              : busy
-                ? 'thread.dockBusy'
-                : stopped
-                  ? 'thread.dockStopped'
-                  : 'thread.dockReady',
-            {
-              name: view.robot.name,
-            },
-          ),
-        ],
-      ),
-      brainChoice(model, view, locale, h),
-      instructionForm(model, view.robot.name, busy || noAllowance, locale, h),
-      sim ? h.empty : askChips(view, catalogue, busy || noAllowance, locale, h),
-      h.div(
-        [h.Class(chipsClassName)],
-        catalogue.items.map((item) =>
-          h.keyed('button')(
-            item.itemId,
-            [
-              h.Type('button'),
-              h.Class(chipClassName),
-              h.Disabled(busy || noAllowance),
-              h.AriaDescribedBy('dock-hint'),
-              h.AriaLabel(format(locale, 'thread.buyChip', { item: item.name, amount: usdc(item.amount) })),
-              h.OnClick(Message.ClickedStartErrand({ item: item.itemId })),
-            ],
-            [
-              item.name,
-              item.restricted
-                ? h.span([h.Class(askChipClassName)], [format(locale, 'thread.asksYou', {})])
-                : h.span([h.Class(chipPriceClassName)], [usdc(item.amount)]),
-            ],
-          ),
-        ),
-      ),
-      invoiceDetails(model, locale, h),
+      hint === null
+        ? h.empty
+        : h.p([h.Class(dockHintClassName), h.Id('dock-hint')], [format(locale, hint, { name: view.robot.name })]),
+      suggestions(catalogue, blocked, hint !== null, locale, h),
+      composer(model, view, blocked, hint !== null, locale, h),
     ],
   )
 }

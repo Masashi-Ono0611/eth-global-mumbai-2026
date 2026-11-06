@@ -336,6 +336,28 @@
       .faq details[open] summary::after { rotate: 45deg; }
       .faq details p { padding: 0 0 1.2rem; color: var(--soft); max-width: 40rem; }
       @media (max-width: 48rem) { .faq .grid { grid-template-columns: 1fr; } }
+
+      .left { color: var(--glow); }
+      dialog.checkout { width: min(32rem, 100% - 2rem); max-height: calc(100% - 2rem); border: 0; padding: 0; border-radius: var(--r-panel); background: var(--surface-solid); color: var(--fg); box-shadow: var(--shadow); overscroll-behavior: contain; }
+      dialog.checkout::backdrop { background: rgb(31 45 54 / 0.45); }
+      .checkout .inner { padding: clamp(1.25rem, 4vw, 2rem); display: grid; gap: 1rem; }
+      .checkout h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+      .checkout .sum { color: var(--soft); }
+      .checkout form { display: grid; gap: 0.85rem; }
+      .checkout [hidden] { display: none; }
+      .checkout label { display: grid; gap: 0.35rem; font: 600 0.95rem/1.2 var(--text); }
+      .checkout input, .checkout textarea { font: 400 1rem/1.4 var(--text); color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: var(--r-control); padding: 0.75rem 0.9rem; min-height: 3rem; width: 100%; }
+      .checkout textarea { min-height: 5.5rem; resize: vertical; }
+      .checkout .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+      .checkout .row > * { flex: 1 1 auto; }
+      .checkout .err { color: var(--no); font-weight: 600; }
+      .checkout .qr { width: min(15rem, 100%); aspect-ratio: 1; justify-self: center; background: #fff; border-radius: 1rem; padding: 0.5rem; }
+      .checkout .exact { font: var(--display-weight) clamp(1.6rem, 5vw, 2.1rem)/1.1 var(--display); font-variant-numeric: tabular-nums; }
+      .checkout code { font: 500 0.85rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; background: var(--bg); border-radius: 0.5rem; padding: 0.5rem 0.6rem; display: block; }
+      .checkout .status { font-weight: 600; color: var(--muted); }
+      .checkout .status.paid { color: var(--glow); font: var(--display-weight) 1.4rem/1.2 var(--display); }
+      .checkout .fine { font-size: 0.9rem; color: var(--muted); }
+      .checkout .x { all: unset; cursor: pointer; justify-self: end; font: 700 1rem/1 var(--display); min-width: 2.75rem; min-height: 2.75rem; display: inline-grid; place-items: center; border-radius: 999px; background: var(--bg); }
       .band.plain { min-height: 0; }
       .band.plain::after { display: none; }
       .band.plain .words { padding-block: clamp(3rem, 9vh, 5rem); }
@@ -421,7 +443,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
     <main id="top">
       <section class="shop-hero" aria-labelledby="h-shop">
         <div class="wrap">
-          <p class="badge">Founding 20 · ships January 2027</p>
+          <p class="badge">Preorders open · ships January 2027</p>
           <h1 id="h-shop">Get your own Vitaquack.</h1>
           <p class="lede">The first 20 duck kits are built by hand in Shenzhen in December and ship in January 2027. Every kit comes with the wallet, the counter it pays at, and 5 USDC to spend.</p>
           <div class="ctas"><a class="cta big" href="#full-kit">Preorder the duck</a><a class="quiet" href="#dev-kit">I have a robot</a></div>
@@ -435,7 +457,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
             <p class="what">Full Kit</p>
             <h2 id="h-full">The duck, ready to walk and pay.</h2>
             <p class="price">$499</p>
-            <p class="then">For the first 20. Then $599.</p>
+            <p class="then">For the first 20. Then $599. <span class="left" data-left="full"></span></p>
             <p class="lede">A walking duck based on Open Duck Mini, with the Vitaquack chip inside. Pair it with your wallet, give it a budget, and send it to the counter for a chai.</p>
             <ul class="box">
               <li>The walking duck, printed and assembled, with its battery</li>
@@ -444,7 +466,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
               <li>5 USDC in your wallet for the first errands</li>
               <li>A spare servo</li>
             </ul>
-            <div class="buy"><span class="cta big soon" aria-disabled="true">Preorder: pay 499 USDC on Arc<small>Opens soon</small></span><span class="quiet soon" aria-disabled="true">Reserve: pay 50 USDC on Arc<small>Opens soon</small></span></div>
+            <div class="buy"><button type="button" class="cta big" data-kit="full" data-pay="full">Preorder: pay 499 USDC on Arc</button><button type="button" class="quiet" data-kit="full" data-pay="reserve">Reserve: pay 50 USDC on Arc</button></div>
             <p class="note">A 50 USDC reservation counts toward the price. You pay the rest when your batch is built, and you can cancel for all of it back until we ship.</p>
           </div>
         </div>
@@ -457,14 +479,14 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
             <p class="what">Dev Kit</p>
             <h2 id="h-dev">The chip for a robot you already have.</h2>
             <p class="price">$99</p>
-            <p class="then">For the first 50. Then $149.</p>
+            <p class="then">For the first 50. Then $149. <span class="left" data-left="dev"></span></p>
             <p class="lede">The module keeps your robot's key, checks every bill against the limits you set, and signs. It runs on the same board as Pollen's Microduck. The counter gives it somewhere to pay on day one.</p>
             <ul class="box">
               <li>The Vitaquack module: a Radxa Zero 3W, its camera and a case, with the chip software on it</li>
               <li>The counter: an ESP32, a small screen and a servo</li>
               <li>5 USDC in your wallet for the first errands</li>
             </ul>
-            <div class="buy"><span class="cta big soon" aria-disabled="true">Preorder: pay 99 USDC on Arc<small>Opens soon</small></span><span class="quiet soon" aria-disabled="true">Reserve: pay 50 USDC on Arc<small>Opens soon</small></span></div>
+            <div class="buy"><button type="button" class="cta big" data-kit="dev" data-pay="full">Preorder: pay 99 USDC on Arc</button><button type="button" class="quiet" data-kit="dev" data-pay="reserve">Reserve: pay 50 USDC on Arc</button></div>
             <p class="note">An extra counter is $39. Tell us which robot you have before you buy, and we'll tell you whether it fits.</p>
           </div>
         </div>
@@ -546,9 +568,118 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       </div>
     </footer>
 
+    <dialog class="checkout" id="checkout" aria-labelledby="co-title">
+      <div class="inner">
+        <button type="button" class="x" id="co-close" aria-label="Close">✕</button>
+        <h2 id="co-title">Checkout</h2>
+        <p class="sum" id="co-sum"></p>
+        <form id="co-form">
+          <label>Email<input name="email" type="email" autocomplete="email" required maxlength="200" /></label>
+          <label>Name<input name="name" autocomplete="name" required maxlength="120" /></label>
+          <label>Shipping address<textarea name="address" autocomplete="street-address" required minlength="5" maxlength="600"></textarea></label>
+          <label>Country<input name="country" autocomplete="country-name" required minlength="2" maxlength="80" /></label>
+          <p class="err" id="co-err" role="alert" hidden></p>
+          <button type="submit" class="cta big" id="co-submit">Get the payment details</button>
+          <p class="fine">We use these only to ship your kit and to write to you about it.</p>
+        </form>
+        <div id="co-pay" hidden>
+          <div class="inner" style="padding: 0">
+            <p>Send exactly</p>
+            <p class="exact" id="co-amount"></p>
+            <p>to this address on Arc mainnet:</p>
+            <code id="co-address"></code>
+            <img class="qr" id="co-qr" alt="QR code of the payment request" />
+            <div class="row"><a class="cta" id="co-wallet" href="#">Open in my wallet</a><button type="button" class="quiet" id="co-copy">Copy the address</button></div>
+            <p class="fine">Send the exact amount: its last digits name your order. The amount is held for an hour, and a payment that arrives later still counts.</p>
+            <p class="status" id="co-status" role="status" aria-live="polite">Waiting for your payment on Arc…</p>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
     <div class="bar" id="bar"><a class="cta" href="#full-kit">Preorder the duck</a></div>
 
     <script>
+
+      // Checkout: the pay buttons open a form; the API answers with the exact USDC amount for this order; the page
+      // shows it with the address and a QR, then asks the API every few seconds until Arc shows the payment.
+      const kitNames = { full: 'Full Kit', dev: 'Dev Kit' }
+      const dialog = document.getElementById('checkout')
+      const form = document.getElementById('co-form')
+      const pay = document.getElementById('co-pay')
+      const err = document.getElementById('co-err')
+      const statusLine = document.getElementById('co-status')
+      let choice = null
+      let polling = 0
+      const show = (order) => {
+        form.hidden = true
+        pay.hidden = false
+        document.getElementById('co-title').textContent = `${kitNames[order.kit]}, ${order.pay === 'reserve' ? 'reservation' : 'preorder'}`
+        document.getElementById('co-sum').textContent = order.founding ? 'Founding price.' : ''
+        document.getElementById('co-amount').textContent = `${order.usdc} USDC`
+        document.getElementById('co-address').textContent = order.payTo
+        document.getElementById('co-qr').src = `/api/shop/orders/${order.id}/qr.svg`
+        document.getElementById('co-wallet').href = order.paymentRequest
+        if (order.status === 'paid') {
+          statusLine.className = 'status paid'
+          const link = Object.assign(document.createElement('a'), { href: `https://explorer.arc.io/tx/${encodeURIComponent(order.paidTx ?? '')}`, textContent: 'See the payment on Arc' })
+          statusLine.replaceChildren('Paid. Thank you, it’s yours. ', link)
+          localStorage.removeItem('vq-order')
+          return
+        }
+        statusLine.className = 'status'
+        statusLine.textContent = order.status === 'expired' ? 'The hour is up, but a payment of this amount still counts. Waiting…' : 'Waiting for your payment on Arc…'
+        const mine = ++polling
+        setTimeout(async () => {
+          if (mine !== polling || !dialog.open) return
+          try {
+            const res = await fetch(`/api/shop/orders/${order.id}`)
+            if (res.ok) return show(await res.json())
+          } catch {}
+          if (mine === polling) show(order)
+        }, 4000)
+      }
+      const open = (kit, payKind) => {
+        choice = { kit, pay: payKind }
+        polling += 1
+        form.hidden = false
+        pay.hidden = true
+        err.hidden = true
+        document.getElementById('co-title').textContent = `${kitNames[kit]}, ${payKind === 'reserve' ? 'reservation' : 'preorder'}`
+        document.getElementById('co-sum').textContent = payKind === 'reserve' ? 'Reserve for 50 USDC on Arc. It counts toward the price.' : 'Pay the full price in USDC on Arc.'
+        dialog.showModal()
+      }
+      for (const b of document.querySelectorAll('button[data-kit]')) b.addEventListener('click', () => open(b.dataset.kit, b.dataset.pay))
+      document.getElementById('co-close').addEventListener('click', () => { polling += 1; dialog.close() })
+      document.getElementById('co-copy').addEventListener('click', async (event) => {
+        await navigator.clipboard?.writeText(document.getElementById('co-address').textContent)
+        event.target.textContent = 'Copied'
+      })
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        err.hidden = true
+        const submit = document.getElementById('co-submit')
+        submit.disabled = true
+        try {
+          const fields = Object.fromEntries(new FormData(form))
+          const res = await fetch('/api/shop/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...choice, ...fields }) })
+          if (!res.ok) throw new Error(res.status === 400 ? 'Please check the email and the address.' : 'Something went wrong. Please try again.')
+          const order = await res.json()
+          localStorage.setItem('vq-order', order.id)
+          show(order)
+        } catch (e) {
+          err.textContent = e instanceof Error && e.message.startsWith('Please') ? e.message : 'Something went wrong. Please try again.'
+          err.hidden = false
+        } finally { submit.disabled = false }
+      })
+      // A buyer who comes back finds their open order.
+      const saved = localStorage.getItem('vq-order')
+      if (saved) fetch(`/api/shop/orders/${saved}`).then((res) => res.ok ? res.json() : null).then((order) => { if (order) { dialog.showModal(); show(order) } }).catch(() => {})
+      // Founding spots left, read from the orders.
+      fetch('/api/shop/stock').then((res) => res.ok ? res.json() : null).then((stock) => {
+        if (!stock) return
+        for (const el of document.querySelectorAll('[data-left]')) { const s = stock[el.dataset.left]; if (s) el.textContent = `${s.left} of ${s.cap} left.` }
+      }).catch(() => {})
       const bar = document.getElementById('bar')
       new IntersectionObserver((entries) => { for (const e of entries) bar.classList.toggle('away', e.isIntersecting) }, { threshold: 0.6 }).observe(document.querySelector('#try .cta'))
     </script>

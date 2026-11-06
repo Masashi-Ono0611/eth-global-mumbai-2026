@@ -1,52 +1,54 @@
 import { Option } from 'effect'
-import { Command, Mount, click, expect, given, label, role, scene, text, type } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { Command, Mount, click, expect, given, label, role, scene, text } from 'foldkit/scene'
+import { describe, expect as vitestExpect, test } from 'vitest'
 import type { IntentView } from '@ethmumbai/protocol/Intent'
 import * as RobotConsole from '../src/pages/RobotConsole.ts'
-import { consoleRobot, consoleView, loadedConsole, robotId } from './ConsoleFixtures.ts'
+import { consoleRobot, consoleView, loadedConsole, resumedConsole, robotId } from './ConsoleFixtures.ts'
 import { detail, grant, payee, summary, txHash } from './Fixtures.ts'
 import { Animation, Dialog } from '@foldkit/ui'
 import * as Allowance from '../src/pages/Allowance.ts'
 
 describe('/robot/:id', () => {
   const view = consoleView
-  test('a tapped item becomes an errand: 0G decides, the chip signs, the receipt links Arc and the proof', () => {
+  test("the robot's errand runs in the conversation: 0G decides, the chip signs, the receipt links the proof and Arc", () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole()),
-      expect(text('Nothing yet. Tap something below and Duck goes to buy it.')).toExist(),
-      click(role('button', { name: 'Buy Chai for 0.10 USDC' })),
-      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId: null, model: null })),
+      expect(text('Nothing yet. Ask Duck for something below.')).toExist(),
+      // The ready dock says nothing: the pills and the composer speak for themselves.
+      expect(role('button', { name: 'Get me a chai' })).toBeEnabled(),
+      expect(role('button', { name: 'Get me a chai' })).not.toHaveAttr('aria-describedby'),
+    )
+    // The errand the robot's scan started (or a reload found) is followed in the thread.
+    const resumed = resumedConsole('e1')
+    const signing = RobotConsole.update(
+      resumed,
+      RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e1', detail: detail('signing', false) }),
+    )
+    vitestExpect(signing.commands?.map((command) => command.name)).toContain('PollErrand')
+    scene(
+      { update: RobotConsole.update, view },
+      given(signing.model),
       expect(text('Buy chai')).toExist(),
-      Command.resolve(
-        RobotConsole.StartErrand,
-        RobotConsole.Message.SucceededStartErrand({ episodeId: 'e1', maybeApprovalUrl: Option.none() }),
-      ),
-      Command.expectExact(RobotConsole.PollErrand({ robotId, episodeId: 'e1', delayMillis: 0 })),
-      Command.resolve(
-        RobotConsole.PollErrand,
-        RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e1', detail: detail('signing', false) }),
-      ),
       expect(text('0G decided: buy it')).toExist(),
       expect(text('under the cap')).toExist(),
       expect(text('My chip is signing the payment...')).toExist(),
-      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toBeDisabled(),
-      expect(text('Duck is on an errand. The buttons come back when it ends.')).toExist(),
-      Command.expectExact(RobotConsole.PollErrand({ robotId, episodeId: 'e1', delayMillis: 1500 })),
-      Command.resolve(
-        RobotConsole.PollErrand,
-        RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e1', detail: detail('paid', true) }),
-      ),
+      expect(role('button', { name: 'Get me a chai' })).toBeDisabled(),
+      expect(label('Tell Duck what to get')).toBeDisabled(),
+      expect(text('Duck is on an errand. You can send the next one when it ends.')).toExist(),
+    )
+    const paid = RobotConsole.update(
+      signing.model,
+      RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e1', detail: detail('paid', true) }),
+    )
+    vitestExpect(paid.commands?.map((command) => [command.name, command.args])).toEqual([['LoadConsole', { robotId }]])
+    scene(
+      { update: RobotConsole.update, view },
+      given(paid.model),
       expect(text('Paid with my chip')).toExist(),
       expect(text('0.10 USDC')).toExist(),
       expect(role('link', { name: 'On Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
       expect(role('link', { name: 'Show proof' })).toHaveAttr('href', '/app/wallet/episodes/e1'),
-      Command.expectExact(RobotConsole.LoadConsole({ robotId })),
-      Command.resolve(
-        RobotConsole.LoadConsole,
-        RobotConsole.Message.FailedLoadConsole({ error: 'offline', signedOut: false }),
-      ),
-      expect(role('alert')).toHaveText('Something went wrong: offline'),
     )
   })
 
@@ -56,17 +58,25 @@ describe('/robot/:id', () => {
       result: '0G did not answer',
       decision: { action: 'pay', reason: 'cheap', requestId: null, provider: 'litellm.example/deepseek', latencyMs: 1 },
     }
+    // A 0G call that failed is stored as safe_stop without a reason: 0G decided nothing, so no decision is shown.
+    const busy = {
+      ...summary('e6', 'chai', 'safe_stop', 'unused'),
+      result: '0G answered 429',
+      decision: { action: 'safe_stop', reason: null, requestId: null, provider: 'router-api.0g.ai/m', latencyMs: 1 },
+    }
     scene(
       { update: RobotConsole.update, view },
-      given(loadedConsole([summary('e1', 'chai', 'paid', 'within budget'), rehearsal])),
+      given(loadedConsole([summary('e1', 'chai', 'paid', 'within budget'), rehearsal, busy])),
       expect(text('0G decided: buy it')).toExist(),
       expect(text('Paid with my chip')).toExist(),
       expect(text('The rehearsal brain (not 0G) decided: buy it')).toExist(),
       expect(text('I stopped safely and paid nothing: 0G did not answer')).toExist(),
+      expect(text('I stopped safely and paid nothing: 0G answered 429')).toExist(),
+      expect(text('0G decided: stop')).not.toExist(),
     )
   })
 
-  test('a receipt says where its record is on 0G, and a TEE-verified decision is marked', () => {
+  test('a receipt says whether its record is saved on 0G (the links are behind Show proof), and a TEE-verified decision is marked', () => {
     const saved = {
       ...summary('e1', 'chai', 'paid', 'within budget'),
       decision: {
@@ -89,11 +99,10 @@ describe('/robot/:id', () => {
       given(loadedConsole([saved, saving])),
       expect(text('TEE-verified')).toExist(),
       expect(text('Saved on 0G')).toExist(),
-      expect(role('link', { name: '0G Storage' })).toHaveAttr('href', 'https://storagescan-galileo.0g.ai/file/0xroot'),
-      expect(role('link', { name: 'EpisodeLog record' })).toHaveAttr(
-        'href',
-        'https://chainscan-galileo.0g.ai/tx/0xlog',
-      ),
+      // The thread only says where the record is; its 0G links are on the errand's page, behind Show proof.
+      expect(role('link', { name: '0G Storage' })).not.toExist(),
+      expect(role('link', { name: 'EpisodeLog record' })).not.toExist(),
+      expect(role('link', { name: 'Show proof' })).toHaveAttr('href', '/app/wallet/episodes/e1'),
       expect(text('Saving to 0G...')).toExist(),
     )
   })
@@ -118,10 +127,9 @@ describe('/robot/:id', () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole([stored])),
-      expect(role('link', { name: 'Frame on 0G Storage' })).toHaveAttr(
-        'href',
-        'https://storagescan-galileo.0g.ai/file/0xframe',
-      ),
+      expect(text('Duck Café: Chai, 0.10 USDC')).toExist(),
+      // The frame's copy on 0G Storage is linked from the errand's page, not from the thread.
+      expect(role('link', { name: 'Frame on 0G Storage' })).not.toExist(),
     )
     scene(
       { update: RobotConsole.update, view },
@@ -136,7 +144,8 @@ describe('/robot/:id', () => {
       given(loadedConsole([], { ...consoleRobot, grant: null })),
       expect(text('No allowance')).toExist(),
       expect(text("Duck has no allowance yet, so it can't buy anything.")).toExist(),
-      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toBeDisabled(),
+      expect(role('button', { name: 'Get me a chai' })).toBeDisabled(),
+      expect(label('Tell Duck what to get')).toBeDisabled(),
     )
   })
 
@@ -146,26 +155,10 @@ describe('/robot/:id', () => {
       given(loadedConsole([], { ...consoleRobot, grant: { ...grant, status: 'revoked' } })),
       expect(text('No allowance')).toExist(),
       expect(text("Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain.")).toExist(),
-      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toBeEnabled(),
-    )
-  })
-
-  test("a pasted gate payment link pays the gate's invoice; a typo is flagged", () => {
-    const invoiceId = 'abcdefghijklmnopqrstuvwxyz'
-    scene(
-      { update: RobotConsole.update, view },
-      given(loadedConsole()),
-      type(label('Invoice from the gate (optional)'), 'oops'),
-      expect(role('alert')).toHaveText('That is not a 26-character invoice id or a payment link.'),
-      type(label('Invoice from the gate (optional)'), `https://app.example/api/i/${invoiceId}`),
-      expect(role('alert')).toBeAbsent(),
-      click(role('button', { name: 'Buy Chai for 0.10 USDC' })),
-      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId, model: null })),
-      Command.resolve(
-        RobotConsole.StartErrand,
-        RobotConsole.Message.FailedStartErrand({ error: 'invoice already paid' }),
+      expect(role('button', { name: 'Get me a chai' })).toBeEnabled(),
+      expect(role('button', { name: 'Get me a chai' })).toHaveAccessibleDescription(
+        "Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain.",
       ),
-      expect(role('alert')).toHaveText('I could not start: invoice already paid'),
     )
   })
 
@@ -175,17 +168,13 @@ describe('/robot/:id', () => {
       episode: { id: 'e2', item: 'thali', state: 'awaiting_approval', result: null, invoice_id: 'i2' },
       chipRequest: null,
     }
-    const started = RobotConsole.update(
-      loadedConsole(),
-      RobotConsole.Message.SucceededStartErrand({
+    const asking = [
+      RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e2', detail: waiting }),
+      RobotConsole.Message.CompletedFindApproval({
         episodeId: 'e2',
         maybeApprovalUrl: Option.some('/wallet/approvals/ap1'),
       }),
-    ).model
-    const asking = RobotConsole.update(
-      started,
-      RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e2', detail: waiting }),
-    ).model
+    ].reduce((model, message) => RobotConsole.update(model, message).model, resumedConsole('e2'))
     scene(
       { update: RobotConsole.update, view },
       given(asking),
@@ -214,37 +203,26 @@ describe('/robot/:id', () => {
 
   test('after a reload while waiting for approval, the conversation finds the approval again', () => {
     const waiting = { ...detail('awaiting_approval', false), chipRequest: null }
+    const read = RobotConsole.update(
+      resumedConsole('e3'),
+      RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e3', detail: waiting }),
+    )
+    vitestExpect(read.commands?.map((command) => [command.name, command.args])).toContainEqual([
+      'FindApproval',
+      { episodeId: 'e3' },
+    ])
+    scene({ update: RobotConsole.update, view }, given(read.model), expect(text('Waiting for your answer')).toExist())
+    const found = RobotConsole.update(
+      read.model,
+      RobotConsole.Message.CompletedFindApproval({
+        episodeId: 'e3',
+        maybeApprovalUrl: Option.some('/wallet/approvals/ap3'),
+      }),
+    ).model
     scene(
       { update: RobotConsole.update, view },
-      given(loadedConsole()),
-      click(role('button', { name: 'Buy Thali for 2.00 USDC' })),
-      Command.resolve(
-        RobotConsole.StartErrand,
-        RobotConsole.Message.SucceededStartErrand({ episodeId: 'e3', maybeApprovalUrl: Option.none() }),
-      ),
-      Command.resolve(
-        RobotConsole.PollErrand,
-        RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e3', detail: waiting }),
-      ),
-      expect(text('Waiting for your answer')).toExist(),
-      Command.expectHas(RobotConsole.FindApproval({ episodeId: 'e3' })),
-      Command.resolve(
-        RobotConsole.FindApproval,
-        RobotConsole.Message.CompletedFindApproval({
-          episodeId: 'e3',
-          maybeApprovalUrl: Option.some('/wallet/approvals/ap3'),
-        }),
-      ),
+      given(found),
       expect(role('link', { name: 'Approve with World ID' })).toHaveAttr('href', '/api/world/authorize?approval=ap3'),
-      Command.resolve(RobotConsole.PollErrand, RobotConsole.Message.FailedLoadErrand({ episodeId: 'e3' })),
-      Command.resolve(
-        RobotConsole.PollErrand,
-        RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e3', detail: detail('denied', false) }),
-      ),
-      Command.resolve(
-        RobotConsole.LoadConsole,
-        RobotConsole.Message.FailedLoadConsole({ error: 'x', signedOut: false }),
-      ),
     )
   })
 
@@ -345,7 +323,7 @@ describe('/robot/:id', () => {
     )
   })
 
-  test("a real robot's Get me chips send an intent that waits for its own scan; Buy still pays the counter now", () => {
+  test("a real robot's Get me pills send an intent that waits for its own scan", () => {
     const waiting: IntentView = {
       id: 'intentintentintentintentaa',
       robotId,
@@ -369,7 +347,7 @@ describe('/robot/:id', () => {
       Command.resolve(RobotConsole.SendIntent, RobotConsole.Message.SucceededCreateIntent({ intent: waiting })),
       expect(text('Waiting for Duck to scan the QR code at the counter.')).toExist(),
       expect(role('button', { name: 'Stop Duck' })).toBeEnabled(),
-      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toBeDisabled(),
+      expect(role('button', { name: 'Get me a samosa' })).toBeDisabled(),
       Command.resolve(RobotConsole.PollIntent, RobotConsole.Message.FailedLoadIntent({ intentId: 'other' })),
     )
   })

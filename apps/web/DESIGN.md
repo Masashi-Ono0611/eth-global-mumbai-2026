@@ -79,7 +79,8 @@ Devanagari. Numbers that change (balances, amounts, countdowns) use tabular figu
 
 One centred column at phone width, also on a desktop. Home reads top to bottom: balance, the action pills (Send,
 Receive, Robot), "Needs you", robots, payments. A robot's page is its thread: header, messages oldest to newest, and
-the buy buttons docked at the bottom like a keyboard.
+the dock at the bottom like a chat app's: one row of Get me pills over the composer. The dock is solid paper with a
+short fade above it, so the thread never shows through its controls.
 
 ## Shapes
 
@@ -93,10 +94,21 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   word under a rule. The invoice QR is drawn from the invoice URL and is never presented as a camera frame.
 - Asking bubble: duck yellow, with Approve with World ID and No inside it. It is used only for an approval that
   is waiting.
-- Receipt: inside a robot bubble. Paid amount in the amount face, a paid check, and "Show proof".
+- Receipt: inside a robot bubble. Paid amount in the amount face, a paid check, "Show proof" and a muted "On Arc",
+  then one quiet status line ("Saved on 0G" with a check, or "Saving to 0G..."). The 0G Storage, EpisodeLog and
+  frame links live on the errand's page behind Show proof, never in the thread.
 - System pill: centred and muted, for events that are not anyone's words ("Duck connected at 15:56").
-- Buy chips: the dock's buttons, one per catalogue item with its price. They are dimmed while an errand is live or
-  while the robot has no allowance.
+- Get me pills: one fully round pill per catalogue item ("Get me a chai") in a single row that scrolls sideways. A
+  pill sends the same intent as typed words; the robot fetches it (a real duck waits for its own scan). There is no
+  pay-now button (Kris, 7 Nov).
+- Composer: one card-radius surface with the owner's words on top and a toolbar inside it: the brain menu on the
+  left, a round ink Send arrow on the right (disabled while the field is empty). With one brain the toolbar folds
+  into the field's row.
+- Brain menu: a quiet button with the model's name, a green TEE tag when its provider is a TEE, and a chevron. It
+  opens a Foldkit UI Listbox above itself; each model has its name and one plain line, and a check marks the pick.
+  Selection is ink, never duck yellow.
+- Dock line: shown only when the robot can't be sent or the owner should know something first (on an errand, no
+  allowance, allowance stopped); the pills and the field point to it with aria-describedby. A ready dock says nothing.
 - Sheets: bottom sheets (Foldkit UI Dialog) for Receive and the allowance. Stop sits in the allowance sheet in
   error red on error-soft.
 

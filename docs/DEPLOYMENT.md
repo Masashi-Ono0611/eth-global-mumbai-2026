@@ -21,6 +21,15 @@ wallet's pages under `/app/…` (the prefix is `APP_BASE` in `packages/protocol/
 and the simulator under `/sim/`. `vitaquack.com/plan*` is the scratch site's zone route and `cafe.vitaquack.com` the
 till's custom domain; both are owned by those stacks.
 
+## Off Cloudflare: the evidence uploader on netcup
+
+One piece runs outside Cloudflare: the **evidence uploader** (`tools/evidence-uploader/`), which puts finished
+episodes and their camera frames on 0G Storage and records them in `EpisodeLog` on 0G Galileo. 0G's storage SDK needs
+Node, so it cannot run in a Worker. It runs on netcup as the system service `vitaquack-evidence-uploader` (since 7 Nov
+2026; restarts on any exit, starts with the box), polling `https://vitaquack.com` every 15 s. CI does not deploy it;
+`sudo systemctl restart vitaquack-evidence-uploader` picks up a change. If it is down, errands still run and pay, but
+their proof stays at "Saving to 0G...". Status, logs and install: `tools/evidence-uploader/README.md`.
+
 ## Cutover to vitaquack.com (6 Nov 2026)
 
 One app deploy moves the app's origin: on stage `main` the Edge gets the custom domain `vitaquack.com` (pinned zone

@@ -19,7 +19,7 @@ import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
 import { dock } from './RobotDockView.ts'
-import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
+import { seenBubble, teeMark, zeroGStatus, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 import { workingDots } from '../Busy.ts'
@@ -51,6 +51,7 @@ const quoteClassName = 'mt-1 block border-l-[2.5px] border-ink/25 pl-2.5 text-[0
 const receiptAmountClassName = 'block font-display text-2xl leading-tight font-extrabold'
 const paidClassName = 'inline-flex items-center gap-1 font-semibold text-paid'
 const proofClassName = 'text-[0.92rem] font-semibold decoration-ink/30'
+const arcLinkClassName = 'text-[0.85rem] text-muted decoration-muted/40'
 const systemClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-center text-sm text-muted'
 const stepTextClassName = 'transition-opacity duration-150 starting:opacity-0'
 /** The live errand's messages enter (DESIGN.md "Motion"); the history above never moves. A contents box, so the
@@ -179,15 +180,15 @@ const receipt = (
       h.span([h.Class(paidClassName)], [format(locale, 'thread.paidWithChip', {})]),
       amount === undefined ? h.empty : h.span([h.Class(receiptAmountClassName)], [`${usdc(amount)} USDC`]),
       h.span(
-        [h.Class('flex flex-wrap gap-x-3')],
+        [h.Class('flex flex-wrap items-baseline gap-x-4')],
         [
+          h.a([h.Href(episodeRouter({ episodeId })), h.Class(proofClassName)], [format(locale, 'thread.proof', {})]),
           txHash === null
             ? h.empty
-            : h.a([h.Href(explorerTx(txHash)), h.Class(proofClassName)], [format(locale, 'thread.onArc', {})]),
-          h.a([h.Href(episodeRouter({ episodeId })), h.Class(proofClassName)], [format(locale, 'thread.proof', {})]),
+            : h.a([h.Href(explorerTx(txHash)), h.Class(arcLinkClassName)], [format(locale, 'thread.onArc', {})]),
         ],
       ),
-      zeroGLine(record, locale, h),
+      zeroGStatus(record, locale, h),
     ],
   )
 
@@ -206,7 +207,7 @@ const outcome = (
     h.keyed('div')(
       `${key}-end`,
       [h.Class(failed ? errorBubbleClassName : robotBubbleClassName)],
-      [h.p([], [text]), zeroGLine(record, locale, h)],
+      [h.p([], [text]), zeroGStatus(record, locale, h)],
     )
   const reason = episode.result ?? '—'
   switch (episode.state) {
@@ -269,7 +270,8 @@ const historyMessages = (
     locale,
     h,
   ),
-  episode.decision === null
+  // A failed 0G call is stored as safe_stop without a reason: 0G decided nothing, and the outcome says why it stopped.
+  episode.decision === null || (episode.decision.action === 'safe_stop' && episode.decision.reason === null)
     ? h.empty
     : decisionBubble(
         episode.id,
@@ -385,7 +387,10 @@ const liveMessages = (
               }),
             ],
           ),
-    ...detail.decisions.map((decision) => decisionOf(decision, episodeId, locale, h)),
+    // A decision row with an error is a 0G call that failed (Decide.actionOf): no decision to show.
+    ...detail.decisions
+      .filter((decision) => decision.error === null)
+      .map((decision) => decisionOf(decision, episodeId, locale, h)),
     episode.state === 'awaiting_approval'
       ? Option.match(approvalId, {
           onNone: () =>
@@ -423,16 +428,6 @@ const isPaid = (errand: Errand): boolean =>
 const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ErrandParts =>
   Errand.match(model.errand, {
     Idle: () => untimed([]),
-    Starting: ({ item }) =>
-      untimed([ownerBubble('live', item, locale, h), stepPill(format(locale, 'thread.deciding', {}), h)]),
-    Refused: ({ error }) =>
-      untimed([
-        h.keyed('p')(
-          'refused',
-          [h.Class(errorBubbleClassName), h.Role('alert')],
-          [format(locale, 'thread.couldNotStart', { message: error })],
-        ),
-      ]),
     Running: ({ episodeId, maybeDetail, maybeApprovalUrl }) =>
       Option.match(maybeDetail, {
         onNone: () => untimed([stepPill(format(locale, 'common.loading', {}), h)]),
@@ -471,7 +466,7 @@ const loadedView = (
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
-          // Keyed by the history's length: stable from Starting to Running, new when the next errand begins.
+          // Keyed by the history's length: stable while an errand runs, new when the next errand begins.
           h.keyed('div')(
             `live-${past.length}`,
             [h.Class(liveClassName)],

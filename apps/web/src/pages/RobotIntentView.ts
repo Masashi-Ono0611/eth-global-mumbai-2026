@@ -23,11 +23,6 @@ const stopClassName =
   'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-11 cursor-pointer rounded-full bg-error-soft px-5 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
 const simLinkClassName =
   'self-center rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
-const formClassName = 'grid grid-cols-[1fr_auto] gap-1.5'
-const inputClassName =
-  'min-h-12 w-full rounded-control border border-rule bg-surface px-3.5 text-base text-ink placeholder:text-muted disabled:opacity-60'
-const sendClassName =
-  'min-h-12 cursor-pointer rounded-control bg-ink px-5 font-semibold text-surface transition-transform active:scale-[0.96] disabled:opacity-60'
 
 // VIEW
 
@@ -202,31 +197,4 @@ export const simulatorLink = (robotId: string, locale: Locale, h: HtmlBuilder<Me
   h.a(
     [h.Href(simulatorUrl(robotId, null)), h.Target('_blank'), h.Rel('noopener'), h.Class(simLinkClassName)],
     [format(locale, 'thread.openSimulator', {})],
-  )
-
-/** A simulator robot also takes the owner's own words ("get me a chai"), sent as the same intent a Buy chip makes. */
-export const instructionForm = (
-  model: Model,
-  name: string,
-  busy: boolean,
-  locale: Locale,
-  h: HtmlBuilder<Message>,
-): Html =>
-  h.form(
-    [h.Class(formClassName), h.OnSubmit(Message.SubmittedInstruction()), h.AriaBusy(busy)],
-    [
-      h.label([h.For('instruction'), h.Class('sr-only')], [format(locale, 'thread.instructionLabel', { name })]),
-      h.input([
-        h.Id('instruction'),
-        h.Type('text'),
-        h.Class(inputClassName),
-        h.Maxlength(200),
-        h.Autocomplete('off'),
-        h.Placeholder(format(locale, 'thread.instructionPlaceholder', {})),
-        h.Value(model.instruction),
-        h.Disabled(busy),
-        h.OnInput((value) => Message.UpdatedInstruction({ value })),
-      ]),
-      h.button([h.Type('submit'), h.Class(sendClassName), h.Disabled(busy)], [format(locale, 'thread.send', {})]),
-    ],
   )

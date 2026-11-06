@@ -109,9 +109,6 @@ export interface MessageArgumentsByKey<T = string> {
     readonly reason: string | number
   }
   'console.episodeLog': Readonly<Record<string, never>>
-  'console.gateInvoice': Readonly<Record<string, never>>
-  'console.gateInvoiceHint': Readonly<Record<string, never>>
-  'console.gateInvoiceInvalid': Readonly<Record<string, never>>
   'console.paymentTx': Readonly<Record<string, never>>
   'console.reason': { readonly reason: string | number }
   'console.storage': Readonly<Record<string, never>>
@@ -238,6 +235,7 @@ export interface MessageArgumentsByKey<T = string> {
   'proof.frameSaving': Readonly<Record<string, never>>
   'proof.log': Readonly<Record<string, never>>
   'proof.noReason': Readonly<Record<string, never>>
+  'proof.notSaved': Readonly<Record<string, never>>
   'proof.onZeroG': Readonly<Record<string, never>>
   'proof.saved': Readonly<Record<string, never>>
   'proof.saving': Readonly<Record<string, never>>
@@ -270,31 +268,26 @@ export interface MessageArgumentsByKey<T = string> {
   'telegram.waiting': Readonly<Record<string, never>>
   'thread.askChip': { readonly item: string | number }
   'thread.askOk': { readonly item: string | number }
-  'thread.askRowHint': { readonly name: string | number }
   'thread.asksYou': Readonly<Record<string, never>>
   'thread.atCounter': Readonly<Record<string, never>>
   'thread.back': Readonly<Record<string, never>>
+  'thread.brainButton': { readonly tee: string | number; readonly model: string | number }
   'thread.brainGroup': Readonly<Record<string, never>>
-  'thread.brainLabel': Readonly<Record<string, never>>
   'thread.brainNote': { readonly tee: string | number }
-  'thread.brainOption': { readonly tee: string | number; readonly model: string | number }
+  'thread.brainTee': Readonly<Record<string, never>>
   'thread.buy': { readonly item: string | number }
-  'thread.buyChip': { readonly item: string | number; readonly amount: string | number }
-  'thread.buyRowHint': Readonly<Record<string, never>>
   'thread.conversation': { readonly name: string | number }
-  'thread.couldNotStart': { readonly message: string | number }
   'thread.deciding': Readonly<Record<string, never>>
   'thread.denied': Readonly<Record<string, never>>
   'thread.dockBusy': { readonly name: string | number }
   'thread.dockNoAllowance': { readonly name: string | number }
-  'thread.dockReady': { readonly name: string | number }
   'thread.dockStopped': { readonly name: string | number }
   'thread.empty': { readonly name: string | number }
   'thread.expired': Readonly<Record<string, never>>
   'thread.failed': { readonly reason: string | number }
   'thread.instructionFor': { readonly item: string | number }
   'thread.instructionLabel': { readonly name: string | number }
-  'thread.instructionPlaceholder': Readonly<Record<string, never>>
+  'thread.instructionPlaceholder': { readonly name: string | number }
   'thread.intentExpired': Readonly<Record<string, never>>
   'thread.intentFailed': { readonly message: string | number }
   'thread.intentStopped': { readonly reason: string | number }
@@ -318,7 +311,6 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.send': Readonly<Record<string, never>>
   'thread.settling': Readonly<Record<string, never>>
   'thread.signing': Readonly<Record<string, never>>
-  'thread.specificQr': Readonly<Record<string, never>>
   'thread.step': { readonly tool: string | number; readonly place: string | number }
   'thread.stop': { readonly name: string | number }
   'thread.stopping': Readonly<Record<string, never>>
@@ -346,4 +338,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'da21aa18768cb7eb0e7ad9f0f8551b33e86218a9ea46b6928b18a572c8ac554d'
+export const catalogVersion = '998aef3b7b9d5a77bbf078a93be3557cb976828a09f0323c390c8d427a1ccc52'

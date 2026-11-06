@@ -16,6 +16,7 @@ import { PRODUCTION_NAMES, pinnedOnMain } from './ProductionNames.ts'
 import { AppDatabase, AppMedia } from './Resources.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
 import { makeTelegramConfig } from './telegram/Config.ts'
+import { shopRoutes } from './shop/Routes.ts'
 import { sweep } from './Sweep.ts'
 import { flushIfDue } from './telegram/Deliver.ts'
 import { telegramRoutes } from './telegram/Routes.ts'
@@ -121,6 +122,8 @@ export default ApiWorker.make(
           }),
           Option.match(worldStub, { onNone: () => Layer.empty, onSome: ({ routes: stubRoutes }) => stubRoutes }),
           telegramRoutes({ database, config: telegram, world: { database, errands: robotAgent.errands } }),
+          // The shop (/shop/): orders paid in USDC on Arc, apart from the robot payment flow (shop/Routes.ts).
+          shopRoutes({ database, arc: chain.arc }),
           HttpRouter.add('GET', '/api/health', health(observabilityBase.release, features(env))),
         ).pipe(Layer.provide(AlchemyHttp.Platform))
         const handle = yield* HttpRouter.toHttpEffect(routes).pipe(Effect.orDie)

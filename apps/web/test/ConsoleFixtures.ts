@@ -25,7 +25,11 @@ const catalogue = {
     { itemId: 'thali', name: 'Thali', amount: '2000000', restricted: false },
   ],
 }
-export const loadedConsole = (history: ReadonlyArray<EpisodeSummary> = [], robot: ConsoleRobot = consoleRobot) =>
+const loadConsole = (
+  history: ReadonlyArray<EpisodeSummary>,
+  robot: ConsoleRobot,
+  maybeLatestEpisode: Option.Option<string>,
+) =>
   RobotConsole.update(
     RobotConsole.init(robotId).model,
     RobotConsole.Message.SucceededLoadConsole({
@@ -33,6 +37,12 @@ export const loadedConsole = (history: ReadonlyArray<EpisodeSummary> = [], robot
       catalogue,
       history,
       amounts: { e1: '100000' },
-      maybeLatestEpisode: Option.none(),
+      maybeLatestEpisode,
     }),
-  ).model
+  )
+export const loadedConsole = (history: ReadonlyArray<EpisodeSummary> = [], robot: ConsoleRobot = consoleRobot) =>
+  loadConsole(history, robot, Option.none()).model
+/** The conversation as it opens while `episodeId` is live (the robot's scan started it, or a reload found it): it
+ *  follows that errand, its first PollErrand still to resolve. */
+export const resumedConsole = (episodeId: string, robot: ConsoleRobot = consoleRobot) =>
+  loadConsole([], robot, Option.some(episodeId)).model

@@ -2,6 +2,7 @@ import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { chainScan, observationImage, type SeenCrop, storageScan } from '../api/Episodes.ts'
 import { workingDots } from '../Busy.ts'
+import { check } from '../Icon.ts'
 
 // STYLES
 
@@ -9,6 +10,8 @@ const zeroGLineClassName = 'flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.
 const zeroGLinkClassName = 'font-semibold text-paid decoration-paid/40'
 const zeroGPendingClassName = 'text-[0.9rem] text-muted'
 const zeroGFailedClassName = 'text-[0.9rem] text-error'
+const zeroGStatusClassName = 'inline-flex items-center gap-1 text-[0.85rem] text-muted'
+const zeroGCheckClassName = 'size-3.5 text-paid'
 const teeMarkClassName =
   'ml-1.5 inline-flex items-center rounded-full bg-paid/10 px-1.5 align-middle text-[0.72rem] font-semibold text-paid'
 
@@ -19,7 +22,6 @@ const seenLabelClassName = 'px-1.5 text-[0.8rem] text-muted'
 const seenImageClassName =
   'block aspect-square w-44 rounded-[12px] bg-paper object-contain outline outline-1 -outline-offset-1 outline-black/10'
 const seenCaptionClassName = 'px-1.5 text-[0.95rem]'
-const seenFrameLinkClassName = 'block px-1.5 text-[0.85rem] font-semibold text-paid decoration-paid/40'
 const seenSourceClassName = 'block px-1.5 text-[0.8rem] text-muted'
 
 // VIEW
@@ -62,12 +64,25 @@ export const zeroGLine = <M>(record: ZeroGRecord | null, locale: Locale, h: Html
   return h.p([h.Class(zeroGPendingClassName)], [workingDots(h), format(locale, 'proof.saving', {})])
 }
 
+/**
+ * The record's state in the conversation: a quiet line without links (Kris, 7 Nov: the thread stays readable, the
+ * 0G Storage and EpisodeLog links live behind Show proof, on the errand's page).
+ */
+export const zeroGStatus = <M>(record: ZeroGRecord | null, locale: Locale, h: HtmlBuilder<M>): Html => {
+  if (record === null) return h.empty
+  if (record.status === 'uploaded')
+    return h.p([h.Class(zeroGStatusClassName)], [check(zeroGCheckClassName, h), format(locale, 'proof.saved', {})])
+  if (record.status === 'failed') return h.p([h.Class(zeroGStatusClassName)], [format(locale, 'proof.notSaved', {})])
+  return h.p([h.Class(zeroGStatusClassName)], [workingDots(h), format(locale, 'proof.saving', {})])
+}
+
 /** A decision whose 0G provider proved its answer from a TEE (the stored verification flag; the proof page re-checks). */
 export const teeMark = <M>(verified: boolean, locale: Locale, h: HtmlBuilder<M>): Html =>
   verified ? h.span([h.Class(teeMarkClassName)], [format(locale, 'proof.tee', {})]) : h.empty
 
 /** What the robot saw: the chip-signed QR crop it scanned at the counter, as the errand's first robot message. A sim
- *  robot's crop comes from the simulator's head camera, and says so. Never a camera frame beyond this crop. */
+ *  robot's crop comes from the simulator's head camera, and says so. Never a camera frame beyond this crop; its copy on
+ *  0G Storage is linked from the errand's page, not here. */
 export const seenBubble = <M>(
   key: string,
   episodeId: string,
@@ -95,14 +110,6 @@ export const seenBubble = <M>(
         [
           caption === null ? h.empty : h.span([h.Class(seenCaptionClassName)], [caption]),
           sim ? h.span([h.Class(seenSourceClassName)], [format(locale, 'proof.seenBySim', {})]) : h.empty,
-          crop.rootHash === undefined
-            ? h.empty
-            : crop.rootHash === null
-              ? h.span([h.Class(seenSourceClassName)], [workingDots(h), format(locale, 'proof.frameSaving', {})])
-              : h.a(
-                  [h.Href(storageScan(crop.rootHash)), h.Class(seenFrameLinkClassName)],
-                  [format(locale, 'proof.frameOnZeroG', {})],
-                ),
         ],
       ),
     ],
