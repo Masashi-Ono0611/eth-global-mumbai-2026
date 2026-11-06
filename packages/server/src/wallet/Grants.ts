@@ -4,7 +4,7 @@ import { buildGrant } from '@ethmumbai/chain/Grant'
 import { idFromBytes16 } from '@ethmumbai/protocol/Base32'
 import { delegationDigest, delegationHash, type UnsignedDelegation } from '@ethmumbai/protocol/Delegation'
 import { Address } from '@ethmumbai/protocol/Hex'
-import { Clock, Effect, Layer, Option, Schema } from 'effect'
+import { Clock, Effect, Layer, Option, Schedule, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import { getAddress } from 'viem'
 import { decodeBody } from '../auth/Routes.ts'
@@ -185,7 +185,10 @@ const grantSign = (deps: WalletDeps) =>
       request,
     })
     const deployTx = yield* ensureDeployed({ database, arc, relayer }, session.accountId)
-    yield* verifyOwnerSignature(arc, session.smartAccount, digest, signature)
+    // Right after the deploy receipt a load-balanced RPC node may not see the code yet: re-ask a few times.
+    yield* verifyOwnerSignature(arc, session.smartAccount, digest, signature).pipe(
+      Effect.retry({ times: 4, schedule: Schedule.spaced('2 seconds') }),
+    )
     const won = yield* changes(
       database
         .prepare(
