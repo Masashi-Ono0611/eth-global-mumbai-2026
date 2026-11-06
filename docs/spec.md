@@ -27,7 +27,7 @@ Rules every worker follows:
    report (and, for chain work, in `docs/evidence/`).
 
 Done = the virtual loop runs **on Arc mainnet with real broadcasts** against the deployed app: passkey signup → grant to
-a mock chip → "buy chai" (0G decides, chip signs, facilitator settles, gate shows OPEN) → "buy cigarettes" (World deny:
+a mock chip → "buy chai" (0G decides, chip signs, facilitator settles, gate shows OPEN) → "buy thali" over the per-payment cap (World approve: paid; World deny:
 nothing paid; World approve: paid) → revoke → next errand fails on-chain; every decision logged with a 0G request id and
 the episode uploaded to 0G Storage with an `EpisodeLog` record. All of it recorded in `docs/evidence/`.
 
@@ -100,8 +100,9 @@ No `Date` or `crypto.randomUUID` in server code (Effect diagnostics): use `Clock
 test's table list becomes: `accounts, approvals, auth_challenges, chip_requests, decisions, episodes, evidence_uploads,
 grants, invoices, observations, passkeys, payments, relayer_txs, robots, used_nonces` (the `styld_auth_*` tables and
 `auth_attempt_buckets` are dropped by the migration). The merchant catalogue is a constant in
-`packages/server/src/merchant/Catalogue.ts`: `chai` 0.10, `samosa` 0.25, `cigarettes` 0.50 `restricted` with
-`payTo = RESTRICTED_PAY_TO` (a second merchant address that no grant allowlists).
+`packages/server/src/merchant/Catalogue.ts`: `chai` 0.10, `samosa` 0.25, `thali` 2.00 (normal items, merchant payee). Since
+6 Nov 17:45 IST (Kris) the catalogue has **no restricted item**: the demo's approval story is spending limits only (thali is
+over the 1.00 per-payment cap). The `restricted` flag and `RESTRICTED_PAY_TO` machinery stay as general capability.
 
 ## 4. Passkey-only auth (replaces Yielded Auth)
 
@@ -213,7 +214,7 @@ applies timeouts lazily on every read and every chip poll. No scheduler, no Dura
 | `settling` | receipt success → `paid`; verify failure or revert → `failed` |
 | terminal: `paid` `walked_away` `safe_stop` `denied` `refused` `failed` `expired` | an `evidence_uploads` row `pending` is inserted on entry |
 
-`approvalRequired = amount > perPaymentCap || !allowlist.includes(payTo)`; restricted items always have an
+`approvalRequired = amount > perPaymentCap || !allowlist.includes(payTo)`; **an approval never lifts the daily cap** (`ERC20PeriodTransfer` counts approved payments too), so `amount > budget.dailyRemaining` → the brain answers `walk_away` (6 Nov 17:45, demo defaults 3.00/day, 1.00 per payment); restricted items always have an
 unallowlisted `payTo`, so they always require approval.
 
 Routes (session cookie + Origin check): `POST /api/robots/:robotId/errands {item}` → 201 `{episodeId, state,
@@ -380,7 +381,7 @@ generates fresh relayer, approver and gate keys (never reused from anywhere) and
    1.00 / per-payment 0.30 / allowlist `[merchant payTo]` / 24 h → the passkey signs (deploy tx, grant active).
 7. `/robot/<id>` → "buy chai" → `paid`; note `request_id`, invoice id, tx; `GET $URL/api/invoices/<id>/status?nonce=1`
    → `paid`, again → `used`; `/gate/duck-cafe` shows OPEN.
-8. "buy cigarettes" → `awaiting_approval` → `/wallet/approvals/<id>` → "Approve with World" → **deny** → `denied`, no
+8. "buy thali" (over the per-payment cap) → `awaiting_approval` → `/wallet/approvals/<id>` → "Approve with World" → **deny** → `denied`, no
    tx; repeat → **approve** → `paid`.
 9. Revoke on `/wallet/robots` → "buy chai" → `failed` (`CannotUseADisabledDelegation`).
 10. `heavy --wait bun tools/evidence-uploader/main.ts --once` → root hashes + `EpisodeLog.record` txs;
