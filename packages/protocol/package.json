@@ -5,6 +5,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./golden.json": "./test/fixtures/golden.json",
     "./*": "./src/*.ts"
   },
   "dependencies": {
