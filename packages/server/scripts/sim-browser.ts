@@ -184,7 +184,9 @@ const signup = async (page: Page) => {
   await page.goto(`${app}/`, { waitUntil: 'networkidle' })
   await page.locator('#display-name').fill('Sim Owner')
   await page.getByRole('button', { name: 'Create passkey wallet' }).click()
-  await page.waitForURL(/\/wallet/, { timeout: 60_000 })
+  // A new owner lands on the first steps (/app/welcome); this run goes on from the wallet.
+  await page.waitForURL(/\/app\/welcome/, { timeout: 60_000 })
+  await page.goto(`${app}/wallet`, { waitUntil: 'networkidle' })
   const wallet = await getJson(page.context(), '/api/wallet', WalletView)
   const address = wallet?.account.smartAccount ?? ''
   say(`signed up: owner ${address}`)
