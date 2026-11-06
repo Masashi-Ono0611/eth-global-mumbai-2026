@@ -64,7 +64,7 @@
     <li><strong>Robot evidence is live:</strong> the chip can start an errand by scanning (<code>POST /api/chips/:robotId/scans</code>, chip-signed, ≤ 64 KB QR crop stored owner-private in R2, hash anchored on 0G; never sent to the brain) and the episode page shows "What the robot saw" with an on-chain verify badge. Rule 4 now reads: no scene frames leave the chip; one signed QR crop may. The Radxa wiring guide is <code>docs/hardware-handoff.md</code> §5.</li>
     <li><strong>0G Compute in a TEE:</strong> the decision model is <code>glm-5.3</code> (TeeML, registry provider <code>0xD179…E503</code>) since 17:15 IST; the first two decisions' TEE signatures were verified independently with 0G's SDK, and the Worker now fetches each decision's proof at decision time, stores it with the decision and in the <code>EpisodeLog</code>-anchored evidence; the episode page shows "Sealed in a TEE ✓ (0G chat …)" after Verify (<code>docs/evidence/2026-11-06-tee-verification.md</code>).</li>
     <li><strong>Audit view:</strong> <code>/wallet/episodes</code> and <code>/wallet/episodes/:id</code> — timeline, the exact 0G input and decision, chip, Arc payment, World <code>acr</code>/<code>amr</code>, 0G evidence, Verify and Replay.</li>
-    <li><strong>Merchant till:</strong> <a href="https://eth-mumbai-merchant.kristjan-grm11775.workers.dev">eth-mumbai-merchant…workers.dev</a>, a point of sale on the same frozen routes; items over 1 USDC are badged "needs owner approval". Demo rules: grant 5.00/day, 1.00 per payment; thali 2.00 = the approval beat, cigarettes = the restricted beat.</li>
+    <li><strong>Merchant till:</strong> <a href="https://eth-mumbai-merchant.kristjan-grm11775.workers.dev">eth-mumbai-merchant…workers.dev</a>, a point of sale on the same frozen routes; items over 1 USDC are badged "needs owner approval". Demo rules (6 Nov 17:45, spending limits only): grant 3.00/day, 1.00 per payment; thali 2.00 = the approval beat; a third thali in a day = the daily-cap walk-away; cigarettes are out of the catalogue.</li>
     <li><strong>Contracts and infra:</strong> Arc Studio (<a href="https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75">studio.arc.io/app/63241623…</a>) is the single source; mainnet enforcer <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code>, Galileo <code>EpisodeLog</code> <code>0x4C947E6D794C78d0F684e46EFC97f712E51a206A</code>; the state-store incident is resolved and guarded.</li>
     <li><strong>Open:</strong> the live deny and revoke clicks; the Radxa wiring; the video Sat 06:00; submission by 08:00 IST.</li>
   </ul>
@@ -85,7 +85,7 @@
   <div class="rule" style="border-left-color: var(--deny)"><strong>Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.</strong> On Fri 04:30 no product code exists yet, only the foundation, these docs and spike prototypes. Everything is cut to fit about 28 hours. Details: <code>docs/plan.md</code> §0.</div>
   <table>
     <tr><th>Scope</th><th>What</th></tr>
-    <tr><td><strong>MUST</strong></td><td>Passkey wallet on Arc mainnet → grant to the chip (real Radxa or mock) → the Robot Agent asks 0G and buys from our x402 merchant through our facilitator → a restricted item needs Agent Pass (approve <em>and</em> deny) → revoke stops the next payment → 0G Storage episode log + contract → our enforcer(s) built in Arc Studio → the ESP32 gate opens on a signed "paid"</td></tr>
+    <tr><td><strong>MUST</strong></td><td>Passkey wallet on Arc mainnet → grant to the chip (real Radxa or mock) → the Robot Agent asks 0G and buys from our x402 merchant through our facilitator → a purchase over the per-payment cap needs Agent Pass (approve <em>and</em> deny), the daily cap is never lifted → revoke stops the next payment → 0G Storage episode log + contract → our enforcer(s) built in Arc Studio → the ESP32 gate opens on a signed "paid"</td></tr>
     <tr><td>STRETCH</td><td>On-chain Agent Pass check · camera/vision · duck walking · a read-only MCP server</td></tr>
     <tr><td>CUT</td><td>The float path · outside MCP hosts · funding from other chains · MPP · ENS · IDKit · 4337 break-glass (doc only)</td></tr>
   </table>
@@ -110,7 +110,7 @@
     <tr><td>0:00</td><td>Don't give a robot your wallet, give it a budget</td></tr>
     <tr><td>0:20</td><td>Owner's passkey grants Vitaquack's chip $10/day on the consent screen</td></tr>
     <tr><td>0:50</td><td>"Buy me a chai": 0G decides (request id) → the chip signs → paid on Arc → <strong>the gate opens</strong></td></tr>
-    <tr><td>1:50</td><td>Mock cigarette pack → Agent Pass on the phone → <strong>deny: nothing paid</strong> → approve: paid</td></tr>
+    <tr><td>1:50</td><td>Thali 2.00, over the 1.00 per-payment cap → Agent Pass in World App → approve: paid → again → <strong>deny: nothing paid</strong> → a third thali would pass the 3.00 daily cap: walks away</td></tr>
     <tr><td>2:50</td><td>Revoke → the next attempt fails on-chain</td></tr>
     <tr><td>3:20</td><td>Architecture, our enforcer in Arc Studio, the episode log on 0G Storage</td></tr>
   </table>
