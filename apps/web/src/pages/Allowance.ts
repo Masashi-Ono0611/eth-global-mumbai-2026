@@ -121,6 +121,34 @@ export const init = (robotId: string, maybePayTo: Option.Option<string>, editing
   stop: Stop.Idle(),
 })
 
+/** Presets as USDC base units (6 dp), e.g. '0.30' → 300000n. */
+const unitsOf = (preset: string) => {
+  const [whole = '0', fraction = ''] = preset.split('.')
+  return BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, '0').slice(0, 6))
+}
+
+/**
+ * Defaults the wallet can cover: the largest daily and per-purchase presets at or under the balance (the smallest
+ * when even that is more). Arc enforces the caps; this only keeps a fresh allowance from promising money that is not
+ * there. An unknown balance leaves the defaults.
+ */
+export const affordable = (model: Model, balanceUnits: string | null): Model => {
+  if (balanceUnits === null) return model
+  const balance = BigInt(balanceUnits)
+  const largestUnder = (presets: ReadonlyArray<string>, fallback: string) =>
+    presets.filter((preset) => unitsOf(preset) <= balance).at(-1) ?? presets[0] ?? fallback
+  const daily = largestUnder(DAILY_PRESETS, model.daily)
+  const perPayment = largestUnder(
+    PER_PAYMENT_PRESETS.filter((preset) => unitsOf(preset) <= unitsOf(daily)),
+    model.perPayment,
+  )
+  return { ...model, daily, perPayment }
+}
+
+/** Whether the chosen daily cap is more than the wallet holds (the view says so before the passkey signs). */
+export const exceedsBalance = (model: Model, balanceUnits: string | null) =>
+  balanceUnits !== null && unitsOf(model.daily) > BigInt(balanceUnits)
+
 // UPDATE
 
 type UpdateReturn = Update.ReturnWithOutMessage<Model, Message, OutMessage, HttpClient.HttpClient | Passkeys>

@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { format, type Locale } from '@ethmumbai/i18n'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -193,6 +194,7 @@ const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
               payeeName: model.merchantName,
               grant: null,
               robot: null,
+              balanceUnits: Option.getOrNull(model.maybeBalanceUnits),
             },
             toParentMessage: (message) => Message.GotAllowanceMessage({ message }),
           }),

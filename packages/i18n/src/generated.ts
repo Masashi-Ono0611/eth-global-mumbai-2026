@@ -39,6 +39,7 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.open': { readonly amount: string | number }
   'allowance.openLeft': { readonly left: string | number; readonly daily: string | number }
   'allowance.openNone': Readonly<Record<string, never>>
+  'allowance.overBalance': { readonly balance: string | number; readonly name: string | number }
   'allowance.paired': Readonly<Record<string, never>>
   'allowance.perDay': Readonly<Record<string, never>>
   'allowance.perPurchase': Readonly<Record<string, never>>
@@ -330,4 +331,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '79bd59d320958ac6ade7c804e7e5f0f468328c7d61256e98d85d2b78c0836cf7'
+export const catalogVersion = '6bd8bb398b753d949c73df09d92892dc5ef233e2955d685b2e3e68578d374f49'

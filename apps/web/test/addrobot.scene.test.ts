@@ -21,11 +21,23 @@ import { payee } from './Fixtures.ts'
 
 const view = withViewInputs(addRobotView, { locale: 'en' })()
 const added = { robotId: 'robotrobotrobotrobotrobota', name: 'Duck', pairingCode: 'K7Q2M9XZ', pairingExpiresAt: 600 }
-const loaded = (maybeWaiting: Option.Option<typeof added>) =>
+const loaded = (maybeWaiting: Option.Option<typeof added>, balanceUnits: string | null = null) =>
   AddRobot.update(
     AddRobot.init().model,
-    AddRobot.Message.SucceededLoad({ merchantName: 'Duck Café', maybePayTo: Option.some(payee), maybeWaiting }),
+    AddRobot.Message.SucceededLoad({
+      merchantName: 'Duck Café',
+      maybePayTo: Option.some(payee),
+      maybeWaiting,
+      balanceUnits,
+    }),
   )
+
+/** Paired, with the wallet holding `balanceUnits`: the allowance card is on screen. */
+const connected = (balanceUnits: string) =>
+  AddRobot.update(
+    loaded(Option.some(added), balanceUnits).model,
+    AddRobot.Message.SucceededWatch({ robotId: added.robotId, paired: true, nowMillis: 1000 }),
+  ).model
 
 describe('/wallet/robots (add a robot)', () => {
   test('name, code, connected, then the allowance the passkey signs; granted opens the robot', () => {
@@ -61,6 +73,31 @@ describe('/wallet/robots (add a robot)', () => {
       Command.resolve(Allowance.GrantAllowance, Allowance.Message.SucceededGrant()),
       Command.expectExact(AddRobot.OpenRobot({ robotId: added.robotId })),
       Command.resolve(AddRobot.OpenRobot, AddRobot.Message.CompletedOpenRobot()),
+    )
+  })
+
+  test('the allowance starts at what the wallet covers and says when the daily cap is more than it holds', () => {
+    // 1.50 USDC: 1.00 a day and 1.00 a purchase, no warning.
+    scene(
+      { update: AddRobot.update, view },
+      given(connected('1500000')),
+      expect(selector('input[id="daily-1.00"]')).toBeChecked(),
+      expect(selector('input[id="per-payment-1.00"]')).toBeChecked(),
+      expect(text(/Your wallet has/)).not.toExist(),
+      click(role('radio', { name: '5.00' })),
+      expect(
+        text('Your wallet has 1.50 USDC, so Duck can only spend that much until you add money to the wallet.'),
+      ).toExist(),
+    )
+    // Empty: the smallest presets, and the warning straight away.
+    scene(
+      { update: AddRobot.update, view },
+      given(connected('0')),
+      expect(selector('input[id="daily-1.00"]')).toBeChecked(),
+      expect(selector('input[id="per-payment-0.30"]')).toBeChecked(),
+      expect(
+        text('Your wallet has 0.00 USDC, so Duck can only spend that much until you add money to the wallet.'),
+      ).toExist(),
     )
   })
 

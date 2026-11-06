@@ -5,7 +5,16 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { clockTime } from '../api/Episodes.ts'
 import { ActionFailure } from '../api/OwnerAction.ts'
 import { leftToday, usdc } from '../api/Wallet.ts'
-import { DAILY_PRESETS, HOUR_PRESETS, Message, type Model, PER_PAYMENT_PRESETS, Step, Stop } from './Allowance.ts'
+import {
+  DAILY_PRESETS,
+  exceedsBalance,
+  HOUR_PRESETS,
+  Message,
+  type Model,
+  PER_PAYMENT_PRESETS,
+  Step,
+  Stop,
+} from './Allowance.ts'
 import { busyLabel } from '../Busy.ts'
 
 // STYLES
@@ -61,6 +70,8 @@ export type ViewInputs = Readonly<{
   payeeName: string
   grant: ActiveGrant | null
   robot: RobotIdentity | null
+  /** The wallet's USDC in base units, when the page read it (null or absent: unknown). */
+  balanceUnits?: string | null
 }>
 
 const failureText = (failure: ActionFailure, locale: Locale) =>
@@ -106,6 +117,16 @@ const segments = (
       ),
     ],
   )
+
+/** The chosen daily cap is more than the wallet holds: said before the passkey signs (Arc would only stop payments). */
+const overBalance = (model: Model, inputs: ViewInputs, h: HtmlBuilder<Message>): Html => {
+  const balanceUnits = inputs.balanceUnits ?? null
+  if (balanceUnits === null || !exceedsBalance(model, balanceUnits)) return h.empty
+  return h.p(
+    [h.Role('status'), h.Class('text-[0.95rem] font-semibold text-error')],
+    [format(inputs.locale, 'allowance.overBalance', { balance: usdc(balanceUnits), name: inputs.robotName })],
+  )
+}
 
 const hoursLabel = (hours: string, locale: Locale) => format(locale, 'allowance.hours', { hours: Number(hours) })
 
@@ -164,6 +185,7 @@ const form = (model: Model, inputs: ViewInputs, h: HtmlBuilder<Message>): Html =
           }),
         ],
       ),
+      overBalance(model, inputs, h),
       Step.guards.Failed(model.step)
         ? h.p([h.Role('alert'), h.Class('text-error')], [failureText(model.step.failure, locale)])
         : h.empty,

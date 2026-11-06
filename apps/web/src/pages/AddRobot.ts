@@ -7,7 +7,7 @@ import * as Navigation from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { RobotKind } from '@ethmumbai/protocol/Intent'
 import { isSignedOut } from '../api/Http.ts'
-import { AddedRobot, addRobot, cancelPairing, listRobots, loadCatalogue } from '../api/Wallet.ts'
+import { AddedRobot, addRobot, cancelPairing, listRobots, loadCatalogue, loadWallet } from '../api/Wallet.ts'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
 import { robotConsoleRouter } from '../route.ts'
@@ -37,6 +37,8 @@ export const Model = Schema.Struct({
   kind: RobotKind,
   /** The merchant a new grant allowlists, by name. */
   merchantName: Schema.String,
+  /** The wallet's USDC (base units) when it was read, so the allowance can say what the wallet covers. */
+  maybeBalanceUnits: Schema.Option(Schema.String),
   allowance: Allowance.Model,
 })
 export type Model = typeof Model.Type
@@ -48,6 +50,7 @@ export const Message = defineMessageUnion({
     merchantName: Schema.String,
     maybePayTo: Schema.Option(Schema.String),
     maybeWaiting: Schema.Option(AddedRobot),
+    balanceUnits: Schema.NullOr(Schema.String),
   },
   FailedLoad: { error: Schema.String, signedOut: Schema.Boolean },
   UpdatedName: { value: Schema.String },
@@ -74,9 +77,13 @@ const WATCH_MILLIS = 3000
 const LoadAddRobot = Command.define('LoadAddRobot', {
   messages: [Message.SucceededLoad, Message.FailedLoad],
   execute: Effect.gen(function* () {
-    const [{ robots }, catalogue] = yield* Effect.all([listRobots, Effect.option(loadCatalogue)], { concurrency: 2 })
+    const [{ robots }, catalogue, wallet] = yield* Effect.all(
+      [listRobots, Effect.option(loadCatalogue), Effect.option(loadWallet)],
+      { concurrency: 3 },
+    )
     const waiting = robots.find((robot) => robot.status === 'unpaired' && robot.pairingCode !== null)
     return Message.SucceededLoad({
+      balanceUnits: Option.getOrNull(Option.flatMap(wallet, ({ balance }) => Option.fromNullishOr(balance?.units))),
       merchantName: Option.match(catalogue, { onNone: () => 'Duck Café', onSome: ({ name }) => name }),
       maybePayTo: Option.flatMap(catalogue, ({ payTo }) => Option.fromNullishOr(payTo)),
       maybeWaiting: Option.fromNullishOr(waiting).pipe(
@@ -155,6 +162,7 @@ export const init = (): UpdateReturn => ({
     // Most owners meet the duck in the browser first; a real robot is one tap away.
     kind: 'sim',
     merchantName: 'Duck Café',
+    maybeBalanceUnits: Option.none(),
     allowance: Allowance.init('', Option.none(), true),
   },
   commands: [LoadAddRobot()],
@@ -179,8 +187,14 @@ const foldAllowance = (model: Model, message: Allowance.Message, robotId: string
   Update.foldChild({ update: Allowance.update, ...allowanceChild(robotId) })(model, message)
 
 /** The allowance's own step for a robot (its id and the merchant's address); it returns only a model. */
-const allowanceFor = (model: Model, robotId: string, maybePayTo: Option.Option<string>): Model =>
-  Update.foldChildStep({ update: Allowance.forRobot(robotId, maybePayTo), ...allowanceChild(robotId) })(model).model
+const allowanceFor = (model: Model, robotId: string, maybePayTo: Option.Option<string>): Model => {
+  const next = Update.foldChildStep({ update: Allowance.forRobot(robotId, maybePayTo), ...allowanceChild(robotId) })(
+    model,
+  ).model
+  return modifyFields(next, {
+    allowance: (allowance) => Allowance.affordable(allowance, Option.getOrNull(next.maybeBalanceUnits)),
+  })
+}
 
 const pairing = (model: Model, robot: AddedRobot): UpdateReturn => ({
   model: modifyFields(model, { stage: () => Stage.Pairing({ robot }) }),
@@ -204,8 +218,17 @@ const watched = (model: Model, robotId: string, paired: boolean, nowMillis: numb
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SucceededLoad: ({ merchantName, maybePayTo, maybeWaiting }) => {
-      const loaded = modifyFields(allowanceFor(model, '', maybePayTo), { merchantName: () => merchantName })
+    SucceededLoad: ({ merchantName, maybePayTo, maybeWaiting, balanceUnits }) => {
+      const loaded = modifyFields(
+        allowanceFor(
+          modifyFields(model, { maybeBalanceUnits: () => Option.fromNullishOr(balanceUnits) }),
+          '',
+          maybePayTo,
+        ),
+        {
+          merchantName: () => merchantName,
+        },
+      )
       return Option.match(maybeWaiting, {
         onNone: () => ({ model: modifyFields(loaded, { stage: () => Stage.Naming() }) }),
         onSome: (robot) => pairing(loaded, robot),

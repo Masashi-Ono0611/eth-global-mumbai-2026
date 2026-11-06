@@ -258,6 +258,8 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'allowance.hours': '{hours, plural, =24 {1 day} =168 {1 week} one {# hour} other {# hours}}',
   'allowance.summary':
     '{name} can spend up to {daily} USDC a day, only at {payee}, for {hours, plural, =24 {the next day} =168 {the next week} one {the next hour} other {the next # hours}}. A purchase over {perPayment} asks you first in World App; nothing goes past {daily} a day. Arc enforces this, so not even our server can go past it.',
+  'allowance.overBalance':
+    'Your wallet has {balance} USDC, so {name} can only spend that much until you add money to the wallet.',
   'allowance.confirm': 'Confirm with passkey',
   'allowance.signing': 'Signing and activating on Arc...',
   'allowance.aDay': 'a day',
