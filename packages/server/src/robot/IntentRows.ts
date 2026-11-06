@@ -1,6 +1,7 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
 import { IntentState, type NavCall, NavToolName } from '@ethmumbai/protocol/Intent'
 import { Option, Schema } from 'effect'
+import { zeroGCallColumns } from './ZeroGChat.ts'
 import { allRows, firstRow } from '../Sql.ts'
 
 // The `intents` and `nav_turns` rows (packages/db schema.ts), shared by the intent routes, the navigation turns and the
@@ -26,13 +27,7 @@ export type IntentRow = typeof IntentRow.Type
 export const NavTurnRow = Schema.Struct({
   id: Schema.String,
   intent_id: Schema.String,
-  step: Schema.Finite,
-  model: Schema.String,
-  request_id: Schema.NullOr(Schema.String),
-  chat_id: Schema.NullOr(Schema.String),
-  provider: Schema.NullOr(Schema.String),
-  latency_ms: Schema.NullOr(Schema.Finite),
-  prompt_sha256: Schema.String,
+  ...zeroGCallColumns,
   calls_json: Schema.String,
   reasoning: Schema.NullOr(Schema.String),
   results_json: Schema.NullOr(Schema.String),

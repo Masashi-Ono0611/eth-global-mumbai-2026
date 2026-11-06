@@ -1,7 +1,5 @@
-import { Clock, Duration, Effect, Option, Redacted, Result, Schema } from 'effect'
-import * as HttpClient from 'effect/http/HttpClient'
-import * as HttpClientRequest from 'effect/http/HttpClientRequest'
-import type { ZeroGCall, ZeroGConfig } from './ZeroGClient.ts'
+import { Clock, Duration, Effect, Option, Result, Schema } from 'effect'
+import { postChat, type Reply, type ZeroGCall, type ZeroGConfig } from './ZeroGClient.ts'
 import { sha256Hex } from '../Respond.ts'
 
 // One chat completion against the 0G router for callers other than `decide` (the simulator's navigation turns, the
@@ -15,6 +13,17 @@ export type ZeroGChatCall = Omit<ZeroGCall, 'inputJson'>
 export type ZeroGChatOutcome =
   | { readonly ok: true; readonly call: ZeroGChatCall; readonly message: unknown }
   | { readonly ok: false; readonly call: ZeroGChatCall; readonly error: string }
+
+/** The columns every stored 0G call has (`decisions`, `nav_turns`): step, ids, brain, latency and the prompt's hash. */
+export const zeroGCallColumns = {
+  step: Schema.Finite,
+  model: Schema.String,
+  request_id: Schema.NullOr(Schema.String),
+  chat_id: Schema.NullOr(Schema.String),
+  provider: Schema.NullOr(Schema.String),
+  latency_ms: Schema.NullOr(Schema.Finite),
+  prompt_sha256: Schema.String,
+}
 
 export interface ZeroGChatOptions {
   readonly timeout: Duration.Input
@@ -35,31 +44,6 @@ const ErrorBody = Schema.Struct({ request_id: Schema.optionalKey(Schema.NullOr(S
 const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown))
 const Tagged = Schema.Struct({ _tag: Schema.String })
 
-type Reply = { readonly status: number; readonly text: string; readonly chatId: string | undefined }
-
-const post = (config: ZeroGConfig, bodyJson: string, timeout: Duration.Input) =>
-  Effect.gen(function* () {
-    const client = yield* HttpClient.HttpClient
-    return yield* client
-      .execute(
-        HttpClientRequest.post(`${config.baseUrl.replace(/\/+$/, '')}/chat/completions`).pipe(
-          HttpClientRequest.bearerToken(Redacted.value(config.apiKey)),
-          HttpClientRequest.bodyText(bodyJson, 'application/json'),
-        ),
-      )
-      .pipe(
-        Effect.flatMap((response) =>
-          Effect.map(response.text, (text): Reply => ({
-            status: response.status,
-            text,
-            chatId: response.headers['zg-res-key'],
-          })),
-        ),
-        Effect.timeout(timeout),
-        Effect.result,
-      )
-  })
-
 /**
  * `POST {ZG_BASE_URL}/chat/completions` with `body` (the caller's messages, tools and knobs; `ZG_EXTRA_JSON` goes
  * under it and `model` always wins). The prompt is hashed for the record and never logged.
@@ -73,13 +57,13 @@ export const zeroGChat = Effect.fn('EthMumbai.Robot.zeroGChat')(function* (
   const brain = `${new URL(config.baseUrl).host}/${config.model}`
   const promptSha256 = yield* sha256Hex(bodyJson)
   const started = yield* Clock.currentTimeMillis
-  const first = yield* post(config, bodyJson, options.timeout)
+  const first = yield* postChat(config, bodyJson, options.timeout)
   const retry =
     options.retry429After !== undefined && Result.isSuccess(first) && first.success.status === 429
       ? Option.some(options.retry429After)
       : Option.none()
   const reply = Option.isSome(retry)
-    ? yield* Effect.andThen(Effect.sleep(retry.value), post(config, bodyJson, options.timeout))
+    ? yield* Effect.andThen(Effect.sleep(retry.value), postChat(config, bodyJson, options.timeout))
     : first
   const latencyMs = (yield* Clock.currentTimeMillis) - started
   const call = (

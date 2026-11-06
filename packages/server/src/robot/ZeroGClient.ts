@@ -1,5 +1,5 @@
 import { DecideInput, DecideToolResult } from '@ethmumbai/protocol/Errand'
-import { Clock, Effect, Option, Redacted, Result, Schema } from 'effect'
+import { Clock, type Duration, Effect, Option, Redacted, Result, Schema } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import { parseDecision, ReplyMessage } from './DecideReply.ts'
@@ -143,7 +143,6 @@ export type ZeroGOutcome =
  * an `ok: false` outcome, which the errand turns into `safe_stop` (never a local fallback decision).
  */
 export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: ZeroGConfig, input: DecideInput) {
-  const client = yield* HttpClient.HttpClient
   const body = decideRequestBody(config.model, input, config.extraBody)
   const bodyJson = JSON.stringify(body)
   const started = yield* Clock.currentTimeMillis
@@ -153,24 +152,7 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
     inputJson: yield* recordedInput(input),
     brain: `${new URL(config.baseUrl).host}/${config.model}`,
   }
-  const reply = yield* client
-    .execute(
-      HttpClientRequest.post(`${config.baseUrl.replace(/\/+$/, '')}/chat/completions`).pipe(
-        HttpClientRequest.bearerToken(Redacted.value(config.apiKey)),
-        HttpClientRequest.bodyText(bodyJson, 'application/json'),
-      ),
-    )
-    .pipe(
-      Effect.flatMap((response) =>
-        Effect.map(response.text, (text) => ({
-          status: response.status,
-          text,
-          chatId: response.headers['zg-res-key'],
-        })),
-      ),
-      Effect.timeout(ZEROG_TIMEOUT),
-      Effect.result,
-    )
+  const reply = yield* postChat(config, bodyJson, ZEROG_TIMEOUT)
   const latencyMs = (yield* Clock.currentTimeMillis) - started
   const outcome = outcomeOf({ ...base, latencyMs }, reply)
   // The reason names the reply's shape (tool calls, text length), never its text or the prompt.
@@ -179,7 +161,32 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
   return outcome
 })
 
-type Reply = { readonly status: number; readonly text: string; readonly chatId: string | undefined }
+/** The router's raw answer: status, body text and the TEE-signed chat id (`ZG-Res-Key`). */
+export type Reply = { readonly status: number; readonly text: string; readonly chatId: string | undefined }
+
+/** `POST {ZG_BASE_URL}/chat/completions` with the bearer key; a transport error or the timeout is a failed `Result`. */
+export const postChat = (config: ZeroGConfig, bodyJson: string, timeout: Duration.Input) =>
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    return yield* client
+      .execute(
+        HttpClientRequest.post(`${config.baseUrl.replace(/\/+$/, '')}/chat/completions`).pipe(
+          HttpClientRequest.bearerToken(Redacted.value(config.apiKey)),
+          HttpClientRequest.bodyText(bodyJson, 'application/json'),
+        ),
+      )
+      .pipe(
+        Effect.flatMap((response) =>
+          Effect.map(response.text, (text): Reply => ({
+            status: response.status,
+            text,
+            chatId: response.headers['zg-res-key'],
+          })),
+        ),
+        Effect.timeout(timeout),
+        Effect.result,
+      )
+  })
 const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown))
 
 /** Classify the router's answer; every way it can be wrong is a failure with a reason, never a guessed decision. */

@@ -12,6 +12,7 @@ import type { Invoice } from '@ethmumbai/protocol/Invoice'
 import { Clock, Effect, Option, Schema } from 'effect'
 import { type Grant, isApprovalRequired } from './Budget.ts'
 import { encodeTeeProof } from './TeeProof.ts'
+import { zeroGCallColumns } from './ZeroGChat.ts'
 import type { ZeroGOutcome } from './ZeroGClient.ts'
 import type { CatalogueItem, Merchant } from '../merchant/Catalogue.ts'
 import { allRows, changes } from '../Sql.ts'
@@ -19,13 +20,7 @@ import { allRows, changes } from '../Sql.ts'
 export const DecisionRow = Schema.Struct({
   id: Schema.String,
   episode_id: Schema.String,
-  step: Schema.Finite,
-  model: Schema.String,
-  request_id: Schema.NullOr(Schema.String),
-  chat_id: Schema.NullOr(Schema.String),
-  provider: Schema.NullOr(Schema.String),
-  latency_ms: Schema.NullOr(Schema.Finite),
-  prompt_sha256: Schema.String,
+  ...zeroGCallColumns,
   input_json: Schema.String,
   action: DecisionAction,
   reason: Schema.NullOr(Schema.String),
