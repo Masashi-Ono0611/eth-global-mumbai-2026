@@ -115,7 +115,7 @@ const route = async (request: Request, env: Env): Promise<Response> => {
 }
 
 /**
- * Films under `/story/media/` run through this Worker (`runWorkerFirst` in alchemy.run.ts) because the asset layer
+ * Films under `/story/media/` and `/pitch/media/` run through this Worker (`runWorkerFirst` in alchemy.run.ts) because the asset layer
  * answers a Range request with the whole file, and Safari on iPhone will not play an mp4 without a 206. The files are
  * under 1 MB, so the slice is taken from the whole asset in memory.
  */
@@ -142,7 +142,7 @@ const media = async (request: Request, env: Env): Promise<Response> => {
 
 export default {
   fetch: (request: Request, env: Env) =>
-    (new URL(request.url).pathname.startsWith('/story/media/') ? media(request, env) : route(request, env)).catch((error: unknown) => {
+    (/^\/(story|pitch)\/media\//.test(new URL(request.url).pathname) ? media(request, env) : route(request, env)).catch((error: unknown) => {
       if (error instanceof Refused) return problem(error.status, error.message)
       console.error('comments: request failed', error)
       return problem(500, 'internal error')
