@@ -15,6 +15,8 @@ export default {
       project: ['src/**/*.ts!', 'test/**/*.ts', '*.ts'],
     },
     'apps/chip': { entry: ['src/main.ts!', 'test/**/*.test.ts'], project: ['src/**/*.ts!', 'test/**/*.ts'] },
+    // The simulator page (Vite loads src/main from index.html); vendor/ is Pollen's vendored Microduck game code.
+    'apps/sim': { entry: ['src/main.{ts,tsx}!'], project: ['src/**/*.{ts,tsx}!'], ignore: ['vendor/**'] },
     'apps/web': {
       entry: ['src/entry.ts!', 'src/entry.server.ts!', 'test/**/*.test.ts'],
       // tailwindcss is imported by styles.css (`@import 'tailwindcss'`), which Knip does not read.

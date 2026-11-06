@@ -1,0 +1,11 @@
+{
+  "name": "@ethmumbai/sim",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ethmumbai/chip": "workspace:*",
+    "@ethmumbai/protocol": "workspace:*",
+    "effect": "catalog:",
+    "viem": "catalog:"
+  }
+}

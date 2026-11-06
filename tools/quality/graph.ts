@@ -25,6 +25,8 @@ const directions: Readonly<Record<string, readonly string[]>> = {
   '@ethmumbai/auth': ['@ethmumbai/db'],
   '@ethmumbai/chain': ['@ethmumbai/protocol'],
   '@ethmumbai/chip': ['@ethmumbai/protocol'],
+  // The simulator page: its software chip runs apps/chip's client, policy and signer in the tab (viem allowed there).
+  '@ethmumbai/sim': ['@ethmumbai/chip', '@ethmumbai/protocol'],
   // The till talks to the app only over HTTP: no workspace imports.
   '@ethmumbai/merchant': [],
   '@ethmumbai/domain': [],
@@ -44,13 +46,14 @@ export const checkDirection = (from: string, to: string) => {
   if (from !== to && !directions[from]?.includes(to)) throw new Error(`Forbidden dependency: ${from} -> ${to}`)
 }
 
-export const assertBrowserSafe = (file: string, specifier: string) => {
+/** `allowViem`: the sim bundle signs with viem in the tab; the wallet bundle (apps/web) never may. */
+export const assertBrowserSafe = (file: string, specifier: string, allowViem = false) => {
   if (
     isBuiltin(specifier) ||
-    /^(node:|bun:|cloudflare:|@alchemy\.run\/cloudflare|@yielded\/auth-persistence|@effect\/sql-|drizzle-orm)/.test(
+    /^(node:|bun:|cloudflare:|@alchemy\.run\/cloudflare|@yielded\/auth-persistence|@effect\/(sql-|platform-(bun|node))|drizzle-orm)/.test(
       specifier,
     ) ||
-    /^(viem|@metamask\/)/.test(specifier) ||
+    (!allowViem && /^(viem|@metamask\/)/.test(specifier)) ||
     /^packages\/(server|db|chain)\//.test(file) ||
     /\/server\//.test(file) ||
     (file.startsWith('packages/auth/src/') && !/^packages\/auth\/src\/(client|config)\.ts$/.test(file))
@@ -150,16 +153,20 @@ export const checkGraph = async (root = '.') => {
       }),
     )
   }
-  const visited = new Set<string>()
-  const visitBrowser = (file: string) => {
+  const visitBrowser = (file: string, visited: Set<string>, allowViem: boolean) => {
     if (visited.has(file)) return
     visited.add(file)
     const requests = imports.get(file)
     if (requests === undefined) throw new Error(`Unresolved browser source ${file}`)
-    assertBrowserSafe(file, '')
-    for (const specifier of requests) assertBrowserSafe(file, specifier)
-    for (const target of edges.get(file) ?? []) visitBrowser(target)
+    assertBrowserSafe(file, '', allowViem)
+    for (const specifier of requests) assertBrowserSafe(file, specifier, allowViem)
+    for (const target of edges.get(file) ?? []) visitBrowser(target, visited, allowViem)
   }
-  visitBrowser('apps/web/src/entry.ts')
-  return { files: files.length, browserModules: visited.size }
+  const web = new Set<string>()
+  visitBrowser('apps/web/src/entry.ts', web, false)
+  // The sim bundle, once its entry exists: no server adapters either, but viem is allowed (its software chip signs).
+  const sim = new Set<string>()
+  for (const entry of ['apps/sim/src/main.ts', 'apps/sim/src/main.tsx'])
+    if (fileSet.has(entry)) visitBrowser(entry, sim, true)
+  return { files: files.length, browserModules: web.size + sim.size }
 }
