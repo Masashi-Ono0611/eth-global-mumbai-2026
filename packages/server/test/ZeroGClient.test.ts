@@ -132,6 +132,21 @@ describe('reading the decide call tolerantly, never inventing one', () => {
     })
   })
 
+  test('per-model extra fields are merged in, never over the spec fields', () => {
+    const body = decideRequestBody('m', input, {
+      chat_template_kwargs: { enable_thinking: false },
+      temperature: 0.7,
+      model: 'other',
+      tool_choice: 'auto',
+    })
+    expect(body).toMatchObject({
+      chat_template_kwargs: { enable_thinking: false },
+      temperature: 0,
+      model: 'm',
+      tool_choice: { type: 'function', function: { name: 'decide' } },
+    })
+  })
+
   test('an approval-required input carries the approval as structure', () => {
     const restricted = { ...input, policy: { payeeAllowlisted: false, restricted: true, approvalRequired: true } }
     expect(JSON.parse(decideRequestBody('m', restricted).messages[1]?.content ?? '{}')).toMatchObject({

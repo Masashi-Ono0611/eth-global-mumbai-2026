@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import type { DecideInput } from '@ethmumbai/protocol/Errand'
 import { Console, Effect, Option, Redacted, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
-import { decide, ZeroGBindings } from '../src/robot/ZeroGClient.ts'
+import { decide, ZeroGBindings, ZeroGExtraBody } from '../src/robot/ZeroGClient.ts'
 
 // One real 0G `decide` call, exactly as an errand makes it (spec §6), for a sample invoice under a sample policy.
 // Usage: bun packages/server/scripts/zg-probe.ts [--env-file .env.main.local] [--scenario chai|cigarettes]
@@ -39,6 +39,7 @@ const decodeSetting = <A>(schema: Schema.ConstraintDecoder<A>, names: ReadonlyAr
 const baseUrl = decodeSetting(ZeroGBindings.baseUrl, ['APP_ZG_BASE_URL', 'ZG_BASE_URL'])
 const apiKey = decodeSetting(ZeroGBindings.apiKey, ['APP_ZG_API_KEY', 'ZG_API_KEY'])
 const model = decodeSetting(ZeroGBindings.model, ['APP_ZG_MODEL', 'ZG_MODEL'])
+const extraBody = decodeSetting(ZeroGExtraBody, ['APP_ZG_EXTRA_JSON', 'ZG_EXTRA_JSON'])
 const merchant = setting('APP_MERCHANT_PAY_TO') ?? '0x000000000000000000000000000000000000c0de'
 const restricted = setting('APP_RESTRICTED_PAY_TO') ?? '0x000000000000000000000000000000000000dead'
 
@@ -61,34 +62,39 @@ const sampleInput = (kind: string): DecideInput => {
   }
 }
 
-const probe = Effect.gen(function* () {
-  if (baseUrl === undefined || apiKey === undefined || model === undefined) {
-    const missing = [
-      baseUrl === undefined ? 'APP_ZG_BASE_URL' : undefined,
-      apiKey === undefined ? 'APP_ZG_API_KEY' : undefined,
-      model === undefined ? 'APP_ZG_MODEL' : undefined,
-    ].filter((name) => name !== undefined)
-    yield* Console.error(`not configured: ${missing.join(', ')}`)
-    return 2
-  }
-  yield* Console.log(`router  ${new URL(baseUrl).host}`)
-  yield* Console.log(`model   ${model}`)
-  yield* Console.log(`case    ${scenario} (expect ${scenario === 'cigarettes' ? 'ask_human' : 'pay'})`)
-  const outcome = yield* decide({ baseUrl, apiKey: Redacted.make(apiKey), model }, sampleInput(scenario))
-  const { call } = outcome
-  yield* Console.log(`status  ${call.httpStatus ?? 'no answer'}`)
-  yield* Console.log(`latency ${call.latencyMs} ms`)
-  yield* Console.log(`request ${call.requestId ?? '-'}   chat ${call.chatId ?? '-'}   brain ${call.provider}`)
-  if (outcome.ok) {
-    const expected = scenario === 'cigarettes' ? 'ask_human' : 'pay'
+const missing = Object.entries({ APP_ZG_BASE_URL: baseUrl, APP_ZG_API_KEY: apiKey, APP_ZG_MODEL: model })
+  .filter(([, value]) => value === undefined)
+  .map(([name]) => name)
+const expected = scenario === 'cigarettes' ? 'ask_human' : 'pay'
+const extraKeys = extraBody === undefined ? '' : `  extra ${Object.keys(extraBody).join(', ')}`
+
+const report = (outcome: Effect.Success<ReturnType<typeof decide>>) =>
+  Effect.gen(function* () {
+    const { call } = outcome
+    yield* Console.log(`status  ${call.httpStatus ?? 'no answer'}`)
+    yield* Console.log(`latency ${call.latencyMs} ms`)
+    yield* Console.log(`request ${call.requestId ?? '-'}   chat ${call.chatId ?? '-'}   brain ${call.provider}`)
+    if (!outcome.ok) {
+      yield* Console.error(`failed  ${outcome.error}`)
+      if (outcome.detail !== null) yield* Console.error(`reply   ${outcome.detail}`)
+      return 1
+    }
     yield* Console.log(`decision ${outcome.result.action}: ${outcome.result.reason}`)
     if (outcome.result.action === expected) return 0
     yield* Console.error(`unexpected: the ${scenario} case should be ${expected}`)
     return 3
+  })
+
+const probe = Effect.gen(function* () {
+  if (baseUrl === undefined || apiKey === undefined || model === undefined) {
+    yield* Console.error(`not configured: ${missing.join(', ')}`)
+    return 2
   }
-  yield* Console.error(`failed  ${outcome.error}`)
-  if (outcome.detail !== null) yield* Console.error(`reply   ${outcome.detail}`)
-  return 1
+  yield* Console.log(`router  ${new URL(baseUrl).host}`)
+  yield* Console.log(`model   ${model}${extraKeys}`)
+  yield* Console.log(`case    ${scenario} (expect ${expected})`)
+  const config = { baseUrl, apiKey: Redacted.make(apiKey), model, ...(extraBody === undefined ? {} : { extraBody }) }
+  return yield* report(yield* decide(config, sampleInput(scenario)))
 })
 
 const code = await Effect.runPromise(probe.pipe(Effect.provide(FetchHttpClient.layer)))

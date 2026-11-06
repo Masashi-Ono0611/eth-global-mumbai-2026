@@ -6,10 +6,11 @@ import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
 import { evidenceRoutes } from './robot/Evidence.ts'
 import { robotRoutes } from './robot/routes.ts'
-import { ZeroGBindings } from './robot/ZeroGClient.ts'
+import { ZeroGBindings, ZeroGExtraBody } from './robot/ZeroGClient.ts'
 import { type Bindings, optionalBinding } from './Respond.ts'
 
 const EvidenceToken = Schema.String.check(Schema.isMinLength(16))
+const isUnset = (value: unknown) => value === undefined || value === '' || value === 'pending'
 
 /**
  * The merchant (§7), the chip protocol (§8), the Robot Agent's errands and the evidence queue (§6), from the Worker's
@@ -27,6 +28,10 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
   const baseUrl = yield* optionalBinding(env, 'ZG_BASE_URL', ZeroGBindings.baseUrl)
   const apiKey = yield* optionalBinding(env, 'ZG_API_KEY', ZeroGBindings.apiKey)
   const model = yield* optionalBinding(env, 'ZG_MODEL', ZeroGBindings.model)
+  // Usually absent; only a present but malformed value is worth a warning.
+  const extraBody = isUnset(env.ZG_EXTRA_JSON)
+    ? Option.none()
+    : yield* optionalBinding(env, 'ZG_EXTRA_JSON', ZeroGExtraBody)
   const evidenceToken = yield* optionalBinding(env, 'EVIDENCE_TOKEN', EvidenceToken)
   const payees = yield* merchantPayees(env)
   const errands: ErrandDeps = {
@@ -36,6 +41,7 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     zeroG: Option.map(Option.all({ baseUrl, apiKey, model }), (zeroG) => ({
       ...zeroG,
       apiKey: Redacted.make(zeroG.apiKey),
+      ...(Option.isSome(extraBody) ? { extraBody: extraBody.value } : {}),
     })),
     settlement,
     approvals,

@@ -10,6 +10,8 @@ export interface ZeroGConfig {
   readonly baseUrl: string
   readonly apiKey: Redacted.Redacted
   readonly model: string
+  /** `ZG_EXTRA_JSON`: per-model request fields (e.g. `{"chat_template_kwargs":{"enable_thinking":false}}`). */
+  readonly extraBody?: Readonly<Record<string, unknown>>
 }
 
 export const ZEROG_TIMEOUT = '10 seconds'
@@ -58,7 +60,13 @@ const DECIDE_TOOL = {
 } as const
 
 /** The exact `decide` call of spec §6: one forced tool call, temperature 0, structured input only (no frames). */
-export const decideRequestBody = (model: string, input: DecideInput) => ({
+export const decideRequestBody = (
+  model: string,
+  input: DecideInput,
+  extraBody: Readonly<Record<string, unknown>> = {},
+) => ({
+  // Model-specific extras first: the spec's fields below always win over them.
+  ...extraBody,
   model,
   temperature: 0,
   messages: [
@@ -115,7 +123,7 @@ export type ZeroGOutcome =
  */
 export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: ZeroGConfig, input: DecideInput) {
   const client = yield* HttpClient.HttpClient
-  const body = decideRequestBody(config.model, input)
+  const body = decideRequestBody(config.model, input, config.extraBody)
   const bodyJson = JSON.stringify(body)
   const started = yield* Clock.currentTimeMillis
   const base = {
@@ -218,6 +226,9 @@ const errorText = (error: unknown) =>
         ? '0G call timed out (10 s)'
         : `0G call failed: ${reason === undefined ? _tag : `${_tag}/${tagOf(reason)}`}`,
   })
+
+/** `ZG_EXTRA_JSON` / `APP_ZG_EXTRA_JSON`: a JSON object of extra request fields, merged under the spec's fields. */
+export const ZeroGExtraBody = Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown))
 
 /** Optional bindings: without all three, errands answer 503 "not configured" instead of deciding. */
 export const ZeroGBindings = {
