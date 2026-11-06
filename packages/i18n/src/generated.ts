@@ -44,7 +44,7 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.perDay': Readonly<Record<string, never>>
   'allowance.perPurchase': Readonly<Record<string, never>>
   'allowance.resets': { readonly time: string | number }
-  'allowance.ruleAsks': { readonly perPayment: string | number; readonly daily: string | number }
+  'allowance.ruleAsks': { readonly perPayment: string | number }
   'allowance.rulePerPurchase': { readonly amount: string | number }
   'allowance.ruleUntil': { readonly time: string | number }
   'allowance.ruleWhere': { readonly payee: string | number }
@@ -203,7 +203,6 @@ export interface MessageArgumentsByKey<T = string> {
   'home.sendSoon': Readonly<Record<string, never>>
   'home.soon': Readonly<Record<string, never>>
   'home.spent': { readonly amount: string | number }
-  'home.spentNone': Readonly<Record<string, never>>
   'home.stepAdd': Readonly<Record<string, never>>
   'home.stepAllowance': Readonly<Record<string, never>>
   'home.stepConnect': Readonly<Record<string, never>>
@@ -277,7 +276,9 @@ export interface MessageArgumentsByKey<T = string> {
   'receive.copy': Readonly<Record<string, never>>
   'receive.copyFailed': Readonly<Record<string, never>>
   'receive.note': Readonly<Record<string, never>>
+  'receive.on': Readonly<Record<string, never>>
   'receive.qrAlt': Readonly<Record<string, never>>
+  'receive.sendOnly': Readonly<Record<string, never>>
   'receive.title': Readonly<Record<string, never>>
   'robot.state': { readonly state: string | number }
   'robots.openConsole': Readonly<Record<string, never>>
@@ -369,7 +370,6 @@ export interface MessageArgumentsByKey<T = string> {
   'wallet.signInFirst': Readonly<Record<string, never>>
   'wallet.title': Readonly<Record<string, never>>
   'welcome.addRobot': Readonly<Record<string, never>>
-  'welcome.fundLead': Readonly<Record<string, never>>
   'welcome.fundTitle': Readonly<Record<string, never>>
   'welcome.fundWaiting': Readonly<Record<string, never>>
   'welcome.funded': { readonly balance: string | number }
@@ -385,4 +385,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'ba51d6d1034c8dbbe6bb84077bf32926e80360fa07ff8b22a8fc5f404b5885a4'
+export const catalogVersion = '5ebf6a2e28e14b543b1314b0ff4f310a339f149092f0b6d8691cc841dd18d412'

@@ -241,7 +241,7 @@ describe('/robot/:id', () => {
       Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
       Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
-      expect(text('left of 3.00 today')).toExist(),
+      expect(text('USDC left of 3.00 today')).toExist(),
       expect(role('meter', { name: 'Spent today: 2.10 of 3.00 USDC' })).toExist(),
       expect(text('Resets at', { exact: false })).toExist(),
     )
@@ -257,8 +257,8 @@ describe('/robot/:id', () => {
       Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(role('heading', { name: "Duck's allowance" })).toExist(),
-      expect(text('At most 0.30 for one purchase')).toExist(),
-      expect(text('Only at Duck Café')).toExist(),
+      expect(text('0.30 USDC max per purchase')).toExist(),
+      expect(text('Duck Café only')).toExist(),
       click(role('button', { name: "Stop Duck's allowance" })),
       Command.expectExact(Allowance.StopAllowance({ grantId: grant.id })),
       expect(role('button', { name: 'Stopping on Arc...' })).toBeDisabled(),
@@ -291,7 +291,7 @@ describe('/robot/:id', () => {
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(text('Robot details')).toExist(),
       expect(text('Chip (signs every payment)')).toExist(),
-      expect(text('0x0000 0000 0000 0000 0000 0000 0000 0000 000c 41f0')).toExist(),
+      expect(text('0x00000000000000000000000000000000000c41f0')).toExist(),
       expect(text('0xfeed')).toExist(),
     )
   })
@@ -311,7 +311,7 @@ describe('/robot/:id', () => {
       click(role('radio', { name: '1 week' })),
       expect(
         text(
-          'Duck can spend up to 5.00 USDC a day, only at Duck Café, for the next week. A purchase over 1.00 asks you first in World App; nothing goes past 5.00 a day. Arc enforces this, so not even our server can go past it.',
+          'Duck can spend up to 5.00 USDC a day at Duck Café, for the next week. Over 1.00 asks you in World App. Arc enforces it; not even our server can go past.',
         ),
       ).toExist(),
       click(role('button', { name: 'Confirm with passkey' })),

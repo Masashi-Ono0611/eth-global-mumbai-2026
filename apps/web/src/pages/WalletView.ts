@@ -7,8 +7,8 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { type EpisodeActivity, leftToday, type RobotView, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
-import { receiveBody } from '../Receive.ts'
-import { robotConsoleRouter, robotsRouter, welcomeRouter } from '../route.ts'
+import { onlyUsdcOnArc, receiveBody } from '../Receive.ts'
+import { episodeRouter, episodesRouter, robotConsoleRouter, robotsRouter, welcomeRouter } from '../route.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
 import { walletSkeleton } from '../Skeleton.ts'
 import { failedView, signedOutView } from './Shared.ts'
@@ -21,7 +21,7 @@ const pageClassName = 'grid gap-0 pb-6 transition-opacity duration-150 starting:
 const balanceClassName = 'grid min-w-0 gap-0.5 px-2 pt-3'
 const amountClassName =
   'font-display text-[clamp(2.75rem,16vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.02em] wrap-anywhere'
-const amountUnitClassName = 'ml-1.5 text-[1.4rem] font-bold tracking-normal'
+const amountUnitClassName = 'ml-1.5 inline-block text-[1.4rem] font-bold tracking-normal whitespace-nowrap'
 const spentClassName = 'text-muted'
 const pillRowClassName = 'flex flex-wrap gap-1.5 px-1 pt-4 pb-1'
 const pillClassName =
@@ -51,7 +51,10 @@ const rowLineClassName = 'block truncate text-[0.94rem] text-muted'
 const badgeClassName =
   'grid h-[22px] min-w-[22px] place-items-center rounded-full bg-duck px-1.5 text-[0.8rem] font-bold'
 const addFaceClassName = 'grid size-[52px] place-items-center rounded-full bg-paper text-2xl text-ink'
-const paymentRowClassName = 'flex justify-between gap-3 px-4 py-3 [&>span:first-child]:min-w-0'
+const paymentRowClassName =
+  'flex min-h-11 justify-between gap-3 px-4 py-3 text-ink no-underline [&>span:first-child]:min-w-0'
+const sectionHeadClassName = 'flex items-baseline justify-between gap-3 pr-2'
+const sectionLinkClassName = 'inline-flex min-h-11 items-center text-[0.94rem] font-semibold text-muted'
 const paymentSubClassName = 'block text-[0.92rem] text-muted'
 const onZeroGClassName = 'ml-1.5 rounded-full bg-paid/10 px-1.5 text-[0.75rem] font-semibold text-paid'
 const paymentAmountClassName = 'shrink-0 text-right font-semibold whitespace-nowrap'
@@ -61,7 +64,6 @@ const stepsCardClassName = 'mx-1 mt-3 grid gap-2 rounded-card bg-surface p-4'
 const stepRowClassName = 'grid min-h-11 grid-cols-[1.25rem_1fr_auto] items-center gap-2'
 const stepActionClassName =
   'inline-flex min-h-10 cursor-pointer items-center rounded-control bg-ink px-3.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
-const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
 
@@ -72,14 +74,10 @@ const balanceView = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Html 
       home.wallet.balance === null
         ? h.p([h.Class('text-muted')], [format(locale, 'home.balanceUnknown', {})])
         : h.p([h.Class(amountClassName)], [home.wallet.balance.usdc, h.span([h.Class(amountUnitClassName)], ['USDC'])]),
-      h.p(
-        [h.Class(spentClassName)],
-        [
-          home.spentLastDay === '0'
-            ? format(locale, 'home.spentNone', {})
-            : format(locale, 'home.spent', { amount: usdc(home.spentLastDay) }),
-        ],
-      ),
+      // Nothing spent is said by the empty Payments list; the line shows only when money moved.
+      home.spentLastDay === '0'
+        ? h.empty
+        : h.p([h.Class(spentClassName)], [format(locale, 'home.spent', { amount: usdc(home.spentLastDay) })]),
     ],
   )
 
@@ -255,31 +253,37 @@ const savedOnZeroG = (home: Home, episodeId: string) =>
 const paymentRow = (episode: EpisodeActivity, onZeroG: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const paid = episode.state === 'paid'
   const live = !terminalStates.has(episode.state)
-  const amount = episode.amount === null ? '—' : usdc(episode.amount)
+  const amount = episode.amount === null ? '—' : `${usdc(episode.amount)} USDC`
+  // The whole row opens the errand's proof (DESIGN.md: the proof stays one tap away).
   return h.keyed('li')(
     episode.id,
-    [h.Class(paymentRowClassName)],
+    [],
     [
-      h.span(
-        [],
+      h.a(
+        [h.Href(episodeRouter({ episodeId: episode.id })), h.Class(paymentRowClassName)],
         [
-          h.span([h.Class('font-semibold')], [itemName(episode.item)]),
           h.span(
-            [h.Class(paymentSubClassName)],
+            [],
             [
-              format(locale, 'home.paymentBy', { robot: episode.robotName, state: episode.state }),
-              onZeroG ? h.span([h.Class(onZeroGClassName)], [format(locale, 'proof.onZeroG', {})]) : h.empty,
+              h.span([h.Class('font-semibold')], [itemName(episode.item)]),
+              h.span(
+                [h.Class(paymentSubClassName)],
+                [
+                  format(locale, 'home.paymentBy', { robot: episode.robotName, state: episode.state }),
+                  onZeroG ? h.span([h.Class(onZeroGClassName)], [format(locale, 'proof.onZeroG', {})]) : h.empty,
+                ],
+              ),
             ],
           ),
-        ],
-      ),
-      h.span(
-        [h.Class(paymentAmountClassName)],
-        [
-          paid ? h.span([], [`−${amount}`]) : live ? h.span([], [amount]) : h.s([h.Class('text-muted')], [amount]),
           h.span(
-            [h.Class(clsx(paid ? paidClassName : paymentSubClassName))],
-            [format(locale, paid ? 'home.paid' : live ? 'home.pending' : 'home.notPaid', {})],
+            [h.Class(paymentAmountClassName)],
+            [
+              paid ? h.span([], [`−${amount}`]) : live ? h.span([], [amount]) : h.s([h.Class('text-muted')], [amount]),
+              h.span(
+                [h.Class(clsx(paid ? paidClassName : paymentSubClassName))],
+                [format(locale, paid ? 'home.paid' : live ? 'home.pending' : 'home.notPaid', {})],
+              ),
+            ],
           ),
         ],
       ),
@@ -301,7 +305,7 @@ const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<M
           [
             h.h2([...render.title, h.Class(sheetTitleClassName)], [format(locale, 'receive.title', {})]),
             ...receiveBody({ address, copy: model.copy, onCopy: Message.ClickedCopyAddress({ address }), locale, h }),
-            h.p([...render.description, h.Class(noteClassName)], [format(locale, 'receive.note', {})]),
+            onlyUsdcOnArc(locale, h, render.description),
           ],
           format(locale, 'profile.close', {}),
           h,
@@ -423,7 +427,18 @@ const loadedView = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<Mes
       h.section(
         [h.AriaLabelledBy('payments')],
         [
-          h.h2([h.Id('payments'), h.Class(sectionTitleClassName)], [format(locale, 'home.payments', {})]),
+          h.div(
+            [h.Class(sectionHeadClassName)],
+            [
+              h.h2([h.Id('payments'), h.Class(sectionTitleClassName)], [format(locale, 'home.payments', {})]),
+              home.activity.episodes.length === 0
+                ? h.empty
+                : h.a(
+                    [h.Href(episodesRouter()), h.Class(sectionLinkClassName)],
+                    [format(locale, 'episode.allRecords', {})],
+                  ),
+            ],
+          ),
           home.activity.episodes.length === 0
             ? h.p([h.Class(emptyClassName)], [format(locale, 'home.noPayments', {})])
             : h.ul(
