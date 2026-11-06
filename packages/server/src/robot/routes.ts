@@ -7,6 +7,7 @@ import { latestSignedGrant } from './Budget.ts'
 import { decisionsOf } from './Decide.ts'
 import { type EpisodeRow, type ErrandDeps, readEpisode, tickRobot } from './Errands.ts'
 import { readEvidence } from './Evidence.ts'
+import { openIntent, settleIntents } from './Intents.ts'
 import { errandSetup, need, runErrand, signedGrant } from './Start.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { leaseOf, readRobot } from '../chip/Lease.ts'
@@ -112,12 +113,15 @@ const readRobotView = (deps: ErrandDeps) =>
   Effect.gen(function* () {
     const robot = yield* ownRobot(deps, (yield* HttpRouter.params).robotId)
     if (Option.isNone(robot)) return yield* jsonError(404, 'unknown robot')
-    yield* tickRobot(deps.database, robot.value.id)
+    yield* settleIntents(deps.database, robot.value.id)
+    const intent = yield* openIntent(deps.database, robot.value.id)
     const grant = yield* latestSignedGrant(deps.database, robot.value.id)
     const { id, name, kind, status, chip_address, paired_at, last_poll_at } = robot.value
     return yield* json({
       robot: { id, name, kind, status, chipAddress: chip_address, pairedAt: paired_at, lastPollAt: last_poll_at },
       lease: leaseOf(robot.value, yield* Clock.currentTimeMillis),
+      // The newest open errand intent (running or scanned), so the conversation resumes after a reload.
+      openIntentId: Option.match(intent, { onNone: () => null, onSome: (row) => row.id }),
       grant: Option.match(grant, {
         onNone: () => null,
         onSome: ({ row, dailyCap, perPaymentCap, allowlist }) => ({

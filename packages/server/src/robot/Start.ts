@@ -17,7 +17,7 @@ import { nowSeconds } from '../Respond.ts'
 // Starting an errand (spec §6 queued → deciding → …), shared by the owner's console and the chip's scans.
 
 /** The robot's demo merchant (the catalogue's only one). */
-const MERCHANT_ID = 'duck-cafe'
+export const MERCHANT_ID = 'duck-cafe'
 
 /** Everything an errand start needs, checked by the caller (session route or chip scan). */
 export interface ErrandContext {

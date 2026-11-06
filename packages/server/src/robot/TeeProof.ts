@@ -102,13 +102,16 @@ const noProof = (why: string) =>
   Effect.logWarning(`0G TEE proof unavailable: ${why}`).pipe(Effect.as(Option.none<TeeProof>()))
 
 /**
- * The provider TEE's signature for a successful decision's chat, checked against the registry's signer. `None` for a
- * failed decision, a reply without a chat id or provider, or any step that does not answer in time.
+ * The provider TEE's signature for one answered 0G chat (a decision or a navigation turn), checked against the
+ * registry's signer. `None` for a reply without a chat id or provider, or any step that does not answer in time.
  */
-export const proveDecision = Effect.fnUntraced(function* (registry: TeeRegistry, outcome: ZeroGOutcome) {
-  const { chatId, routedTo } = outcome.call
+export const proveChat = Effect.fnUntraced(function* (
+  registry: TeeRegistry,
+  call: { readonly chatId: string | null; readonly routedTo: string | null },
+) {
+  const { chatId, routedTo } = call
   const provider = Option.getOrUndefined(Schema.decodeUnknownOption(Address)(routedTo))
-  if (!outcome.ok || chatId === null || provider === undefined) return Option.none<TeeProof>()
+  if (chatId === null || provider === undefined) return Option.none<TeeProof>()
   const service = yield* readService(registry, provider)
   if (Option.isNone(service)) return yield* noProof('the provider registry did not answer')
   const signer = signingAddressOf(service.value)
@@ -124,6 +127,10 @@ export const proveDecision = Effect.fnUntraced(function* (registry: TeeRegistry,
     verified: yield* teeSignerMatches(proof),
   })
 })
+
+/** {@link proveChat} for a successful decision; a failed decision has no proof. */
+export const proveDecision = (registry: TeeRegistry, outcome: ZeroGOutcome) =>
+  outcome.ok ? proveChat(registry, outcome.call) : Effect.succeed(Option.none<TeeProof>())
 
 /** `decisions.tee_json`: the proof as the protocol encodes it; `null` without one. */
 export const encodeTeeProof = (proof: Option.Option<TeeProof>) =>

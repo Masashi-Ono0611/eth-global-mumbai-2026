@@ -9,6 +9,8 @@ import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
 import { auditRoutes, ZG_CHAIN_RPC_DEFAULT } from './robot/Audit.ts'
 import { evidenceRoutes } from './robot/Evidence.ts'
+import { intentRoutes } from './robot/Intents.ts'
+import { navRoutes } from './robot/Nav.ts'
 import { ZG_COMPUTE_RPC_DEFAULT, ZG_INFERENCE_CONTRACT_DEFAULT } from './robot/TeeProof.ts'
 import { robotRoutes } from './robot/routes.ts'
 import { scanRoutes } from './robot/Scans.ts'
@@ -75,8 +77,11 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     robotRoutes(errands),
     evidenceRoutes(database, Option.map(evidenceToken, Redacted.make)),
     auditRoutes(errands, media, Option.all({ address: episodeLogAddress, rpcUrl: chainRpc })),
-    // Scan-initiated errands exist only while SCANS_ENABLED is `true`; otherwise the path is not mounted (404).
-    scansEnabled(env) ? scanRoutes(errands, media) : Layer.empty,
+    // Scan-initiated errands, the owner's errand intents and the simulator's 0G navigation exist only while
+    // SCANS_ENABLED is `true`; otherwise their paths are not mounted (404).
+    scansEnabled(env)
+      ? Layer.mergeAll(scanRoutes(errands, media), intentRoutes(errands), navRoutes(errands))
+      : Layer.empty,
   )
   return { layer, errands }
 })
