@@ -10,6 +10,7 @@ import { decisionsOf } from './Decide.ts'
 import { type EpisodeRow, type ErrandDeps, readEpisode } from './Errands.ts'
 import { readEvidence } from './Evidence.ts'
 import { frameSha256, type ObservationRow, observationsOf, scanSignedBy } from './Observations.ts'
+import { decodeTeeProof, teeSignerMatches } from './TeeProof.ts'
 import { decide } from './ZeroGClient.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { readRobot } from '../chip/Lease.ts'
@@ -100,6 +101,19 @@ const checkObservations = Effect.fnUntraced(function* (
   return yield* Effect.forEach(rows, (row) => checkObservation(media, chipAddress, row))
 })
 
+/** Each stored TEE proof re-checked: does its signature over `text` recover to the signer the registry named? */
+const checkTee = Effect.fnUntraced(function* (deps: ErrandDeps, episode: EpisodeRow) {
+  const proofs = (yield* decisionsOf(deps.database, episode.id)).flatMap((decision) =>
+    Option.toArray(decodeTeeProof(decision.tee_json)),
+  )
+  const matches = yield* Effect.forEach(proofs, teeSignerMatches)
+  return {
+    present: proofs.length > 0,
+    signerMatches: proofs.length > 0 && matches.every(Boolean),
+    signer: proofs[0]?.signer ?? null,
+  }
+})
+
 const verify = (deps: ErrandDeps, media: ReadWriteBucketClient, config: Option.Option<EpisodeLogConfig>) =>
   Effect.gen(function* () {
     const episode = yield* ownEpisode(deps)
@@ -127,6 +141,8 @@ const verify = (deps: ErrandDeps, media: ReadWriteBucketClient, config: Option.O
       downloadCheckedBy: 'uploader',
       // Each scan's crop re-read from R2 and re-hashed, and its chip signature recovered (`[]` without scans).
       observations: yield* checkObservations(deps, media, episode.value),
+      // The decision's provider TEE signature recovered again (`present: false` without a proof).
+      tee: yield* checkTee(deps, episode.value),
     })
   })
 

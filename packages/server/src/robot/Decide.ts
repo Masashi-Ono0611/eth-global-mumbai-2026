@@ -6,10 +6,12 @@ import {
   DecisionOutcome,
   type DecisionAction as Action,
   type DecisionOutcome as Outcome,
+  type TeeProof,
 } from '@ethmumbai/protocol/Errand'
 import type { Invoice } from '@ethmumbai/protocol/Invoice'
-import { Clock, Effect, Schema } from 'effect'
+import { Clock, Effect, Option, Schema } from 'effect'
 import { type Grant, isApprovalRequired } from './Budget.ts'
+import { encodeTeeProof } from './TeeProof.ts'
 import type { ZeroGOutcome } from './ZeroGClient.ts'
 import type { CatalogueItem, Merchant } from '../merchant/Catalogue.ts'
 import { allRows, changes } from '../Sql.ts'
@@ -30,6 +32,8 @@ export const DecisionRow = Schema.Struct({
   outcome: Schema.NullOr(DecisionOutcome),
   outcome_ref: Schema.NullOr(Schema.String),
   error: Schema.NullOr(Schema.String),
+  /** The provider TEE's proof for this chat (protocol `TeeProof` as JSON), or null without one. */
+  tee_json: Schema.NullOr(Schema.String),
   created_at: Schema.Finite,
 })
 export type DecisionRow = typeof DecisionRow.Type
@@ -73,15 +77,18 @@ export const recordDecision = Effect.fnUntraced(function* (
   episodeId: string,
   step: number,
   outcome: ZeroGOutcome,
+  tee: Option.Option<TeeProof> = Option.none(),
 ) {
   const id = yield* generateId
+  const teeJson = yield* encodeTeeProof(tee)
   const createdAt = yield* Clock.currentTimeMillis
   const { call } = outcome
   const action = actionOf(outcome)
   yield* database
     .prepare(
       `INSERT INTO decisions (id, episode_id, step, model, request_id, chat_id, provider, latency_ms, prompt_sha256,
-        input_json, action, reason, outcome, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        input_json, action, reason, outcome, error, tee_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(episode_id, step) DO NOTHING`,
     )
     .bind(
@@ -99,6 +106,7 @@ export const recordDecision = Effect.fnUntraced(function* (
       outcome.ok ? outcome.result.reason : null,
       action === 'safe_stop' ? 'safe_stop' : action === 'walk_away' ? 'walked_away' : null,
       outcome.ok ? null : outcome.error,
+      teeJson,
       createdAt,
     )
     .run()

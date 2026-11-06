@@ -9,6 +9,7 @@ import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
 import { auditRoutes, ZG_CHAIN_RPC_DEFAULT } from './robot/Audit.ts'
 import { evidenceRoutes } from './robot/Evidence.ts'
+import { ZG_COMPUTE_RPC_DEFAULT, ZG_INFERENCE_CONTRACT_DEFAULT } from './robot/TeeProof.ts'
 import { robotRoutes } from './robot/routes.ts'
 import { scanRoutes } from './robot/Scans.ts'
 import { ZeroGBindings, ZeroGExtraBody } from './robot/ZeroGClient.ts'
@@ -44,6 +45,13 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
   const chainRpc = isUnset(env.ZG_CHAIN_RPC)
     ? Option.some(ZG_CHAIN_RPC_DEFAULT)
     : yield* optionalBinding(env, 'ZG_CHAIN_RPC', ZeroGBindings.baseUrl)
+  // The 0G Compute provider registry for decisions' TEE proofs: mainnet unless the stack points elsewhere.
+  const computeRpc = isUnset(env.ZG_COMPUTE_RPC)
+    ? Option.none()
+    : yield* optionalBinding(env, 'ZG_COMPUTE_RPC', ZeroGBindings.baseUrl)
+  const inference = isUnset(env.ZG_INFERENCE_CONTRACT)
+    ? Option.none()
+    : yield* optionalBinding(env, 'ZG_INFERENCE_CONTRACT', Address)
   const payees = yield* merchantPayees(env)
   const errands: ErrandDeps = {
     database,
@@ -56,6 +64,10 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     })),
     settlement,
     approvals,
+    teeRegistry: {
+      rpcUrl: Option.getOrElse(computeRpc, () => ZG_COMPUTE_RPC_DEFAULT),
+      inference: Option.getOrElse(inference, () => ZG_INFERENCE_CONTRACT_DEFAULT),
+    },
   }
   const layer = Layer.mergeAll(
     yield* merchantRoutes(database, env, origin, settlement, payees),

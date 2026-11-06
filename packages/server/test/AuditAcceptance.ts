@@ -1,9 +1,9 @@
 import { expect } from 'bun:test'
 import type { TestApi } from 'alchemy/Test/Bun'
-import { Effect, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
-import { encodeAbiParameters, getAddress, type Hex, keccak256, stringToHex } from 'viem'
+import { encodeAbiParameters, encodeFunctionResult, getAddress, type Hex, keccak256, parseAbi, stringToHex } from 'viem'
 import { freshConnections, randomId } from './AgentSamples.ts'
 import { chaiDecideInput } from './DecideSamples.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
@@ -20,10 +20,54 @@ type ChainRecord = {
 /** The EpisodeLog address the native stack binds (no contract runs there: the stub chain answers for it). */
 export const TEST_EPISODE_LOG = '0x00000000000000000000000000000000000e9105'
 
-const decodeRpcCall = Schema.decodeUnknownSync(Schema.Struct({ id: Schema.Finite, method: Schema.String }))
+/** The 0G Compute inference contract the native stack binds (the stub chain answers `getService` for it). */
+export const TEST_INFERENCE = '0x00000000000000000000000000000000000c0de5'
 
-/** A 0G Chain stand-in on 127.0.0.1: every `eth_call` answers `EpisodeLog.records` with the record set last. */
-export const startChainStub = () => {
+const decodeRpcCall = Schema.decodeUnknownSync(
+  Schema.Struct({
+    id: Schema.Finite,
+    method: Schema.String,
+    params: Schema.optionalKey(Schema.Array(Schema.Unknown)),
+  }),
+)
+const CallTarget = Schema.Struct({ to: Schema.String })
+
+const servingAbi = parseAbi([
+  'struct Service { address provider; string serviceType; string url; uint256 inputPrice; uint256 outputPrice; uint256 updatedAt; string model; string verifiability; string additionalInfo; address teeSignerAddress; bool teeSignerAcknowledged; }',
+  'function getService(address provider) view returns (Service service)',
+])
+
+/** The stub provider's registry entry: a TeeML service whose TEE signs chats at `url` (the 0G stub). */
+export interface TeeService {
+  readonly url: string
+  readonly model: string
+  readonly signer: Hex
+}
+
+const serviceResult = (tee: TeeService) =>
+  encodeFunctionResult({
+    abi: servingAbi,
+    functionName: 'getService',
+    result: {
+      provider: `0x${'00'.repeat(19)}f0`,
+      serviceType: 'chatbot',
+      url: tee.url,
+      inputPrice: 0n,
+      outputPrice: 0n,
+      updatedAt: 0n,
+      model: tee.model,
+      verifiability: 'TeeML',
+      additionalInfo: JSON.stringify({ TargetSeparated: false, TargetTeeAddress: '' }),
+      teeSignerAddress: tee.signer,
+      teeSignerAcknowledged: true,
+    },
+  })
+
+/**
+ * A 0G Chain stand-in on 127.0.0.1. An `eth_call` to the inference contract answers `getService` with the stub
+ * provider's TeeML entry; every other `eth_call` answers `EpisodeLog.records` with the record set last.
+ */
+export const startChainStub = (tee: TeeService) => {
   let record: ChainRecord = {
     rootHash: `0x${'00'.repeat(32)}`,
     requestIdsHash: `0x${'00'.repeat(32)}`,
@@ -38,12 +82,14 @@ export const startChainStub = () => {
       const result =
         call.method === 'eth_chainId'
           ? '0x40da'
-          : call.method === 'eth_call'
-            ? encodeAbiParameters(
-                [{ type: 'bytes32' }, { type: 'bytes32' }, { type: 'address' }, { type: 'uint64' }],
-                [record.rootHash, record.requestIdsHash, record.recorder, record.recordedAt],
-              )
-            : null
+          : call.method === 'eth_call' && isInferenceCall(call.params)
+            ? serviceResult(tee)
+            : call.method === 'eth_call'
+              ? encodeAbiParameters(
+                  [{ type: 'bytes32' }, { type: 'bytes32' }, { type: 'address' }, { type: 'uint64' }],
+                  [record.rootHash, record.requestIdsHash, record.recorder, record.recordedAt],
+                )
+              : null
       return Response.json(
         result === null
           ? { jsonrpc: '2.0', id: call.id, error: { code: -32601, message: 'method not found' } }
@@ -59,6 +105,11 @@ export const startChainStub = () => {
   }
 }
 export type ChainStub = ReturnType<typeof startChainStub>
+
+const isInferenceCall = (params: ReadonlyArray<unknown> | undefined) =>
+  Schema.decodeUnknownOption(CallTarget)(params?.[0]).pipe(
+    Option.exists(({ to }) => to.toLowerCase() === TEST_INFERENCE),
+  )
 
 const Verified = Schema.Struct({
   matches: Schema.Struct({ rootHash: Schema.Boolean, requestIdsHash: Schema.Boolean }),

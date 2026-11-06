@@ -132,6 +132,7 @@ const audit: EpisodeAudit = {
       outcome: 'paid',
       outcome_ref: null,
       error: null,
+      tee_json: null,
       created_at: at + 3000,
     },
   ],

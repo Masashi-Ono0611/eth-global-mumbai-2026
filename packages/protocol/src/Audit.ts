@@ -19,6 +19,8 @@ export const AuditDecision = Schema.Struct({
   outcome: Schema.NullOr(Schema.String),
   outcome_ref: Schema.NullOr(Schema.String),
   error: Schema.NullOr(Schema.String),
+  /** The provider TEE's proof (`TeeProof` as JSON), or null when the decision has none. */
+  tee_json: Schema.NullOr(Schema.String),
   created_at: Schema.Finite,
 })
 export type AuditDecision = typeof AuditDecision.Type

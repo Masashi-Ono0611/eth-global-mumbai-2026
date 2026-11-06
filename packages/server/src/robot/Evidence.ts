@@ -8,6 +8,7 @@ import type * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { decisionsOf } from './Decide.ts'
 import type { EpisodeRow } from './Errands.ts'
 import { evidenceObservation, observationsOf } from './Observations.ts'
+import { decodeTeeProof } from './TeeProof.ts'
 import { json, jsonError, notConfigured, nowSeconds, sha256Hex } from '../Respond.ts'
 import { allRows, changes, firstRow } from '../Sql.ts'
 
@@ -66,6 +67,8 @@ export const enqueueEvidence = Effect.fn('EthMumbai.Robot.enqueueEvidence')(func
       action: decision.action,
       reason: decision.reason,
       outcome: decision.outcome,
+      // The provider TEE's proof when one was fetched; absent otherwise, so older evidence is byte-identical.
+      ...Option.match(decodeTeeProof(decision.tee_json), { onNone: () => ({}), onSome: (tee) => ({ tee }) }),
     })),
     outcome: {
       state: episode.state,

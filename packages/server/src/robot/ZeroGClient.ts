@@ -100,6 +100,8 @@ export interface ZeroGCall {
    * a 0G decision from a rehearsal brain. Stored in `decisions.provider`.
    */
   readonly provider: string
+  /** The 0G provider address the router routed to (`x_0g_trace.provider`), for its TEE proof; null otherwise. */
+  readonly routedTo: string | null
   readonly latencyMs: number
   readonly promptSha256: string
   readonly inputJson: string
@@ -163,7 +165,7 @@ const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknow
 
 /** Classify the router's answer; every way it can be wrong is a failure with a reason, never a guessed decision. */
 const outcomeOf = (
-  base: Omit<ZeroGCall, 'requestId' | 'chatId' | 'provider' | 'httpStatus'> & { readonly brain: string },
+  base: Omit<ZeroGCall, 'requestId' | 'chatId' | 'provider' | 'routedTo' | 'httpStatus'> & { readonly brain: string },
   reply: Result.Result<Reply, unknown>,
 ): ZeroGOutcome => {
   const { brain, ...fields } = base
@@ -177,6 +179,7 @@ const outcomeOf = (
     requestId,
     chatId,
     provider: routedTo === null ? brain : `${brain}@${routedTo}`,
+    routedTo,
     httpStatus,
   })
   if (Result.isFailure(reply))

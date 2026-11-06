@@ -7,6 +7,7 @@ import { type Grant, isApprovalRequired, latestSignedGrant, spentInPeriod } from
 import { claimInvoice, findOpenInvoice } from './CounterInvoice.ts'
 import { actionOf, decideInput, recordDecision } from './Decide.ts'
 import { type ErrandDeps, insertEpisode, queueSigning, readEpisode, tickRobot, transition } from './Errands.ts'
+import { proveDecision } from './TeeProof.ts'
 import { decide, type ZeroGConfig, type ZeroGOutcome } from './ZeroGClient.ts'
 import type { RobotRow } from '../chip/Lease.ts'
 import { type CatalogueItem, findMerchant, type Merchant, type Payees } from '../merchant/Catalogue.ts'
@@ -159,7 +160,9 @@ export const runErrand = Effect.fnUntraced(function* (
     Effect.provide(FetchHttpClient.layer),
   )
   const action = actionOf(outcome)
-  yield* recordDecision(database, episodeId, 1, outcome)
+  // The provider TEE's signature for this chat, fetched now (it is served ~20 min only); no proof never changes the action.
+  const tee = yield* proveDecision(deps.teeRegistry, outcome).pipe(Effect.provide(FetchHttpClient.layer))
+  yield* recordDecision(database, episodeId, 1, outcome, tee)
   const approvalUrl = yield* afterDecision(deps, { episodeId, robot, grant, invoice, outcome, action })
   const episode = yield* readEpisode(database, episodeId)
   return {

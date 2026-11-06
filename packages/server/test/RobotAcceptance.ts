@@ -1,10 +1,12 @@
 import { expect } from 'bun:test'
 import type { TestApi } from 'alchemy/Test/Bun'
+import { TeeProof } from '@ethmumbai/protocol/Errand'
 import { Effect, Schema } from 'effect'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import type { HttpClientError } from 'effect/http/HttpClientError'
 import type { HttpClientResponse } from 'effect/http/HttpClientResponse'
+import { keccak256, sha256, stringToHex } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { freshConnections, grantRow, randomId, sampleGrant } from './AgentSamples.ts'
 import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
@@ -18,19 +20,33 @@ export const TEST_ZG_API_KEY = 'native-test-zg-key-0123456789'
 export const TEST_ZG_MODEL = 'native-stub-model'
 export const TEST_EVIDENCE_TOKEN = 'native-test-evidence-token-0123456789'
 
+/** The stub provider's TEE key (throwaway, never funded): it signs each chat as a TeeML provider does. */
+const teeAccount = privateKeyToAccount(keccak256(stringToHex('vitaquack native test tee signer')))
+export const TEST_TEE_SIGNER = teeAccount.address
+const notFound = () => new Response('not found', { status: 404 })
+const teeSignature = async (chatId: string) => {
+  const text = `zg-sig-v1/e2ee-ct:${sha256(stringToHex(`${chatId}/request`)).slice(2)}:${sha256(stringToHex(`${chatId}/response`)).slice(2)}`
+  const signature = await teeAccount.signMessage({ message: text })
+  return { text, signature, signing_address: teeAccount.address.toLowerCase(), signing_algo: 'ecdsa' }
+}
+
 /**
  * A stand-in for the 0G router on 127.0.0.1: answers the `decide` tool call with `pay`, hangs past the 10 s timeout,
  * or returns something that is not a tool call. It records what it was sent so the test can check the request shape.
  */
 export const startZeroGStub = () => {
   let mode: StubMode = 'pay'
+  let signatures = true
   let calls = 0
   const seen: Array<{ readonly authorization: string | null; readonly body: unknown }> = []
   const server = Bun.serve({
     hostname: '127.0.0.1',
     port: 0,
     fetch: async (request) => {
-      if (new URL(request.url).pathname !== '/v1/chat/completions') return new Response('not found', { status: 404 })
+      const path = new URL(request.url).pathname
+      if (path.startsWith('/v1/proxy/signature/'))
+        return signatures ? Response.json(await teeSignature(path.slice('/v1/proxy/signature/'.length))) : notFound()
+      if (path !== '/v1/chat/completions') return notFound()
       calls += 1
       seen.push({ authorization: request.headers.get('authorization'), body: await request.json() })
       if (mode === 'timeout') await Bun.sleep(12_000)
@@ -54,8 +70,14 @@ export const startZeroGStub = () => {
   })
   return {
     baseUrl: `http://127.0.0.1:${server.port}/v1`,
+    /** The provider's service URL in the registry: the same stub serves `/v1/proxy/signature/<chatId>`. */
+    serviceUrl: `http://127.0.0.1:${server.port}`,
     setMode: (next: StubMode) => {
       mode = next
+    },
+    /** Off: the provider no longer serves signatures (404), as after ~20 minutes. */
+    setSignatures: (on: boolean) => {
+      signatures = on
     },
     seen,
   }
@@ -80,6 +102,7 @@ const ErrandView = Schema.Struct({
       request_id: Schema.NullOr(Schema.String),
       chat_id: Schema.NullOr(Schema.String),
       error: Schema.NullOr(Schema.String),
+      tee_json: Schema.NullOr(Schema.String),
     }),
   ),
   chipRequest: Schema.NullOr(Schema.Struct({ status: Schema.String })),
@@ -214,6 +237,8 @@ const thaliNeedsApproval = (input: {
   Effect.gen(function* () {
     const { url, appUrl, accountId, stub, call } = input
     stub.setMode('ask')
+    // The provider no longer serves the signature: no proof, and the decision is unchanged.
+    stub.setSignatures(false)
     const robotId = yield* seedRobot(url, accountId, freshChip())
     const created = yield* call(`/api/robots/${robotId}/errands`, { item: 'thali' })
     expect(created.status).toBe(201)
@@ -233,6 +258,46 @@ const thaliNeedsApproval = (input: {
     expect(evidence).toMatchObject({
       payload: { item: 'thali', decisions: [{ action: 'ask_human', outcome: 'denied' }], outcome: { state: 'denied' } },
     })
+    const unproven = yield* Schema.decodeUnknownEffect(EvidenceTee)(evidence)
+    expect(unproven.payload.decisions[0] !== undefined && 'tee' in unproven.payload.decisions[0]).toBe(false)
+    stub.setSignatures(true)
+  })
+
+const StoredProof = Schema.fromJsonString(TeeProof)
+const EvidenceTee = Schema.Struct({
+  payload: Schema.Struct({ decisions: Schema.Array(Schema.Struct({ tee: Schema.optionalKey(TeeProof) })) }),
+})
+const VerifiedTee = Schema.Struct({
+  tee: Schema.Struct({ present: Schema.Boolean, signerMatches: Schema.Boolean, signer: Schema.NullOr(Schema.String) }),
+})
+
+/**
+ * The paid errand's decision carries the stub provider TEE's proof, fetched at decision time. The signer comes from the
+ * registry (stub chain), `verified`, the same in the evidence, and verify recovers it again.
+ */
+const teeProofRecorded = (input: {
+  readonly appUrl: string
+  readonly cookie: string
+  readonly robotId: string
+  readonly episodeId: string
+  readonly stub: ZeroGStub
+}) =>
+  Effect.gen(function* () {
+    const { appUrl, cookie, robotId, episodeId, stub } = input
+    const view = yield* errandView(appUrl, cookie, robotId, episodeId)
+    const proof = yield* Schema.decodeUnknownEffect(StoredProof)(view.decisions[0]?.tee_json)
+    expect(proof).toMatchObject({ signer: TEST_TEE_SIGNER, serviceUrl: stub.serviceUrl, verified: true })
+    expect(proof.signingAddress.toLowerCase()).toBe(TEST_TEE_SIGNER.toLowerCase())
+    expect(proof.text).toMatch(/^zg-sig-v1\/e2ee-ct:[0-9a-f]{64}:[0-9a-f]{64}$/)
+    const evidence = yield* (yield* HttpClient.get(`${appUrl}/api/evidence/${episodeId}`)).json
+    expect((yield* Schema.decodeUnknownEffect(EvidenceTee)(evidence)).payload.decisions[0]?.tee).toEqual(proof)
+    const verified = yield* HttpClient.post(`${appUrl}/api/wallet/episodes/${episodeId}/verify`, {
+      headers: { origin: new URL(appUrl).origin, cookie },
+    }).pipe(
+      Effect.flatMap((response) => response.json),
+      Effect.flatMap(Schema.decodeUnknownEffect(VerifiedTee)),
+    )
+    expect(verified.tee).toEqual({ present: true, signerMatches: true, signer: TEST_TEE_SIGNER })
   })
 
 /** A Worker that died mid-settle must not wedge the robot: the next read ends the errand from what D1 recorded. */
@@ -324,6 +389,7 @@ export const registerRobotAcceptance = (test: TestApi['test'], stack: Effect.Eff
       const busy = yield* call(`/api/robots/${robot}/errands`, { item: 'chai' }, cookie)
       expect(busy.status).toBe(409)
       yield* gateInvoiceIsPaid({ appUrl, url, cookie, robotId: robot, episodeId: paying.episodeId, gateInvoice })
+      yield* teeProofRecorded({ appUrl, cookie, robotId: robot, episodeId: paying.episodeId, stub })
 
       stub.setMode('timeout')
       const slowRobot = yield* seedRobot(url, accountId, freshChip())

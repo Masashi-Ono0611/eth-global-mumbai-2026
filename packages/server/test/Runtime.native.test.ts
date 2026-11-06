@@ -9,7 +9,7 @@ import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { type Browser, chromium } from 'playwright'
 import { keccak256, stringToHex } from 'viem'
-import { registerAuditAcceptance, startChainStub, TEST_EPISODE_LOG } from './AuditAcceptance.ts'
+import { registerAuditAcceptance, startChainStub, TEST_EPISODE_LOG, TEST_INFERENCE } from './AuditAcceptance.ts'
 import { verifyBrowser } from './BrowserAcceptance.ts'
 import { registerChainAcceptance } from './ChainAcceptance.ts'
 import { registerChipAcceptance, registerMockChipAcceptance } from './ChipAcceptance.ts'
@@ -25,6 +25,7 @@ import {
   registerRobotAcceptance,
   startZeroGStub,
   TEST_EVIDENCE_TOKEN,
+  TEST_TEE_SIGNER,
   TEST_ZG_API_KEY,
   TEST_ZG_MODEL,
 } from './RobotAcceptance.ts'
@@ -41,8 +42,8 @@ import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 
 // The 0G router stand-in runs in this process; the Worker reaches it on 127.0.0.1.
 const zeroG = startZeroGStub()
-// The 0G Chain stand-in answers EpisodeLog.records for the audit acceptance.
-const chainStub = startChainStub()
+// The 0G Chain stand-in answers EpisodeLog.records (audit) and the provider registry (decisions' TEE proofs).
+const chainStub = startChainStub({ url: zeroG.serviceUrl, model: TEST_ZG_MODEL, signer: TEST_TEE_SIGNER })
 
 const makeStack = (generation: string) =>
   Alchemy.Stack(
@@ -90,6 +91,9 @@ const makeStack = (generation: string) =>
           ZG_MODEL: TEST_ZG_MODEL,
           EPISODE_LOG_ADDRESS: TEST_EPISODE_LOG,
           ZG_CHAIN_RPC: chainStub.url,
+          // The stub chain also plays 0G Compute's provider registry, for decisions' TEE proofs.
+          ZG_COMPUTE_RPC: chainStub.url,
+          ZG_INFERENCE_CONTRACT: TEST_INFERENCE,
           // Off in the first generation (the flag-off 404 runs there), on after the restart test (ScanAcceptance.ts).
           SCANS_ENABLED: generation === 'after' ? 'true' : 'pending',
           // Derived throwaway keys (no literal, never funded): with a relayer the x402 402 and the errand paths run;

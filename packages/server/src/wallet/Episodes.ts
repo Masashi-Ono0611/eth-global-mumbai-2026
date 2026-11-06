@@ -116,7 +116,7 @@ const readRows = Effect.fn('EthMumbai.Wallet.episodeRows')(function* (deps: Wall
   return {
     decisions: yield* byEpisode(
       `SELECT id, step, model, request_id, chat_id, provider, latency_ms, prompt_sha256, input_json, action, reason,
-         outcome, outcome_ref, error, created_at FROM decisions WHERE episode_id = ? ORDER BY step, created_at`,
+         outcome, outcome_ref, error, tee_json, created_at FROM decisions WHERE episode_id = ? ORDER BY step, created_at`,
       DecisionAuditRow,
     ),
     chipRequests: yield* byEpisode(

@@ -14,6 +14,7 @@ import { Clock, Effect, Option, Schema } from 'effect'
 import { type Grant, latestSignedGrant } from './Budget.ts'
 import { settleDecision } from './Decide.ts'
 import { enqueueEvidence } from './Evidence.ts'
+import type { TeeRegistry } from './TeeProof.ts'
 import type { ZeroGConfig } from './ZeroGClient.ts'
 import type { ChipHooks, PaymentReport } from '../chip/Hooks.ts'
 import { readRobot, type RobotRow } from '../chip/Lease.ts'
@@ -63,6 +64,8 @@ export interface ErrandDeps {
   readonly zeroG: Option.Option<ZeroGConfig>
   readonly settlement: Option.Option<Settlement>
   readonly approvals: ApprovalPort
+  /** Where a decision's TEE proof is checked (0G Compute's provider registry). */
+  readonly teeRegistry: TeeRegistry
 }
 
 /** The World approval seam (Wallet, spec §9): creates the `approvals` row and returns the owner's approval page. */
