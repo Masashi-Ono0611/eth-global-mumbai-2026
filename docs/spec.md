@@ -429,8 +429,19 @@ in real life that the robot wants an approval, paid, was refused, or lost its al
 Telegram informs and **may deny, never approve** (Kris, 18:30 IST): a **Deny** button under the approval message
 denies that approval only when the chat is linked to the approval's account and the approval is still waiting (the
 same `denyApproval` path the approval page uses; fail-safe, nothing is signed); approving stays World ID gated on
-`/wallet/approvals/:id`, the Arc enforcer is unchanged, and the chip never sees the token. A later v2 (a signed
-one-time link straight into the World sign-in, bound to the owner's `world_sub`) is a proposal, not this build.
+`/wallet/approvals/:id`, the Arc enforcer is unchanged, and the chip never sees the token. **One-time World link from Telegram (built 7 Nov 00:30 IST by the onboarding session, Kris's ask):** once the owner's
+account has a bound `world_sub` (from an earlier approval), the `approval_needed` message also carries **Approve with
+World ID**. Each render mints a fresh single-use link `/api/world/link?approval=<id>&t=<24 random bytes, base64url>`;
+only the token's sha256 is stored (`auth_challenges` kind `world_link`, ref = the approval). The link works for that one
+approval, expires when the approval closes (300 s), is spent atomically on first use, checks the approval belongs to the
+token's account and that `world_sub` is still set, and then sends the same World redirect the session route sends: it
+**stands in for the passkey session only**. The approval still requires the fresh World sign-in (`max_age=0`,
+`prompt=login`, the approval's EIP-712 nonce, PKCE, `jti` once, the bound World account). Telegram itself still only
+denies. Before a World account is bound, or for a used, late, foreign or forged link, or with a World that does not bind
+subjects (the rehearsal stub), the button falls back to the approval page with its passkey sign-in. An attempt opened
+from a link ends on a small no-session result page (approved / not approved / expired); the Telegram paid or denied
+message follows. Native acceptance proves minting, the button, single use and the fallbacks against the stub World; the
+happy path through the real World IdP is **untested** until Kris runs it on the deployed app.
 
 - **Link.** The wallet's avatar sheet has **Connect Telegram**: `POST /api/telegram/link` (session, same origin) answers a
   single-use code (10 min) and the page opens `https://t.me/vitaquack_bot?start=<code>`. Telegram calls
