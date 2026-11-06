@@ -94,6 +94,9 @@ export const loadWallet = getJson('/api/wallet', WalletView)
 export const loadActivity = getJson('/api/wallet/activity', ActivityView)
 export const listRobots = getJson('/api/robots', Schema.Struct({ robots: Schema.Array(RobotView) }))
 export const addRobot = (name: string, kind: RobotKind) => postJson('/api/robots', { name, kind }, AddedRobot)
+/** Give up on a robot still waiting for its chip, so Add robot starts fresh. */
+export const cancelPairing = (robotId: string) =>
+  postJson(`/api/robots/${encodeURIComponent(robotId)}/cancel`, {}, Schema.Struct({ cancelled: Schema.Boolean }))
 
 export type GrantTerms = {
   readonly robotId: string

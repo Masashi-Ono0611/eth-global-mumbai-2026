@@ -20,6 +20,27 @@ export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Ef
   registerEpisodesAcceptance(test, stack)
 }
 
+/** Cancel a pairing: never a stranger's robot, then gone for the owner; a second cancel finds nothing. */
+const cancelPairingChecks = (appUrl: string, cookie: string, strangerCookie: string, keptRobotId: string) =>
+  Effect.gen(function* () {
+    const call = passkeyCall(appUrl)
+    const waiting = yield* Schema.decodeUnknownEffect(AddedRobot)(
+      yield* (yield* call('/api/robots', { name: 'Hallway Duck' }, cookie)).json,
+    )
+    const cancel = `/api/robots/${waiting.robotId}/cancel`
+    expect((yield* call(cancel, {})).status).toBe(401)
+    expect((yield* call(cancel, {}, strangerCookie)).status).toBe(404)
+    const cancelled = yield* call(cancel, {}, cookie)
+    expect(cancelled.status).toBe(200)
+    expect(yield* cancelled.json).toEqual({ cancelled: true })
+    expect((yield* call(cancel, {}, cookie)).status).toBe(404)
+    const afterCancel = yield* HttpClient.get(`${appUrl}/api/robots`, { headers: { cookie } })
+    const remaining = yield* Schema.decodeUnknownEffect(
+      Schema.Struct({ robots: Schema.Array(Schema.Struct({ id: Schema.String })) }),
+    )(yield* afterCancel.json)
+    expect(remaining.robots.map(({ id }) => id)).toEqual([keptRobotId])
+  })
+
 const walletGuards = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
   test(
     'wallet: owner-scoped robots with pairing codes, session and Origin guards, grant limits enforced',
@@ -61,6 +82,8 @@ const walletGuards = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
         headers: { cookie: sessionCookie(stranger.response) },
       })
       expect(yield* strangers.json).toEqual({ robots: [] })
+
+      yield* cancelPairingChecks(appUrl, cookie, sessionCookie(stranger.response), robot.robotId)
 
       const options = yield* call(
         '/api/wallet/grants/options',

@@ -7,7 +7,7 @@ import * as Navigation from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
 import { RobotKind } from '@ethmumbai/protocol/Intent'
 import { isSignedOut } from '../api/Http.ts'
-import { AddedRobot, addRobot, listRobots, loadCatalogue } from '../api/Wallet.ts'
+import { AddedRobot, addRobot, cancelPairing, listRobots, loadCatalogue } from '../api/Wallet.ts'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
 import { robotConsoleRouter } from '../route.ts'
@@ -58,6 +58,8 @@ export const Message = defineMessageUnion({
   SucceededWatch: { robotId: Schema.String, paired: Schema.Boolean, nowMillis: Schema.Number },
   FailedWatch: { robotId: Schema.String },
   ClickedStartOver: {},
+  ClickedCancelPairing: {},
+  CompletedCancelPairing: {},
   GotAllowanceMessage: { message: Allowance.Message },
   CompletedOpenRobot: {},
 })
@@ -126,6 +128,13 @@ export const WatchPairing = Command.define('WatchPairing', {
     }).pipe(Effect.catch(() => Effect.succeed(Message.FailedWatch({ robotId })))),
 })
 
+/** Drops the robot that was waiting for its chip (a failure leaves it; the next load would resume it). @internal */
+export const CancelPairing = Command.define('CancelPairing', {
+  args: { robotId: Schema.String },
+  messages: [Message.CompletedCancelPairing],
+  execute: ({ robotId }) => cancelPairing(robotId).pipe(Effect.ignore, Effect.as(Message.CompletedCancelPairing())),
+})
+
 /** Granted: the robot's conversation (a full load; the app has no client-side routing). @internal */
 export const OpenRobot = Command.define('OpenRobot', {
   args: { robotId: Schema.String },
@@ -143,7 +152,8 @@ export const init = (): UpdateReturn => ({
   model: {
     stage: Stage.Loading(),
     name: '',
-    kind: 'chip',
+    // Most owners meet the duck in the browser first; a real robot is one tap away.
+    kind: 'sim',
     merchantName: 'Duck Café',
     allowance: Allowance.init('', Option.none(), true),
   },
@@ -222,6 +232,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ? { model, commands: [WatchPairing({ robotId, delayMillis: WATCH_MILLIS * 2 })] }
         : { model },
     ClickedStartOver: () => ({ model: modifyFields(model, { stage: () => Stage.Naming() }) }),
+    // The wrong kind, or no chip at hand: forget this robot and ask again (its watch ends with the Pairing stage).
+    ClickedCancelPairing: () =>
+      Stage.guards.Pairing(model.stage)
+        ? {
+            model: modifyFields(model, { stage: () => Stage.Naming(), kind: () => 'sim' as const }),
+            commands: [CancelPairing({ robotId: model.stage.robot.robotId })],
+          }
+        : { model },
+    CompletedCancelPairing: () => ({ model }),
     GotAllowanceMessage: ({ message: allowanceMessage }) =>
       Stage.guards.Connected(model.stage) ? foldAllowance(model, allowanceMessage, model.stage.robotId) : { model },
     CompletedOpenRobot: () => ({ model }),

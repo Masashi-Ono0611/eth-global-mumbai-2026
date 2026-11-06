@@ -295,6 +295,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'addRobot.waiting': 'Waiting for {name} to connect...',
   'addRobot.expired': 'The code expired before the robot connected. Start again for a new one.',
   'addRobot.startOver': 'Start again',
+  'addRobot.cancelPairing': 'Cancel and start again',
   'addRobot.connected': '{name} connected',
   'addRobot.hello': 'Hello! My chip made its own key, and it stays on me. How much can I spend?',
   'addRobot.kindLegend': 'Kind of robot',

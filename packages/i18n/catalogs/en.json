@@ -294,6 +294,7 @@
     "waiting": "Waiting for {name} to connect...",
     "expired": "The code expired before the robot connected. Start again for a new one.",
     "startOver": "Start again",
+    "cancelPairing": "Cancel and start again",
     "connected": "{name} connected",
     "hello": "Hello! My chip made its own key, and it stays on me. How much can I spend?",
     "kindLegend": "Kind of robot",

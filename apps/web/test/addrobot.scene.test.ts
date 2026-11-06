@@ -33,6 +33,7 @@ describe('/wallet/robots (add a robot)', () => {
       { update: AddRobot.update, view },
       given(loaded(Option.none()).model),
       expect(text("Is it a real robot or the simulator, and what's it called?")).toExist(),
+      click(role('radio', { name: 'Real robot' })),
       type(label('Robot name'), 'Duck'),
       submit(selector('form')),
       Command.expectExact(AddRobot.AddNamedRobot({ name: 'Duck', kind: 'chip' })),
@@ -60,6 +61,32 @@ describe('/wallet/robots (add a robot)', () => {
       Command.resolve(Allowance.GrantAllowance, Allowance.Message.SucceededGrant()),
       Command.expectExact(AddRobot.OpenRobot({ robotId: added.robotId })),
       Command.resolve(AddRobot.OpenRobot, AddRobot.Message.CompletedOpenRobot()),
+    )
+  })
+
+  test('the simulator is the default kind', () => {
+    scene(
+      { update: AddRobot.update, view },
+      given(loaded(Option.none()).model),
+      expect(role('radio', { name: 'Simulator' })).toBeChecked(),
+      type(label('Robot name'), 'Sim Duck'),
+      submit(selector('form')),
+      Command.expectExact(AddRobot.AddNamedRobot({ name: 'Sim Duck', kind: 'sim' })),
+      Command.resolve(AddRobot.AddNamedRobot, AddRobot.Message.FailedAddRobot({ error: 'offline' })),
+    )
+  })
+
+  test('a resumed pairing can be cancelled: the robot is dropped and the name is asked again', () => {
+    scene(
+      { update: AddRobot.update, view },
+      given(loaded(Option.some(added)).model),
+      expect(text('K7Q2 M9XZ')).toExist(),
+      click(role('button', { name: 'Cancel and start again' })),
+      Command.expectExact(AddRobot.CancelPairing({ robotId: added.robotId })),
+      Command.resolve(AddRobot.CancelPairing, AddRobot.Message.CompletedCancelPairing()),
+      expect(text("Is it a real robot or the simulator, and what's it called?")).toExist(),
+      expect(role('radio', { name: 'Simulator' })).toBeChecked(),
+      expect(text('K7Q2 M9XZ')).not.toExist(),
     )
   })
 

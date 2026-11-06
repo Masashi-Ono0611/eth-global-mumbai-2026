@@ -4,6 +4,7 @@ import type { FormatXMLElementFn } from 'intl-messageformat'
 export type RichTextValue<T = string> = FormatXMLElementFn<T>
 export interface MessageArgumentsByKey<T = string> {
   'addRobot.askName': Readonly<Record<string, never>>
+  'addRobot.cancelPairing': Readonly<Record<string, never>>
   'addRobot.close': Readonly<Record<string, never>>
   'addRobot.connected': { readonly name: string | number }
   'addRobot.expired': Readonly<Record<string, never>>
@@ -315,4 +316,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'dc016f980f8fd83ebafed76d246d2265601e8311401964029b9ce18af62b4cf6'
+export const catalogVersion = 'e3c076d98a95b770958116ebe7a9731656c6359c97e1ebfa3fa40a439cc95c76'

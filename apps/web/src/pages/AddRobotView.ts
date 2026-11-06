@@ -163,6 +163,10 @@ const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
         [h.Role('status'), h.Class(systemClassName)],
         [workingDots(h), format(locale, 'addRobot.waiting', { name: robot.name })],
       ),
+      h.button(
+        [h.Type('button'), h.Class(linkButtonClassName), h.OnClick(Message.ClickedCancelPairing())],
+        [format(locale, 'addRobot.cancelPairing', {})],
+      ),
     ],
     Expired: ({ robot }) => [
       h.p([h.Class(ownerBubbleClassName)], [robot.name]),
