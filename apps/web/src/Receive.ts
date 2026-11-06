@@ -17,11 +17,10 @@ export type Copy = typeof Copy.Type
  * The QR's text: an EIP-681 payment request for the wallet on Arc (`ethereum:<address>@5042`), so a wallet app that
  * scans it opens a send to this address on the right network. The address is printed and copyable beside it.
  */
-export const paymentRequest = (address: string) => `ethereum:${address}@${ARC_CHAIN_ID}`
+const paymentRequest = (address: string) => `ethereum:${address}@${ARC_CHAIN_ID}`
 
 /** Four-character groups, so an address can be read aloud and checked by eye. */
-export const grouped = (address: string) =>
-  address.slice(0, 6) + ' ' + (address.slice(6).match(/.{1,4}/g) ?? []).join(' ')
+const grouped = (address: string) => address.slice(0, 6) + ' ' + (address.slice(6).match(/.{1,4}/g) ?? []).join(' ')
 
 const qrFrameClassName = 'justify-self-center rounded-[26px] bg-surface p-4 shadow-[0_0_0_1px_var(--color-rule)]'
 const qrClassName = 'block size-48'
