@@ -59,7 +59,7 @@ components:
 
 Vitaquack is a passkey wallet on Arc that gives robots a USDC budget. The wallet is for the robot's owner, not for
 crypto users: it says what happened in plain words, and the proof (Arc transactions, 0G request ids, 0G Storage
-records) stays one tap away behind "Show proof". Each robot is a conversation. The owner taps what to buy, the robot
+records) stays one tap away behind "Show proof". Each robot is a conversation. The owner asks for something, the robot
 reports each step back as a message, and when it needs the owner it asks inside the message with the buttons there.
 Light only, phone first.
 
@@ -90,7 +90,7 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
 
 ## Components
 
-- Owner bubble: right-aligned, ink. It holds what the owner asked for ("Buy chai").
+- Owner bubble: right-aligned, ink. It holds what the owner asked for ("Get me a chai").
 - Robot bubble: left-aligned, white. It is written from the errand's real state. 0G's reason is quoted word for
   word under a rule. The invoice QR is drawn from the invoice URL and is never presented as a camera frame.
 - Asking bubble: duck yellow, with Approve with World ID and No inside it. It is used only for an approval that
@@ -98,10 +98,11 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
 - Receipt: inside a robot bubble. Paid amount in the amount face, a paid check, "Show proof" and a muted "On Arc",
   then one quiet status line ("Saved on 0G" with a check, or "Saving to 0G..."). The 0G Storage, EpisodeLog and
   frame links live on the errand's page behind Show proof, never in the thread.
+- Proof pages (`/app/proofs`, public): the errand page's audit cards and buttons (`EpisodeParts.ts`), showing only
+  what is already public on 0G.
 - System pill: centred and muted, for events that are not anyone's words ("Duck connected at 15:56").
 - Get me pills: one fully round pill per catalogue item ("Get me a chai" and its price, quiet, "0.10 USDC") in a single
-  row that scrolls sideways. A
-  pill sends the same intent as typed words; the robot fetches it (a real duck waits for its own scan). There is no
+  row that scrolls sideways. A pill sends the same intent as typed words; the robot fetches it (a real duck waits for its own scan). There is no
   pay-now button (Kris, 7 Nov).
 - Composer: one card-radius surface with the owner's words on top and a toolbar inside it: the brain menu on the
   left, a round ink Send arrow on the right (disabled while the field is empty). With one brain the toolbar folds
@@ -149,4 +150,5 @@ Motion says the app heard the owner and that work is under way; it never decorat
 - Do say "restricted item" and "needs your OK". Never call it an age check.
 - Don't write a robot message that the errand's state does not support, and never invent a 0G decision. That holds
   for Vita's voice too: no model text is spoken.
-- Don't show camera frames; show what the robot reads.
+- Don't show camera frames in the thread; show what the robot reads. Frames appear only as evidence, on the errand's
+  page and the proof page.
