@@ -6,7 +6,7 @@ import type { ConsoleRobot, Decision, ErrandDetail } from '../api/Robot.ts'
 import { type Catalogue, explorerTx, usdc } from '../api/Wallet.ts'
 import { ConsoleState, Errand, isLive, Message, type Model } from './RobotConsole.ts'
 import { robotsRouter } from '../route.ts'
-import { signedOutView } from './Wallet.ts'
+import { failedView, signedOutView } from './Shared.ts'
 
 // VIEW
 
@@ -151,13 +151,7 @@ export const robotConsoleView = Submodel.defineView<Model, Message, { readonly l
       ConsoleState.match(model.state, {
         Loading: () => [h.p([h.Role('status')], [format(locale, 'common.loading', {})])],
         SignedOut: () => [signedOutView(locale, h)],
-        Failed: ({ error }) => [
-          h.p([h.Role('alert')], [format(locale, 'common.errorDetail', { message: error })]),
-          h.button(
-            [h.Type('button'), h.Class('primary-action'), h.OnClick(Message.ClickedRefresh())],
-            [format(locale, 'common.retry', {})],
-          ),
-        ],
+        Failed: ({ error }) => [failedView(error, Message.ClickedRefresh(), locale, h)],
         Loaded: ({ robot, catalogue }) => [
           h.h1([], [robot.robot.name]),
           robotHeader(robot, locale, h),

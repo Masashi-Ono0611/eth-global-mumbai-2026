@@ -148,7 +148,7 @@ export const RevokeGrant = Command.define('RevokeGrant', {
     }).pipe(Effect.catch((error) => Effect.succeed(Message.FailedRevokeGrant({ failure: actionFailureOf(error) })))),
 })
 
-export type Services = HttpClient.HttpClient | Passkeys
+type Services = HttpClient.HttpClient | Passkeys
 
 // INIT
 

@@ -99,7 +99,7 @@ export const PollErrand = Command.define('PollErrand', {
     ),
 })
 
-export type Services = HttpClient.HttpClient
+type Services = HttpClient.HttpClient
 
 // INIT
 

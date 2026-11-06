@@ -7,7 +7,8 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { isSignedOut } from '../api/Http.ts'
-import { homeRouter, robotsRouter } from '../route.ts'
+import { robotsRouter } from '../route.ts'
+import { failedView, signedOutView } from './Shared.ts'
 import {
   ActivityView,
   type EpisodeActivity,
@@ -21,7 +22,7 @@ import {
 
 // MODEL
 
-export const WalletState = defineTaggedUnion({
+const WalletState = defineTaggedUnion({
   Loading: {},
   SignedOut: {},
   Loaded: { wallet: WalletView, activity: ActivityView },
@@ -140,16 +141,6 @@ const loadedView = (wallet: WalletView, activity: ActivityView, locale: Locale, 
     ],
   )
 
-/** The sign-in hint every owner page shows when its session is gone. */
-export const signedOutView = <M>(locale: Locale, h: HtmlBuilder<M>): Html =>
-  h.section(
-    [h.Class('signed-out')],
-    [
-      h.p([h.Role('alert')], [format(locale, 'wallet.signInFirst', {})]),
-      h.a([h.Href(homeRouter()), h.Class('primary-action')], [format(locale, 'auth.signInWithPasskey', {})]),
-    ],
-  )
-
 /** `/wallet`: balance, fund instructions and activity. */
 export const view = Submodel.defineView<Model, Message, { readonly locale: Locale }>((model, { locale }, h) =>
   h.main(
@@ -160,17 +151,7 @@ export const view = Submodel.defineView<Model, Message, { readonly locale: Local
         Loading: () => h.p([h.Role('status')], [format(locale, 'common.loading', {})]),
         SignedOut: () => signedOutView(locale, h),
         Loaded: ({ wallet, activity }) => loadedView(wallet, activity, locale, h),
-        Failed: ({ error }) =>
-          h.section(
-            [],
-            [
-              h.p([h.Role('alert')], [format(locale, 'common.errorDetail', { message: error })]),
-              h.button(
-                [h.Type('button'), h.Class('primary-action'), h.OnClick(Message.ClickedReload())],
-                [format(locale, 'common.retry', {})],
-              ),
-            ],
-          ),
+        Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
       }),
     ],
   ),

@@ -1,15 +1,17 @@
 import { AssertionRequest } from '@ethmumbai/auth'
 import { arcAddresses } from '@ethmumbai/chain/Env'
-import { buildRevoke, redeemCalldata, revokeExecution } from '@ethmumbai/chain/Grant'
+import { rpc } from '@ethmumbai/chain/Arc'
+import { buildRevoke, delegationManagerAbi, redeemCalldata, revokeExecution } from '@ethmumbai/chain/Grant'
 import { encodePermissionContext } from '@ethmumbai/chain/Hashes'
 import { Delegation, delegationDigest } from '@ethmumbai/protocol/Delegation'
-import { Effect, Layer, Schema } from 'effect'
+import { isHex } from '@ethmumbai/protocol/Hex'
+import { Effect, Layer, Option, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import { decodeBody } from '../auth/Routes.ts'
 import { CurrentSession, requireSession, type SessionAccount } from '../auth/Session.ts'
 import { json } from '../Respond.ts'
 import type { GrantRow } from '../robot/Budget.ts'
-import { changes } from '../Sql.ts'
+import { changes, firstRow } from '../Sql.ts'
 import type { WalletDeps } from './Deps.ts'
 import { answerWalletErrors, ChainFailed, Conflict, required } from './Errors.ts'
 import { readGrant } from './Grants.ts'
@@ -54,6 +56,48 @@ const setStatus = (deps: WalletDeps, grantId: string, from: string, to: string, 
       .bind(to, tx, grantId, from),
   )
 
+const revokeKey = (row: GrantRow) => `revoke:${row.delegation_hash}`
+
+const RelayerRow = Schema.Struct({ status: Schema.String, tx_hash: Schema.NullOr(Schema.String) })
+
+/**
+ * A revoke whose outcome the request did not see (receipt timeout, a second attempt, a store failure after the send):
+ * Arc is the authority. Disabled on the DelegationManager → `revoked`; no broadcast or a failed one → `active` again
+ * (the owner may retry); otherwise still `revoking`. Also run lazily by `GET /api/robots`.
+ */
+export const finalizeRevoke = Effect.fn('EthMumbai.Wallet.finalizeRevoke')(function* (deps: WalletDeps, row: GrantRow) {
+  const relayed = yield* firstRow(
+    deps.database.prepare('SELECT status, tx_hash FROM relayer_txs WHERE key = ?').bind(revokeKey(row)),
+    RelayerRow,
+  )
+  const hash = row.delegation_hash
+  const disabled = yield* Option.match(
+    Option.filter(deps.arc, () => isHex(hash)),
+    {
+      onNone: () => Effect.succeed(false),
+      onSome: (arc) =>
+        rpc('disabledDelegations', () =>
+          arc.readContract({
+            address: arcAddresses.delegationManager,
+            abi: delegationManagerAbi,
+            functionName: 'disabledDelegations',
+            args: [isHex(hash) ? hash : '0x'],
+          }),
+        ).pipe(Effect.orElseSucceed(() => false)),
+    },
+  )
+  if (disabled) {
+    const tx = Option.getOrNull(Option.flatMap(relayed, (relayer) => Option.fromNullishOr(relayer.tx_hash)))
+    yield* setStatus(deps, row.id, 'revoking', 'revoked', tx)
+    return 'revoked' as const
+  }
+  if (Option.isNone(relayed) || relayed.value.status === 'failed') {
+    yield* setStatus(deps, row.id, 'revoking', 'active', null)
+    return 'active' as const
+  }
+  return 'revoking' as const
+})
+
 /** `POST /api/wallet/grants/:id/revoke/sign`: the relayer redeems the signed revoke, so Arc's DelegationManager
  * disables the grant (`revoke:<delegationHash>`); the next payment under it reverts `CannotUseADisabledDelegation`. */
 const revokeSign = (deps: WalletDeps) =>
@@ -78,22 +122,27 @@ const revokeSign = (deps: WalletDeps) =>
       return yield* Conflict.make({ detail: 'grant is no longer active' })
     const sent = yield* relayer
       .send({
-        key: `revoke:${row.delegation_hash}`,
+        key: revokeKey(row),
         kind: 'revoke',
         to: arcAddresses.delegationManager,
         data: redeemCalldata(encodePermissionContext([{ ...revoke, signature }]), revokeExecution(grant)),
       })
       .pipe(
+        Effect.map(Option.some),
         Effect.catchTags({
-          AlreadySubmitted: ({ status }) => restoreAndFail(`already submitted (${status})`),
-          RelayerError: ({ message }) => restoreAndFail(message),
-          RelayerStoreError: ({ message }) => restoreAndFail(message),
+          // Never broadcast: nothing changed on Arc, so the grant is active again and the owner may retry.
+          RelayerError: (error) => (error.stage === 'receipt' ? Effect.succeedNone : restoreAndFail(error.message)),
+          // Possibly broadcast (another attempt, or the store failed after the send): Arc decides, below.
+          AlreadySubmitted: () => Effect.succeedNone,
+          RelayerStoreError: () => Effect.succeedNone,
         }),
       )
-    if (!sent.success) return yield* restoreAndFail('revoke reverted on chain')
-    yield* setStatus(deps, row.id, 'revoking', 'revoked', sent.txHash)
-    yield* Effect.logInfo('grant revoked').pipe(Effect.annotateLogs({ grantId: row.id, txHash: sent.txHash }))
-    return yield* json({ grantId: row.id, status: 'revoked', revokeTx: sent.txHash })
+    if (Option.isSome(sent) && !sent.value.success) return yield* restoreAndFail('revoke reverted on chain')
+    const status = Option.isSome(sent)
+      ? yield* Effect.as(setStatus(deps, row.id, 'revoking', 'revoked', sent.value.txHash), 'revoked' as const)
+      : yield* finalizeRevoke(deps, row)
+    yield* Effect.logInfo('grant revoke').pipe(Effect.annotateLogs({ grantId: row.id, status }))
+    return yield* json({ grantId: row.id, status }, status === 'revoked' ? 200 : 202)
   })
 
 export const revokeRoutes = (deps: WalletDeps) =>

@@ -16,7 +16,7 @@ export const ConsoleRobot = Schema.Struct({
 })
 export type ConsoleRobot = typeof ConsoleRobot.Type
 
-export const ErrandCreated = Schema.Struct({
+const ErrandCreated = Schema.Struct({
   episodeId: Schema.String,
   state: Schema.String,
   decision: Schema.Struct({
@@ -26,7 +26,6 @@ export const ErrandCreated = Schema.Struct({
   }),
   approvalUrl: Schema.optionalKey(Schema.String),
 })
-export type ErrandCreated = typeof ErrandCreated.Type
 
 export const Decision = Schema.Struct({
   id: Schema.String,

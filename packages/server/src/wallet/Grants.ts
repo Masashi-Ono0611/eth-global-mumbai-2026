@@ -21,6 +21,7 @@ import { ownerSignature, ownerSignatureOptions } from './OwnerSignature.ts'
 /** Arc is mainnet with real USDC: a grant's daily cap is at most 10 USDC (AGENTS.md: keep caps tiny). */
 export const MAX_DAILY_CAP = 10_000_000n
 const MAX_GRANT_SECONDS = 30 * 86_400
+const START_SLACK_SECONDS = 60
 
 /** A USDC amount as typed by the owner ("0.30"), at most 6 decimals. */
 const UsdcText = Schema.String.check(Schema.isPattern(/^(?:0|[1-9][0-9]{0,5})(?:\.[0-9]{1,6})?$/))
@@ -126,7 +127,9 @@ const grantOptions = (deps: WalletDeps) =>
       dailyCap,
       perPaymentCap,
       allowlist,
-      startAt: now,
+      // ERC20PeriodTransferEnforcer reverts `transfer-not-started` before startDate; a minute of slack covers a
+      // Worker clock ahead of Arc's block time.
+      startAt: now - START_SLACK_SECONDS,
       expiresAt: input.expiresAt,
       enforcer,
       approver,
@@ -145,7 +148,7 @@ const grantOptions = (deps: WalletDeps) =>
         dailyCap.toString(),
         perPaymentCap.toString(),
         JSON.stringify(allowlist),
-        now,
+        now - START_SLACK_SECONDS,
         input.expiresAt,
         yield* Clock.currentTimeMillis,
       )

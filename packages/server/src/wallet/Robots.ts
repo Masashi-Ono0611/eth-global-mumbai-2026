@@ -9,7 +9,9 @@ import { leaseOf, RobotRow } from '../chip/Lease.ts'
 import { json, nowSeconds, randomBytes } from '../Respond.ts'
 import { GrantRow } from '../robot/Budget.ts'
 import { allRows } from '../Sql.ts'
+import type { WalletDeps } from './Deps.ts'
 import { answerWalletErrors } from './Errors.ts'
+import { finalizeRevoke } from './Revoke.ts'
 
 /** Pairing codes: 8 characters of this alphabet (no 0/O, 1/I/L), valid 10 minutes, single use (spec §8). */
 export const PAIRING_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
@@ -67,19 +69,21 @@ export const grantView = (row: GrantRow) =>
   }))
 
 /** `GET /api/robots` → the owner's robots, each with its lease and its latest grant that was signed. */
-const listRobots = (database: QueryDatabaseClient) =>
+const listRobots = (deps: WalletDeps) =>
   Effect.gen(function* () {
+    const { database } = deps
     const session = yield* CurrentSession
     const robots = yield* allRows(
       database.prepare('SELECT * FROM robots WHERE account_id = ? ORDER BY created_at DESC').bind(session.accountId),
       RobotRow,
     )
-    const grants = yield* allRows(
-      database
-        .prepare("SELECT * FROM grants WHERE account_id = ? AND status != 'unsigned' ORDER BY created_at DESC")
-        .bind(session.accountId),
-      GrantRow,
-    )
+    const signedGrants = database
+      .prepare("SELECT * FROM grants WHERE account_id = ? AND status != 'unsigned' ORDER BY created_at DESC")
+      .bind(session.accountId)
+    // A revoke whose receipt the request missed is settled here, from Arc's DelegationManager.
+    const pending = (yield* allRows(signedGrants, GrantRow)).filter((grant) => grant.status === 'revoking')
+    yield* Effect.forEach(pending, (grant) => finalizeRevoke(deps, grant), { discard: true })
+    const grants = yield* allRows(signedGrants, GrantRow)
     const now = yield* nowSeconds
     const nowMillis = yield* Clock.currentTimeMillis
     const views = yield* Effect.forEach(robots, (robot) =>
@@ -101,8 +105,8 @@ const listRobots = (database: QueryDatabaseClient) =>
     return yield* json({ robots: views })
   })
 
-export const robotsRoutes = (database: QueryDatabaseClient) =>
+export const robotsRoutes = (deps: WalletDeps) =>
   Layer.mergeAll(
-    HttpRouter.add('POST', '/api/robots', requireSession(answerWalletErrors(addRobot(database)))),
-    HttpRouter.add('GET', '/api/robots', requireSession(listRobots(database))),
+    HttpRouter.add('POST', '/api/robots', requireSession(answerWalletErrors(addRobot(deps.database)))),
+    HttpRouter.add('GET', '/api/robots', requireSession(listRobots(deps))),
   )

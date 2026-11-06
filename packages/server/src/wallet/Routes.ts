@@ -10,4 +10,4 @@ export type { WalletDeps } from './Deps.ts'
 /** The owner's wallet API (spec §4, §6): robots and pairing codes, grants signed by the passkey, revoke, balance and
  * activity. Every route needs a session; every mutating one also needs `Origin == AUTH_ORIGIN`. */
 export const walletRoutes = (deps: WalletDeps) =>
-  Layer.mergeAll(robotsRoutes(deps.database), grantsRoutes(deps), revokeRoutes(deps), activityRoutes(deps))
+  Layer.mergeAll(robotsRoutes(deps), grantsRoutes(deps), revokeRoutes(deps), activityRoutes(deps))
