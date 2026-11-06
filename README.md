@@ -4,8 +4,10 @@
 
 A passkey wallet on [Arc](https://docs.arc.io) grants a USDC budget to a robot's chip. A Robot Agent asks [0G](https://0g.ai)
 what to buy, the chip signs every payment, our x402 facilitator settles it, and Arc enforces every limit when the payment
-lands. Over the limit or for a restricted item, the owner approves once in World App ([World Agent Pass](https://auth.world.org)).
-The duck ([Vitaquack](https://github.com/apirrone/Open_Duck_Mini), our modified Open Duck Mini) is the first robot.
+lands. Over the per-payment limit, the owner approves once in World App ([World Agent Pass](https://auth.world.org)); the
+daily cap is never lifted. The robot speaks to its owner on Telegram. The duck
+([Vitaquack](https://github.com/apirrone/Open_Duck_Mini), our modified Open Duck Mini) is the first robot; a browser
+simulator duck runs the same chip protocol. Live at <https://vitaquack.com>.
 
 Built at ETHGlobal Mumbai, 5–7 Nov 2026. Prize tracks: Arc (Advanced Stablecoin Logic), 0G (Physical AI: Agents with a
 Body), World (Agent Pass).
@@ -22,31 +24,31 @@ Body), World (Agent Pass).
    voucher itself and signs it. No lease from the agent for 35 s → it stops and refuses to sign.
 5. **Merchant.** An x402 checkout. Our facilitator verifies the voucher, simulates, and submits `redeemDelegations`; Arc
    checks the daily cap, the per-payment cap, the payee allowlist, the invoice replay guard, expiry and revocation.
-6. **World.** Over the cap, or a restricted item (a mock cigarette pack): the owner approves in World App; the backend
-   verifies the token and co-signs that one payment. Deny or expiry means nothing is paid.
-7. **Evidence.** Every decision is logged with its 0G request id; episodes are uploaded to 0G Storage and anchored in an
-   `EpisodeLog` contract. The gate (a web page now, an ESP32 later) opens only on an Ed25519-signed "paid".
+6. **World.** Over the per-payment cap: the owner approves in World App; the backend verifies the token and co-signs
+   that one payment. Deny (on the page, in the conversation or from Telegram) or expiry means nothing is paid; the daily
+   cap can't be lifted.
+7. **Evidence.** Every decision is logged with its 0G request id and, for `glm-5.3`, its TEE proof; episodes and the
+   chip-signed camera frames are uploaded to 0G Storage and anchored in an `EpisodeLog` contract. The café's ESP32
+   screen shows the counter's invoice QR and opens only on an Ed25519-signed "paid".
 
 The one rule: **Arc is the authority.** Our servers coordinate and relay; they can never authorise, steal or redirect a
 payment, only delay it.
 
 ## Status
 
-- **Docs and design:** `docs/spec.md` (the build order), `docs/decisions.md`, `docs/plan.md`, the live
-  [architecture page](https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/) and
-  [plan page](https://eth-mumbai-site.kristjan-grm11775.workers.dev/plan/) (both commentable).
-- **Evidence so far:** the first real payment on Arc mainnet (6 Nov 06:10 IST: a chip-signed $0.01 voucher under a
-  grant, replay refused, revoke, next payment refused; `docs/evidence/2026-11-06-smoke.md`), the
-  `RobotPaymentPolicyEnforcer` deployed on Arc (`docs/evidence/contracts.md`), simulated grant chains and approvals
-  against live Arc state (`packages/chain/test`), a World token verifier prototype
-  (`docs/research/spike-s5b-jwt-onchain.md`), and the real Radxa signing the payment voucher
-  (`docs/spikes/hardware-results.md`), and **passkey-signed grants on the deployed app** (the relayer deploys the owner's
-  account and Arc's ERC-1271 check accepts the passkey signature: `docs/evidence/2026-11-06-deployed-e2e.md`; the same
-  through the real pages in Chromium with a virtual passkey: `docs/evidence/2026-11-06-deployed-browser.md`). Not yet
-  proven: a real 0G decision, the uploader against 0G Storage, World approve/deny (the World verifier and approval flow
-  are built and unit-tested; `docs/demo.md` is the click-by-click walkthrough).
-- **Code:** built from `docs/spec.md` during the event (see the commit history); the passkey wallet, merchant, chip
-  protocol, Robot Agent and facilitator are deployed by CI from `main`.
+- **Live:** the wallet at <https://vitaquack.com/app/>, the landing at <https://vitaquack.com/>, the café till at
+  <https://cafe.vitaquack.com>, the simulator at <https://vitaquack.com/sim/>, the team site under
+  <https://vitaquack.com/plan/> (the [architecture page](https://vitaquack.com/plan/architecture/) carries the status
+  board; pages are commentable).
+- **Docs and design:** `docs/spec.md` (the build order), `docs/decisions.md`, `docs/plan.md`; `docs/demo.md` is the
+  click-by-click walkthrough; `docs/evidence/README.md` indexes every proven run.
+- **Proven on mainnet and live providers** (`docs/evidence/`): chip-signed payments settled under passkey-signed grants,
+  replay refused, revoke, the next payment refused by Arc; the `RobotPaymentPolicyEnforcer` on Arc; real 0G decisions
+  (`glm-5.3` in a TEE, proofs verified independently); episodes and camera frames on 0G Storage, anchored in
+  `EpisodeLog`; a real Orb-verified World approval that paid on Arc; the simulator duck paying a chai on 0G navigation.
+  Not yet proven on stage: the full run on vitaquack.com with the real duck, the Radxa chip and the ESP32 counter screen.
+- **Code:** built from `docs/spec.md` during the event (see the commit history); every stack is deployed by CI from
+  `main` through Alchemy (`docs/DEPLOYMENT.md`).
 
 ## Repo map
 
@@ -58,7 +60,9 @@ payment, only delay it.
 | `packages/chain`          | Arc: delegations, facilitator, relayer (viem + MetaMask Smart Accounts Kit)                     |
 | `contracts`               | `RobotPaymentPolicyEnforcer` (Arc) and `EpisodeLog` (0G Chain), Foundry; authored in Arc Studio |
 | `apps/chip`               | the chip client (mock chip now; the Radxa runs the same code)                                   |
-| `tools/evidence-uploader` | uploads episodes to 0G Storage and records them on 0G Chain                                     |
+| `apps/merchant`           | the café till (cafe.vitaquack.com): puts an item on the ESP32 counter screen                    |
+| `apps/sim`                | the browser simulator duck (Pollen's Microduck engine, vendored) with a software chip           |
+| `tools/evidence-uploader` | uploads episodes and camera frames to 0G Storage and records them on 0G Chain                   |
 | `docs/`                   | spec, decisions, plan, research, spikes, evidence, the team site (`docs/site`)                  |
 | `references/`             | read-only upstream clones (gitignored; pinned in `references/README.md`)                        |
 

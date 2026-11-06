@@ -24,13 +24,18 @@ budget instead. The owner signs up with a passkey, which is also the signer of a
 on Arc mainnet. One passkey signature grants a robot's chip a delegation with caveats: a daily cap, a per-payment cap,
 an allowlist of payees and an expiry, plus our own `RobotPaymentPolicyEnforcer`, which demands an approval for anything
 over the cap or to an unlisted payee. The robot's agent asks 0G whether to buy ("pay", "ask the owner first" or "walk
-away") over structured facts, never camera frames, and logs every decision's request id. The chip holds the only
+away") over structured facts, inside a TEE (glm-5.3 on 0G Compute, the proof stored with each decision), and logs every
+decision's request id; the robot's camera frames are evidence, not decision input, uploaded to 0G Storage as proof of
+work. The chip holds the only
 spending key: it rebuilds the one-time payment voucher from the invoice itself, checks it against its own policy and
 signs it. Our x402 facilitator settles the voucher through the DelegationManager, where Arc checks every limit, replay
 and revocation. A purchase over the per-payment limit (a 2.00 thali against a 1.00 limit) waits for the owner's fresh
-World approval; deny or silence means nothing is paid, and the daily cap can't be lifted, approved or not. Revoking is one more passkey signature, after which the next payment fails on-chain.
-Every episode is uploaded to 0G Storage and anchored in an `EpisodeLog` contract. The duck is the first robot; the
-first iteration is fully virtual (a mock chip and a web gate); the Radxa on the duck is the hardware seam for the same chip protocol.
+World approval; deny or silence means nothing is paid, and the daily cap can't be lifted, approved or not. The robot
+speaks to its owner on Telegram (approval needed, paid, denied, revoked; Telegram may deny, never approve). Revoking is
+one more passkey signature, after which the next payment fails on-chain. Every episode is uploaded to 0G Storage and
+anchored in an `EpisodeLog` contract. The duck is the first robot: the Radxa on it runs the chip, its camera reads the
+invoice QR the café's ESP32 screen shows, and the same protocol drives a browser simulator duck that walks to the stall
+on 0G's navigation turns.
 
 The one rule: **Arc is the authority.** Our servers coordinate and relay; they can never authorise, steal or redirect a
 payment, only delay it.
@@ -55,9 +60,15 @@ payment, only delay it.
   relayer, keys every send in D1 (`settle:<invoiceHash>`) so a settlement happens once, and returns Arc's revert reasons
   verbatim. The gate shows OPEN only on an Ed25519-signed "paid" status.
 - **0G.** The Robot Agent calls 0G Compute's chat completions with a single `decide` tool (`pay` / `ask_human` /
-  `walk_away`), temperature 0, a 10 s budget; any failure ends the errand in `safe_stop` and nothing is paid. Request
-  ids and response keys are logged per decision; episodes go to 0G Storage and `EpisodeLog.record` on 0G Chain.
-- **World Agent Pass.** Restricted or over-limit payments need a fresh World IdP authentication bound to that payment
+  `walk_away`), temperature 0, a 10 s budget; any failure ends the errand in `safe_stop` and nothing is paid. The model
+  is `glm-5.3`, a TeeML provider in 0G's registry: the Worker fetches each decision's TEE signature, recovers the signer
+  against the registered TEE address and stores the proof with the decision. Request ids and response keys are logged
+  per decision; episodes and the chip-signed camera frames go to 0G Storage and `EpisodeLog.record` on 0G Chain. The
+  simulator duck's walking is 0G too: one chat completion per navigation turn.
+- **Telegram.** `@vitaquack_bot` tells the owner when the robot needs an approval (with a button to the approval page
+  and a fail-safe Deny), when it paid, was refused or lost its allowance; a D1 outbox delivered after the request, so a
+  failed message never delays a payment.
+- **World Agent Pass.** Over-limit payments need a fresh World IdP authentication bound to that payment
   through the OIDC `nonce`; the backend verifies the RS256 ID token (Orb `acr` with a fresh `auth_time`, `jti` once, the
   bound `sub`; `amr` recorded) and co-signs that one approval (`docs/world-debrief.md`).
 - **Foundation.** Bun workspaces, Effect 4, Foldkit (Elm-style TypeScript UI with server rendering), Alchemy on
@@ -66,7 +77,10 @@ payment, only delay it.
 - **The chip.** `apps/chip` (Bun) holds a secp256k1 key, pairs with an 8-character code and an EIP-191 proof,
   long-polls for sign requests and enforces its own policy before touching the key. The Radxa Zero 3W on the duck is the
   hardware seam for the same protocol (bench C1 signed the payment voucher on it, `docs/spikes/hardware-results.md`); the
-  ESP32 gate is designed to draw the invoice QR and verify the signed status with the published gate key.
+  café's ESP32 screen pulls the counter's displayed invoice (`GET /api/merchants/duck-cafe/counter`), draws its QR and
+  verifies the Ed25519-signed status on-device; the café owner puts an item on the screen from the till at
+  cafe.vitaquack.com. The owner's "Get me a chai" becomes an intent the next scan claims, so 0G decides against what the
+  owner asked for: chai shown, pay; samosa shown, walk away; thali shown, ask the owner.
 
 ## Prize tracks
 
@@ -100,7 +114,7 @@ router's request id: in the browser journey (run 7) chai `pay` `5ca4a212-1beb-42
 chai after the revoke `pay` `1b6b2840-b760-4421-9d1e-163e58160f37` (refused by Arc); the same in the API driver's runs
 9–10 (`docs/evidence/2026-11-06-deployed-e2e.md`). The first uploaded episode (`hg2ouddwe2h5j6ekbrsn7grfja`, root
 `0x8db4ffc1…d5dd`, `EpisodeLog.record` `0xd2fe9e75…aa21`, `docs/evidence/2026-11-06-evidence-upload.md`) carries a
-rehearsal-brain decision. Done (6 Nov 12:55 IST, `docs/evidence/2026-11-06-evidence-upload.md`): 7 episodes with real 0G decisions are on 0G Storage and anchored in `EpisodeLog`, e.g. the run-7 chai (0G `pay`, request id `5ca4a212-…`): root `0xac43d8a46ecd28fe0596599298630594626b40719f051e99742b59f81a4d82dd`, record tx [0xd5b631b8…261b](https://chainscan-galileo.0g.ai/tx/0xd5b631b87c388563d4fb750194149b8a24cab2af323c1e34224611e9fb38261b); the approved cigarettes (0G `ask_human`): root `0x941e7adf…6b75`, record tx [0xb3356c6d…cf09](https://chainscan-galileo.0g.ai/tx/0xb3356c6d0a3d79df4e2f51923b7bbad09c678b37c5f5d8ae66830e305302cf09); the denied one: root `0x0ab938dc…fe90`, record tx [0xc9e84b22…a4b0](https://chainscan-galileo.0g.ai/tx/0xc9e84b222e6e99a5a62b9482c759bb47ee9a51a9f3c2ff45c639b66302d2a4b0). Each record's root and request-id hash were recomputed and match; the downloaded bytes equal the app's payload.
+rehearsal-brain decision. **0G drives a body:** the browser simulator duck walked to the chai stall on glm-5.3 navigation turns, its head camera read the QR, 0G paid and Arc settled ([0x95338dc3…cfc4](https://explorer.arc.io/tx/0x95338dc3), `docs/evidence/2026-11-06-sim-e2e.md`); a thali went `ask_human` and was denied, and chai asked with samosa shown walked away. **Proof of robot work on 0G Storage** (21:05 IST, `docs/evidence/2026-11-06-frames-on-0g.md`): 8 episodes and 6 chip-signed camera frames uploaded, each frame's root hash recorded next to its sha256 in the anchored episode JSON, one frame re-downloaded from the indexer outside our app with a matching sha256. Done (6 Nov 12:55 IST, `docs/evidence/2026-11-06-evidence-upload.md`): 7 episodes with real 0G decisions are on 0G Storage and anchored in `EpisodeLog`, e.g. the run-7 chai (0G `pay`, request id `5ca4a212-…`): root `0xac43d8a46ecd28fe0596599298630594626b40719f051e99742b59f81a4d82dd`, record tx [0xd5b631b8…261b](https://chainscan-galileo.0g.ai/tx/0xd5b631b87c388563d4fb750194149b8a24cab2af323c1e34224611e9fb38261b); the approved cigarettes (0G `ask_human`): root `0x941e7adf…6b75`, record tx [0xb3356c6d…cf09](https://chainscan-galileo.0g.ai/tx/0xb3356c6d0a3d79df4e2f51923b7bbad09c678b37c5f5d8ae66830e305302cf09); the denied one: root `0x0ab938dc…fe90`, record tx [0xc9e84b22…a4b0](https://chainscan-galileo.0g.ai/tx/0xc9e84b222e6e99a5a62b9482c759bb47ee9a51a9f3c2ff45c639b66302d2a4b0). Each record's root and request-id hash were recomputed and match; the downloaded bytes equal the app's payload.
 
 ### World — Agent Pass
 
@@ -117,14 +131,20 @@ brain). **Live with a real Orb ID (6 Nov 14:55 IST):** Kris, with his own passke
 his phone, approved a 0.50 USDC restricted payment that 0G had sent to him (`ask_human`); World's token (`acr`
 `https://world.org/oidc/acr/orb`, `amr` `["pop","user","mfa"]`) was accepted, the approver co-signed and Arc settled it
 with the enforcer's `PaymentApproved` ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9); `docs/evidence/2026-11-06-live-world.md`). His attempt before the `amr` fix was
-refused and nothing was paid (the top item of the debrief). _Fill in: the live deny._ Debrief: `docs/world-debrief.md`.
+refused and nothing was paid (the top item of the debrief). The deny path has two doors, both ending with nothing signed:
+**No** on the approval page or in the robot's conversation, and **Deny** under the Telegram message (only from the chat
+linked to the wallet, only while the approval waits). _Fill in: the live deny on vitaquack.com._ Debrief: `docs/world-debrief.md`.
 
 ## Links
 
 - Repository: <https://github.com/grmkris/eth-global-mumbai-2026>
-- Deployed app: <https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev>
-- Architecture: <https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/>
-- Plan: <https://eth-mumbai-site.kristjan-grm11775.workers.dev/plan/>
+- Live: <https://vitaquack.com/> (landing), <https://vitaquack.com/app/> (the wallet), <https://cafe.vitaquack.com> (the café
+  till), <https://vitaquack.com/sim/> (the simulator duck); the API is <https://vitaquack.com/api/>
+- Architecture and status board: <https://vitaquack.com/plan/architecture/>; plan: <https://vitaquack.com/plan/plan/>;
+  pitch: <https://vitaquack.com/plan/pitch/>
+- Contracts: `RobotPaymentPolicyEnforcer` `0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3` (Arc mainnet, 5042), `EpisodeLog`
+  `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (0G Galileo, 16602); Arc Studio
+  <https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75>
 - Demo walkthrough: `docs/demo.md`; evidence index: `docs/evidence/README.md`
 - Video (2:30–2:59, ≥ 720p, real narration): _fill in_ (storyboard: `docs/video-script.md`)
 
@@ -143,7 +163,10 @@ during the event too.
 - The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: done 6 Nov 12:06 IST for the first paid episode `hg2ouddwe2h5j6ekbrsn7grfja` (root `0x8db4ffc1…d5dd`, storage tx `0x87d1be1f…12dc`, `EpisodeLog.record` tx `0xd2fe9e75…aa21`; `docs/evidence/2026-11-06-evidence-upload.md`). The decision in that episode came from the rehearsal brain, not 0G.
 - A live World approve: done 6 Nov 14:55 IST ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9), `docs/evidence/2026-11-06-live-world.md`). The live deny: _fill in_.
 - On-chain verification of the World token (the S5b prototype) is a stretch; the backend co-signer is what runs.
-- The physical duck walking to the till; the virtual loop (mock chip + web gate) is the demo.
+- The app moved to https://vitaquack.com at 20:45 IST (passkeys are bound to the host, so the owner signs up again
+  there); the first full run on the new domain with the real duck, the Radxa chip and the ESP32 counter screen: _fill in_
+  (`docs/evidence/demo-run.md`). Until then the hardware beats are proven natively and on the simulator, not on stage.
+- The physical duck walking to the till is the simulator's job in the demo; the real duck scans the counter screen.
 
 ## §12 checklist
 
@@ -154,5 +177,5 @@ during the event too.
 | Demo video 2–4 min, ≥ 720p, real narration, ≤ 4 bullets per slide | _record from `docs/video-script.md`_ |
 | Up to 3 partner prizes with integration + feedback | Arc, 0G, World above; World debrief in `docs/world-debrief.md` |
 | Arc: shareable Studio URL, Studio in the demo, working frontend + backend, architecture diagram, Arc/Circle tools named | Studio URL https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75; the rest above |
-| 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo); router request ids `5ca4a212…`, `d230ef16…`, `7dcb97bb…`, `1b6b2840…` (browser evidence run 7); a 0G-decided episode on Storage _fill in_ |
+| 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo); router request ids `5ca4a212…`, `d230ef16…`, `7dcb97bb…`, `1b6b2840…` (browser evidence run 7); 0G-decided episodes on Storage (`2026-11-06-evidence-upload.md`), glm-5.3 TEE proofs verified (`2026-11-06-tee-verification.md`), camera frames on Storage (`2026-11-06-frames-on-0g.md`), the simulator duck driven by 0G (`2026-11-06-sim-e2e.md`) |
 | World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | live approve with a real Orb ID → paid ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9); `docs/evidence/2026-11-06-live-world.md`), live deny _fill in_; stub rehearsal of both (browser evidence run 7); debrief `docs/world-debrief.md` |
