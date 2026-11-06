@@ -41,17 +41,32 @@ export interface Point {
   readonly y: number
   /** The heading the duck should end with at this point. */
   readonly yaw: number
+  /**
+   * Where to line up first: a point straight back along `yaw`, so the last leg is a run-in that arrives already facing.
+   * The walking policy cannot turn in place (6 Nov e2e run), and an arc cannot reach a point inside its turning circle.
+   */
+  readonly via?: { readonly x: number; readonly y: number }
 }
 
 export const ENTRANCE: Point = { x: -0.55, y: 0, yaw: 0 }
 const EXIT_GATE = { x: -0.15, y: -0.95 }
 const EXIT_APPROACH: Point = { x: -0.15, y: -0.62, yaw: -Math.PI / 2 }
 
-const approachOf = (def: StallDef): Point => ({
-  x: STALL_X + Math.cos(STALL_FACE) * (COUNTER_DEPTH / 2 + APPROACH_DIST),
-  y: def.y + Math.sin(STALL_FACE) * (COUNTER_DEPTH / 2 + APPROACH_DIST),
-  yaw: STALL_FACE - Math.PI,
-})
+/** How far behind a stall's approach point its line-up point is: room for a U-turn arc (radius ~0.17 m) and a run-in. */
+const LINE_UP_DIST = 0.7
+
+const approachOf = (def: StallDef): Point => {
+  const out = COUNTER_DEPTH / 2 + APPROACH_DIST
+  return {
+    x: STALL_X + Math.cos(STALL_FACE) * out,
+    y: def.y + Math.sin(STALL_FACE) * out,
+    yaw: STALL_FACE - Math.PI,
+    via: {
+      x: STALL_X + Math.cos(STALL_FACE) * (out + LINE_UP_DIST),
+      y: def.y + Math.sin(STALL_FACE) * (out + LINE_UP_DIST),
+    },
+  }
+}
 
 /** The MJCF boxes the engine appends to its worldbody (the counters are solid; screens and gates are not). */
 export const stallColliders = () =>

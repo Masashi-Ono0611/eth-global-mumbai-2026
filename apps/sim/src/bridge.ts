@@ -16,6 +16,8 @@ interface WaypointResult {
 interface TargetOptions {
   readonly arriveRadius?: number
   readonly faceYaw?: number | null
+  /** Follow the line through the target along this heading, so the duck arrives facing it. */
+  readonly lineYaw?: number | null
   readonly yawTol?: number
   readonly onDone?: (result: WaypointResult) => void
 }

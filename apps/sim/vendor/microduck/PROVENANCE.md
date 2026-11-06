@@ -22,7 +22,9 @@ ONNX walking policy at 50 Hz, the three.js rig, the R3F canvas and Pollen's HUD.
   calls its per-frame `tick`, installs it with the engine context (scene, renderer, camera, rig, pose, waypoint source,
   fall recovery state, a standing `teleport`); no ball auto-spawn; ghosts disabled (Spike A, 6 Nov 2026).
 - `src/game/controls/waypoint.js`: programmatic `setTarget`/`faceYaw` with arrival callbacks, frame-rate independent
-  smoothing, slow final approach, turn-in-place and an orbit guard (Spike A).
+  smoothing, slow final approach, turn-in-place and an orbit guard (Spike A). Since the 6 Nov end-to-end run: a
+  0.15 m/s forward floor on every programmatic command (the policy stalls a pure turn in place, so turns are arcs), a
+  12 s wall-clock cap on the face turn, and `lineYaw`, a pure-pursuit line approach that arrives facing along the line.
 - `src/game/signed.js`: page-relative asset URLs are rebased onto the Space at the pinned commit.
 - `src/App.jsx`: the title menu is skipped unless `?boot=0`.
 - `src/scene/CrtDistortion.jsx`, `src/scene/GameCanvas.jsx`: the CRT pass and MSAA are off unless `?crt=1` / `?aa=1`

@@ -167,7 +167,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/PROVENANCE.md",
-      "sha256": "4c5e5eee8facd1d257959728fbf38e74a3802095cf155acefff402a2fb5b3868"
+      "sha256": "b3ff3454069622c20673b82a5c4e837b92bf05fc79ffc6f75126cf0c908fe98b"
     },
     {
       "path": "apps/sim/vendor/microduck/src/App.jsx",
@@ -215,7 +215,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/controls/waypoint.js",
-      "sha256": "e087459b7267d5d371936eed00545f3bc7fefaf26ad0825397424336189da719"
+      "sha256": "a6a24820dc25d0db16deb7d07a75789a4cd61d515e5028f1c2e1f35b455f67f7"
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/custom-policy.js",

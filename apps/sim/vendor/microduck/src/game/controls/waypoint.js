@@ -24,6 +24,14 @@ const WAYPOINT_TURN_GAIN = 2.2; // rad/s commanded per rad of heading error, pre
 const WAYPOINT_SMOOTH_ALPHA = 0.15; // EMA toward the steered command, per render frame
 const WAYPOINT_CLICK_SLOP = 6; // px, pointerdown -> pointerup movement budget for a "click"
 const WAYPOINT_CLICK_MS = 500; // ms, pointerdown -> pointerup duration budget
+// Vitaquack (6 Nov e2e run): below about 0.15 m/s forward the walking policy treats the command as "stand" and a pure
+// turn in place (vx 0, |wz| up to 1) stalls after ~0.2 rad, either way, at random; with vx >= 0.15 the same turn is an
+// arc that finishes in 2-5 s (8 of 8). So programmatic targets never command a pure turn, and a face turn that still
+// does not finish gives up after FACE_MAX_MS of wall time rather than holding its caller for the whole walk timeout.
+const ARC_VX = 0.15; // m/s, the forward floor of every programmatic move and face command
+const FACE_MAX_MS = 12000;
+const LINE_LOOKAHEAD = 0.35; // m, the pure-pursuit carrot's lead on a line approach
+const LINE_ARRIVE_SIDEWAYS = 0.15; // m, how far beside the target a line approach may cross its line
 
 const wrapPi = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 // Three world (x, y, z) -> MJCF ground (x, -z); floor sits at three y = 0.
@@ -106,11 +114,13 @@ export class WaypointSource {
   // Cancel a pending target without walking it down (sim reset, mode
   // change out from under it).
   // Vitaquack: drive to an MJCF ground point under code control.
-  setTarget(x, y, { arriveRadius = WAYPOINT_ARRIVE_RADIUS, faceYaw = null, yawTol = 0.1, onDone = null } = {}) {
+  // Vitaquack: `lineYaw` makes the move follow the line through the target along that heading (pure pursuit of a
+  // point LINE_LOOKAHEAD ahead on it), so the duck arrives already facing `lineYaw`.
+  setTarget(x, y, { arriveRadius = WAYPOINT_ARRIVE_RADIUS, faceYaw = null, yawTol = 0.1, onDone = null, lineYaw = null } = {}) {
     const lim = ARENA_HALF - 0.05;
     this.#prog?.onDone?.({ ok: false, reason: "superseded" });
     this.#target = [Math.min(lim, Math.max(-lim, x)), Math.min(lim, Math.max(-lim, y))];
-    this.#prog = { arriveRadius, faceYaw, yawTol, onDone, phase: "move", best: Infinity, stall: 0 };
+    this.#prog = { arriveRadius, faceYaw, yawTol, onDone, lineYaw, phase: "move", best: Infinity, stall: 0 };
   }
 
   // Vitaquack: turn in place to an absolute MJCF yaw.
@@ -181,7 +191,12 @@ export class WaypointSource {
     if (p.phase === "move") {
       const dx = this.#target[0] - px, dy = this.#target[1] - py;
       const dist = Math.hypot(dx, dy);
-      if (dist < p.arriveRadius) {
+      // Vitaquack: on a line approach, reaching the target's crossing line close enough sideways is arriving.
+      const crossed =
+        p.lineYaw != null &&
+        -(dx * Math.cos(p.lineYaw) + dy * Math.sin(p.lineYaw)) >= -0.02 &&
+        Math.abs(dx * Math.sin(p.lineYaw) - dy * Math.cos(p.lineYaw)) < LINE_ARRIVE_SIDEWAYS;
+      if (dist < p.arriveRadius || crossed) {
         if (p.faceYaw == null) {
           this.#target = null;
           this.command.fill(0);
@@ -207,13 +222,23 @@ export class WaypointSource {
       if (p.phase === "move") {
         const dx = this.#target[0] - px, dy = this.#target[1] - py;
         const dist = Math.hypot(dx, dy);
-        const err = wrapPi(Math.atan2(dy, dx) - yaw);
+        // Vitaquack: on a line approach, steer at the carrot: the duck's projection on the line, LINE_LOOKAHEAD
+        // further along it (past the target too, so the heading settles onto the line's).
+        let aimX = dx, aimY = dy;
+        if (p.lineYaw != null) {
+          const ux = Math.cos(p.lineYaw), uy = Math.sin(p.lineYaw);
+          const ahead = -(dx * ux + dy * uy) + LINE_LOOKAHEAD;
+          aimX = dx + ux * ahead;
+          aimY = dy + uy * ahead;
+        }
+        const err = wrapPi(Math.atan2(aimY, aimX) - yaw);
         wz = Math.min(limA, Math.max(-limA, err * WAYPOINT_TURN_GAIN));
         // Slow down on the final approach; near the target turn in place
         // first when the heading is off (no strafe).
         const slow = Math.min(1, Math.max(0.35, dist / 0.3));
         const near = dist < 0.3 && Math.abs(err) > 0.45;
-        vx = near ? 0 : limF * slow * Math.max(0, Math.cos(err)) ** 2;
+        // Vitaquack: never below ARC_VX, so a sharp heading change is an arc, not a stalled turn in place.
+        vx = Math.max(ARC_VX, near ? 0 : limF * slow * Math.max(0, Math.cos(err)) ** 2);
         if (near) wz = Math.sign(err) * Math.max(0.35, Math.abs(wz));
       }
     }
@@ -226,10 +251,19 @@ export class WaypointSource {
         this.#finishProg({ ok: true, pose: [px, py, yaw], yawErr: err });
         return;
       }
+      p.faceStart ??= performance.now();
+      if (performance.now() - p.faceStart > FACE_MAX_MS) {
+        this.#target = null;
+        this.command.fill(0);
+        this.#active = false;
+        this.#finishProg({ ok: false, reason: "face-stalled", pose: [px, py, yaw], yawErr: err });
+        return;
+      }
       // Minimum turn rate so the policy actually rotates near the goal.
       const w = err * WAYPOINT_TURN_GAIN;
       wz = Math.sign(w) * Math.min(limA, Math.max(0.35, Math.abs(w)));
-      vx = 0;
+      // Vitaquack: a small forward arc instead of a pure turn in place (see ARC_VX).
+      vx = ARC_VX;
     }
     // Frame-rate independent smoothing (tau 0.15 s): the per-frame EMA
     // above assumes ~60 fps and lags for seconds at SwiftShader rates.
