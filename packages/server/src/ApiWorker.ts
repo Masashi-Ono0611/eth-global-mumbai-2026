@@ -14,6 +14,7 @@ import { onFirstUse } from './IsolateCache.ts'
 import { AppDatabase } from './Resources.ts'
 import { noApprovals } from './robot/Errands.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
+import { walletRoutes } from './wallet/Routes.ts'
 import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
 
 const Runtime = Layer.mergeAll(
@@ -70,6 +71,13 @@ export default ApiWorker.make(
         const routes = Layer.mergeAll(
           authRoutes(database),
           robotAgent.layer,
+          walletRoutes({
+            database,
+            arc: chain.arc,
+            relayer: chain.relayer,
+            enforcer: chain.enforcer,
+            approver: chain.approverAddress,
+          }),
           HttpRouter.add('GET', '/api/health', health(observabilityBase.release)),
         ).pipe(Layer.provide(AlchemyHttp.Platform))
         const handle = yield* HttpRouter.toHttpEffect(routes).pipe(Effect.orDie)

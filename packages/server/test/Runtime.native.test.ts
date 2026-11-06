@@ -11,6 +11,7 @@ import { verifyBrowser } from './BrowserAcceptance.ts'
 import { verifyPasskeyBrowser } from './PasskeyBrowserAcceptance.ts'
 import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
+import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 
 const makeStack = (generation: string) =>
@@ -290,3 +291,5 @@ test(
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 120000 },
 )
+
+registerWalletAcceptance(test, stack)
