@@ -124,7 +124,7 @@ during the event too.
 ## What is not finished (keep honest at submission time)
 
 - A real 0G decision on the deployed app: _pending a 0G key in `APP_ZG_*`_ (a robot errand paid on the deployed app is proven with the LiteLLM rehearsal brain, labelled as such).
-- The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: contract deployed (`0x4C94…206A`), first upload _pending a paid episode_.
+- The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: done 6 Nov 12:06 IST for the first paid episode `hg2ouddwe2h5j6ekbrsn7grfja` (root `0x8db4ffc1…d5dd`, storage tx `0x87d1be1f…12dc`, `EpisodeLog.record` tx `0xd2fe9e75…aa21`; `docs/evidence/2026-11-06-evidence-upload.md`). The decision in that episode came from the rehearsal brain, not 0G.
 - A live World approve and deny: _pending the World IdP client_.
 - On-chain verification of the World token (the S5b prototype) is a stretch; the backend co-signer is what runs.
 - The physical duck walking to the till; the virtual loop (mock chip + web gate) is the demo.
