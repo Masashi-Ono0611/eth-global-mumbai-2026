@@ -161,14 +161,14 @@ const decisionCard = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: Html
   )
 }
 
-/** Once the errand has ended, a request still queued was never picked up and one still delivered never got an answer:
- *  say that, not that the chip is still waiting or signing. */
+/** Once the errand has ended, a request still queued was never picked up, and one still delivered when the errand timed
+ *  out never got an answer: say that, not that the chip is still waiting or signing. */
 const chipStatus = (status: string, episodeState: string) =>
   !terminalStates.has(episodeState)
     ? status
     : status === 'queued'
       ? 'unclaimed'
-      : status === 'delivered'
+      : status === 'delivered' && episodeState === 'expired'
         ? 'expired'
         : status
 

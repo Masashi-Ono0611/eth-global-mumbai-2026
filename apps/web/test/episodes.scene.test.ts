@@ -265,9 +265,15 @@ describe('/wallet/episodes/:id', () => {
     )
     scene(
       { update: Episode.update, view },
-      given(deliveredIn('failed')),
+      given(deliveredIn('expired')),
       expect(text('The chip did not answer in time')).toExist(),
       expect(text('The chip is checking the invoice and signing')).not.toExist(),
+    )
+    // Still running: the chip is still at it.
+    scene(
+      { update: Episode.update, view },
+      given(deliveredIn('signing')),
+      expect(text('The chip is checking the invoice and signing')).toExist(),
     )
   })
 
