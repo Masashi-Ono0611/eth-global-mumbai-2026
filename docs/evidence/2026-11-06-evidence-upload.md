@@ -1,4 +1,4 @@
-# First episode on 0G Storage + EpisodeLog — 2026-11-06 12:06 IST
+# First episode on 0G Storage + EpisodeLog (2026-11-06, 12:06 IST)
 
 | | |
 | --- | --- |
@@ -8,9 +8,9 @@
 | Uploader / storage signer | `0xc6fF8A666f4C7F674C1D129C73b46D61f2891fcD` (`APP_ZG_STORAGE_PRIVATE_KEY`, netcup only) |
 | Storage | Galileo turbo indexer `https://indexer-storage-testnet-turbo.0g.ai`, `@0gfoundation/0g-storage-ts-sdk` 1.2.13 |
 
-**The brain was not 0G.** The episode's only decision was made by the labelled rehearsal brain (Kris's LiteLLM, DeepSeek
+The brain was not 0G. The episode's only decision was made by the labelled rehearsal brain (Kris's LiteLLM, DeepSeek
 v4.1 flash): its `provider` field says `litellm-production-f53d.up.railway.app/deepseek-v4.1-flash`. A decision made
-on 0G Compute would read `router-api.0g.ai/<model>` or a provider host. What is on 0G here is the **evidence**: the
+on 0G Compute would read `router-api.0g.ai/<model>` or a provider host. What is on 0G here is the evidence: the
 episode JSON on 0G Storage and its anchor in `EpisodeLog` on 0G Chain.
 
 ## Run
@@ -44,8 +44,8 @@ The run log was checked for the storage key, the evidence token and the 0G API k
   above, `attempts: 1`, and the payload.
 - `EpisodeLog.records(keccak256("hg2ouddwe2h5j6ekbrsn7grfja"))` on Galileo →
   `{rootHash: 0x8db4ffc1…d5dd, requestIdsHash: 0x573d34b5…4dee, recorder: 0xc6fF…1fcD, recordedAt: 1793947010}`.
-- `Indexer.download(0x8db4ffc1…d5dd)` from the turbo indexer, with proof → 774 bytes, **byte-for-byte the JSON the app
-  serves as the payload** (parsed and re-serialised, then compared: equal).
+- `Indexer.download(0x8db4ffc1…d5dd)` from the turbo indexer, with proof → 774 bytes, byte-for-byte the JSON the app
+  serves as the payload (parsed and re-serialised, then compared: equal).
 
 ## The stored episode (as uploaded; immutable)
 
@@ -63,19 +63,19 @@ The run log was checked for the storage key, the evidence token and the 0G API k
 
 Known defect in this one record: the decision's `outcome` is `null` although the episode is `paid`. The Worker built
 the evidence when the errand entered `paid`, one statement before it wrote the decision's outcome. Fixed after this
-upload in `4d4d1fc`: the decision outcome is now written before the evidence is built, with a native assertion. Later episodes
-carry `"outcome":"paid"`. The episode's own `outcome.state` and `txHash` were right in this one too.
+upload in `4d4d1fc`: the decision outcome is now written before the evidence is built, with a native assertion. Later
+episodes carry `"outcome":"paid"`. The episode's own `outcome.state` and `txHash` were right in this one too.
 
-# First real-0G decisions on 0G Storage + EpisodeLog — 2026-11-06 12:43–12:45 IST
+# First real-0G decisions on 0G Storage + EpisodeLog (2026-11-06, 12:43 to 12:45 IST)
 
 Release `563edcb` (router brain live). Three `--once` runs of the uploader drained the whole backlog: 26 episodes, 0
 failures, then `no pending evidence`. The run logs contain no storage key, evidence token or 0G API key (checked
 mechanically). The uploader wallet went from ≈ 2.49 to 2.446 0G.
 
-**7 of the 26 were decided by 0G Compute.** Each decision's `provider` reads
+7 of the 26 were decided by 0G Compute. Each decision's `provider` reads
 `router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044` (the 0G router and the provider it routed
 to), and each `requestId` is the router's `x_0g_trace.request_id`. These are the episodes of browser run 7
-(`2026-11-06-deployed-browser.md`) and e2e runs 9–10 (`2026-11-06-deployed-e2e.md`). World was the stub issuer in
+(`2026-11-06-deployed-browser.md`) and e2e runs 9 and 10 (`2026-11-06-deployed-e2e.md`). World was the stub issuer in
 all of them (rehearsal), so "approved"/"denied" below is the stub's answer.
 
 | Episode | Item → errand | 0G decision → outcome (router request id, latency) | Arc tx / approval | 0G Storage root | Storage tx | EpisodeLog.record tx |
@@ -90,46 +90,48 @@ all of them (rehearsal), so "approved"/"denied" below is the stub's answer.
 
 Checks, for each of the seven:
 - `GET $APP/api/evidence/<id>` → `status: "uploaded"` with the three values above.
-- On Galileo, `EpisodeLog.records(keccak256(id))` holds that root. Its `requestIdsHash` equals `keccak256(<router request id>)`, recomputed. Both transactions have status 1 (blocks 64127927–64128178).
+- On Galileo, `EpisodeLog.records(keccak256(id))` holds that root. Its `requestIdsHash` equals `keccak256(<router
+  request id>)`, recomputed. Both transactions have status 1 (blocks 64127927 to 64128178).
 - `Indexer.download(root)` from the turbo indexer, with proof, returns exactly the payload the app serves.
-- **`decisions[0].outcome` is populated** (`paid`, `denied`, `failed`) in every one: the `4d4d1fc` ordering fix is
-  deployed. Uploaded at 12:43:08–12:45:02 IST.
+- `decisions[0].outcome` is populated (`paid`, `denied`, `failed`) in every one: the `4d4d1fc` ordering fix is
+  deployed. Uploaded at 12:43:08 to 12:45:02 IST.
 
 ## The other 19 (rehearsal brain, labelled)
 
-19 more episodes, uploaded in the same runs, were decided by the **LiteLLM rehearsal brain**, not 0G. Their `provider`
+19 more episodes, uploaded in the same runs, were decided by the LiteLLM rehearsal brain, not 0G. Their `provider`
 reads `litellm-production-f53d.up.railway.app/deepseek-v4.1-flash` and their request ids are `chatcmpl-…`: 5 paid,
 1 failed, 7 walked away, 1 denied and 5 safe_stop (undecodable answers, before `563edcb`). They are on 0G Storage and
 in `EpisodeLog` like the others, and their JSON names the brain. One of them, `z4ttr5zmvvkwx7is3kzmoriaaq`, predates
 the fix and shows `outcome: null`, like the first upload above. Per-episode roots and transactions:
 `GET $APP/api/evidence/<id>`.
 
-# First episodes with a real World approval — Kris's live run, uploaded 15:00 IST
+# First episodes with a real World approval: Kris's live run, uploaded 15:00 IST
 
-Release `0b279caf3345996b8f5fa69df9f786cff64c6a11`. The owner was a **real passkey on a Mac**, the brain the **0G
-router** (`router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044`, router request ids), and
-World the **production IdP**, not the stub. One `heavy --wait bun tools/evidence-uploader/main.ts --once --server $APP`
-uploaded the three pending episodes, 0 failures. The log contains no storage key, evidence token or 0G API key (checked).
+Release `0b279caf3345996b8f5fa69df9f786cff64c6a11`. The owner was a real passkey on a Mac, the brain the 0G router
+(`router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044`, router request ids), and World the
+production IdP, not the stub. One `heavy --wait bun tools/evidence-uploader/main.ts --once --server $APP` uploaded the
+three pending episodes, 0 failures. The log contains no storage key, evidence token or 0G API key (checked).
 
 | Episode | Item → errand | 0G decision → outcome (router request id, latency) | Arc tx / approval | 0G Storage root | Storage tx | EpisodeLog.record tx |
 | --- | --- | --- | --- | --- | --- | --- |
 | `te43j36jcumegzazr245lyefey` | chai → paid | pay → paid (`e2beb465-3c17-4148-aa7e-7fb414acd26d`, 2435 ms) | [`0x652cae43…05de`](https://explorer.arc.io/tx/0x652cae43690a95ddeedfe7a8b14085ac5d16ebf90d15a3dcdfc7f410a30705de) | `0xe85851dd42d7b541228aea3c04fdbc0179b96d5dd365e7fdd94e4b6f318e3b3f` | [`0x5129071c…b615`](https://chainscan-galileo.0g.ai/tx/0x5129071cde61cace51b93a4f068e37399d29d2737589b7d61314ec9a119eb615) | [`0x25bbcaa9…d0ab`](https://chainscan-galileo.0g.ai/tx/0x25bbcaa9044354d591f554e844c7bc29f419e65581664defde3cb1f86dbed0ab) |
 | `hha4g3lnwtpta7rwlepkczcjwm` | cigarettes → denied (the World token was refused: its `amr` named `mfa`, as reported by the run) | ask_human → denied (`8bb404ea-8cf5-446f-8517-f930a3902e87`, 1957 ms) | nothing signed or paid | `0xe9ccb999e852fb85fe9fd4fa67b627b2e927684b2ef5bcd82266ff1b27d04597` | [`0x0349ce7a…00e3`](https://chainscan-galileo.0g.ai/tx/0x0349ce7a23f09851170d523a920c2ce1a2159a14a089f68c53de651a2db200e3) | [`0x294d2d67…b5d0`](https://chainscan-galileo.0g.ai/tx/0x294d2d678089be10a17c0feffd855112d3316a414f5b1efed7afe7641657b5d0) |
-| `geyvf2s6nh63zdgkpxf4lntlvm` | cigarettes → paid after a **real World approval** | ask_human → paid (`4ae4a3b6-3cdd-46ee-8382-8f80195c4272`, 3151 ms) | [`0xae55688e…ffa9`](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9), approval `cuf5a4h4avnmt22rddepzdoqoa` | `0x03cd841f9a192627f9076cd51fa4a1f46885fb36f18711ab550227bd6b4a850f` | [`0x21599251…18f4`](https://chainscan-galileo.0g.ai/tx/0x215992518b95da10e6743b8a69d5e486d668a815eca5c62dc148b3bc4c6018f4) | [`0x37e58556…fbb9`](https://chainscan-galileo.0g.ai/tx/0x37e58556337f8b9e036acac8ff10ebfe6396bb62c3a8f7692f9e82767681fbb9) |
+| `geyvf2s6nh63zdgkpxf4lntlvm` | cigarettes → paid after a real World approval | ask_human → paid (`4ae4a3b6-3cdd-46ee-8382-8f80195c4272`, 3151 ms) | [`0xae55688e…ffa9`](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9), approval `cuf5a4h4avnmt22rddepzdoqoa` | `0x03cd841f9a192627f9076cd51fa4a1f46885fb36f18711ab550227bd6b4a850f` | [`0x21599251…18f4`](https://chainscan-galileo.0g.ai/tx/0x215992518b95da10e6743b8a69d5e486d668a815eca5c62dc148b3bc4c6018f4) | [`0x37e58556…fbb9`](https://chainscan-galileo.0g.ai/tx/0x37e58556337f8b9e036acac8ff10ebfe6396bb62c3a8f7692f9e82767681fbb9) |
 
 Checks, for each of the three:
 - `GET $APP/api/evidence/<id>` → `uploaded`.
-- On Galileo, `EpisodeLog.records(keccak256(id))` holds that root, and its `requestIdsHash` equals the recomputed hash of
-  the router request ids. Both transactions have status 1 (blocks 64144872–64144967).
+- On Galileo, `EpisodeLog.records(keccak256(id))` holds that root, and its `requestIdsHash` equals the recomputed hash
+  of the router request ids. Both transactions have status 1 (blocks 64144872 to 64144967).
 - The file downloaded back from the turbo indexer equals the app's payload.
 - `decisions[0].outcome` is set (`paid`, `denied`, `paid`), and the approved episode names its `approvalId`. Uploaded
   15:00:16, 15:00:33 and 15:00:51 IST.
 
 # First glm-5.3 episode (TeeML provider), uploaded 17:17 IST
 
-This is the Lead's run 11 on the switched brain. The provider is `router-api.0g.ai/glm-5.3@0xD179F4526064846dE9a9E9D93683AF75CB72E503`, a
-**TeeML** service in the 0G Compute registry (mainnet inference contract `0x47340d900bdFec2BD393c626E12ea0656F938d84`).
-Its TEE signer is `0x0766BC72beB6dAe764eE51C781c0A68117E69179`, with TargetSeparated `false`.
+This is the Lead's run 11 on the switched brain. The provider is
+`router-api.0g.ai/glm-5.3@0xD179F4526064846dE9a9E9D93683AF75CB72E503`, a TeeML service in the 0G Compute registry
+(mainnet inference contract `0x47340d900bdFec2BD393c626E12ea0656F938d84`). Its TEE signer is
+`0x0766BC72beB6dAe764eE51C781c0A68117E69179`, with TargetSeparated `false`.
 
 One `heavy --wait bun tools/evidence-uploader/main.ts --once --server $APP` uploaded the one pending episode, with 0
 failures. The log contains no storage key, evidence token or 0G API key (checked). The run's cigarettes errand
@@ -148,4 +150,4 @@ Checks:
 - `decisions[0]` names the brain above, `outcome: paid`.
 
 This evidence was written before the Worker stored TEE proofs, so its decision has no `tee` key. The provider's
-signature for chat `ed7d55f5-…` is verified offline from the chat id (result added by the orchestrator).
+signature for chat `ed7d55f5-…` was verified from the chat id within minutes (`2026-11-06-tee-verification.md`).
