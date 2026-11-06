@@ -23,7 +23,8 @@
       .rail { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); padding-top: 1.2rem; }
       .rail ol { display: contents; }
       .rail li { display: grid; justify-items: center; gap: 0.55rem; list-style: none; }
-      .mark { width: 3.9rem; height: 3.9rem; }
+      .mark { position: relative; z-index: 1; width: 3.9rem; height: 3.9rem; }
+      .dot, .cursor { z-index: 2; }
       .mark svg { width: 1.95rem; height: 1.95rem; }
       .name { font-size: 0.95rem; }
       .line { position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: calc(1.2rem + 1.95rem); height: 2px; background: rgb(255 231 176 / 0.35); }

@@ -79,22 +79,42 @@
       .live .row.back { animation-direction: reverse; animation-duration: 120s; }
       .live .row img { width: 15rem; border-radius: 1.25rem; border: 4px solid #2b2d62; display: block; }
       @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-      /* The payment's path: six stops, a light that travels along the rail at a steady pace, each stop glowing as it passes. */
-      .flow { position: absolute; left: 50%; bottom: 7%; translate: -50% 0; width: min(72rem, 94vw); z-index: -1; pointer-events: none; }
-      .flow .nodes { display: grid; grid-template-columns: repeat(6, 1fr); list-style: none; margin: 0; padding: 0; }
-      .flow li { display: grid; justify-items: center; gap: 0.5rem; }
-      .flow .mark { width: 3.4rem; height: 3.4rem; border-radius: 50%; display: grid; place-items: center; color: var(--lamp); background: var(--night); border: 2px solid rgb(255 231 176 / 0.6); animation: stop 9s linear infinite; animation-delay: calc(var(--i) * 1.8s); }
-      .flow .mark svg { width: 1.7rem; height: 1.7rem; display: block; }
-      .flow .name { font: 600 0.9rem/1 var(--body); color: var(--lamp); }
-      .flow .track { position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: 1.7rem; height: 2px; background: rgb(255 231 176 / 0.35); container-type: inline-size; }
-      .flow .dot { position: absolute; left: 0; top: 50%; width: 0.8rem; height: 0.8rem; margin: -0.4rem 0 0 -0.4rem; border-radius: 50%; background: var(--chip); box-shadow: 0 0 1rem 0.2rem rgb(63 214 196 / 0.7); animation: travel 9s linear infinite; }
-      .flow .dot.trail { opacity: 0.45; box-shadow: 0 0 1.5rem 0.5rem rgb(63 214 196 / 0.45); animation-delay: -0.12s; }
-      @keyframes travel { 0% { transform: translateX(0); opacity: 0; } 4% { opacity: 1; } 96% { opacity: 1; } 100% { transform: translateX(100cqw); opacity: 0; } }
-      @keyframes stop { 0%, 1% { box-shadow: 0 0 0 0 rgb(63 214 196 / 0); border-color: rgb(255 231 176 / 0.6); } 3% { box-shadow: 0 0 1.4rem 0.3rem rgb(63 214 196 / 0.7); border-color: var(--chip); } 12%, 100% { box-shadow: 0 0 0 0 rgb(63 214 196 / 0); border-color: rgb(255 231 176 / 0.6); } }
-      @media (max-width: 40rem) { .flow .mark { width: 2.6rem; height: 2.6rem; } .flow .mark svg { width: 1.3rem; height: 1.3rem; } .flow .name { font-size: 0.75rem; } .flow .track { top: 1.3rem; } }
-      @media (prefers-reduced-motion: reduce) { .live .row, .flow .dot, .flow .mark { animation: none; } .flow .dot { display: none; } }
+      /* The payment's path, told step by step: a ticket (what is being bought, spent today), one caption in plain words, and a
+         light that moves stop to stop along the rail. The loop restarts from the first step whenever this screen comes into view. */
+      .live .flow { position: absolute; left: 50%; bottom: 5%; translate: -50% 0; width: min(74rem, 94vw); z-index: -1; pointer-events: none; }
+      .live .ticket { display: flex; justify-content: center; gap: 0.75rem; margin: 0 0 1.3rem; }
+      .live .ticket span { font: 600 0.95rem/1 var(--body); padding: 0.55rem 0.9rem; border-radius: 999px; background: rgb(255 248 234 / 0.1); color: var(--soft); }
+      .live .ticket .item { background: rgb(255 231 176 / 0.16); color: var(--paper); }
+      .live .caption { min-height: 4.6rem; text-align: center; margin: 0 auto 1.5rem; max-width: 46rem; opacity: 0; transform: translateY(0.3rem); transition: opacity 0.35s, transform 0.35s; }
+      .live .caption.show { opacity: 1; transform: none; }
+      .live .caption .who { display: block; font: 600 0.95rem/1 var(--body); color: var(--chip); margin-bottom: 0.5rem; }
+      .live .caption .text { font: 700 clamp(1.3rem, 2.3vw, 1.9rem) / 1.2 var(--display); letter-spacing: -0.01em; text-wrap: balance; }
+      .live .caption.off .who { color: var(--faint); } .live .caption.off .text { color: var(--faint); font-weight: 500; }
+      .live .caption.no .who { color: var(--no); }
+      .live .rail { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); padding-top: 1.2rem; }
+      .live .rail ol { display: contents; list-style: none; margin: 0; padding: 0; }
+      .live .rail li { display: grid; justify-items: center; gap: 0.55rem; }
+      /* The circles sit above the rail line; the light and the cursor above both. */
+      .live .mark { position: relative; z-index: 1; width: 3.9rem; height: 3.9rem; border-radius: 50%; display: grid; place-items: center; color: var(--lamp); background: var(--night); border: 2px solid rgb(255 231 176 / 0.6); transition: box-shadow 0.5s, border-color 0.5s, opacity 0.5s, transform 0.5s; }
+      .live .mark svg { width: 1.95rem; height: 1.95rem; display: block; }
+      .live .mark.on { border-color: var(--chip); box-shadow: 0 0 1.4rem 0.3rem rgb(63 214 196 / 0.6); transform: scale(1.08); }
+      .live .mark.off { opacity: 0.4; }
+      .live .mark.no { border-color: var(--no); box-shadow: 0 0 1.4rem 0.3rem rgb(255 138 128 / 0.5); }
+      .live .name { font: 600 0.95rem/1 var(--body); color: var(--lamp); }
+      .live .line { position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: calc(1.2rem + 1.95rem); height: 2px; background: rgb(255 231 176 / 0.35); }
+      .live .cursor { position: absolute; z-index: 2; top: 0; width: 0; height: 0; margin-left: -0.5rem; border: 0.5rem solid transparent; border-top: 0.6rem solid var(--chip); border-bottom: 0; transition: left 0.8s cubic-bezier(0.45, 0, 0.55, 1), border-top-color 0.4s; }
+      .live .cursor.off { border-top-color: rgb(255 248 234 / 0.4); } .live .cursor.no { border-top-color: var(--no); }
+      .live .dot { position: absolute; z-index: 2; top: calc(1.2rem + 1.95rem); width: 1rem; height: 1rem; margin: -0.5rem 0 0 -0.5rem; border-radius: 50%; background: var(--chip); box-shadow: 0 0 1.2rem 0.35rem rgb(63 214 196 / 0.75); transition: left 0.8s cubic-bezier(0.45, 0, 0.55, 1), opacity 0.4s, background 0.4s, box-shadow 0.4s; }
+      .live .dot.trail { opacity: 0.4; transition-delay: 0.08s; }
+      .live .dot.no { background: var(--no); box-shadow: 0 0 1.2rem 0.35rem rgb(255 138 128 / 0.6); }
+      @media (max-width: 40rem) {
+        .live { padding-top: 10vh; }
+        .live .mark { width: 2.8rem; height: 2.8rem; } .live .mark svg { width: 1.4rem; height: 1.4rem; } .live .name { font-size: 0.75rem; }
+        .live .line, .live .dot { top: calc(1.2rem + 1.4rem); } .live .ticket { flex-wrap: wrap; } .live .ticket span { font-size: 0.8rem; } .live .caption .text { font-size: 1.15rem; } .live .caption { min-height: 5.4rem; }
+      }
+      @media (prefers-reduced-motion: reduce) { .live .row { animation: none; } .live .dot, .live .cursor, .live .caption, .live .mark { transition: none; } }
 
-      .live { place-content: center; text-align: center; background: radial-gradient(60rem 40rem at 50% 60%, #2a2c66, var(--night)); }
+      .live { place-content: start center; padding-top: clamp(3rem, 9vh, 6rem); text-align: center; background: radial-gradient(60rem 40rem at 50% 60%, #2a2c66, var(--night)); }
       .live h2 { font-size: clamp(3rem, 10vw, 7rem); }
       .live .lede { margin-inline: auto; }
       .buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.75rem; }
@@ -186,11 +206,17 @@
           <div class="row back"><img src="media/app-episodes.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-wallet.webp" alt="" /><img src="media/app-pairing.webp" alt="" /><img src="media/app-episodes.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-wallet.webp" alt="" /><img src="media/app-pairing.webp" alt="" /></div>
         </div>
         <div class="flow" aria-hidden="true">
-          <div class="track"><span class="dot"></span><span class="dot trail"></span></div>
-          <ol class="nodes">
-            <li style="--i:0"><span class="mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="name">You</span></li>
-            <li style="--i:1"><span class="mark"><svg viewBox="0 0 24 24"><path d="M3 9.5l18-2.5v8l-18 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8.3" cy="12.6" r="1.7" fill="currentColor"/><circle cx="15" cy="11.7" r="1.7" fill="currentColor"/><path d="M8.5 7.6L7.3 3.2M15.5 6.6l1.1-4.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="name">Robot</span></li>
-            <li style="--i:2"><span class="mark"><svg  viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div class="ticket"><span class="item" id="flow-item"></span><span id="flow-spent"></span></div>
+          <div class="caption" id="flow-caption"><span class="who" id="flow-who"></span><span class="text" id="flow-text"></span></div>
+          <div class="rail">
+            <div class="line"></div>
+            <div class="cursor" id="flow-cursor"></div>
+            <div class="dot trail" id="flow-trail"></div>
+            <div class="dot" id="flow-dot"></div>
+            <ol>
+              <li><span class="mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="name">You</span></li>
+              <li><span class="mark"><svg viewBox="0 0 24 24"><path d="M3 9.5l18-2.5v8l-18 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8.3" cy="12.6" r="1.7" fill="currentColor"/><circle cx="15" cy="11.7" r="1.7" fill="currentColor"/><path d="M8.5 7.6L7.3 3.2M15.5 6.6l1.1-4.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="name">Robot</span></li>
+              <li><span class="mark"><svg  viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
 <mask id="mask0_6138_615" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="25" y="86" width="246" height="121">
 <path d="M126.817 188.82C104.397 211.239 68.4709 211.92 45.2311 190.862L64.1127 171.98L97.5114 138.582L103.791 144.861L71.8683 176.784C83.7947 182.012 98.2146 179.744 107.978 169.981C120.694 157.264 120.694 136.646 107.978 123.929C95.2608 111.212 74.6426 111.212 61.9258 123.929C50.6387 135.216 49.3697 152.728 58.1188 165.415L39.1066 184.427C20.0511 161.17 21.3776 126.798 43.0863 105.089C66.2079 81.9677 103.695 81.9677 126.817 105.089C149.938 128.211 149.938 165.698 126.817 188.82Z" fill="#fff"/>
 <path d="M211.019 204.427C242.726 204.427 268.611 179.504 270.153 148.181H196.218V157.062H241.363C236.626 169.191 224.827 177.784 211.02 177.784C193.035 177.784 178.456 163.205 178.456 145.22C178.456 127.236 193.035 112.657 211.02 112.657C226.982 112.657 240.262 124.142 243.046 139.3H269.934C266.963 109.381 241.72 86.0137 211.019 86.0137C178.321 86.0137 151.813 112.521 151.813 145.22C151.813 177.919 178.321 204.427 211.019 204.427Z" fill="#fff"/>
@@ -199,7 +225,7 @@
 <path d="M22 84H280V208H22V84Z" fill="currentColor"/>
 </g>
 </svg></span><span class="name">0G</span></li>
-            <li style="--i:3"><span class="mark"><svg viewBox="0 0 528 528">
+              <li><span class="mark"><svg viewBox="0 0 528 528">
 
 <g transform="translate(0.000000,528.000000) scale(0.100000,-0.100000)"
 fill="currentColor" stroke="none">
@@ -259,9 +285,10 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
 398 -29 64 -60 152 -56 157 2 2 658 3 1457 3 1116 -1 1452 -3 1451 -13z"/>
 </g>
 </svg></span><span class="name">World</span></li>
-            <li style="--i:4"><span class="mark"><svg viewBox="0 0 48 50"><path d="M23.8574 0C31.0115 0 37.371 6.19775 41.7656 17.4521C44.0513 23.3056 45.7332 30.2603 46.7295 37.8262C46.8186 38.5019 46.8939 39.1888 46.9717 39.874C46.9969 39.9162 47.0119 39.9553 47.0068 39.9873C47.0068 39.9873 47.5924 43.6447 47.7168 50H47.6514C46.7829 49.2873 36.54 41.2389 19.5615 43.5693C19.8177 40.6962 20.1699 37.9004 20.625 35.2207C20.6482 35.0838 20.6755 34.9514 20.6992 34.8154C27.3585 34.6146 33.1876 35.3879 37.6572 36.4014C37.6406 36.2954 37.6263 36.1865 37.6094 36.0811C36.6906 30.3599 35.3355 25.1217 33.5879 20.6455C30.7304 13.3264 27.001 8.77832 23.8574 8.77832C20.7141 8.77863 16.9853 13.3266 14.1279 20.6455C13.4363 22.4157 12.8068 24.3036 12.2422 26.2949C11.4483 29.0854 10.7807 32.0773 10.248 35.2207C9.45968 39.8629 8.96755 44.8418 8.78613 50H0C0.405408 37.7593 2.48104 26.3352 5.9502 17.4521C10.3437 6.19798 16.7036 0.000184295 23.8574 0Z" fill="currentColor"/></svg></span><span class="name">Arc</span></li>
-            <li style="--i:5"><span class="mark"><svg viewBox="0 0 24 24"><path d="M3.5 9l1.3-4.5h14.4L20.5 9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3.5 9c0 1.5 1.2 2.7 2.8 2.7S9.2 10.5 9.2 9c0 1.5 1.2 2.7 2.8 2.7s2.8-1.2 2.8-2.7c0 1.5 1.2 2.7 2.8 2.7S20.5 10.5 20.5 9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 12.5V20h13v-7.5M10 20v-4.5h4V20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><span class="name">Store</span></li>
-          </ol>
+              <li><span class="mark"><svg viewBox="0 0 48 50"><path d="M23.8574 0C31.0115 0 37.371 6.19775 41.7656 17.4521C44.0513 23.3056 45.7332 30.2603 46.7295 37.8262C46.8186 38.5019 46.8939 39.1888 46.9717 39.874C46.9969 39.9162 47.0119 39.9553 47.0068 39.9873C47.0068 39.9873 47.5924 43.6447 47.7168 50H47.6514C46.7829 49.2873 36.54 41.2389 19.5615 43.5693C19.8177 40.6962 20.1699 37.9004 20.625 35.2207C20.6482 35.0838 20.6755 34.9514 20.6992 34.8154C27.3585 34.6146 33.1876 35.3879 37.6572 36.4014C37.6406 36.2954 37.6263 36.1865 37.6094 36.0811C36.6906 30.3599 35.3355 25.1217 33.5879 20.6455C30.7304 13.3264 27.001 8.77832 23.8574 8.77832C20.7141 8.77863 16.9853 13.3266 14.1279 20.6455C13.4363 22.4157 12.8068 24.3036 12.2422 26.2949C11.4483 29.0854 10.7807 32.0773 10.248 35.2207C9.45968 39.8629 8.96755 44.8418 8.78613 50H0C0.405408 37.7593 2.48104 26.3352 5.9502 17.4521C10.3437 6.19798 16.7036 0.000184295 23.8574 0Z" fill="currentColor"/></svg></span><span class="name">Arc</span></li>
+              <li><span class="mark"><svg viewBox="0 0 24 24"><path d="M3.5 9l1.3-4.5h14.4L20.5 9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3.5 9c0 1.5 1.2 2.7 2.8 2.7S9.2 10.5 9.2 9c0 1.5 1.2 2.7 2.8 2.7s2.8-1.2 2.8-2.7c0 1.5 1.2 2.7 2.8 2.7S20.5 10.5 20.5 9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 12.5V20h13v-7.5M10 20v-4.5h4V20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span><span class="name">Store</span></li>
+            </ol>
+          </div>
         </div>
         <div class="words">
           <h2 id="c7">Now, live.</h2>
@@ -324,6 +351,63 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         )
         chapters.forEach((chapter) => seen.observe(chapter))
       }
+      // The live screen's story: three scenarios in plain words, a step per stop. 'off' = not needed this time, 'no' = refused.
+      const live = document.querySelector('.live')
+      const flowStops = [...live.querySelectorAll('.rail .mark')]
+      const flowNames = [...live.querySelectorAll('.rail .name')].map((n) => n.textContent)
+      const flow = Object.fromEntries(['item', 'spent', 'caption', 'who', 'text', 'cursor', 'trail', 'dot'].map((k) => [k, document.getElementById('flow-' + k)]))
+      const scenarios = [
+        { item: '<b>Chai</b> · 0.10 USDC · Duck Café', spent: 'Budget: 3.00 a day, 1.00 a go', steps: [
+          [0, 'You set the budget: 3.00 a day, 1.00 a go, Duck Café only. One tap.'],
+          [1, 'The robot picks up the bill: chai, 0.10.'],
+          [2, 'Its brain checks: within the budget, right place. Buy.'],
+          [3, 'Within the limit, so no need to ask you.', 'off'],
+          [4, 'Arc checks the rules and moves 0.10 USDC. Half a second.'],
+          [5, 'The stall sees "paid" and opens its gate.'],
+        ] },
+        { item: '<b>Thali</b> · 2.00 USDC · Duck Café', spent: 'Spent today: 0.10 of 3.00', steps: [
+          [1, 'The bill: a thali, 2.00.'],
+          [2, 'Over the 1.00 limit. Its brain says: ask the owner.'],
+          [0, 'Your phone asks. You say yes.'],
+          [3, "World checks it's really you, for this exact payment."],
+          [4, 'Arc sees your yes and moves 2.00 USDC.'],
+          [5, 'The gate opens.'],
+        ] },
+        { item: '<b>Off switch</b>', spent: 'Spent today: 2.10 of 3.00', steps: [
+          [0, 'You switch the robot off. One tap.'],
+          [4, 'Arc locks the budget.'],
+          [1, 'Next chai? Refused by Arc itself. Not even we could change that.', 'no'],
+        ] },
+      ]
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+      let flowRun = 0
+      const runFlow = async (run) => {
+        const at = (i) => `${((i + 0.5) / 6) * 100}%`
+        while (run === flowRun) {
+          for (const sc of scenarios) {
+            flow.item.innerHTML = sc.item; flow.spent.textContent = sc.spent
+            flowStops.forEach((m) => m.classList.remove('on', 'off', 'no'))
+            for (const [i, line, kind] of sc.steps) {
+              if (run !== flowRun) return
+              for (const el of [flow.dot, flow.trail, flow.cursor]) { el.style.left = at(i); el.classList.toggle('no', kind === 'no'); el.classList.toggle('off', kind === 'off') }
+              flow.dot.style.opacity = kind === 'off' ? 0.3 : 1
+              flow.caption.classList.remove('show')
+              await sleep(still ? 0 : 820)
+              if (run !== flowRun) return
+              flowStops.forEach((m) => m.classList.remove('on'))
+              flowStops[i].classList.add(kind === 'off' ? 'off' : kind === 'no' ? 'no' : 'on')
+              flow.who.textContent = flowNames[i]; flow.text.textContent = line
+              flow.caption.className = `caption show ${kind ?? ''}`
+              await sleep(kind === 'off' ? 1500 : 2600)
+            }
+            flow.caption.classList.remove('show')
+            await sleep(900)
+          }
+        }
+      }
+      new IntersectionObserver((entries) => {
+        for (const { isIntersecting } of entries) { flowRun += 1; if (isIntersecting) runFlow(flowRun) }
+      }, { threshold: 0.35 }).observe(live)
       const current = () => Math.max(0, chapters.findIndex((c) => c.getBoundingClientRect().bottom > innerHeight / 2))
       const go = (index) => {
         const target = chapters[Math.min(chapters.length - 1, Math.max(0, index))]
