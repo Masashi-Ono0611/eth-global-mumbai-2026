@@ -165,7 +165,10 @@ const outcomeOf = (
       detail,
     }
   const trace = completion.value.x_0g_trace
-  const logged = call(trace?.request_id ?? null, chatId ?? completion.value.id ?? null, trace?.provider ?? null, status)
+  // The router puts its request id in x_0g_trace; a provider called directly only returns its TEE-signed chat id
+  // (ZG-Res-Key, else the body id), which then is the per-decision request id.
+  const chat = chatId ?? completion.value.id ?? null
+  const logged = call(trace?.request_id ?? chat, chat, trace?.provider ?? null, status)
   const tool = decideCall(completion.value)
   if (Option.isNone(tool)) return { ok: false, call: logged, error: 'no decide tool call in the reply', detail }
   const result = decideArguments(tool.value.function.arguments)
