@@ -9,6 +9,11 @@ export default {
       // which a fresh CI checkout doesn't have, so knip's lefthook plugin can't see it there.
       ignoreDependencies: ['@effect/language-service', 'lefthook'],
     },
+    // The merchant till: Vite loads src/entry.ts from index.html; alchemy.run.ts and worker.ts deploy it.
+    'apps/merchant': {
+      entry: ['src/entry.ts!', 'alchemy.run.ts!', 'worker.ts!', 'test/**/*.test.ts'],
+      project: ['src/**/*.ts!', 'test/**/*.ts', '*.ts'],
+    },
     'apps/chip': { entry: ['src/main.ts!', 'test/**/*.test.ts'], project: ['src/**/*.ts!', 'test/**/*.ts'] },
     'apps/web': {
       // The zyzz Vite plugin discovers GlobalStyles.ts; nothing imports it.

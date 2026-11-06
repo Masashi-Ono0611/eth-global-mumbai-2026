@@ -1,0 +1,132 @@
+/* The till runs on a tablet or laptop at the counter: big targets, high contrast, readable from a step away. */
+:root {
+  color-scheme: light;
+  --paper: #f4efe6;
+  --ink: #1f1a14;
+  --muted: #6b6257;
+  --rule: #d8cfc2;
+  --accent: #1d4ed8;
+  --paid: #15803d;
+  --stopped: #b42318;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+.till {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem 3rem;
+  display: grid;
+  gap: 1.5rem;
+}
+header h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+.hint {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+.menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+.menu-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.5rem;
+  text-align: start;
+  cursor: pointer;
+  background: white;
+  color: inherit;
+  font: inherit;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  touch-action: manipulation;
+  user-select: none;
+}
+.menu-item:active {
+  transform: scale(0.98);
+}
+.menu-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+.menu-price {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.sale {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+.sale h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+.qr {
+  width: min(80vw, 22rem);
+  height: auto;
+  aspect-ratio: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 0.5rem;
+  image-rendering: pixelated;
+}
+.waiting {
+  font-weight: 600;
+}
+.problem {
+  color: var(--stopped);
+  max-width: 30rem;
+}
+.link {
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.outcome .mark {
+  margin: 0;
+  font-size: 4.5rem;
+  line-height: 1;
+}
+.outcome.paid .mark {
+  color: var(--paid);
+}
+.outcome.stopped .mark {
+  color: var(--stopped);
+}
+.button {
+  min-height: 3rem;
+  padding: 0 1.5rem;
+  font: inherit;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: manipulation;
+  border: 1px solid transparent;
+}
+.button.primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+.button.quiet {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule);
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}

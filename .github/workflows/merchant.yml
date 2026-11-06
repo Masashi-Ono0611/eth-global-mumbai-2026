@@ -1,0 +1,31 @@
+name: Merchant till
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/merchant/**'
+      - 'bun.lock'
+      - '.github/workflows/merchant.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: merchant-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+        timeout-minutes: 5
+      # The till's own tests only (seconds); main's full gate runs in check.yml.
+      - run: bunx vitest run apps/merchant
+      - run: bun run --cwd apps/merchant deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

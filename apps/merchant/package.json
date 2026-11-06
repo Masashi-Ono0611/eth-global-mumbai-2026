@@ -1,0 +1,26 @@
+{
+  "name": "@ethmumbai/merchant",
+  "private": true,
+  "type": "module",
+  "sideEffects": [
+    "./src/entry.ts",
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "deploy": "CLOUDFLARE_ACCOUNT_ID=bceaeae4788dce3493514fde194b4a7e alchemy deploy alchemy.run.ts --stage prod --no-input --yes"
+  },
+  "dependencies": {
+    "effect": "catalog:",
+    "foldkit": "catalog:",
+    "uqr": "0.1.3"
+  },
+  "devDependencies": {
+    "@alchemy.run/cloudflare": "catalog:",
+    "@foldkit/vite-plugin": "catalog:",
+    "alchemy": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

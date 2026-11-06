@@ -25,6 +25,8 @@ const directions: Readonly<Record<string, readonly string[]>> = {
   '@ethmumbai/auth': ['@ethmumbai/db'],
   '@ethmumbai/chain': ['@ethmumbai/protocol'],
   '@ethmumbai/chip': ['@ethmumbai/protocol'],
+  // The till talks to the app only over HTTP: no workspace imports.
+  '@ethmumbai/merchant': [],
   '@ethmumbai/domain': [],
   '@ethmumbai/db': [],
   '@ethmumbai/i18n': [],

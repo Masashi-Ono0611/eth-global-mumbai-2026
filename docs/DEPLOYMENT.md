@@ -7,6 +7,7 @@ GitHub-hosted runners (the repo is public; no self-hosted runner on this box).
 | --- | --- | --- | --- | --- |
 | `EthMumbai` (app) | `alchemy.run.ts` | `main` | https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev | `check.yml` job `deploy`, every push to `main` after `bun run check` is green |
 | `EthMumbaiSite` (scratch site) | `docs/site/alchemy.run.ts` | `prod` | https://eth-mumbai-site.kristjan-grm11775.workers.dev | `site.yml`, every push to `main` touching `docs/site/**`; no app gates (see `docs/site/README.md`) |
+| `EthMumbaiMerchant` (merchant till) | `apps/merchant/alchemy.run.ts` | `prod` | https://eth-mumbai-merchant.kristjan-grm11775.workers.dev | `merchant.yml`, every push to `main` touching `apps/merchant/**` (its own tests, then deploy); its Worker forwards the five public merchant routes to the app's edge |
 
 The app is one public edge Worker (`Edge`, owns the workers.dev URL) in front of the API Worker (`Api`) and the Foldkit
 SSR Worker (`Website`), which have no public URLs; plus D1 `Database` and R2 `Media`.
