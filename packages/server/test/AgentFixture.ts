@@ -359,6 +359,35 @@ const chipRequestRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
+const WorldSubBody = Schema.Struct({ accountId: Schema.String, sub: Schema.String })
+
+/** A wallet whose World account is already bound (its first approval would bind it): Telegram may then send a link. */
+const worldSubRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/world-sub',
+    Effect.gen(function* () {
+      const { accountId, sub } = yield* body(WorldSubBody)
+      yield* database.prepare('UPDATE accounts SET world_sub = ? WHERE id = ?').bind(sub, accountId).run()
+      return noContent
+    }),
+  )
+
+/** The approval message goes out again (as a retry would): the next flush renders it afresh. */
+const notifyAgainRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/notifications/:subjectId/again',
+    Effect.gen(function* () {
+      const { subjectId } = yield* HttpRouter.params
+      yield* database
+        .prepare("UPDATE notifications SET status = 'pending' WHERE kind = 'approval_needed' AND subject_id = ?")
+        .bind(subjectId ?? '')
+        .run()
+      return noContent
+    }),
+  )
+
 const SweepBody = Schema.Struct({ episodeId: Schema.String })
 const EpisodeState = Schema.Struct({ state: Schema.String })
 
@@ -388,6 +417,8 @@ export const agentFixtureRoutes = (database: QueryDatabaseClient, media: ReadWri
     chipRequestRoute(database),
     stuckEpisodeRoute(database),
     sweepRoute(database),
+    worldSubRoute(database),
+    notifyAgainRoute(database),
     settledRoute(database),
     chipInvoiceRoute(database),
     auditEpisodeRoute(database),

@@ -12,6 +12,7 @@ import { approvalPage, callbackUrl, type WorldDeps } from './Authorize.ts'
 import type { WorldClient } from './Config.ts'
 import { takeVerifier } from './Pkce.ts'
 import { verifyIdToken, type VerifiedHuman } from './Verify.ts'
+import { linkOutcomePage, openedByLink } from './Link.ts'
 
 const CallbackQuery = Schema.Struct({
   state: Schema.String.check(Schema.isMaxLength(128)),
@@ -124,6 +125,25 @@ const approve = Effect.fn('EthMumbai.World.approve')(function* (
   return signed
 })
 
+/** World said yes: the errand continues with the signature, unless it already ended on its own (then expired). */
+const continueApproved = Effect.fnUntraced(function* (deps: WorldDeps, row: ApprovalRow, signed: SignedApproval) {
+  const continued = yield* approveErrand(deps.errands, row.episode_id, signed)
+  // The errand ended on its own (its 300 s tick) before World answered: the signature is never delivered, so the
+  // approval must not read as approved.
+  if (!continued)
+    yield* moveApproval(deps.database, row.id, ['approved'], 'expired', 'the errand ended before approval')
+  yield* Effect.logInfo('world approval approved').pipe(Effect.annotateLogs({ approvalId: row.id, continued }))
+  return continued ? 'approved' : 'expired'
+})
+
+/** World said no, or the answer failed a check: the errand ends `denied` and nothing is signed. */
+const recordDenied = Effect.fnUntraced(function* (deps: WorldDeps, row: ApprovalRow, reason: string) {
+  if (yield* moveApproval(deps.database, row.id, ['opened'], 'denied', reason))
+    yield* denyErrand(deps.errands, row.episode_id, reason)
+  yield* Effect.logWarning('world approval denied').pipe(Effect.annotateLogs({ approvalId: row.id, reason }))
+  return 'denied'
+})
+
 /**
  * `GET /api/world/callback?code&state` (§9 step 3). Approved → the errand continues to `signing` with the signed
  * approval; any failure or `error=access_denied` → `denied` with its reason and nothing is ever signed. A replayed or
@@ -160,18 +180,10 @@ export const callback = (deps: WorldDeps) =>
       }),
       Effect.result,
     )
-    if (Result.isSuccess(outcome)) {
-      const continued = yield* approveErrand(deps.errands, row.episode_id, outcome.success)
-      // The errand ended on its own (its 300 s tick) before World answered: the signature is never delivered, so the
-      // approval must not read as approved.
-      if (!continued)
-        yield* moveApproval(deps.database, row.id, ['approved'], 'expired', 'the errand ended before approval')
-      yield* Effect.logInfo('world approval approved').pipe(Effect.annotateLogs({ approvalId: row.id, continued }))
-    } else {
-      const { reason } = outcome.failure
-      if (yield* moveApproval(deps.database, row.id, ['opened'], 'denied', reason))
-        yield* denyErrand(deps.errands, row.episode_id, reason)
-      yield* Effect.logWarning('world approval denied').pipe(Effect.annotateLogs({ approvalId: row.id, reason }))
-    }
+    const status = Result.isSuccess(outcome)
+      ? yield* continueApproved(deps, row, outcome.success)
+      : yield* recordDenied(deps, row, outcome.failure.reason)
+    // From Telegram's one-time link the browser has no session, so the answer is a page that needs none.
+    if (yield* openedByLink(deps.database, row.id)) return linkOutcomePage(status)
     return HttpServerResponse.redirect(approvalPage(deps.origin, row.id), { status: 302 })
   })

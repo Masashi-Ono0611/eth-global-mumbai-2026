@@ -123,33 +123,42 @@ export const authorize = (deps: WorldDeps) =>
     const query = yield* HttpServerRequest.schemaSearchParams(AuthorizeQuery).pipe(
       Effect.mapError(() => BadRequest.make({ detail: 'expected ?approval=<id>' })),
     )
-    const world = yield* required(deps.world, 'WORLD_CLIENT_ID')
-    yield* required(deps.approver, 'APPROVER_PRIVATE_KEY')
-    yield* required(deps.enforcer, 'ENFORCER_ADDRESS')
+    yield* required(deps.world, 'WORLD_CLIENT_ID')
     const row = yield* ownApproval(deps.database, session, query.approval)
-    if (!answerable(row)) return HttpServerResponse.redirect(approvalPage(deps.origin, row.id), { status: 302 })
-    yield* deps.database
-      .prepare("UPDATE approvals SET status = 'opened' WHERE id = ? AND status IN ('requested', 'opened')")
-      .bind(row.id)
-      .run()
-    const codeChallenge = yield* startPkce(deps.database, row)
-    const endpoint = yield* world.authorizationEndpoint.pipe(Effect.orElseSucceed(() => `${world.issuer}/authorize`))
-    const url = new URL(endpoint)
-    url.search = new URLSearchParams({
-      response_type: 'code',
-      client_id: world.clientId,
-      redirect_uri: callbackUrl(deps.origin),
-      scope: 'openid',
-      state: row.oidc_state,
-      nonce: row.oidc_nonce,
-      max_age: '0',
-      prompt: 'login',
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-    }).toString()
-    yield* Effect.logInfo('world approval opened').pipe(Effect.annotateLogs({ approvalId: row.id }))
-    return HttpServerResponse.redirect(url.toString(), { status: 302 })
+    return yield* redirectToWorld(deps, row)
   })
+
+/**
+ * The owner's own open approval (the caller checked whose it is: the session, or a one-time link from Telegram) → 302
+ * to World IdP; an answered one → its page.
+ */
+export const redirectToWorld = Effect.fn('EthMumbai.World.redirect')(function* (deps: WorldDeps, row: ApprovalRow) {
+  const world = yield* required(deps.world, 'WORLD_CLIENT_ID')
+  yield* required(deps.approver, 'APPROVER_PRIVATE_KEY')
+  yield* required(deps.enforcer, 'ENFORCER_ADDRESS')
+  if (!answerable(row)) return HttpServerResponse.redirect(approvalPage(deps.origin, row.id), { status: 302 })
+  yield* deps.database
+    .prepare("UPDATE approvals SET status = 'opened' WHERE id = ? AND status IN ('requested', 'opened')")
+    .bind(row.id)
+    .run()
+  const codeChallenge = yield* startPkce(deps.database, row)
+  const endpoint = yield* world.authorizationEndpoint.pipe(Effect.orElseSucceed(() => `${world.issuer}/authorize`))
+  const url = new URL(endpoint)
+  url.search = new URLSearchParams({
+    response_type: 'code',
+    client_id: world.clientId,
+    redirect_uri: callbackUrl(deps.origin),
+    scope: 'openid',
+    state: row.oidc_state,
+    nonce: row.oidc_nonce,
+    max_age: '0',
+    prompt: 'login',
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+  }).toString()
+  yield* Effect.logInfo('world approval opened').pipe(Effect.annotateLogs({ approvalId: row.id }))
+  return HttpServerResponse.redirect(url.toString(), { status: 302 })
+})
 
 const EpisodePath = Schema.Struct({ episodeId: Schema.String })
 const ApprovalRef = Schema.Struct({ id: Schema.String, status: Schema.String })

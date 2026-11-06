@@ -8,6 +8,7 @@ import { firstRow } from '../Sql.ts'
 import { formatUsdc } from '../wallet/Activity.ts'
 import { type Button, escapeHtml, type OutgoingMessage } from './Bot.ts'
 import type { NotificationKind } from './Enqueue.ts'
+import { approvalLinkPath, mintApprovalLink } from '../world/Link.ts'
 
 // The robot's voice in Telegram (spec §14): built from D1 at send time, so a hook only records which event happened.
 // Messages carry amounts, item names and links only; never a key, a token or an address the owner did not see.
@@ -79,8 +80,19 @@ const approvalNeeded = Effect.fn('EthMumbai.Telegram.renderApproval')(function* 
   const facts = found.value
   const grant = facts.robot_id === null ? Option.none() : yield* latestSignedGrant(database, facts.robot_id)
   const { merchant, item } = names(facts.merchant_id, facts.item_id)
+  // With a World account bound, one tap goes straight to World ID (a one-time link that replaces the passkey sign-in
+  // for this approval only, world/Link.ts); before that, the approval page as always.
+  const link = yield* mintApprovalLink(database, facts.id)
   const buttons: ReadonlyArray<ReadonlyArray<Button>> = [
-    [{ text: 'Review and approve', url: `${new URL(origin).origin}${approvalPagePath(facts.id)}` }],
+    [
+      Option.match(link, {
+        onNone: () => ({ text: 'Review and approve', url: `${new URL(origin).origin}${approvalPagePath(facts.id)}` }),
+        onSome: (token) => ({
+          text: 'Approve with World ID',
+          url: `${new URL(origin).origin}${approvalLinkPath(facts.id, token)}`,
+        }),
+      }),
+    ],
     [{ text: 'Deny', callback_data: `deny:${facts.id}` }],
   ]
   return Option.some<OutgoingMessage>({
