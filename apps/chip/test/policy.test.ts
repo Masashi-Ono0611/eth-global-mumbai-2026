@@ -6,7 +6,7 @@ import { ARC_USDC, invoiceHash, jsonHash } from '@ethmumbai/protocol/Invoice'
 import { encodeAbiParameters, recoverAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { describe, expect, it } from 'vitest'
-import { approvalDigestFor, checkLease, evaluate, grantTerms, type PolicyContext } from '../src/policy.ts'
+import { approvalDigestFor, checkLease, evaluate, type PolicyContext } from '../src/policy.ts'
 
 // Test-only keys: never funded, never used on any chain.
 const chip = privateKeyToAccount(`0x${'11'.repeat(32)}`)
@@ -126,14 +126,26 @@ const codeOf = (request: SignRequest, overrides: Partial<PolicyContext> = {}) =>
 }
 
 describe('chip policy (spec §8)', () => {
-  it('reads the signed limits from the grant caveats', () => {
-    expect(grantTerms(requestFor(invoiceFor(merchant, '100000')))).toMatchObject({
-      dailyCap: 1_000_000n,
-      perPaymentCap: 300_000n,
-      allowlist: [merchant],
-      approver: approver.address.toLowerCase(),
-      enforcer,
+  it('accepts a grant of the three stock caveats, capped by the request and the chip’s own maximum', () => {
+    const request = requestFor(invoiceFor(merchant, '100000'))
+    const stock = { ...request.grant.delegation, caveats: request.grant.delegation.caveats.slice(0, 3) }
+    const stockRequest = { ...request, grant: { ...request.grant, delegation: stock } }
+    const leaf = buildLeaf({
+      chip: chip.address,
+      grantHash: delegationHash(stock),
+      relayer,
+      invoiceHash: request.invoice.invoiceHash,
+      payTo: merchant,
+      amount: 100_000n,
+      expiresAt: request.invoice.expiresAt,
     })
+    expect(codeOf({ ...stockRequest, leaf })).toBe('ok')
+    expect(codeOf(requestFor(invoiceFor(merchant, '500000')))).toBe('over_per_payment_cap')
+    const big = requestFor(invoiceFor(merchant, '2500000'))
+    const bigStock = { ...big.grant.delegation, caveats: big.grant.delegation.caveats.slice(0, 3) }
+    // A request claiming a 9 USDC per-payment cap is still held to the chip's own 2 USDC maximum.
+    const generous = { ...big, grant: { ...big.grant, delegation: bigStock, perPaymentCap: '9000000' } }
+    expect(codeOf(generous)).toBe('over_per_payment_cap')
   })
 
   it('signs a within-limits invoice and re-derives exactly the leaf it was sent', () => {

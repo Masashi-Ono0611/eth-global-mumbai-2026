@@ -196,6 +196,13 @@ main(process.argv.slice(2), process.env.HOME ?? '.').pipe(
   Effect.catchTag('ChipFailure', (failure) =>
     Console.error(failure.message).pipe(Effect.andThen(Effect.fail(failure))),
   ),
-  Effect.provide(Layer.mergeAll(BunServices.layer, FetchHttpClient.layer)),
+  // No keep-alive: phone hotspots and proxies drop idle sockets, and a pooled socket reused after a 25 s hold resets.
+  Effect.provide(
+    Layer.mergeAll(
+      BunServices.layer,
+      FetchHttpClient.layer,
+      Layer.succeed(FetchHttpClient.RequestInit, { keepalive: false }),
+    ),
+  ),
   BunRuntime.runMain,
 )

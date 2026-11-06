@@ -17,7 +17,12 @@ const waitForRequests = Effect.fnUntraced(function* (database: QueryDatabaseClie
   let requests: ReadonlyArray<SignRequest> = []
   while (requests.length === 0) {
     const now = yield* Clock.currentTimeMillis
-    requests = yield* takeQueued(database, robotId, Math.floor(now / 1000))
+    // A transient D1 failure (SQLITE_BUSY under a concurrent write) costs one tick, not the whole held poll.
+    requests = yield* takeQueued(database, robotId, Math.floor(now / 1000)).pipe(
+      Effect.catchDefect((defect) =>
+        Effect.as(Effect.logWarning('poll tick skipped: D1 read failed', String(defect).slice(0, 200)), []),
+      ),
+    )
     if (requests.length > 0 || now + 1000 > deadline) break
     yield* Effect.sleep(POLL_INTERVAL)
   }

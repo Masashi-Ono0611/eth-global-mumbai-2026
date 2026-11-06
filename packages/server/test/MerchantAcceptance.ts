@@ -1,10 +1,13 @@
 import { expect } from 'bun:test'
+import { ARC_DELEGATION_MANAGER } from '@ethmumbai/protocol/Delegation'
+import { PaymentRequired, SettleFailure } from '@ethmumbai/protocol/X402'
 import type { TestApi } from 'alchemy/Test/Bun'
 import { Effect, Result, Schema } from 'effect'
 import * as Base64 from 'effect/encoding/Base64'
-import * as FetchHttpClient from 'effect/http/FetchHttpClient'
+import { freshConnections } from './AgentSamples.ts'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
+import { getAddress } from 'viem'
 
 /** The native test binds these two fixed test addresses (never funded, never used on a chain). */
 export const TEST_MERCHANT_PAY_TO = '0x000000000000000000000000000000000000c0de'
@@ -50,6 +53,27 @@ const verifyStatus = (publicKey: string, status: typeof SignedStatus.Type) =>
     )
   })
 
+/** A context that decodes to nothing must come back 400 with the failed checks: verify refuses, nothing is sent. */
+const garbagePaymentIsRefused = (appUrl: string, invoiceId: string, accepted: unknown) =>
+  Effect.gen(function* () {
+    const payload = {
+      x402Version: 2,
+      accepted,
+      payload: {
+        delegationManager: ARC_DELEGATION_MANAGER,
+        permissionContext: '0x00',
+        delegator: TEST_MERCHANT_PAY_TO,
+      },
+    }
+    const paid = yield* HttpClient.post(`${appUrl}/api/invoices/${invoiceId}/pay`, {
+      body: HttpBody.text(JSON.stringify({ paymentPayload: payload }), 'application/json'),
+    })
+    expect(paid.status).toBe(400)
+    const refused = yield* Schema.decodeUnknownEffect(SettleFailure)(yield* paid.json)
+    expect(refused.success).toBe(false)
+    expect(refused.checks.some((check) => !check.ok)).toBe(true)
+  })
+
 const readStatus = (appUrl: string, id: string, nonce: string) =>
   HttpClient.get(`${appUrl}/api/invoices/${id}/status?nonce=${nonce}`).pipe(
     Effect.flatMap((response) => response.json),
@@ -64,6 +88,9 @@ export const registerMerchantAcceptance = (test: TestApi['test'], stack: Effect.
       const { appUrl, url } = yield* stack
       const items = yield* HttpClient.get(`${appUrl}/api/merchants/duck-cafe/items`)
       expect(items.status).toBe(200)
+      const catalogue = yield* items.text
+      expect(JSON.parse(catalogue)).toMatchObject({ merchantId: 'duck-cafe', payTo: getAddress(TEST_MERCHANT_PAY_TO) })
+      expect(catalogue.toLowerCase()).not.toContain(TEST_RESTRICTED_PAY_TO.slice(2))
       const created = yield* HttpClient.post(`${appUrl}/api/merchants/duck-cafe/invoices`, {
         body: HttpBody.text(JSON.stringify({ itemId: 'chai' }), 'application/json'),
       })
@@ -76,12 +103,17 @@ export const registerMerchantAcceptance = (test: TestApi['test'], stack: Effect.
       const required = yield* HttpClient.get(`${appUrl}/api/i/${invoice.id}`)
       const header = required.headers['payment-required']
       const body: unknown = yield* required.json
-      // Without a relayer key the native stack answers 503 "not configured"; with one, the 402 of §7.
-      if (required.status === 402) {
-        expect(header).toBeDefined()
-        expect(JSON.parse(Result.getOrThrow(Base64.decodeString(header ?? '')))).toEqual(body)
-        expect(body).toMatchObject({ x402Version: 2, error: 'payment-required', accepts: [{ amount: '100000' }] })
-      } else expect(body).toEqual({ error: 'not configured: RELAYER_PRIVATE_KEY' })
+      expect(required.status).toBe(402)
+      expect(header).toBeDefined()
+      expect(JSON.parse(Result.getOrThrow(Base64.decodeString(header ?? '')))).toEqual(body)
+      const { accepts } = yield* Schema.decodeUnknownEffect(PaymentRequired)(body)
+      expect(accepts[0]).toMatchObject({
+        amount: '100000',
+        payTo: TEST_MERCHANT_PAY_TO,
+        extra: { invoiceId: invoice.id },
+      })
+      expect(accepts[0]?.extra.facilitators).toHaveLength(1)
+      yield* garbagePaymentIsRefused(appUrl, invoice.id, accepts[0])
 
       const key = yield* HttpClient.get(`${appUrl}/api/merchants/duck-cafe/gate-key`).pipe(
         Effect.flatMap((response) => response.json),
@@ -92,7 +124,7 @@ export const registerMerchantAcceptance = (test: TestApi['test'], stack: Effect.
       expect(yield* verifyStatus(key.publicKey, pending)).toBe(true)
       expect(yield* verifyStatus(key.publicKey, { ...pending, status: 'paid' })).toBe(false)
 
-      const forced = yield* HttpClient.post(`${url}/test/merchant/invoices/${invoice.id}/force-paid`)
+      const forced = yield* HttpClient.post(`${url}/test/vq/invoices/${invoice.id}/force-paid`)
       expect(forced.status).toBe(204)
       const first = yield* readStatus(appUrl, invoice.id, 'n1')
       const second = yield* readStatus(appUrl, invoice.id, 'n2')
@@ -106,6 +138,6 @@ export const registerMerchantAcceptance = (test: TestApi['test'], stack: Effect.
         headers: { 'payment-signature': 'x' },
       })
       expect(signatureHeader.status).toBe(415)
-    }).pipe(Effect.provide(FetchHttpClient.layer)),
+    }).pipe(Effect.provide(freshConnections)),
     { timeout: 60000 },
   )

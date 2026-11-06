@@ -3,7 +3,7 @@ import { Effect, FileSystem, Option, Schema } from 'effect'
 
 // The chip's state directory (spec §8): key.json (mode 600, generated once), pairing.json, used-invoices.json and
 // spent.json. The Radxa runs the same code with the same files.
-export const KeyFile = Schema.Struct({ privateKey: Bytes32 })
+const KeyFile = Schema.Struct({ privateKey: Bytes32 })
 export const PairingFile = Schema.Struct({ server: Schema.String, robotId: Schema.String, chipToken: Schema.String })
 export type PairingFile = typeof PairingFile.Type
 const UsedFile = Schema.Array(Bytes32)
@@ -41,7 +41,10 @@ export const makeState = Effect.fnUntraced(function* (directory: string) {
       .writeFileString(file(name), `${JSON.stringify(value)}\n`, { mode: 0o600 })
       .pipe(Effect.andThen(fs.chmod(file(name), 0o600)))
 
-  const readKey = read('key.json', KeyFile)
+  /** An existing key file is tightened to 600 too, whoever created it. */
+  const readKey = read('key.json', KeyFile).pipe(
+    Effect.tap((key) => (Option.isSome(key) ? fs.chmod(file('key.json'), 0o600) : Effect.void)),
+  )
   const writeKey = (privateKey: string) => write('key.json', { privateKey })
   const readPairing = read('pairing.json', PairingFile)
   const writePairing = (pairing: PairingFile) => write('pairing.json', pairing)

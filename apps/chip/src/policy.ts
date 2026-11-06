@@ -28,7 +28,7 @@ export type Refusal = { readonly ok: false; readonly code: RefusalCode; readonly
 export type PolicyResult = { readonly ok: true; readonly leaf: UnsignedDelegation; readonly amount: bigint } | Refusal
 
 /** Invoices may not be signed more than 15 minutes ahead of their expiry. */
-export const MAX_INVOICE_TTL_SECONDS = 900
+const MAX_INVOICE_TTL_SECONDS = 900
 
 const refuse = (code: RefusalCode, detail: string): Refusal => ({ ok: false, code, detail })
 const sameHex = (left: string, right: string) => left.toLowerCase() === right.toLowerCase()
@@ -38,39 +38,61 @@ const wordUint = (bytes: Uint8Array, index: number) => BigInt(bytesToHex(word(by
 const wordAddress = (bytes: Uint8Array, index: number) => bytesToHex(word(bytes, index).slice(12))
 
 /** The limits the owner signed, read from the grant's caveat terms rather than the server's mirror fields. */
-export interface GrantTerms {
+interface GrantTerms {
   readonly dailyCap: bigint
   readonly expiresAt: number
   readonly perPaymentCap: bigint
   readonly allowlist: ReadonlyArray<Hex>
-  readonly approver: Hex
-  /** `RobotPaymentPolicyEnforcer`: the approval domain's verifying contract. */
-  readonly enforcer: Hex
+  /** The approver and `RobotPaymentPolicyEnforcer` (the approval domain's verifying contract); absent on a grant
+   * made of stock enforcers only, which can never carry an approval. */
+  readonly approval: { readonly approver: Hex; readonly enforcer: Hex } | undefined
+}
+
+/** Without our policy caveat nothing on-chain caps one payment, so the chip never signs more than this by itself. */
+const STOCK_GRANT_MAX_PAYMENT = 2_000_000n
+
+const policyTermsOf = (terms: Uint8Array) => {
+  if (terms.length < 128) return undefined
+  const offset = Number(wordUint(terms, 1)) / 32
+  const count = Number(wordUint(terms, offset))
+  if (!Number.isInteger(offset) || terms.length < (offset + 1 + count) * 32) return undefined
+  return {
+    perPaymentCap: wordUint(terms, 0),
+    allowlist: Array.from({ length: count }, (_, index) => wordAddress(terms, offset + 1 + index)),
+    approver: wordAddress(terms, 2),
+  }
 }
 
 /**
  * Caveat order (spec §5): ValueLte · ERC20PeriodTransfer(USDC ‖ dailyCap ‖ period ‖ start) · Timestamp(0 ‖ expiresAt)
- * · RobotPaymentPolicyEnforcer(abi.encode(perPaymentCap, address[] allowlist, approver)).
+ * · RobotPaymentPolicyEnforcer(abi.encode(perPaymentCap, address[] allowlist, approver)). A grant of the three stock
+ * caveats only (before the enforcer is deployed) takes the per-payment cap and allowlist from the request, bounded
+ * by {@link STOCK_GRANT_MAX_PAYMENT}.
  */
-export const grantTerms = (request: SignRequest): GrantTerms | undefined => {
+const grantTerms = (request: SignRequest): GrantTerms | undefined => {
   const [, period, timestamp, policy] = request.grant.delegation.caveats
-  if (period === undefined || timestamp === undefined || policy === undefined) return undefined
+  if (period === undefined || timestamp === undefined) return undefined
   const periodTerms = hexToBytes(period.terms)
   const timestampTerms = hexToBytes(timestamp.terms)
-  const policyTerms = hexToBytes(policy.terms)
-  if (periodTerms.length !== 116 || timestampTerms.length !== 32 || policyTerms.length < 128) return undefined
+  if (periodTerms.length !== 116 || timestampTerms.length !== 32) return undefined
   if (!sameHex(bytesToHex(periodTerms.slice(0, 20)), ARC_USDC)) return undefined
-  const offset = Number(wordUint(policyTerms, 1)) / 32
-  const count = Number(wordUint(policyTerms, offset))
-  if (policyTerms.length < (offset + 1 + count) * 32) return undefined
-  return {
+  const signed = {
     dailyCap: BigInt(bytesToHex(periodTerms.slice(20, 52))),
     expiresAt: Number(BigInt(bytesToHex(timestampTerms.slice(16, 32)))),
-    perPaymentCap: wordUint(policyTerms, 0),
-    allowlist: Array.from({ length: count }, (_, index) => wordAddress(policyTerms, offset + 1 + index)),
-    approver: wordAddress(policyTerms, 2),
-    enforcer: policy.enforcer,
   }
+  if (policy === undefined) {
+    const mirrored = BigInt(request.grant.perPaymentCap)
+    return {
+      ...signed,
+      perPaymentCap: mirrored < STOCK_GRANT_MAX_PAYMENT ? mirrored : STOCK_GRANT_MAX_PAYMENT,
+      allowlist: request.grant.allowlist,
+      approval: undefined,
+    }
+  }
+  const decoded = policyTermsOf(hexToBytes(policy.terms))
+  if (decoded === undefined) return undefined
+  const { perPaymentCap, allowlist, approver } = decoded
+  return { ...signed, perPaymentCap, allowlist, approval: { approver, enforcer: policy.enforcer } }
 }
 
 /** An approval counts only for this exact invoice, payee and amount, before its expiry, signed by the grant's approver. */
@@ -86,12 +108,13 @@ const approvalValid = (
   approval.amount === request.invoice.amount &&
   approval.expiry > context.nowSeconds &&
   context.approvalSigner !== undefined &&
-  sameHex(context.approvalSigner, terms.approver)
+  terms.approval !== undefined &&
+  sameHex(context.approvalSigner, terms.approval.approver)
 
 /** The digest whose signer `context.approvalSigner` must be (recovered by the caller with viem). */
 export const approvalDigestFor = (request: SignRequest): Hex | undefined => {
-  const terms = grantTerms(request)
-  return terms === undefined || request.approval === null ? undefined : approvalDigest(terms.enforcer, request.approval)
+  const enforcer = grantTerms(request)?.approval?.enforcer
+  return enforcer === undefined || request.approval === null ? undefined : approvalDigest(enforcer, request.approval)
 }
 
 const checkGrant = (request: SignRequest, context: PolicyContext) => {

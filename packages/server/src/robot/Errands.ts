@@ -193,12 +193,10 @@ const settleSigned = Effect.fnUntraced(function* (deps: ErrandDeps, request: Chi
   const settlement = deps.settlement.value
   const payload = yield* decodePayload(request)
   const grant = payload.grant.delegation
+  // A stock-enforcer grant (no RobotPaymentPolicyEnforcer yet) has no caveat to carry an approval.
   const enforcer = grant.caveats[3]?.enforcer
-  if (enforcer === undefined) return yield* fail('grant has no policy caveat')
-  const permissionContext = encodePermissionContext([
-    { ...payload.leaf, signature },
-    withApprovalArgs(grant, enforcer, payload.approval),
-  ])
+  const grantWithArgs = enforcer === undefined ? grant : withApprovalArgs(grant, enforcer, payload.approval)
+  const permissionContext = encodePermissionContext([{ ...payload.leaf, signature }, grantWithArgs])
   const requirements = requirementsFor(payload.invoice, settlement.relayer)
   const approvalId = yield* approvalIdOf(database, request.episode_id)
   const paid = (txHash: Hex) =>

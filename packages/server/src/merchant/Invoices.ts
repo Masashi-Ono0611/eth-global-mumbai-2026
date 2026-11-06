@@ -5,6 +5,7 @@ import { ARC_USDC, type Invoice, invoiceHash, jsonHash } from '@ethmumbai/protoc
 import { Clock, Effect, Option, Schema } from 'effect'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
+import { getAddress } from 'viem'
 import { type CatalogueItem, findItem, findMerchant, type Merchant, type Payees } from './Catalogue.ts'
 import { json, jsonError, notConfigured, nowSeconds } from '../Respond.ts'
 import { changes, firstRow, SqlBoolean } from '../Sql.ts'
@@ -134,9 +135,11 @@ export const readInvoice = Effect.fn('EthMumbai.Merchant.readInvoice')(function*
   return yield* firstRow(database.prepare('SELECT * FROM invoices WHERE id = ?').bind(id), InvoiceRow)
 })
 
-const catalogueBody = (merchant: Merchant) => ({
+/** The catalogue plus the merchant's own payee (checksummed) for grant allowlists; never the restricted payee. */
+const catalogueBody = (merchant: Merchant, payees: Option.Option<Payees>) => ({
   merchantId: merchant.id,
   name: merchant.name,
+  payTo: Option.match(payees, { onNone: () => null, onSome: ({ merchant: payTo }) => getAddress(payTo) }),
   items: merchant.items.map(({ itemId, name, amount, restricted }) => ({ itemId, name, amount, restricted })),
 })
 
@@ -152,7 +155,7 @@ export const invoiceRoutes = (database: QueryDatabaseClient, origin: string, pay
         const { merchantId } = yield* HttpRouter.params
         const merchant = findMerchant(merchantId ?? '')
         if (Option.isNone(merchant)) return yield* jsonError(404, 'unknown merchant')
-        return yield* json(catalogueBody(merchant.value))
+        return yield* json(catalogueBody(merchant.value, payees))
       }),
     ),
     HttpRouter.route(

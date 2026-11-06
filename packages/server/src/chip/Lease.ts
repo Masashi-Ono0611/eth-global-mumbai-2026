@@ -10,7 +10,7 @@ export const RobotStatus = Schema.Literals(['unpaired', 'paired', 'revoked'])
 export const RobotRow = Schema.Struct({
   id: Schema.String,
   account_id: Schema.String,
-  name: Schema.String,
+  name: Schema.NullOr(Schema.String),
   pairing_code: Schema.NullOr(Schema.String),
   pairing_expires_at: Schema.NullOr(Schema.Finite),
   chip_address: Schema.NullOr(Address),

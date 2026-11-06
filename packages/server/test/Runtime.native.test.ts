@@ -7,12 +7,30 @@ import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { type Browser, chromium } from 'playwright'
+import { keccak256, stringToHex } from 'viem'
 import { verifyBrowser } from './BrowserAcceptance.ts'
+import { registerChipAcceptance, registerMockChipAcceptance } from './ChipAcceptance.ts'
+import {
+  registerMerchantAcceptance,
+  TEST_GATE_SEED,
+  TEST_MERCHANT_PAY_TO,
+  TEST_RESTRICTED_PAY_TO,
+} from './MerchantAcceptance.ts'
 import { verifyPasskeyBrowser } from './PasskeyBrowserAcceptance.ts'
 import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
+import {
+  registerRobotAcceptance,
+  startZeroGStub,
+  TEST_EVIDENCE_TOKEN,
+  TEST_ZG_API_KEY,
+  TEST_ZG_MODEL,
+} from './RobotAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
+
+// The 0G router stand-in runs in this process; the Worker reaches it on 127.0.0.1.
+const zeroG = startZeroGStub()
 
 const makeStack = (generation: string) =>
   Alchemy.Stack(
@@ -45,6 +63,17 @@ const makeStack = (generation: string) =>
           AUTH_ORIGIN: edge.url,
           APP_ENV: 'local',
           APP_RELEASE: `native-${generation}`,
+          MERCHANT_PAY_TO: TEST_MERCHANT_PAY_TO,
+          RESTRICTED_PAY_TO: TEST_RESTRICTED_PAY_TO,
+          GATE_ED25519_SEED: Redacted.make(TEST_GATE_SEED),
+          EVIDENCE_TOKEN: Redacted.make(TEST_EVIDENCE_TOKEN),
+          ZG_BASE_URL: zeroG.baseUrl,
+          ZG_API_KEY: Redacted.make(TEST_ZG_API_KEY),
+          ZG_MODEL: TEST_ZG_MODEL,
+          // Derived throwaway keys (no literal, never funded): with a relayer the x402 402 and the errand paths run;
+          // no ARC_RPC_URL, so only POST /pay reaches the public Arc RPC, and only to simulate.
+          RELAYER_PRIVATE_KEY: Redacted.make(keccak256(stringToHex('vitaquack native test relayer'))),
+          APPROVER_PRIVATE_KEY: Redacted.make(keccak256(stringToHex('vitaquack native test approver'))),
           AUTH_SESSION_KEYS: Redacted.make(
             JSON.stringify({
               activeKeyId: 'native-test',
@@ -292,4 +321,8 @@ test(
   { timeout: 120000 },
 )
 
+registerMerchantAcceptance(test, stack)
+registerChipAcceptance(test, stack)
+registerMockChipAcceptance(test)
+registerRobotAcceptance(test, stack, zeroG)
 registerWalletAcceptance(test, stack)
