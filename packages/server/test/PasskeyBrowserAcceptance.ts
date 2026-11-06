@@ -17,10 +17,20 @@ export const addVirtualAuthenticator = async (context: BrowserContext, page: Pag
   })
 }
 
+/** The wallet's profile sheet (the avatar) shows the signed-in owner's smart account; it stays open afterwards. */
+const openProfile = async (page: Page) => {
+  await page.getByRole('button', { name: 'Profile, records and sign out' }).click()
+  const sheet = page.getByRole('dialog')
+  await sheet.waitFor({ state: 'visible' })
+  return sheet
+}
+
 const smartAccount = async (page: Page) => {
-  const address = page.locator('.smart-account')
-  await address.waitFor({ state: 'visible' })
-  return (await address.textContent()) ?? ''
+  const sheet = await openProfile(page)
+  const address = (await sheet.getByText(/^0x[0-9a-fA-F]{40}$/).textContent()) ?? ''
+  await page.keyboard.press('Escape')
+  await sheet.waitFor({ state: 'hidden' })
+  return address
 }
 
 /** The real browser ceremony through Chrome's virtual authenticator (CDP `WebAuthn.addVirtualAuthenticator`):
@@ -36,9 +46,10 @@ export const verifyPasskeyBrowser = async (browser: Browser, origin: string): Pr
     await page.goto(origin, { waitUntil: 'networkidle' })
     await page.locator('#display-name').fill('Browser Owner')
     await page.getByRole('button', { name: 'Create passkey wallet' }).click()
+    // Signed up on the sign-in page, the owner lands on the wallet.
+    await page.waitForURL(new URL('/wallet', origin).toString())
     const address = await smartAccount(page)
     expect(address).toMatch(/^0x[0-9a-fA-F]{40}$/)
-    expect(await page.getByText('Signed in as Browser Owner').isVisible()).toBe(true)
     const session = (await context.cookies()).find((cookie) => cookie.name === 'vq_session')
     expect(session).toMatchObject({ httpOnly: true, sameSite: 'Lax', path: '/' })
 
@@ -46,7 +57,9 @@ export const verifyPasskeyBrowser = async (browser: Browser, origin: string): Pr
     expect(await smartAccount(page)).toBe(address)
 
     const cookies = await context.cookies()
-    await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+    const sheet = await openProfile(page)
+    expect(await sheet.getByRole('heading', { name: 'Browser Owner' }).isVisible()).toBe(true)
+    await sheet.getByRole('button', { name: 'Sign out', exact: true }).click()
     await page.getByRole('button', { name: 'Create passkey wallet' }).waitFor({ state: 'visible' })
     // Replaying the old cookie must fail at once: logout bumped the account's security revision.
     const replay = await context.request.get(new URL('/api/auth/session', origin).toString(), {

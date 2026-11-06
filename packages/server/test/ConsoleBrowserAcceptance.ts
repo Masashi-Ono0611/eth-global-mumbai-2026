@@ -55,7 +55,7 @@ export const registerConsoleAcceptance = (test: TestApi['test'], stack: Effect.E
           await page.goto(appUrl, { waitUntil: 'networkidle' })
           await page.locator('#display-name').fill('Console Owner')
           await page.getByRole('button', { name: 'Create passkey wallet' }).click()
-          await page.locator('.smart-account').waitFor()
+          await page.waitForURL(new URL('/wallet', appUrl).toString())
           const body: unknown = await (
             await context.request.get(new URL('/api/auth/session', appUrl).toString())
           ).json()
