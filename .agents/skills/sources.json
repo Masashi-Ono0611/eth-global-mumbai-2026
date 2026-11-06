@@ -14,6 +14,18 @@
       "localTreeSha256": "08e2c872e7b909212608d97cdd12169b22724d3a45d9602e87024318e8d6e513",
       "unchanged": true
     },
+    "apple-web-app": {
+      "repository": "joe-bell/skills",
+      "commit": "6e79fd26ab3849f214b9a9ba2ac7cd6b6223e98a",
+      "path": "skills/apple-web-app",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "ada40f95b941526582f5666075771b295d25a91a62bb66c601ce738f1d8776b7",
+      "localTreeSha256": "ada40f95b941526582f5666075771b295d25a91a62bb66c601ce738f1d8776b7",
+      "unchanged": true
+    },
     "audit-program": {
       "repository": "foldkit/foldkit",
       "commit": "7ee214268c602967937b80f6f20d1e831f2e8ab6",
@@ -24,6 +36,18 @@
       ],
       "treeSha256": "5bf8298b74df6ddfbc16ea7383fa22d68369766201271d848b02eedc8e07f52b",
       "localTreeSha256": "5bf8298b74df6ddfbc16ea7383fa22d68369766201271d848b02eedc8e07f52b",
+      "unchanged": true
+    },
+    "break-ui": {
+      "repository": "emilkowalski/skills",
+      "commit": "a81dbca07f2217b7103e510c0f13f8d5b017afc9",
+      "path": "skills/break-ui",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "c1c67d8e5bf7431ea78226e4c2558908a0aea7bbfa558736063227bb37d91690",
+      "localTreeSha256": "c1c67d8e5bf7431ea78226e4c2558908a0aea7bbfa558736063227bb37d91690",
       "unchanged": true
     },
     "durable-objects": {
@@ -52,6 +76,18 @@
       "localTreeSha256": "f2b7b5b9f90c1e85f3e97749f8b0a37a4297d46c6d379d5b5e3bff24558684a0",
       "unchanged": true
     },
+    "frontend-design": {
+      "repository": "anthropics/skills",
+      "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+      "path": "skills/frontend-design",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE.txt"
+      ],
+      "treeSha256": "7e9c2af00fd5b3144f49ce6fb1b16037b392ab9c2f049423b0b6114d99381ba2",
+      "localTreeSha256": "7e9c2af00fd5b3144f49ce6fb1b16037b392ab9c2f049423b0b6114d99381ba2",
+      "unchanged": true
+    },
     "generate-program": {
       "repository": "foldkit/foldkit",
       "commit": "7ee214268c602967937b80f6f20d1e831f2e8ab6",
@@ -62,6 +98,54 @@
       ],
       "treeSha256": "9233662e4999ff56f3795209c98624fdf6b9d33383d07c164cd7769afb24973b",
       "localTreeSha256": "9233662e4999ff56f3795209c98624fdf6b9d33383d07c164cd7769afb24973b",
+      "unchanged": true
+    },
+    "good-css": {
+      "repository": "vojtaholik/good-css",
+      "commit": "92d436ba1937d1b1407c47e35abb3e199eaace2e",
+      "path": "skills/good-css",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "688a3873f613a906567ca5ae1726124e2d8dee1d338730ededfdb272a1942a00",
+      "localTreeSha256": "688a3873f613a906567ca5ae1726124e2d8dee1d338730ededfdb272a1942a00",
+      "unchanged": true
+    },
+    "hallmark": {
+      "repository": "nutlope/hallmark",
+      "commit": "8f6969f8922caabde9de1784959eae11ddf68073",
+      "path": "skills/hallmark",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "d31a58b43c7c30e35773e35c2636fd84ab2fa475be2a7eaed6fc35afb1a3eb0a",
+      "localTreeSha256": "d31a58b43c7c30e35773e35c2636fd84ab2fa475be2a7eaed6fc35afb1a3eb0a",
+      "unchanged": true
+    },
+    "make-interfaces-feel-better": {
+      "repository": "jakubkrehel/make-interfaces-feel-better",
+      "commit": "35545ea1512ad59fa463e6b1f95ca9c052981fe6",
+      "path": "skills/make-interfaces-feel-better",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "a38394c031e268bf8d7d05ff6f742baf1787395692bedf76f07cef911c472bcb",
+      "localTreeSha256": "a38394c031e268bf8d7d05ff6f742baf1787395692bedf76f07cef911c472bcb",
+      "unchanged": true
+    },
+    "mobile-native": {
+      "repository": "emilkowalski/skills",
+      "commit": "a81dbca07f2217b7103e510c0f13f8d5b017afc9",
+      "path": "skills/mobile-native",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "e09d6a584beac50f1f52be3c80164e1935ca0694f9e93fcb6893b564c7ce1d44",
+      "localTreeSha256": "e09d6a584beac50f1f52be3c80164e1935ca0694f9e93fcb6893b564c7ce1d44",
       "unchanged": true
     },
     "thermo-nuclear-code-quality-review": {
