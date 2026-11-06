@@ -109,13 +109,16 @@ Build detail: `docs/spec.md`.
 | Claim | Evidence level |
 | --- | --- |
 | HybridDeleGator, SimpleFactory, DelegationManager and the enforcers are on Arc, byte-identical to Base | verified on-chain (`eth_getCode`) |
-| A passkey-signed grant → chip voucher chain settles; over-cap, replay, expiry and revoke revert correctly | **simulated** (`eth_call` with state overrides on live Arc state; spikes A1–A7, S2 14/14). No broadcast yet |
+| A chip-signed voucher under a grant settles on Arc; replay and post-revoke payments are refused | **broadcast** (6 Nov 06:10, `docs/evidence/2026-11-06-smoke.md`: $0.01 settled, revoke tx; replay and post-revoke refusals simulated from the relayer) |
+| A passkey-signed grant is accepted on-chain (ERC-1271 on the Hybrid account) | **broadcast** (6 Nov 07:05, deployed e2e with a virtual authenticator, `docs/evidence/2026-11-06-deployed-e2e.md`); real phones not yet |
+| The enforcer (cap, allowlist, approval) behaves on Arc | **deployed** `0x7c21…e4D3` + 8-case live approval test against that code (`docs/evidence/contracts.md`); no approved payment broadcast yet |
+| Chip pairing and 25 s long-polls through the deployed edge | **deployed** (edge holds 24.8 s, lease 35 s) |
+| Merchant 402 / pay / signed gate status on the deployed app | **deployed** (`docs/evidence/2026-11-06-deployed-merchant.md`) |
 | The real Radxa builds and signs the voucher the kit expects | **bench** (C1, 20/20), simulated settlement |
 | A World RS256 token can be verified in an Arc contract bound to one payment | **prototype** (S5b, 43 tests, live `eth_call`); no real World token yet; stretch |
-| Circle's facilitator is live on Arc | verified (`/supported`); not used (float path dropped) |
-| 0G decides, logs, safe-stops; episodes on 0G Storage | **not run yet** (M5) |
-| Real passkeys on real phones sign delegations | **not run yet** (M0a/M7) |
-| Anything "works end to end" | **not until M2's smoke and the Fri 21:00 checkpoint are in `docs/evidence/`** |
+| 0G decides, logs, safe-stops; episodes on 0G Storage | **native with a stub** (16/16); **not run live** (needs `APP_ZG_*`); the deployed errand answers 503 until then |
+| World approve / deny on the deployed app | **native with a stub** (10 token cases); **not run live** (needs the IdP client) |
+| The full MUST loop on the deployed app | **not until a real 0G decision pays an errand** (`docs/evidence/demo-run.md`) |
 
 ## 3. Spikes
 

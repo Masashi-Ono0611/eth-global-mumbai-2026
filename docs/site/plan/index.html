@@ -310,8 +310,24 @@ Build detail: <code>docs/spec.md</code>.</p>
 <td>verified on-chain (<code>eth_getCode</code>)</td>
 </tr>
 <tr>
-<td>A passkey-signed grant → chip voucher chain settles; over-cap, replay, expiry and revoke revert correctly</td>
-<td><strong>simulated</strong> (<code>eth_call</code> with state overrides on live Arc state; spikes A1–A7, S2 14/14). No broadcast yet</td>
+<td>A chip-signed voucher under a grant settles on Arc; replay and post-revoke payments are refused</td>
+<td><strong>broadcast</strong> (6 Nov 06:10, <code>docs/evidence/2026-11-06-smoke.md</code>: $0.01 settled, revoke tx; replay and post-revoke refusals simulated from the relayer)</td>
+</tr>
+<tr>
+<td>A passkey-signed grant is accepted on-chain (ERC-1271 on the Hybrid account)</td>
+<td><strong>broadcast</strong> (6 Nov 07:05, deployed e2e with a virtual authenticator, <code>docs/evidence/2026-11-06-deployed-e2e.md</code>); real phones not yet</td>
+</tr>
+<tr>
+<td>The enforcer (cap, allowlist, approval) behaves on Arc</td>
+<td><strong>deployed</strong> <code>0x7c21…e4D3</code> + 8-case live approval test against that code (<code>docs/evidence/contracts.md</code>); no approved payment broadcast yet</td>
+</tr>
+<tr>
+<td>Chip pairing and 25 s long-polls through the deployed edge</td>
+<td><strong>deployed</strong> (edge holds 24.8 s, lease 35 s)</td>
+</tr>
+<tr>
+<td>Merchant 402 / pay / signed gate status on the deployed app</td>
+<td><strong>deployed</strong> (<code>docs/evidence/2026-11-06-deployed-merchant.md</code>)</td>
 </tr>
 <tr>
 <td>The real Radxa builds and signs the voucher the kit expects</td>
@@ -322,20 +338,16 @@ Build detail: <code>docs/spec.md</code>.</p>
 <td><strong>prototype</strong> (S5b, 43 tests, live <code>eth_call</code>); no real World token yet; stretch</td>
 </tr>
 <tr>
-<td>Circle&#39;s facilitator is live on Arc</td>
-<td>verified (<code>/supported</code>); not used (float path dropped)</td>
-</tr>
-<tr>
 <td>0G decides, logs, safe-stops; episodes on 0G Storage</td>
-<td><strong>not run yet</strong> (M5)</td>
+<td><strong>native with a stub</strong> (16/16); <strong>not run live</strong> (needs <code>APP_ZG_*</code>); the deployed errand answers 503 until then</td>
 </tr>
 <tr>
-<td>Real passkeys on real phones sign delegations</td>
-<td><strong>not run yet</strong> (M0a/M7)</td>
+<td>World approve / deny on the deployed app</td>
+<td><strong>native with a stub</strong> (10 token cases); <strong>not run live</strong> (needs the IdP client)</td>
 </tr>
 <tr>
-<td>Anything &quot;works end to end&quot;</td>
-<td><strong>not until M2&#39;s smoke and the Fri 21:00 checkpoint are in <code>docs/evidence/</code></strong></td>
+<td>The full MUST loop on the deployed app</td>
+<td><strong>not until a real 0G decision pays an errand</strong> (<code>docs/evidence/demo-run.md</code>)</td>
 </tr>
 </tbody></table>
 <h2 id="3-spikes">3. Spikes</h2>
