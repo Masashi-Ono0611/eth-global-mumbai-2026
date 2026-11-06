@@ -3,7 +3,7 @@ import { gzipSync } from 'node:zlib'
 
 let clientGzip = 0
 let clientFiles = 0
-for await (const file of glob('apps/web/dist/client/assets/*.{js,css}')) {
+for await (const file of glob('apps/web/dist/client/app/assets/*.{js,css}')) {
   clientGzip += gzipSync(await readFile(file)).byteLength
   clientFiles += 1
 }
