@@ -50,6 +50,37 @@ const invoiceDetails = (model: Model, locale: Locale, h: HtmlBuilder<Message>): 
   )
 }
 
+/** A real robot's "Get me …" row: an intent that waits for the duck's own scan (its Buy row pays the counter now). */
+const askChips = (
+  view: ConsoleRobot,
+  catalogue: Catalogue,
+  disabled: boolean,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [h.Class('grid gap-1')],
+    [
+      h.p([h.Class(dockHintClassName)], [format(locale, 'thread.askRowHint', { name: view.robot.name })]),
+      h.div(
+        [h.Class(chipsClassName)],
+        catalogue.items.map((item) =>
+          h.keyed('button')(
+            `ask-${item.itemId}`,
+            [
+              h.Type('button'),
+              h.Class(chipClassName),
+              h.Disabled(disabled),
+              h.OnClick(Message.ClickedAskFor({ item: item.itemId })),
+            ],
+            [format(locale, 'thread.askChip', { item: item.name.toLowerCase() })],
+          ),
+        ),
+      ),
+      h.p([h.Class(dockHintClassName)], [format(locale, 'thread.buyRowHint', {})]),
+    ],
+  )
+
 /** The conversation's keyboard: the buy chips (and, for a simulator, the owner's own words), disabled while the robot is
  *  out or without any allowance, with the reason. */
 export const dock = (
@@ -86,7 +117,8 @@ export const dock = (
           ),
         ],
       ),
-      sim ? instructionForm(model, view.robot.name, busy || noAllowance, locale, h) : h.empty,
+      instructionForm(model, view.robot.name, busy || noAllowance, locale, h),
+      sim ? h.empty : askChips(view, catalogue, busy || noAllowance, locale, h),
       h.div(
         [h.Class(chipsClassName)],
         catalogue.items.map((item) =>

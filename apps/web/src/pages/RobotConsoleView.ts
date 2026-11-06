@@ -489,7 +489,7 @@ const loadedView = (
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
-          ...intentMessages(model, view.robot.name, locale, h),
+          ...intentMessages(model, view.robot.name, view.robot.kind === 'sim', locale, h),
           ...errandMessages(model, locale, h),
         ],
       ),

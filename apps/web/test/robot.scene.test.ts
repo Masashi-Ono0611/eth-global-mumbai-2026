@@ -350,6 +350,33 @@ describe('/robot/:id', () => {
     )
   })
 
+  test("a real robot's Get me chips send an intent that waits for its own scan; Buy still pays the counter now", () => {
+    const waiting: IntentView = {
+      id: 'intentintentintentintentaa',
+      robotId,
+      state: 'running',
+      instruction: 'Get me a chai',
+      item: 'chai',
+      episodeId: null,
+      episodeState: null,
+      reason: null,
+      turns: [],
+      createdAt: 1,
+    }
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole()),
+      expect(role('link', { name: 'Open simulator' })).not.toExist(),
+      click(role('button', { name: 'Get me a chai' })),
+      Command.expectExact(RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai' })),
+      Command.resolve(RobotConsole.SendIntent, RobotConsole.Message.SucceededCreateIntent({ intent: waiting })),
+      expect(text('Waiting for Duck to scan the QR code at the counter.')).toExist(),
+      expect(role('button', { name: 'Stop Duck' })).toBeEnabled(),
+      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toBeDisabled(),
+      Command.resolve(RobotConsole.PollIntent, RobotConsole.Message.FailedLoadIntent({ intentId: 'other' })),
+    )
+  })
+
   describe('a simulator robot', () => {
     const simRobot: ConsoleRobot = { ...consoleRobot, robot: { ...consoleRobot.robot, kind: 'sim' } }
     const intentId = 'intentintentintentintentaa'

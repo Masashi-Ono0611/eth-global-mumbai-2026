@@ -87,6 +87,8 @@ export const Message = defineMessageUnion({
   },
   FailedLoadConsole: { error: Schema.String, signedOut: Schema.Boolean },
   ClickedStartErrand: { item: Schema.String },
+  /** "Get me a chai": an intent the robot's own scan claims (a real chip robot's camera, or the simulator). */
+  ClickedAskFor: { item: Schema.String },
   UpdatedInvoiceInput: { value: Schema.String },
   SucceededStartErrand: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
   FailedStartErrand: { error: Schema.String },
@@ -414,6 +416,8 @@ const intentHandlers = (model: Model) => ({
     model: modifyFields(model, { instruction: () => value }),
   }),
   SubmittedInstruction: () => sendIntent(model, model.instruction, null),
+  ClickedAskFor: ({ item }: Of<'ClickedAskFor'>) =>
+    sendIntent(model, format('en', 'thread.instructionFor', { item: itemNameOf(model, item).toLowerCase() }), item),
   SucceededCreateIntent: ({ intent }: Of<'SucceededCreateIntent'>) => intentRead(model, intent),
   FailedCreateIntent: ({ error }: Of<'FailedCreateIntent'>) => ({
     model: modifyFields(model, { intent: () => Intent.Failed({ error }) }),

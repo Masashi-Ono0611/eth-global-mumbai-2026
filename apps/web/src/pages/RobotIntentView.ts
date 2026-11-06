@@ -73,13 +73,13 @@ const intentEnd = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html 
 }
 
 /** While the duck walks: say so, and let the owner stop it. */
-const walking = (model: Model, name: string, locale: Locale, h: HtmlBuilder<Message>): Html => {
+const walking = (model: Model, name: string, sim: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const { intent } = model
   if (!Intent.guards.Open(intent) || !isOpenIntent(intent.intent.state)) return h.empty
   return h.div(
     [h.Class(walkingClassName)],
     [
-      h.p([h.Role('status')], [format(locale, 'thread.walking', { name })]),
+      h.p([h.Role('status')], [format(locale, sim ? 'thread.walking' : 'thread.waitingScan', { name })]),
       h.button(
         [
           h.Type('button'),
@@ -97,6 +97,7 @@ const walking = (model: Model, name: string, locale: Locale, h: HtmlBuilder<Mess
 export const intentMessages = (
   model: Model,
   name: string,
+  sim: boolean,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> =>
@@ -113,7 +114,7 @@ export const intentMessages = (
     Open: ({ intent }) => [
       h.keyed('p')(`${intent.id}-ask`, [h.Class(ownerBubbleClassName)], [intent.instruction]),
       ...intent.turns.flatMap((turn) => turnMessages(turn, locale, h)),
-      walking(model, name, locale, h),
+      walking(model, name, sim, locale, h),
       intentEnd(model, locale, h),
     ],
   })

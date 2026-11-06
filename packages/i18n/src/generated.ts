@@ -241,12 +241,15 @@ export interface MessageArgumentsByKey<T = string> {
   'telegram.pressStart': Readonly<Record<string, never>>
   'telegram.retry': Readonly<Record<string, never>>
   'telegram.title': Readonly<Record<string, never>>
+  'thread.askChip': { readonly item: string | number }
   'thread.askOk': { readonly item: string | number }
+  'thread.askRowHint': { readonly name: string | number }
   'thread.asksYou': Readonly<Record<string, never>>
   'thread.atCounter': Readonly<Record<string, never>>
   'thread.back': Readonly<Record<string, never>>
   'thread.buy': { readonly item: string | number }
   'thread.buyChip': { readonly item: string | number; readonly amount: string | number }
+  'thread.buyRowHint': Readonly<Record<string, never>>
   'thread.conversation': { readonly name: string | number }
   'thread.couldNotStart': { readonly message: string | number }
   'thread.deciding': Readonly<Record<string, never>>
@@ -287,6 +290,7 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.stop': { readonly name: string | number }
   'thread.stopping': Readonly<Record<string, never>>
   'thread.turnError': { readonly error: string | number }
+  'thread.waitingScan': { readonly name: string | number }
   'thread.walkedAway': Readonly<Record<string, never>>
   'thread.walking': { readonly name: string | number }
   'thread.zeroGDecided': { readonly action: string | number }
@@ -296,4 +300,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '66d63528d9e62742f69591627b593c6a1380d1df8e83d98cf81396ca93ebe643'
+export const catalogVersion = '3b6682b3ffa965480031f6e080b0cbde8e326078e2e01996614791bae53afe99'
