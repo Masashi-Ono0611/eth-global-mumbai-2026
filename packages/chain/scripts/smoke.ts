@@ -4,11 +4,10 @@ import { delegationHash, type Delegation } from '@ethmumbai/protocol/Delegation'
 import { ARC_USDC, invoiceHash, jsonHash, usdcToUnits } from '@ethmumbai/protocol/Invoice'
 import type { PaymentPayload, PaymentRequirements } from '@ethmumbai/protocol/X402'
 import { Clock, Console, Effect } from 'effect'
-import { type Address, createWalletClient, getAddress, type Hex, http, type StateOverride } from 'viem'
+import { type Address, getAddress, type Hex, type StateOverride } from 'viem'
 import { generatePrivateKey, type LocalAccount, privateKeyToAccount } from 'viem/accounts'
 import {
   arcAddresses,
-  arcChain,
   buildGrant,
   buildLeaf,
   buildRevoke,
@@ -20,6 +19,7 @@ import {
   makeRelayer,
   redeemCalldata,
   revokeExecution,
+  sendUsdc,
   settlementCall,
   settlePayment,
   signLeaf,
@@ -67,19 +67,6 @@ const step = (label: string, detail: string) =>
   )
 const now = Clock.currentTimeMillis.pipe(Effect.map((millis) => Math.floor(millis / 1000)))
 const dryRun = Bun.argv.includes('--dry-run')
-
-const fundOwner = Effect.fn('smoke.fundOwner')(function* (owner: Address, value: bigint) {
-  const wallet = createWalletClient({
-    account: privateKeyToAccount(`0x${relayerKey.slice(2)}`),
-    chain: arcChain,
-    transport: http(rpcUrl),
-  })
-  const hash = yield* Effect.promise(() =>
-    wallet.sendTransaction({ to: owner, value, maxFeePerGas: 40_000_000_000n, maxPriorityFeePerGas: 1_000_000_000n }),
-  )
-  const receipt = yield* Effect.promise(() => client.waitForTransactionReceipt({ hash, timeout: 60_000 }))
-  return { hash, status: receipt.status }
-})
 
 const invoiceFor = Effect.fn('smoke.invoice')(function* (expiresAt: number) {
   const id = yield* generateId
@@ -226,8 +213,13 @@ const dryRunSteps = Effect.fn('smoke.dryRun')(function* (run: Setup) {
 
 const broadcastSteps = Effect.fn('smoke.broadcast')(function* (run: Setup) {
   const { owner, first, next } = run
-  const funded = yield* fundOwner(owner.smartAccount, amount * 2n * 1_000_000_000_000n)
-  yield* step('fund owner', `${funded.status} ${explorer(funded.hash)}`)
+  const funded = yield* sendUsdc({
+    client,
+    privateKey: `0x${relayerKey.slice(2)}`,
+    to: owner.smartAccount,
+    units: amount * 2n,
+  })
+  yield* step('fund owner', `${funded.success ? 'success' : 'REVERTED'} ${explorer(funded.hash)}`)
   const deploy = yield* relayer.send({ key: `deploy:${owner.smartAccount}`, kind: 'deploy', ...run.deployCall })
   yield* step('deploy', `${deploy.success ? 'success' : 'REVERTED'} gas=${deploy.gasUsed} ${explorer(deploy.txHash)}`)
   const settled = yield* settlePayment(client, relayer, first.payment, first.requirements)
@@ -244,7 +236,7 @@ const broadcastSteps = Effect.fn('smoke.broadcast')(function* (run: Setup) {
     next.requirements,
     'CannotUseADisabledDelegation',
   )
-  return funded.status === 'success' && deploy.success && revoked.success && replay && afterRevoke
+  return funded.success && deploy.success && revoked.success && replay && afterRevoke
 })
 
 const program = setup.pipe(Effect.flatMap((run) => (dryRun ? dryRunSteps(run) : broadcastSteps(run))))
