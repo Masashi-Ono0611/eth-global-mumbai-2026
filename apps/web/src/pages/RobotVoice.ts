@@ -157,7 +157,9 @@ export const PlaySpeech = Command.define('PlaySpeech', {
   execute: ({ url }) => playSpeech(url).pipe(Effect.map((played) => Message.CompletedPlaySpeech({ played }))),
 })
 
-/** Scrolls to the end of the page, so the newest bubble shows above the dock. */
+/** Scrolls to the end of the page, so the newest bubble shows above the dock.
+ * @internal Exported for the voice tests; this page's update is its only production caller.
+ */
 export const ShowNewest = Command.define('ShowNewest', {
   messages: [Message.CompletedShowNewest],
   execute: Dom.scrollIntoView('#main', { block: 'end' }).pipe(Effect.ignore, Effect.as(Message.CompletedShowNewest())),
