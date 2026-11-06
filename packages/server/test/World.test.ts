@@ -52,9 +52,12 @@ const sign = async (payload: object, options: { readonly key?: CryptoKey; readon
   return `${header}.${body}.${Base64Url.encode(new Uint8Array(signature))}`
 }
 
+const verify = (token: string) =>
+  verifyIdToken({ token, keys: [jwk], issuer, clientId, nonce, notBefore: now - 60, now })
+
 const outcome = async (token: string) =>
   Effect.runPromise(
-    verifyIdToken({ token, keys: [jwk], issuer, clientId, nonce, notBefore: now - 60, now }).pipe(
+    verify(token).pipe(
       Effect.match({ onSuccess: (human) => `ok ${human.sub} ${human.jti}`, onFailure: (error) => error.reason }),
     ),
   )
@@ -67,12 +70,26 @@ describe('World ID token (RS256, spec §9)', () => {
     )
   })
 
-  test('a token whose amr contains mfa (a passkey-only World sign-in) is rejected', async () => {
-    expect(await outcome(await sign({ ...claims, amr: ['pop', 'user', 'mfa'] }))).toBe('mfa')
+  test('amr is recorded, not judged: the real Orb sign-in with World App carries mfa, and pop is not required', async () => {
+    // World's real token for an Orb-verified account signing in with World App (6 Nov rehearsal) carried `mfa`.
+    const human = await Effect.runPromise(verify(await sign({ ...claims, amr: ['pop', 'user', 'mfa'] })))
+    expect({ acr: human.acr, amr: human.amr }).toEqual({ acr: orb, amr: ['pop', 'user', 'mfa'] })
+    expect(await outcome(await sign({ ...claims, amr: ['user'] }))).toBe('ok world-sub-1 jti-1')
+    const { amr: _omitted, ...withoutAmr } = claims
+    expect((await Effect.runPromise(verify(await sign(withoutAmr)))).amr).toEqual([])
+  })
+
+  test('an acr outside Orb is refused with the class World sent', async () => {
+    const refused = await Effect.runPromise(
+      Effect.flip(verify(await sign({ ...claims, acr: 'https://world.org/oidc/acr/device' }))),
+    )
+    expect({ reason: refused.reason, detail: refused.detail }).toEqual({
+      reason: 'acr',
+      detail: 'https://world.org/oidc/acr/device',
+    })
   })
 
   test.each([
-    ['no pop', { amr: ['user'] }, 'no-proof-of-personhood'],
     ['a selfie-level acr', { acr: 'https://world.org/oidc/acr/selfie' }, 'acr'],
     ['another nonce (another invoice)', { nonce: `0x${'cd'.repeat(32)}` }, 'nonce'],
     ['another audience', { aud: 'app_other' }, 'audience'],

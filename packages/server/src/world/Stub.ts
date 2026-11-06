@@ -101,7 +101,8 @@ const redeem = Effect.fn('EthMumbai.World.stubRedeem')(function* (
     jti,
     auth_time: now,
     acr: ORB,
-    amr: ['pop'],
+    // What World's real token carried for an Orb-verified World App sign-in in the 6 Nov rehearsal.
+    amr: ['pop', 'user', 'mfa'],
     nonce: ref.nonce,
   })
   return Option.some(token)

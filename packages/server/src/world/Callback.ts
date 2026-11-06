@@ -78,6 +78,8 @@ const bindWorldAccount = Effect.fn('EthMumbai.World.bindAccount')(function* (
     return yield* refuse('a different World account than the one bound to this wallet')
 })
 
+const authClaims = (human: VerifiedHuman) => JSON.stringify({ acr: human.acr, amr: human.amr })
+
 /** `jti` once (keccak in `used_nonces`), the World account bound to the wallet on first use, then the co-signature. */
 const approve = Effect.fn('EthMumbai.World.approve')(function* (
   deps: WorldDeps,
@@ -106,7 +108,8 @@ const approve = Effect.fn('EthMumbai.World.approve')(function* (
         `UPDATE approvals SET status = 'approved', jti = ?, sub = ?, auth_time = ?, amr_json = ?, signature = ?, decided_at = ?
           WHERE id = ? AND status = 'opened'`,
       )
-      .bind(human.jti, human.sub, human.authTime, JSON.stringify(human.amr), signed.signature, now, row.id),
+      // amr_json keeps what World asserted about the sign-in, {acr, amr} (assurance class and methods, not secrets).
+      .bind(human.jti, human.sub, human.authTime, authClaims(human), signed.signature, now, row.id),
   )
   if (recorded !== 1) return yield* refuse('approval was answered concurrently')
   yield* database
@@ -115,6 +118,9 @@ const approve = Effect.fn('EthMumbai.World.approve')(function* (
     )
     .bind(row.nonce, row.id, now * 1000)
     .run()
+  yield* Effect.logInfo('world token accepted').pipe(
+    Effect.annotateLogs({ approvalId: row.id, acr: human.acr, amr: human.amr.join(' ') }),
+  )
   return signed
 })
 
@@ -148,7 +154,8 @@ export const callback = (deps: WorldDeps) =>
       return yield* approve(deps, { row, human, approver, enforcer, bindsSubject: world.bindsSubject })
     }).pipe(
       Effect.catchTags({
-        IdTokenRejected: ({ reason }) => refuse(`World token rejected: ${reason}`),
+        IdTokenRejected: ({ reason, detail }) =>
+          refuse(`World token rejected: ${reason}${detail === undefined ? '' : ` (${detail})`}`),
         WorldUnavailable: ({ stage }) => refuse(`World did not answer (${stage})`),
       }),
       Effect.result,
