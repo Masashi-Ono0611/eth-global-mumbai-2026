@@ -56,9 +56,9 @@
 <body>
 <main>
   <nav class="tabs"><a href="/architecture/" aria-current="page">Architecture</a><a href="/plan/">Plan</a></nav>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v4.1 · Fri 6 Nov 17:31 IST · status board below · comment with 💬 (blocks, diagram nodes, selected text)</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v4.2 · Fri 6 Nov 19:35 IST · status board below · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <section id="status-board">
-  <h2>Where we are (Fri 6 Nov 17:31 IST)</h2>
+  <h2>Where we are (Fri 6 Nov 19:35 IST)</h2>
   <ul>
     <li><strong>Everything is real on the deployed app:</strong> Kris, as a real passkey owner, bought chai on a real 0G decision; cigarettes went 0G <code>ask_human</code> → <strong>approval in World App with his Orb-verified account</strong> → enforcer <code>PaymentApproved</code> → paid (<code>0xae55688e…ffa9</code>); his episodes are on 0G Storage and anchored in <code>EpisodeLog</code>. Evidence: <code>docs/evidence/README.md</code>.</li>
     <li><strong>Robot evidence is live:</strong> the chip can start an errand by scanning (<code>POST /api/chips/:robotId/scans</code>, chip-signed, ≤ 64 KB QR crop stored owner-private in R2, hash anchored on 0G; never sent to the brain) and the episode page shows "What the robot saw" with an on-chain verify badge. Rule 4 now reads: no scene frames leave the chip; one signed QR crop may. The Radxa wiring guide is <code>docs/hardware-handoff.md</code> §5.</li>
@@ -66,7 +66,10 @@
     <li><strong>Audit view:</strong> <code>/wallet/episodes</code> and <code>/wallet/episodes/:id</code> — timeline, the exact 0G input and decision, chip, Arc payment, World <code>acr</code>/<code>amr</code>, 0G evidence, Verify and Replay.</li>
     <li><strong>Merchant till:</strong> <a href="https://eth-mumbai-merchant.kristjan-grm11775.workers.dev">eth-mumbai-merchant…workers.dev</a>, a point of sale on the same frozen routes; items over 1 USDC are badged "needs owner approval". Demo rules (6 Nov 17:45, spending limits only): grant 3.00/day, 1.00 per payment; thali 2.00 = the approval beat; a third thali in a day = the daily-cap walk-away; cigarettes are out of the catalogue.</li>
     <li><strong>Contracts and infra:</strong> Arc Studio (<a href="https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75">studio.arc.io/app/63241623…</a>) is the single source; mainnet enforcer <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code>, Galileo <code>EpisodeLog</code> <code>0x4C947E6D794C78d0F684e46EFC97f712E51a206A</code>; the state-store incident is resolved and guarded.</li>
-    <li><strong>Open:</strong> the live deny and revoke clicks; the Radxa wiring; the video Sat 06:00; submission by 08:00 IST.</li>
+    <li><strong>The robot speaks on Telegram (live since 19:10):</strong> <code>@vitaquack_bot</code> messages the owner when the robot needs an approval (a button to the approval page and a fail-safe <strong>Deny</strong>), when it paid (with the Arc link), when a purchase was denied or expired, and when the allowance was stopped. Telegram may deny, never approve; approving stays World ID. Linked from the wallet's avatar sheet with a single-use code; a failed message never delays a payment. Spec §14.</li>
+    <li><strong>Simulator duck (live since 19:30, first live run pending):</strong> Add robot → Simulator opens <code>/sim/</code>, a browser duck with a software chip beside a Duck Café of three stalls; glm-5.3 walks it to the stall, the head camera scans the QR, decide pays, the chip signs, Arc settles and the stall's gate opens. Nothing in that flow has run against live 0G and Arc yet. Spec §15.</li>
+    <li><strong>Found by the new tests (fixed, deployed):</strong> after a denied thali the next thali errand reused the same invoice, so its approval could not be saved and the approval page answered 404; an invoice an owner was ever asked about is never offered again.</li>
+    <li><strong>Open:</strong> Kris's run of the limits-only beats on the deployed app (thali approve, deny, the daily-cap walk-away, revoke) with Telegram linked; the simulator's first live run; the Radxa wiring; the video Sat 06:00; submission by 08:00 IST.</li>
   </ul>
   </section>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
