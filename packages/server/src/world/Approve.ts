@@ -3,6 +3,7 @@ import type { Approver } from '@ethmumbai/chain/Approver'
 import { approvalNonce, type SignedApproval } from '@ethmumbai/protocol/Approval'
 import { idFromBytes16 } from '@ethmumbai/protocol/Base32'
 import type { Hex } from '@ethmumbai/protocol/Hex'
+import { approvalPagePath } from '@ethmumbai/protocol/Pages'
 import { Clock, Effect, Option, Schema } from 'effect'
 import * as Base64Url from 'effect/encoding/Base64Url'
 import type { Address } from 'viem'
@@ -75,7 +76,7 @@ export const expireIfLate = Effect.fn('EthMumbai.World.expireIfLate')(function* 
 })
 
 /** What the errand answers for an approval: its id and the owner's page. */
-const approvalPageRef = (approvalId: string) => ({ approvalId, approvalUrl: `/wallet/approvals/${approvalId}` })
+const approvalPageRef = (approvalId: string) => ({ approvalId, approvalUrl: approvalPagePath(approvalId) })
 
 /**
  * The Robot Agent's approval seam (§9 step 1): one `approvals` row per invoice, keyed by its nonce (the EIP-712 digest

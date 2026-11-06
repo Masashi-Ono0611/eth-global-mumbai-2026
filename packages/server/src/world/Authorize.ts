@@ -1,5 +1,6 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
 import type { Approver } from '@ethmumbai/chain/Approver'
+import { approvalPagePath } from '@ethmumbai/protocol/Pages'
 import { Effect, Option, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
@@ -26,7 +27,7 @@ export interface WorldDeps {
   readonly errands: ErrandDeps
 }
 
-export const approvalPage = (origin: string, id: string) => `${new URL(origin).origin}/wallet/approvals/${id}`
+export const approvalPage = (origin: string, id: string) => `${new URL(origin).origin}${approvalPagePath(id)}`
 export const callbackUrl = (origin: string) => `${new URL(origin).origin}/api/world/callback`
 
 const IdPath = Schema.Struct({ id: Schema.String })
@@ -168,7 +169,7 @@ export const approvalForEpisode = (deps: WorldDeps) =>
       ApprovalRef,
     )
     if (Option.isNone(row)) return yield* NotFound.make({ what: 'approval' })
-    return yield* json({ ...row.value, approvalUrl: `/wallet/approvals/${row.value.id}` })
+    return yield* json({ ...row.value, approvalUrl: approvalPagePath(row.value.id) })
   })
 
 /**

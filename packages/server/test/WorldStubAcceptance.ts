@@ -1,4 +1,5 @@
 import { expect } from 'bun:test'
+import { approvalPagePath } from '@ethmumbai/protocol/Pages'
 import type { TestApi } from 'alchemy/Test/Bun'
 import { Effect, Schema } from 'effect'
 import * as Base64Url from 'effect/encoding/Base64Url'
@@ -71,7 +72,7 @@ const answer = async (
   expect(href.startsWith(`${origin}/api/world/callback?`)).toBe(true)
   const callback = await fetch(href, { redirect: 'manual' })
   expect(callback.status).toBe(302)
-  expect(callback.headers.get('location')).toBe(`${origin}/wallet/approvals/${approvalId}`)
+  expect(callback.headers.get('location')).toBe(`${origin}${approvalPagePath(approvalId)}`)
   const view = await fetch(`${urls.appUrl}/api/robots/${robotId}/errands/${errand.episodeId}`, {
     headers: { cookie: owner.cookie },
   })

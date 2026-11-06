@@ -5,6 +5,7 @@ import { makeArcClient } from '@ethmumbai/chain/Arc'
 import { sendUsdc } from '@ethmumbai/chain/Fund'
 import { isHex } from '@ethmumbai/protocol/Hex'
 import { usdcToUnits } from '@ethmumbai/protocol/Invoice'
+import { APP_BASE } from '@ethmumbai/protocol/Pages'
 import { Effect } from 'effect'
 import { type Browser, chromium, type Page } from 'playwright'
 import { addVirtualAuthenticator } from '../test/PasskeyBrowserAcceptance.ts'
@@ -24,6 +25,8 @@ const flag = (name: string) => {
   return index < 0 ? undefined : Bun.argv[index + 1]
 }
 const base = new URL(flag('base-url') ?? DEPLOYED).origin
+/** The wallet's pages, under the app's prefix on that origin. */
+const app = `${base}${APP_BASE}`
 // A throwaway owner's virtual passkey dies with the browser, so whatever it holds is stranded: fund only a little.
 const fund = flag('fund') ?? '0.01'
 /** Skip the chai, gate and post-revoke steps: only the restricted approve / deny (and the revoke). */
@@ -65,7 +68,7 @@ const until = async (page: Page, check: () => Promise<boolean>, what: string, se
 }
 
 const signup = async (page: Page) => {
-  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.goto(`${app}/`, { waitUntil: 'networkidle' })
   await page.locator('#display-name').fill('Browser Owner')
   await page.getByRole('button', { name: 'Create passkey wallet' }).click()
   const address = (await page.locator('.smart-account').textContent({ timeout: 30_000 })) ?? ''
@@ -76,7 +79,7 @@ const signup = async (page: Page) => {
 }
 
 const pairRobot = async (page: Page) => {
-  await page.goto(`${base}/wallet/robots`, { waitUntil: 'networkidle' })
+  await page.goto(`${app}/wallet/robots`, { waitUntil: 'networkidle' })
   await page.locator('#robot-name').fill('Browser duck')
   await page.getByRole('button', { name: 'Add robot' }).click()
   const code = (await page.locator('.pairing-code').textContent({ timeout: 15_000 })) ?? ''
@@ -219,7 +222,7 @@ const afterRevoke = async (page: Page, robotUrl: string) => {
 }
 
 const revoke = async (page: Page) => {
-  await page.goto(`${base}/wallet/robots`, { waitUntil: 'networkidle' })
+  await page.goto(`${app}/wallet/robots`, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'Revoke grant' }).click()
   // Never reload while the revoke request is in flight: the passkey prompt, the relayer send and the receipt all run
   // inside it. Afterwards a reload settles a 'revoking' grant from Arc.
@@ -266,7 +269,7 @@ const main = async () => {
       )
       say(`funded ${fund} USDC https://explorer.arc.io/tx/${funded.hash}`)
     }
-    await page.goto(`${base}/wallet`, { waitUntil: 'networkidle' })
+    await page.goto(`${app}/wallet`, { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Copy address' }).waitFor()
     await shot(page, '02-wallet')
     stops.push(await pairRobot(page))
@@ -276,7 +279,7 @@ const main = async () => {
       await page.getByRole('button', { name: 'Buy Cigarettes (0.50 USDC)' }).waitFor()
     } else {
       const gate = await context.newPage()
-      await gate.goto(`${base}/gate/duck-cafe`, { waitUntil: 'networkidle' })
+      await gate.goto(`${app}/gate/duck-cafe`, { waitUntil: 'networkidle' })
       await shot(gate, '08-gate-closed')
       // The gate shows OPEN for a few seconds once its invoice is paid, then asks for a fresh one: catch it live.
       const opened = gate
