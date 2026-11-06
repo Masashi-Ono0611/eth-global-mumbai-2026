@@ -57,8 +57,8 @@ payment, only delay it.
   `walk_away`), temperature 0, a 10 s budget; any failure ends the errand in `safe_stop` and nothing is paid. Request
   ids and response keys are logged per decision; episodes go to 0G Storage and `EpisodeLog.record` on 0G Chain.
 - **World Agent Pass.** Restricted or over-limit payments need a fresh World IdP authentication bound to that payment
-  through the OIDC `nonce`; the backend verifies the RS256 ID token (Orb `acr`, `amr` with `pop` and without `mfa`, `jti`
-  once, the bound `sub`) and co-signs that one approval (`docs/world-debrief.md`).
+  through the OIDC `nonce`; the backend verifies the RS256 ID token (Orb `acr` with a fresh `auth_time`, `jti` once, the
+  bound `sub`; `amr` recorded) and co-signs that one approval (`docs/world-debrief.md`).
 - **Foundation.** Bun workspaces, Effect 4, Foldkit (Elm-style TypeScript UI with server rendering), Alchemy on
   Cloudflare Workers, D1. Robot coordination is Effect services over D1 with HTTPS long-polling (35 s chip lease: no
   lease → the chip stops its motors and refuses to sign). Five languages (English, Slovenian, Japanese, Hindi, Marathi).
@@ -105,7 +105,7 @@ rehearsal-brain decision. Done (6 Nov 12:55 IST, `docs/evidence/2026-11-06-evide
 
 The owner approves restricted or over-limit robot payments with a fresh World ID authentication in World App,
 bound to the exact payment by using the EIP-712 digest of {invoice, payee, amount, expiry} as the OIDC nonce; the
-backend verifies the token (Orb `acr`, `amr` contains `pop` and not `mfa`, `jti` once, `sub` bound to the wallet) and
+backend verifies the token (Orb `acr` with a fresh `auth_time`, `jti` once, `sub` bound to the wallet; `amr` recorded) and
 co-signs that single payment, which our Arc enforcer requires. Denial or a 300 s timeout means nothing is ever signed.
 Proven: the verifier and the approval flow in tests (`packages/server/test/World.test.ts`, scene tests). Rehearsed on
 the deployed app through the real pages with the in-Worker **stub issuer** (rehearsal only, not World): 0G asked the

@@ -44,7 +44,7 @@ the final run: replace them with the recorded ones in `docs/evidence/demo-run.md
 | 8 | Console → **Buy Cigarettes (0.50 USDC)** | **0G decided to ask you first**, state **waiting for approval**, **Approve in World App** | No approval link: World or the approver is not configured (the errand expires after 300 s). 0G asked the owner in every restricted call so far (run 7: 2 of 2; the probe: 5 of 5); a **walked away** or **safe stop** stays on screen as it is (never faked): press **Buy Cigarettes** again |
 | 9 | **Approve in World App** → the approval page (`/wallet/approvals/:id`) | **Approval for a restricted item**, item, amount 0.50 USDC, payee, invoice, "Waiting for your answer", **Approve with World**, **Deny** | — |
 | 10 | **Approve with World** → World sign-in (scan with World App) → **deny** in World App | back on the page: **Denied: nothing is paid** and the reason; console: **cigarettes: denied**, no payment link | The owner's own **Deny** button gives the same result without World |
-| 11 | Buy Cigarettes again → **Approve with World** → **approve** in World App | **Approved: the chip signs the payment now**; console: the chip signs, **cigarettes: paid**, **Payment on Arc** | "World token rejected: mfa" = the World sign-in was a passkey, not a fresh Orb proof: sign in with the Orb face check. "a different World account than the one bound to this wallet": the first approval binds the World account |
+| 11 | Buy Cigarettes again → **Approve with World** → **approve** in World App | **Approved: the chip signs the payment now**; console: the chip signs, **cigarettes: paid**, **Payment on Arc** | "World token rejected: acr (…)" = the World account is not Orb-verified (the brackets name the class World sent); "stale" = the sign-in was not fresh: approve again from the page. "a different World account than the one bound to this wallet": the first approval binds the World account |
 | 12 | **Robots** → **Revoke grant** → passkey | "Revoking on Arc...", then the budget line ends **(revoked)** and **Revoke transaction** links the explorer | 202 / still revoking: **Refresh**; the page settles it from Arc's DelegationManager |
 | 13 | Console → **Buy Chai** | ends **failed** with "Reason: …CannotUseADisabledDelegation…": Arc refused the revoked grant | — |
 | 14 | Evidence (after `heavy --wait bun tools/evidence-uploader/main.ts --once` on netcup) | console: **Episode log: uploaded**, **Episode on 0G Storage**, **EpisodeLog record on 0G Chain** | `pending`: the uploader has not run yet |
@@ -71,8 +71,9 @@ approval's EIP-712 digest as the OIDC `nonce`, RS256 verification against the JW
 - **Friction.**
   1. The endpoints are not under the issuer root: discovery gives `/api/v1/authorize` and `/api/v1/token`, so code that
      assumes `${issuer}/authorize` breaks. We read discovery at runtime.
-  2. `amr` contains `pop` for a passkey World sign-in too (`["pop","user","mfa"]`), so "contains pop" does not mean a
-     fresh proof of personhood; you must also reject `mfa`. This is easy to get wrong and is only visible in examples.
+  2. `amr` semantics are undocumented: our research-derived rule "`pop` and not `mfa`" refused Kris's real Orb sign-in
+     with World App, whose token carries `mfa`. We now judge `acr` (Orb) + a fresh `auth_time` and record `amr`
+     (`docs/world-debrief.md`, friction 1). PKCE is also mandatory at the token endpoint (friction 2).
   3. There is no transaction binding in the token: we overload `nonce` with the EIP-712 digest of {invoice, amount,
      payee, expiry}. It works, but every integrator has to invent it.
   4. `sub` is pairwise per client, so a wallet must bind the World account on its first approval and check it after.
