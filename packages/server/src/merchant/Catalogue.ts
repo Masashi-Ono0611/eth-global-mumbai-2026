@@ -20,7 +20,10 @@ export interface Merchant {
   readonly items: ReadonlyArray<CatalogueItem>
 }
 
-/** The merchant catalogue is a constant (spec §3): chai 0.10, samosa 0.25, cigarettes 0.50 restricted. */
+/**
+ * The merchant catalogue is a constant (spec §3): chai 0.10, samosa 0.25, cigarettes 0.50 restricted, and thali 2.00,
+ * a counter item above a small grant's per-payment cap, so it needs the owner's World approval without being restricted.
+ */
 export const merchants: ReadonlyArray<Merchant> = [
   {
     id: 'duck-cafe',
@@ -30,6 +33,7 @@ export const merchants: ReadonlyArray<Merchant> = [
       { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false, payee: 'merchant' },
       { itemId: 'samosa', name: 'Samosa', amount: '250000', restricted: false, payee: 'merchant' },
       { itemId: 'cigarettes', name: 'Cigarettes', amount: '500000', restricted: true, payee: 'restricted' },
+      { itemId: 'thali', name: 'Thali', amount: '2000000', restricted: false, payee: 'merchant' },
     ],
   },
 ]
