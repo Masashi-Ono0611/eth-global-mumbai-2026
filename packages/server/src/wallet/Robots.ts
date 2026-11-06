@@ -1,6 +1,7 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
 import { idFromBytes16 } from '@ethmumbai/protocol/Base32'
 import { Address } from '@ethmumbai/protocol/Hex'
+import { RobotKind } from '@ethmumbai/protocol/Intent'
 import { Clock, Effect, Layer, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import { decodeBody } from '../auth/Routes.ts'
@@ -32,24 +33,28 @@ const newPairingCode: Effect.Effect<string> = Effect.flatMap(randomBytes(32), (b
   return code.length === PAIRING_LENGTH ? Effect.succeed(code) : newPairingCode
 })
 
-const NewRobot = Schema.Struct({ name: Schema.Trim.check(Schema.isMinLength(1), Schema.isMaxLength(40)) })
+const NewRobot = Schema.Struct({
+  name: Schema.Trim.check(Schema.isMinLength(1), Schema.isMaxLength(40)),
+  /** `sim` adds a simulator duck (its software chip pairs from /sim/); absent = a real robot's chip. */
+  kind: Schema.optionalKey(RobotKind),
+})
 
-/** `POST /api/robots {name}` → 201 `{robotId, pairingCode, pairingExpiresAt}`: the "Add robot" button. */
+/** `POST /api/robots {name, kind?}` → 201 `{robotId, name, kind, pairingCode, pairingExpiresAt}`: the "Add robot" button. */
 const addRobot = (database: QueryDatabaseClient) =>
   Effect.gen(function* () {
-    const { name } = yield* decodeBody(NewRobot)
+    const { name, kind = 'chip' } = yield* decodeBody(NewRobot)
     const session = yield* CurrentSession
     const robotId = idFromBytes16(yield* randomBytes(16))
     const pairingCode = yield* newPairingCode
     const pairingExpiresAt = (yield* nowSeconds) + PAIRING_SECONDS
     yield* database
       .prepare(
-        "INSERT INTO robots (id, account_id, name, pairing_code, pairing_expires_at, status, created_at) VALUES (?, ?, ?, ?, ?, 'unpaired', ?)",
+        "INSERT INTO robots (id, account_id, name, pairing_code, pairing_expires_at, status, kind, created_at) VALUES (?, ?, ?, ?, ?, 'unpaired', ?, ?)",
       )
-      .bind(robotId, session.accountId, name, pairingCode, pairingExpiresAt, yield* Clock.currentTimeMillis)
+      .bind(robotId, session.accountId, name, pairingCode, pairingExpiresAt, kind, yield* Clock.currentTimeMillis)
       .run()
     yield* Effect.logInfo('robot added').pipe(Effect.annotateLogs({ robotId }))
-    return yield* json({ robotId, name, pairingCode, pairingExpiresAt }, 201)
+    return yield* json({ robotId, name, kind, pairingCode, pairingExpiresAt }, 201)
   })
 
 const Allowlist = Schema.fromJsonString(Schema.Array(Address))
@@ -93,6 +98,7 @@ const listRobots = (deps: WalletDeps) =>
         return {
           id: robot.id,
           name: robot.name,
+          kind: robot.kind,
           status: robot.status,
           chipAddress: robot.chip_address,
           pairingCode: pairable ? robot.pairing_code : null,

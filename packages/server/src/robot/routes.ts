@@ -114,9 +114,9 @@ const readRobotView = (deps: ErrandDeps) =>
     if (Option.isNone(robot)) return yield* jsonError(404, 'unknown robot')
     yield* tickRobot(deps.database, robot.value.id)
     const grant = yield* latestSignedGrant(deps.database, robot.value.id)
-    const { id, name, status, chip_address, paired_at, last_poll_at } = robot.value
+    const { id, name, kind, status, chip_address, paired_at, last_poll_at } = robot.value
     return yield* json({
-      robot: { id, name, status, chipAddress: chip_address, pairedAt: paired_at, lastPollAt: last_poll_at },
+      robot: { id, name, kind, status, chipAddress: chip_address, pairedAt: paired_at, lastPollAt: last_poll_at },
       lease: leaseOf(robot.value, yield* Clock.currentTimeMillis),
       grant: Option.match(grant, {
         onNone: () => null,

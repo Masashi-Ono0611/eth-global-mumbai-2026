@@ -1,6 +1,7 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
 import { LEASE_MS } from '@ethmumbai/protocol/Chip'
 import { Address } from '@ethmumbai/protocol/Hex'
+import { RobotKind } from '@ethmumbai/protocol/Intent'
 import { Clock, Effect, Schema } from 'effect'
 import { firstRow } from '../Sql.ts'
 
@@ -19,6 +20,8 @@ export const RobotRow = Schema.Struct({
   last_poll_at: Schema.NullOr(Schema.Finite),
   lease_until: Schema.NullOr(Schema.Finite),
   status: RobotStatus,
+  /** `chip` = hardware or CLI chip; `sim` = a simulator duck with the software chip in the browser. */
+  kind: RobotKind,
   created_at: Schema.Finite,
 })
 export type RobotRow = typeof RobotRow.Type
