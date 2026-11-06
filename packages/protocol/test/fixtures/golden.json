@@ -1,0 +1,100 @@
+{
+  "note": "Golden vectors computed with viem 2.57.16 and @metamask/smart-accounts-kit 2.0.0 (independent of packages/protocol). Invoice = the S2 spike's (docs/research/spikes/s2-facilitator-spike.ts.txt lines 271-274) with a fixed invoice id and expiry.",
+  "keccak": [
+    {
+      "char": "",
+      "repeat": 1,
+      "hash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+    },
+    {
+      "char": "abc",
+      "repeat": 1,
+      "hash": "0x4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
+    },
+    {
+      "char": "x",
+      "repeat": 135,
+      "hash": "0x16570bdb055e663ea1cb57ac6f09194f4bc7b7070847971fc0b86710366dc34f"
+    },
+    {
+      "char": "y",
+      "repeat": 136,
+      "hash": "0x299eb9c75467c19fbc1653d67b1f49ff3bb50fc9c1c9ce98c205e5ac6a05b9c8"
+    },
+    {
+      "char": "z",
+      "repeat": 300,
+      "hash": "0x66334e06e47d4d3a5bcf2eb22a6aeb205a984e53b3b089b2eb632cf24dde6059"
+    }
+  ],
+  "base32": {
+    "bytes": "0x00112233445566778899aabbccddeeff",
+    "rfc4648": {
+      "text": "foobar",
+      "base32": "mzxw6ytboi"
+    }
+  },
+  "invoice": {
+    "merchantId": "duck-cafe",
+    "invoiceIdBytes16": "0x00112233445566778899aabbccddeeff",
+    "payTo": "0x000000000000000000000000000000000000c0de",
+    "asset": "0x3600000000000000000000000000000000000000",
+    "amount": "1500000",
+    "expiresAt": 1794000000,
+    "lines": [
+      {
+        "name": "Coffee",
+        "qty": 1,
+        "sku": "coffee",
+        "unitAmount": "1500000"
+      }
+    ],
+    "restrictions": [],
+    "linesHash": "0x891d65908615be8250718f1aad7a5140d40b41eecb696e8f5e818479cb8fc5e6",
+    "rulesHash": "0x518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70",
+    "invoiceHash": "0x6c5d35a8d08ac51bafa5ea4a0d29a268f9a23b942a8af22c1fa1d9c38ae8bcf7"
+  },
+  "leaf": {
+    "chip": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "grantHash": "0x58e332bad678a1e09550d11cf54a9dd59638b746dbabd741c58a9d04ebbe8def",
+    "relayer": "0x00000000000000000000000000000000000beef1",
+    "delegation": {
+      "delegate": "0x0000000000000000000000000000000000000a11",
+      "delegator": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "authority": "0x58e332bad678a1e09550d11cf54a9dd59638b746dbabd741c58a9d04ebbe8def",
+      "caveats": [
+        {
+          "enforcer": "0x146713078D39eCC1F5338309c28405ccf85Abfbb",
+          "terms": "0x36000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a9059cbb000000000000000000000000000000000000000000000000000000000000c0de000000000000000000000000000000000000000000000000000000000016e360",
+          "args": "0x"
+        },
+        {
+          "enforcer": "0xC8B5D93463c893401094cc70e66A206fb5987997",
+          "terms": "0x6c5d35a8d08ac51bafa5ea4a0d29a268f9a23b942a8af22c1fa1d9c38ae8bcf7",
+          "args": "0x"
+        },
+        {
+          "enforcer": "0x1046bb45C8d673d4ea75321280DB34899413c069",
+          "terms": "0x000000000000000000000000000000000000000000000000000000006aee4480",
+          "args": "0x"
+        },
+        {
+          "enforcer": "0xE144b0b2618071B4E56f746313528a669c7E65c5",
+          "terms": "0x00000000000000000000000000000000000beef1",
+          "args": "0x"
+        }
+      ],
+      "salt": "109471857193839539219367393710372306158154829540529027117949150825083956562989"
+    },
+    "hash": "0xb340efc4e06af82f230d867d61c91ea237f9de9fe1d9aef87c505919f44623f3",
+    "signature": "0xe62cb59296cb3bb5354bc1b5be8e69a57268e5331e845a9cb26ae4a95fe69d8522cc6140afca543c9cba3958830d97f6a1aafba5f86231d0081598a9880e73db1c"
+  },
+  "approval": {
+    "enforcer": "0x00000000000000000000000000000000000e4f01",
+    "payee": "0x000000000000000000000000000000000000c0de",
+    "amount": "1500000",
+    "expiry": 1794000300,
+    "nonce": "0x899cd7eda4f19caa1828936da6accd5b462bd4b028dca945ec9c7ee3f159449a",
+    "digest": "0xcb4009824916dcd999385d00d4d245b8e5558a19882d713a52f64a95865236ff"
+  }
+}
