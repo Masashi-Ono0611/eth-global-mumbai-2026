@@ -163,12 +163,18 @@ const reasonOf = Effect.fnUntraced(function* (deps: ErrandDeps, episodeId: strin
   return decisions.findLast((decision) => decision.reason !== null)?.reason ?? null
 })
 
-/** A `buy` turn: the shared intent operation, or the reason it cannot start, as Vita's words. */
-const buy = Effect.fnUntraced(function* (deps: ErrandDeps, robot: RobotRow, merchant: Merchant, item: string | null) {
+/** A `buy` turn: the shared intent operation (with the brain the owner picked), or why it cannot start, as Vita's words. */
+const buy = Effect.fnUntraced(function* (
+  deps: ErrandDeps,
+  robot: RobotRow,
+  merchant: Merchant,
+  item: string | null,
+  model: string | null | undefined,
+) {
   const known = item === null ? Option.none() : findItem(merchant, item)
   if (Option.isNone(known)) return { errand: null, line: offMenuLine(merchant.items) }
   const instruction = voiceInstruction(known.value)
-  return yield* createIntent(deps, { robot, instruction, item: known.value.itemId }).pipe(
+  return yield* createIntent(deps, { robot, instruction, item: known.value.itemId, model }).pipe(
     Effect.map((errand) => ({ errand, line: intentLine(errand, known) })),
     Effect.catchTag('ErrandRefused', (refused) =>
       refused.status === 409
@@ -214,7 +220,7 @@ const turn = (deps: VoiceDeps) =>
     const hearing = yield* hear(zeroG, body.audio, merchant.items)
     const answer: { readonly errand: VoiceTurn['errand']; readonly line: VoiceLine } =
       hearing.intent === 'buy'
-        ? yield* buy(deps, robot, merchant, hearing.item)
+        ? yield* buy(deps, robot, merchant, hearing.item, body.model)
         : hearing.intent === 'stop'
           ? yield* stop(deps, robot)
           : { errand: null, line: answerLine(hearing.topic, yield* factsOf(deps, robot, merchant)) }

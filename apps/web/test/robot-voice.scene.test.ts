@@ -1,3 +1,4 @@
+import { Listbox } from '@foldkit/ui'
 import { Option } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { describe, expect as expectValue, test } from 'vitest'
@@ -79,6 +80,28 @@ const steps = (
   )
 
 describe('/robot/:id voice', () => {
+  test('a spoken buy carries the brain picked in the composer, as a typed message does', () => {
+    Story.story(
+      RobotConsole.update,
+      Story.given(voiceOn()),
+      Story.message(
+        RobotConsole.Message.GotBrainPickerMessage({
+          message: Listbox.Message.SelectedItem({ item: 'qwen3-vl-plus' }),
+        }),
+      ),
+      Story.message(voice(RobotVoice.Message.PressedTalk())),
+      Story.Command.resolve(RobotVoice.StartListening, RobotVoice.Message.CompletedStartListening({ holdId: 1 })),
+      Story.Command.resolve(RobotVoice.LimitListening, RobotVoice.Message.CompletedLimitListening({ holdId: 0 })),
+      Story.message(voice(RobotVoice.Message.ReleasedTalk())),
+      Story.Command.resolve(
+        RobotVoice.StopListening,
+        RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.some(clip), closed: false }),
+      ),
+      Story.Command.expectExact(RobotVoice.SendVoiceTurn({ robotId, audio: clip, model: 'qwen3-vl-plus' })),
+      Story.Command.resolve(RobotVoice.SendVoiceTurn, RobotVoice.Message.FailedVoiceTurn({ error: 'busy' })),
+    )
+  })
+
   test('hold, speak, let go: the clip goes to the Worker, the speech plays, and the spoken intent is followed', () => {
     Story.story(
       RobotConsole.update,
@@ -94,7 +117,7 @@ describe('/robot/:id voice', () => {
         RobotVoice.StopListening,
         RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.some(clip), closed: false }),
       ),
-      Story.Command.expectExact(RobotVoice.SendVoiceTurn({ robotId, audio: clip })),
+      Story.Command.expectExact(RobotVoice.SendVoiceTurn({ robotId, audio: clip, model: null })),
       Story.Command.resolve(RobotVoice.SendVoiceTurn, RobotVoice.Message.SucceededVoiceTurn({ turn: turn() })),
       Story.Command.expectHas(RobotVoice.PlaySpeech({ url: `/api/robots/${robotId}/voice/speech/${'a'.repeat(64)}` })),
       Story.Command.expectHas(RobotConsole.PollIntent({ robotId, intentId, delayMillis: 2000 })),

@@ -1,5 +1,6 @@
 import { Schema } from 'effect'
 import { Id } from './Base32.ts'
+import { BrainModel } from './Errand.ts'
 import { IntentView } from './Intent.ts'
 
 // Vita's voice in the robot conversation (no flag; on whenever 0G is configured). The owner holds to talk; the Worker sends the clip
@@ -16,6 +17,8 @@ export const VoiceTurnRequest = Schema.Struct({
     Schema.isMaxLength(VOICE_AUDIO_MAX),
     Schema.isPattern(/^data:audio\/wav;base64,[A-Za-z0-9+/]+={0,2}$/),
   ),
+  /** The brain the owner picked in the composer, for a spoken buy (as a typed message carries it); null = ZG_MODEL. */
+  model: Schema.optionalKey(Schema.NullOr(BrainModel)),
 })
 export type VoiceTurnRequest = typeof VoiceTurnRequest.Type
 

@@ -411,7 +411,13 @@ const foldBrainPicker = Update.foldChild({
   foldOutMessage: Listbox.OutMessage.match<Update.Step<Model, Message, Services>>({
     Selected:
       ({ value }) =>
-      (model) => ({ model: modifyFields(model, { maybeBrain: () => Option.some(value) }) }),
+      (model) => ({
+        model: modifyFields(model, {
+          maybeBrain: () => Option.some(value),
+          // A spoken buy goes with the same brain as the typed message beside the mic.
+          voice: () => modifyFields(model.voice, { maybeBrain: () => Option.some(value) }),
+        }),
+      }),
   }),
 })
 const configureAllowance = (model: Model, catalogue: Catalogue, robot: ConsoleRobot) =>

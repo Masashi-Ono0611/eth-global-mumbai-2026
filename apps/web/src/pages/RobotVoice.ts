@@ -56,6 +56,8 @@ export const Model = Schema.Struct({
   maybeFollowing: Schema.Option(Schema.Struct({ intentId: Schema.String, spokenState: Schema.String })),
   /** Counts accepted presses: each hold's id, so its mic, its stop and its time limit never touch another hold. */
   holds: Schema.Number,
+  /** The brain picked in the composer (none = ZG_MODEL), sent with a spoken buy as a typed message sends it. */
+  maybeBrain: Schema.Option(Schema.String),
 })
 export type Model = typeof Model.Type
 
@@ -130,10 +132,10 @@ export const LimitListening = Command.define('LimitListening', {
 
 /** @internal Exported for the voice tests; this page's update is its only production caller. */
 export const SendVoiceTurn = Command.define('SendVoiceTurn', {
-  args: { robotId: Schema.String, audio: Schema.String },
+  args: { robotId: Schema.String, audio: Schema.String, model: Schema.NullOr(Schema.String) },
   messages: [Message.SucceededVoiceTurn, Message.FailedVoiceTurn],
-  execute: ({ robotId, audio }) =>
-    Effect.match(sendVoiceTurn(robotId, audio), {
+  execute: ({ robotId, audio, model }) =>
+    Effect.match(sendVoiceTurn(robotId, audio, model), {
       onSuccess: (turn) => Message.SucceededVoiceTurn({ turn }),
       onFailure: (failure) => Message.FailedVoiceTurn({ error: failure.error }),
     }),
@@ -173,6 +175,7 @@ export const init = (robotId: string): Model => ({
   entries: [],
   maybeFollowing: Option.none(),
   holds: 0,
+  maybeBrain: Option.none(),
 })
 
 // UPDATE
@@ -326,7 +329,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       Status.guards.Thinking(model.status)
         ? Option.match(maybeAudio, {
             onNone: () => (closed ? idle(model) : failed(model, 'tooShort', '')),
-            onSome: (audio) => ({ model, commands: [SendVoiceTurn({ robotId: model.robotId, audio })] }),
+            onSome: (audio) => ({
+              model,
+              commands: [SendVoiceTurn({ robotId: model.robotId, audio, model: Option.getOrNull(model.maybeBrain) })],
+            }),
           })
         : { model },
     SucceededVoiceTurn: ({ turn }) => heardTurn(model, turn),
