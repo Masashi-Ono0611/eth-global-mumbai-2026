@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Duck walk: training the Vitaquack duck to walk</title>
+    <link rel="stylesheet" href="/lib/base.css" />
+    <style>
+      video { width: 100%; border-radius: 8px; background: #000; }
+      table { border-collapse: collapse; width: 100%; font-size: 15px; }
+      td, th { border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent); padding: 6px 8px; text-align: left; vertical-align: top; }
+      .bad { color: #c62828; font-weight: 600; }
+      .ok { color: #2e7d32; }
+      small { opacity: 0.75; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Duck walk</h1>
+      <p>
+        Night of 6 to 7 Nov. A walking policy trained in simulation for <b>our</b> duck: Waveshare ST3215-HS 12 V servos,
+        about 2.5 kg, the heavier Microduck head, and <b>no foot switches</b> (they are not fitted). Trained on one rented
+        RTX 4090, 150 M steps in 20 minutes, starting from the open-source Open Duck Mini v2 training code.
+      </p>
+
+      <div class="card">
+        <h2>1. The trained walk (version A)</h2>
+        <video src="/story/media/duck-walk-walk_A.mp4" controls playsinline muted loop preload="metadata"></video>
+        <p><small>Forward, turn, forward while turning, side-step, backward, stop. The keys shown are the ones the real-duck runtime uses.</small></p>
+      </div>
+
+      <div class="card">
+        <h2>2. How it learned</h2>
+        <video src="/story/media/duck-walk-learning.mp4" controls playsinline muted preload="metadata"></video>
+        <p>
+          <small>Same duck model, same "walk forward" command, five points in training. The untrained policy outputs almost
+          nothing, so it holds the standing pose; by 10 M steps it shuffles, by 43 M it walks.</small>
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>3. Results in the simulator</h2>
+        <table>
+          <tr><th>Policy</th><th>Needs on the duck</th><th>Forward in 8 s</th><th>Falls</th></tr>
+          <tr><td>Stock open-source policy on our duck model</td><td>IMU + foot switches</td><td>82 cm</td><td>no</td></tr>
+          <tr><td>run1, trained for our duck</td><td>IMU + foot switches</td><td>107 cm</td><td>no</td></tr>
+          <tr><td><b>A: no foot switches (main)</b></td><td>servos + BNO055 IMU</td><td><b>95 cm</b></td><td>no</td></tr>
+          <tr><td>B: blind (backup)</td><td>servos only</td><td>74 cm, veers left about 40 cm</td><td>no</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>4. Stress test of version A <small>(10 s forward walk)</small></h2>
+        <table>
+          <tr><th>Change from what it trained on</th><th>Result</th></tr>
+          <tr><td>Weight −20 % to +35 %</td><td class="ok">walks, 112–137 cm</td></tr>
+          <tr><td>Servos 50 % softer to 2× stiffer</td><td class="ok">walks, 103–123 cm</td></tr>
+          <tr><td>Servo damping ×0.5 to ×2</td><td class="ok">walks, 90–100 cm</td></tr>
+          <tr><td>Extra control delay 20–40 ms</td><td class="ok">walks</td></tr>
+          <tr><td>Extra control delay 60 ms</td><td class="bad">falls after 6.7 s</td></tr>
+          <tr><td>Side shove 0.3 m/s every 2 s</td><td class="ok">walks</td></tr>
+          <tr><td>Side shove 0.6 m/s every 2 s</td><td class="bad">falls</td></tr>
+        </table>
+        <p>
+          The datasheet estimates (weight, servo numbers) matter little. <b>Delay is the real risk</b>: the Radxa's loop must
+          read the 14 servos and the IMU without adding more than about 40 ms. The policy itself takes 0.7 ms on the Radxa.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>5. Status on the real duck</h2>
+        <ul>
+          <li>The runtime is installed on the Radxa. The same code walks the simulated duck 96 cm.</li>
+          <li>Waiting for: assembly, the BNO055 on header pins 27/28 (I2C4), the servo adapter on the Radxa's USB, and the joint sign test.</li>
+          <li>Then, one step at a time: read-only check, IMU axis calibration, dry run, stand (hanging), walk (hanging), floor on a tether.</li>
+        </ul>
+        <p><small>Everything above is simulation. Nothing has run on the real duck yet.</small></p>
+      </div>
+    </main>
+  </body>
+</html>
