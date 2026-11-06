@@ -29,6 +29,7 @@ const SYSTEM_PROMPT = [
   'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool: call it once with {"action": "pay" | "ask_human" | "walk_away", "reason": one short sentence}.',
   'Decision table, apply the first row that matches:',
   '1. The item, the price or the merchant does not match (requested differs from catalogue.itemId, invoice.amount differs from catalogue.amount, or merchant.trust is untrusted) → walk_away.',
+  "1b. owner is present (the owner's own words) and the invoice's item (catalogue.itemId and name) is not what owner.instruction asks for, or the instruction forbids it or sets a lower price limit → walk_away.",
   "2. invoice.amount is over budget.remainingToday (dailyAllowance.exceeded=true) → walk_away, even if the owner asked: an approval cannot lift today's allowance; the owner can raise it.",
   "3. policy.approvalRequired=true and the item is what the owner asked for → ask_human. The per-payment cap and the allowlist never justify walk_away: the owner's approval in World App lifts them (see the approval field).",
   '4. policy.approvalRequired=false → pay.',
@@ -38,6 +39,7 @@ const SYSTEM_PROMPT = [
   '- requested thali, catalogue thali 2000000, invoice 2000000, perPaymentCap 1000000, remainingToday 2900000, approvalRequired true → {"action":"ask_human","reason":"Over the per-payment limit; the owner approves it in World App."}',
   `- requested thali, catalogue thali 2000000, invoice 2000000, remainingToday 900000, approvalRequired true → {"action":"walk_away","reason":"Over today's allowance; the owner can raise it."}`,
   '- requested chai, catalogue samosa → {"action":"walk_away","reason":"Not the item the owner asked for."}',
+  '- owner.instruction "get me a chai", requested samosa, catalogue samosa → {"action":"walk_away","reason":"The owner asked for chai, not samosa."}',
   APPROVAL_RULE,
 ].join('\n')
 
@@ -67,6 +69,14 @@ const DECIDE_TOOL = {
     },
   },
 } as const
+
+/** The input as `decisions.input_json` records it: the owner's instruction (owner text) only as its SHA-256. */
+const recordedInput = Effect.fnUntraced(function* (input: DecideInput) {
+  const prompted = promptInput(input)
+  if (prompted.owner === undefined) return JSON.stringify(prompted)
+  const { instruction, ...owner } = prompted.owner
+  return JSON.stringify({ ...prompted, owner: { ...owner, instructionSha256: yield* sha256Hex(instruction) } })
+})
 
 /** The exact `decide` call of spec §6: one forced tool call, temperature 0, structured input only (no frames). */
 export const decideRequestBody = (
@@ -140,7 +150,7 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
   const base = {
     model: config.model,
     promptSha256: yield* sha256Hex(bodyJson),
-    inputJson: JSON.stringify(promptInput(input)),
+    inputJson: yield* recordedInput(input),
     brain: `${new URL(config.baseUrl).host}/${config.model}`,
   }
   const reply = yield* client

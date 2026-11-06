@@ -6,6 +6,7 @@ import * as Base64 from 'effect/encoding/Base64'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import { type ErrandDeps, readEpisode, tickRobot } from './Errands.ts'
+import { claimIntent, openIntent, ownerOf, settleIntents } from './Intents.ts'
 import {
   frameSha256,
   MAX_SCAN_BYTES,
@@ -60,14 +61,23 @@ const checkedFrame = Effect.fnUntraced(function* (scan: ScanRequest) {
   return bytes
 })
 
-/** The scanned invoice must exist (404) and be this merchant's (409); the errand path checks it is open. */
+/**
+ * The scanned invoice must exist (404) and be this merchant's (409); the errand path checks it is open. When the robot
+ * has a running errand intent, the scan carries the owner's instruction into `decide` and claims the intent.
+ */
 const scanContext = Effect.fnUntraced(function* (deps: ErrandDeps, robot: RobotRow, invoiceId: string) {
   const invoice = yield* need(yield* readInvoice(deps.database, invoiceId), 404, 'unknown invoice')
   const { payees, zeroG, merchant } = yield* errandSetup(deps)
   if (invoice.merchant_id !== merchant.id) return yield* refuse(409, 'invoice is not for this merchant')
   const item = yield* need(findItem(merchant, invoice.item_id), 409, 'invoice item is not sold here')
   const grant = yield* signedGrant(deps, robot)
-  return { robot, payees, zeroG, merchant, item, grant, invoiceId }
+  yield* settleIntents(deps.database, robot.id)
+  const intent = Option.filter(yield* openIntent(deps.database, robot.id), (row) => row.state === 'running')
+  const context = { robot, payees, zeroG, merchant, item, grant, invoiceId }
+  return Option.match(intent, {
+    onNone: () => ({ context, intentId: Option.none<string>() }),
+    onSome: (row) => ({ context: { ...context, owner: ownerOf(row) }, intentId: Option.some(row.id) }),
+  })
 })
 
 /** Put the crop in R2 (private) and record it, before the decision so the evidence includes it. */
@@ -127,12 +137,16 @@ const scan = (deps: ErrandDeps, media: ReadWriteBucketClient) =>
     if ((yield* recentScans(deps.database, robot.id, since)) >= SCANS_PER_MINUTE)
       return yield* refuse(429, 'too many scans: at most 10 a minute per robot')
     const frame = yield* checkedFrame(signed)
-    const context = yield* scanContext(deps, robot, signed.invoiceId)
+    const { context, intentId } = yield* scanContext(deps, robot, signed.invoiceId)
     const observationId = yield* generateId
-    const started = yield* runErrand(
-      deps,
-      context,
-      storeObservation(deps, media, { robot, scan: signed, frame })(observationId),
+    const store = storeObservation(deps, media, { robot, scan: signed, frame })(observationId)
+    // The intent is claimed once the episode holds its invoice and the crop is stored, before the decision, so a
+    // decision that ends the errand at once already finds the intent (its evidence carries the navigation).
+    const started = yield* runErrand(deps, context, (episodeId) =>
+      Option.match(intentId, {
+        onNone: () => store(episodeId),
+        onSome: (id) => Effect.andThen(store(episodeId), claimIntent(deps.database, id, episodeId)),
+      }),
     )
     const response: ScanResponse = { episodeId: started.episodeId, state: started.state, observationId }
     return yield* json(response, 201)

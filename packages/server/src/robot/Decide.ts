@@ -45,12 +45,14 @@ export const decideInput = (input: {
   readonly invoice: Invoice
   readonly grant: Grant
   readonly spentToday: bigint
+  /** The owner's errand intent the scan claimed: `requested` is its item when it named one. */
+  readonly owner?: DecideInput['owner'] | undefined
 }): DecideInput => {
-  const { item, merchant, invoice, grant, spentToday } = input
+  const { item, merchant, invoice, grant, spentToday, owner } = input
   const remaining = grant.dailyCap > spentToday ? grant.dailyCap - spentToday : 0n
   const payeeAllowlisted = grant.allowlist.some((payee) => payee.toLowerCase() === invoice.payTo.toLowerCase())
   return {
-    requested: item.itemId,
+    requested: owner?.item ?? item.itemId,
     catalogue: { itemId: item.itemId, name: item.name, amount: item.amount, restricted: item.restricted },
     invoice: { id: invoice.id, payTo: invoice.payTo, amount: invoice.amount, expiresAt: invoice.expiresAt },
     budget: {
@@ -65,6 +67,7 @@ export const decideInput = (input: {
       approvalRequired: isApprovalRequired(grant, invoice.payTo, BigInt(invoice.amount)),
     },
     merchant: { id: merchant.id, trust: merchant.trust },
+    ...(owner === undefined ? {} : { owner }),
   }
 }
 

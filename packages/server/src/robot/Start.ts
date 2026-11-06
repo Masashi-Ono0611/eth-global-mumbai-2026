@@ -1,4 +1,4 @@
-import type { DecisionAction, EpisodeState } from '@ethmumbai/protocol/Errand'
+import type { DecideInput, DecisionAction, EpisodeState } from '@ethmumbai/protocol/Errand'
 import type { Invoice } from '@ethmumbai/protocol/Invoice'
 import type { RuntimeContext } from 'alchemy/RuntimeContext'
 import { Effect, Option, Schema } from 'effect'
@@ -29,6 +29,8 @@ export interface ErrandContext {
   readonly grant: Grant
   /** The exact open invoice to pay (console, e2e driver, a scan); otherwise the counter's or a fresh one. */
   readonly invoiceId?: string | undefined
+  /** What the owner asked for (a scan that claimed the robot's errand intent); `decide` compares the invoice with it. */
+  readonly owner?: DecideInput['owner'] | undefined
 }
 
 /** Where the errand goes after the decision (spec §6 `deciding`). */
@@ -160,9 +162,10 @@ export const runErrand = Effect.fnUntraced(function* (
     Effect.tapError((refused) => transition(database, episodeId, 'deciding', 'safe_stop', refused.error)),
   )
   const spentToday = yield* spentInPeriod(database, grant, yield* nowSeconds)
-  const outcome = yield* decide(zeroG, decideInput({ item, merchant, invoice, grant, spentToday })).pipe(
-    Effect.provide(FetchHttpClient.layer),
-  )
+  const outcome = yield* decide(
+    zeroG,
+    decideInput({ item, merchant, invoice, grant, spentToday, owner: context.owner }),
+  ).pipe(Effect.provide(FetchHttpClient.layer))
   const action = actionOf(outcome)
   // The provider TEE's signature for this chat, fetched now (it is served ~20 min only); no proof never changes the action.
   const tee = yield* proveDecision(deps.teeRegistry, outcome).pipe(Effect.provide(FetchHttpClient.layer))
