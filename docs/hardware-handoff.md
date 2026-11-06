@@ -55,7 +55,7 @@ and the Python fallback are in `apps/chip/README.md`.
 
 Chip protocol (spec §8). Shapes, with values from the native tests:
 
-1. **Pair** (the code comes from `/wallet/robots` → Add robot; 8 characters of `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, 10
+1. **Pair** (the code comes from the wallet: **+ Robot** (`/wallet/robots`), name the robot, **Next**; 8 characters of `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, 10
    minutes, single use). The chip signs the EIP-191 `personal_sign` message
    `Vitaquack pair K7Q2M9XZ 0x<chip address lowercase> 5042` and sends
    `POST $APP/api/chips/pair {"pairingCode":"K7Q2M9XZ","address":"0x…","sig":"0x<65 bytes>"}`.
@@ -78,7 +78,7 @@ Chip protocol (spec §8). Shapes, with values from the native tests:
    request (up to about a minute), then answers 200 `{"accepted":true,"payment":{"status":"settled","txHash":"0x…"}}` or
    `{"status":"failed","reason":"…"}`. A second answer to the same request gets 409.
 5. **Lease:** with no successful poll for 35 s the chip logs `STOP motors (lease expired)` and refuses everything
-   (`no_lease`). On the next good poll it logs `lease ok`. The owner's console shows the robot online while
+   (`no_lease`). On the next good poll it logs `lease ok`. The robot's conversation (`/robot/<id>`) shows it Connected while
    `now < lease_until`.
 
 Not yet proven on the deployed edge: a 25 s long-poll through `$APP` (the local dev proxy reset such long responses;
@@ -104,11 +104,11 @@ Worker's own origin instead (a config change, not code).
 1. Boot it (5 V on the "5V IN / USB_OTG" port), join `duckbench`, `ping -c3 1.1.1.1`, `curl -s $APP/api/health`.
 2. On the Mac, `bun build --compile --target=bun-linux-arm64 apps/chip/src/main.ts --outfile vitaquack-chip`, then
    `scp vitaquack-chip radxa@<ip>:~/`.
-3. On `$APP/wallet/robots` choose Add robot and note the code. On the Radxa run
+3. In the wallet tap **+ Robot** (`$APP/wallet/robots`), name it, **Next**, and note the code. On the Radxa run
    `./vitaquack-chip --server $APP --pair <CODE>`. Expect `chip 0x… (new key)`, `paired <robotId>`, `lease ok`.
    Check `stat -c %a ~/.vitaquack-chip/key.json` → `600`.
-4. Grant the robot a tiny budget (daily 1.00, per payment 0.30, allowlist = the merchant payee prefilled). On
-   `$APP/robot/<id>` click "buy chai". Expect `signed <invoiceId>`, then `payment settled 0x<tx>` (on
+4. When the page says the robot connected, keep the allowance presets (5.00 a day, 1.00 a purchase, Duck Café,
+   1 day) and **Confirm with passkey**. In the robot's conversation that opens (`$APP/robot/<id>`) tap **Chai 0.10**. Expect `signed <invoiceId>`, then `payment settled 0x<tx>` (on
    <https://explorer.arc.io>).
 5. Network cut: switch the hotspot off. Within 35 s expect `STOP motors (lease expired)`; switch it on, expect
    `lease ok`. Restart the process. It must not pair again (`pairing.json`) and must not re-sign a used invoice
@@ -122,7 +122,7 @@ Worker's own origin instead (a config change, not code).
 
 The camera reads the gate's QR (`vq1:<invoiceId>`) and keeps only a JPEG crop of the QR, at most 64 KB (no scene
 frames: spec rule 4). The chip hashes and signs the crop, and the Worker starts the errand for exactly that invoice,
-as the console's "buy" would (0G decides, then the chip signs the payment). The crop is stored owner-private in R2.
+as the conversation's **Chai** button would (0G decides, then the chip signs the payment). The crop is stored owner-private in R2.
 It is never sent to 0G; the episode evidence (and so the `EpisodeLog` anchor) carries only
 `{sha256, bytes, capturedAt, chipSig}`. The route exists only while `APP_SCANS_ENABLED` is `true`. Until then it
 answers 404, and `GET $APP/api/health` shows `features.scans: false`.

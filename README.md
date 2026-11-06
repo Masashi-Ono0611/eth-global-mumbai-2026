@@ -52,7 +52,7 @@ payment, only delay it.
 
 | Path                      | What                                                                                            |
 | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `apps/web`                | Foldkit SSR app: wallet, robot console, merchant demo, virtual gate                             |
+| `apps/web`                | Foldkit SSR app: wallet, robots as conversations, approvals, merchant demo, virtual gate        |
 | `packages/server`         | the API Worker: auth, wallet, robot agent, merchant, chip protocol, World                       |
 | `packages/protocol`       | shared schemas and hashes (invoice hash, chip messages, x402, approval)                         |
 | `packages/chain`          | Arc: delegations, facilitator, relayer (viem + MetaMask Smart Accounts Kit)                     |
