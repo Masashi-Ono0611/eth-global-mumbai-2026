@@ -13,6 +13,7 @@ the final run: replace them with the recorded ones in `docs/evidence/demo-run.md
 | Settle, replay refused, revoke, next payment refused (stock enforcers) | `docs/evidence/2026-11-06-smoke.md` |
 | Our `RobotPaymentPolicyEnforcer` on Arc | `docs/evidence/contracts.md` (`0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3`) |
 | A passkey-signed grant on the deployed app: the Worker's relayer deployed the Hybrid account and Arc's ERC-1271 check accepted the passkey signature | [0xddd15708…4a0b](https://explorer.arc.io/tx/0xddd15708400a776ba01c383aede146e83d737c6e6bf815269d3e77e59cbf4a0b) (`docs/evidence/2026-11-06-deployed-e2e.md`) |
+| Through the deployed pages (rehearsal brain = LiteLLM, not 0G): Buy Chai paid, a reload mid-errand restored, revoke, the next chai refused by Arc (`CannotUseADisabledDelegation`) | [0x782f8dfc…8875](https://explorer.arc.io/tx/0x782f8dfc25083a5b9328deb949aa037487eb1d2c688492db7fd4e9225a598875) paid, [0xaaa018d2…27c6](https://explorer.arc.io/tx/0xaaa018d2ee34ccd3647c22cb1ec532dd595f468451839e2b8b9b5696a7fe27c6) revoke (`docs/evidence/2026-11-06-deployed-browser.md`, run 4) |
 
 ## Before the slot (10 minutes)
 

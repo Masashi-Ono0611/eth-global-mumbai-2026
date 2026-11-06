@@ -83,7 +83,7 @@ revoke [0x04f6994c…fb87](https://explorer.arc.io/tx/0x04f6994cf6c2bb7b46650d38
 whose account deploy and ERC-1271 check ran on Arc
 [0xddd15708…4a0b](https://explorer.arc.io/tx/0xddd15708400a776ba01c383aede146e83d737c6e6bf815269d3e77e59cbf4a0b)
 (`docs/evidence/2026-11-06-deployed-e2e.md`, `docs/evidence/2026-11-06-deployed-browser.md`). Arc Studio project:
-https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (both contracts, 42 Foundry tests, Arc testnet deployments `0xf334…d711` / `0xe701…3579`, a page reading the live enforcer). Paid robot errand on the deployed app: _fill in tx_.
+https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (both contracts, 42 Foundry tests, Arc testnet deployments `0xf334…d711` / `0xe701…3579`, a page reading the live enforcer). A robot errand paid through the deployed pages, its decision from the rehearsal brain (not 0G): [0x782f8dfc…8875](https://explorer.arc.io/tx/0x782f8dfc25083a5b9328deb949aa037487eb1d2c688492db7fd4e9225a598875); the grant then revoked with the passkey ([0xaaa018d2…27c6](https://explorer.arc.io/tx/0xaaa018d2ee34ccd3647c22cb1ec532dd595f468451839e2b8b9b5696a7fe27c6)) and the next errand refused by Arc (`CannotUseADisabledDelegation`) (`docs/evidence/2026-11-06-deployed-browser.md`, run 4).
 
 ### 0G — Physical AI (Agents with a Body)
 
@@ -123,7 +123,7 @@ during the event too.
 
 ## What is not finished (keep honest at submission time)
 
-- A real 0G decision and a paid robot errand on the deployed app: _pending `APP_ZG_*`_.
+- A real 0G decision on the deployed app: _pending a 0G key in `APP_ZG_*`_ (a robot errand paid on the deployed app is proven with the LiteLLM rehearsal brain, labelled as such).
 - The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: contract deployed (`0x4C94…206A`), first upload _pending a paid episode_.
 - A live World approve and deny: _pending the World IdP client_.
 - On-chain verification of the World token (the S5b prototype) is a stretch; the backend co-signer is what runs.
