@@ -99,7 +99,7 @@ router's request id: in the browser journey (run 7) chai `pay` `5ca4a212-1beb-42
 chai after the revoke `pay` `1b6b2840-b760-4421-9d1e-163e58160f37` (refused by Arc); the same in the API driver's runs
 9–10 (`docs/evidence/2026-11-06-deployed-e2e.md`). The first uploaded episode (`hg2ouddwe2h5j6ekbrsn7grfja`, root
 `0x8db4ffc1…d5dd`, `EpisodeLog.record` `0xd2fe9e75…aa21`, `docs/evidence/2026-11-06-evidence-upload.md`) carries a
-rehearsal-brain decision. _Fill in: an episode with a 0G decision on 0G Storage + `EpisodeLog` (root hash, record tx)._
+rehearsal-brain decision. Done (6 Nov 12:55 IST, `docs/evidence/2026-11-06-evidence-upload.md`): 7 episodes with real 0G decisions are on 0G Storage and anchored in `EpisodeLog`, e.g. the run-7 chai (0G `pay`, request id `5ca4a212-…`): root `0xac43d8a46ecd28fe0596599298630594626b40719f051e99742b59f81a4d82dd`, record tx [0xd5b631b8…261b](https://chainscan-galileo.0g.ai/tx/0xd5b631b87c388563d4fb750194149b8a24cab2af323c1e34224611e9fb38261b); the approved cigarettes (0G `ask_human`): root `0x941e7adf…6b75`, record tx [0xb3356c6d…cf09](https://chainscan-galileo.0g.ai/tx/0xb3356c6d0a3d79df4e2f51923b7bbad09c678b37c5f5d8ae66830e305302cf09); the denied one: root `0x0ab938dc…fe90`, record tx [0xc9e84b22…a4b0](https://chainscan-galileo.0g.ai/tx/0xc9e84b222e6e99a5a62b9482c759bb47ee9a51a9f3c2ff45c639b66302d2a4b0). Each record's root and request-id hash were recomputed and match; the downloaded bytes equal the app's payload.
 
 ### World — Agent Pass
 
