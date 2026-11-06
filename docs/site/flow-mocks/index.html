@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flow mocks: four ways to show how a payment moves</title>
+    <link rel="stylesheet" href="/lib/base.css" />
+    <script src="/lib/comments.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>Flow mocks for the "Now, live" screen</h1>
+      <p>Four proof-of-concept treatments of the same screen on <a href="/pitch/">/pitch/</a>. Each shows how the technologies are used
+        in one payment: the chai within budget, the thali that asks, and the revoke. Same background, same title; only the diagram differs.
+        Open each one full-screen and let it loop. Leave notes with the comment button.</p>
+      <div class="card">
+        <h2><a href="/flow-mocks/a.html">A. One payment, step by step</a></h2>
+        <p>The rail of six stops stays. A light travels it and a caption appears at each stop saying what happens there; the loop alternates
+          the chai (World is skipped: within the cap), the thali (0G asks, World approves, Arc settles the co-signed payment) and the revoke
+          (Arc refuses the next one, in red). Closest to what is there now.</p>
+      </div>
+      <div class="card">
+        <h2><a href="/flow-mocks/b.html">B. Three layers</a></h2>
+        <p>A diagram in three bands: on devices you hold (your passkey, the robot's chip), on public networks (Arc: money and rules;
+          0G: brain and memory; World: a human's yes) and at the shop (the gate). Packets travel between them along labelled curves:
+          grant, decide, signed payment, paid, then ask, yes with World ID, approval. The most architectural one.</p>
+      </div>
+      <div class="card">
+        <h2><a href="/flow-mocks/c.html">C. The live receipt</a></h2>
+        <p>Three receipts fill in line by line with the icons: invoice, 0G's decision, the chip's signature, Arc's settlement (a real
+          transaction hash), the gate opening; the thali adds you and World ID; the revoke ends in a refused line. Concrete and
+          demo-like rather than a diagram.</p>
+      </div>
+      <div class="card">
+        <h2><a href="/flow-mocks/d.html">D. Orbit</a></h2>
+        <p>The robot in the centre; You, 0G, World, Arc and the gate around it. Pulses run along the spokes in order while a caption
+          explains each hop. Visually the most distinct, and it puts the robot where the story puts it.</p>
+      </div>
+      <p>All four say "On Arc mainnet, with real USDC" in the title block. Wording in the diagrams is a draft; the numbers follow the demo story
+        (3.00 a day, 1.00 a go, chai 0.10, thali 2.00).</p>
+    </main>
+  </body>
+</html>

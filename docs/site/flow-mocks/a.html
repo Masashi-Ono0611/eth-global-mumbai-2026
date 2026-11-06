@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flow mock A: one payment, step by step</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="shared.css" />
+    <style>
+      .scenario { display: flex; justify-content: space-between; align-items: baseline; margin: 0 calc(100% / 12) 2.75rem; font: 600 0.95rem/1.2 var(--body); color: var(--faint); min-height: 1.2em; }
+      .scenario b { color: var(--paper); font-weight: 700; }
+      .scenario .spent { color: var(--soft); }
+      .rail { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); }
+      .rail li { display: grid; justify-items: center; gap: 0.5rem; list-style: none; }
+      .rail ol { display: contents; }
+      .line { position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: 1.7rem; height: 2px; background: rgb(255 231 176 / 0.35); }
+      .dot { position: absolute; top: 1.7rem; width: 0.85rem; height: 0.85rem; margin: -0.425rem 0 0 -0.425rem; border-radius: 50%; background: var(--chip); box-shadow: 0 0 1rem 0.25rem rgb(63 214 196 / 0.7); transition: left 0.8s cubic-bezier(0.45, 0, 0.55, 1), opacity 0.4s; }
+      .dot.no { background: var(--no); box-shadow: 0 0 1rem 0.25rem rgb(255 138 128 / 0.6); }
+      .bubble { position: absolute; bottom: calc(100% + 0.9rem); width: 16rem; margin-left: -8rem; padding: 0.7rem 0.9rem; border-radius: 0.9rem; background: rgb(255 248 234 / 0.96); color: var(--night); font: 500 0.95rem/1.35 var(--body); text-align: center; opacity: 0; transform: translateY(0.4rem); transition: opacity 0.35s, transform 0.35s, left 0.8s cubic-bezier(0.45, 0, 0.55, 1); pointer-events: none; }
+      .bubble::after { content: ''; position: absolute; left: 50%; bottom: -0.45rem; width: 0.9rem; height: 0.9rem; margin-left: -0.45rem; background: inherit; transform: rotate(45deg); }
+      .bubble.show { opacity: 1; transform: none; }
+      .bubble.no { background: #ffd9d6; }
+      .stage { padding-top: 5.5rem; }
+      @media (max-width: 40rem) { .mark { width: 2.6rem; height: 2.6rem; } .mark svg { width: 1.3rem; height: 1.3rem; } .name { font-size: 0.75rem; } .line, .dot { top: 1.3rem; } .bubble { width: 12rem; margin-left: -6rem; font-size: 0.85rem; } .scenario { margin-left: 0; margin-right: 0; font-size: 0.85rem; } }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <p class="scenario"><span id="item"></span><span class="spent" id="spent"></span></p>
+      <div class="rail">
+        <div class="line"></div>
+        <div class="dot" id="dot"></div>
+        <div class="bubble" id="bubble"></div>
+        <ol id="stops"></ol>
+      </div>
+    </div>
+    <script type="module">
+      import { ICONS, STOPS, shell, reduced } from './shared.js'
+      shell('A')
+      const stops = document.getElementById('stops')
+      stops.innerHTML = STOPS.map((s) => `<li><span class="mark" data-id="${s.id}">${ICONS[s.id]}</span><span class="name">${s.name}</span></li>`).join('')
+      const at = (i) => `${((i + 0.5) / 6) * 100}%`
+      const marks = [...stops.querySelectorAll('.mark')]
+      const dot = document.getElementById('dot'), bubble = document.getElementById('bubble')
+      const item = document.getElementById('item'), spent = document.getElementById('spent')
+      // Each scenario: the item, then stops in order with what happens there. 'off' = not needed this time, 'no' = refused.
+      const scenarios = [
+        { item: '<b>Chai</b> · 0.10 USDC · Duck Café', spent: 'Budget: 3.00 a day, 1.00 a go', steps: [
+          [0, 'Budget granted with one passkey signature.'],
+          [1, 'The chip reads the till\'s invoice: chai, 0.10.'],
+          [2, '0G decides: buy. Within the budget, right place.'],
+          [3, 'Within the cap, so no need to ask.', 'off'],
+          [4, 'Arc checks the caps and settles 0.10 USDC in half a second.'],
+          [5, 'The gate sees a signed "paid" and opens.'],
+        ] },
+        { item: '<b>Thali</b> · 2.00 USDC · Duck Café', spent: 'Spent today: 0.10 of 3.00', steps: [
+          [1, 'The chip reads the invoice: thali, 2.00.'],
+          [2, '0G decides: ask you. It\'s over the 1.00 per-payment cap.'],
+          [0, 'Your phone asks. You say yes.'],
+          [3, 'A fresh World ID check, bound to this exact payment.'],
+          [4, 'The co-signed payment settles on Arc.'],
+          [5, 'The gate opens.'],
+        ] },
+        { item: '<b>Revoke</b>', spent: 'Spent today: 2.10 of 3.00', steps: [
+          [0, 'You revoke the budget: one passkey signature.'],
+          [4, 'Arc disables the grant.'],
+          [1, 'The next chai: refused by Arc itself.', 'no'],
+        ] },
+      ]
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+      const run = async () => {
+        for (;;) {
+          for (const sc of scenarios) {
+            item.innerHTML = sc.item; spent.textContent = sc.spent
+            marks.forEach((m) => m.classList.remove('on', 'off', 'no'))
+            for (const [i, text, kind] of sc.steps) {
+              dot.style.left = at(i); bubble.style.left = at(i)
+              dot.classList.toggle('no', kind === 'no'); bubble.classList.toggle('no', kind === 'no')
+              dot.style.opacity = kind === 'off' ? 0.35 : 1
+              await sleep(reduced ? 0 : 800)
+              marks.forEach((m) => m.classList.remove('on'))
+              marks[i].classList.add(kind === 'off' ? 'off' : kind === 'no' ? 'no' : 'on')
+              bubble.textContent = text; bubble.classList.add('show')
+              await sleep(kind === 'off' ? 1400 : 2300)
+              bubble.classList.remove('show')
+              await sleep(250)
+            }
+            await sleep(900)
+          }
+        }
+      }
+      run()
+    </script>
+  </body>
+</html>

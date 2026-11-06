@@ -13,6 +13,7 @@ Shareable pages for the team (architecture, brainstorms, spikes), not product co
 | 0G: where 0G fits, one errand end to end (0G decides, our agent acts, the episode goes to 0G Storage and EpisodeLog on 0G Chain, and how anyone checks it), in the look of /story/ | `0g/index.html` (uses `/story/media/v4.webp`) | https://eth-mumbai-site.kristjan-grm11775.workers.dev/0g/ |
 | Voice mock (for Masa): Vita's hold-to-talk inside the robot conversation, three phone screens in direction C (talk or tap, listening, over the limit → the real approval card); not built | `voice-mock/index.html`, `voice-mock/shot-*.png` (reuses `wallet-mocks/board.css` and `sprite.svg`) | https://eth-mumbai-site.kristjan-grm11775.workers.dev/voice-mock/ |
 | Script: the pitch script for the team to review and comment on (8 screens, on-screen text, spoken lines, what we don't say) | `script/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/script/ |
+| Flow mocks: four treatments of the Now-live screen's diagram (A step by step, B three layers, C the live receipt, D orbit) for Kris to pick from | `flow-mocks/` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/flow-mocks/ |
 | Template | `_template/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/_template/ |
 
 ## Add a page
