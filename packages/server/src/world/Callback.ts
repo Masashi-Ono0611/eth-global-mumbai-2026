@@ -54,6 +54,24 @@ const verifiedHuman = Effect.fn('EthMumbai.World.verifiedHuman')(function* (
   )
 })
 
+/** The wallet's World account: bound on the first approval, the same `sub` required on every later one. */
+const bindWorldAccount = Effect.fn('EthMumbai.World.bindAccount')(function* (
+  deps: WorldDeps,
+  row: ApprovalRow,
+  human: VerifiedHuman,
+) {
+  yield* deps.database
+    .prepare('UPDATE accounts SET world_sub = ? WHERE id = ? AND world_sub IS NULL')
+    .bind(human.sub, row.account_id)
+    .run()
+  const bound = yield* firstRow(
+    deps.database.prepare('SELECT world_sub FROM accounts WHERE id = ?').bind(row.account_id),
+    Schema.Struct({ world_sub: Schema.NullOr(Schema.String) }),
+  )
+  if (Option.isNone(bound) || bound.value.world_sub !== human.sub)
+    return yield* refuse('a different World account than the one bound to this wallet')
+})
+
 /** `jti` once (keccak in `used_nonces`), the World account bound to the wallet on first use, then the co-signature. */
 const approve = Effect.fn('EthMumbai.World.approve')(function* (
   deps: WorldDeps,
@@ -62,6 +80,7 @@ const approve = Effect.fn('EthMumbai.World.approve')(function* (
     readonly human: VerifiedHuman
     readonly approver: Approver
     readonly enforcer: Address
+    readonly bindsSubject: boolean
   },
 ) {
   const { database } = deps
@@ -73,16 +92,7 @@ const approve = Effect.fn('EthMumbai.World.approve')(function* (
       .bind(keccak256(stringToHex(human.jti)), row.id, now * 1000),
   )
   if (fresh !== 1) return yield* refuse('World token already used')
-  yield* database
-    .prepare('UPDATE accounts SET world_sub = ? WHERE id = ? AND world_sub IS NULL')
-    .bind(human.sub, row.account_id)
-    .run()
-  const bound = yield* firstRow(
-    database.prepare('SELECT world_sub FROM accounts WHERE id = ?').bind(row.account_id),
-    Schema.Struct({ world_sub: Schema.NullOr(Schema.String) }),
-  )
-  if (Option.isNone(bound) || bound.value.world_sub !== human.sub)
-    return yield* refuse('a different World account than the one bound to this wallet')
+  if (input.bindsSubject) yield* bindWorldAccount(deps, row, human)
   const signed: SignedApproval = yield* signApproval(input.approver, input.enforcer, row)
   const recorded = yield* changes(
     database
@@ -129,7 +139,7 @@ export const callback = (deps: WorldDeps) =>
         onSome: Effect.succeed,
       })
       const human = yield* verifiedHuman(world, row, query.value, deps.origin)
-      return yield* approve(deps, { row, human, approver, enforcer })
+      return yield* approve(deps, { row, human, approver, enforcer, bindsSubject: world.bindsSubject })
     }).pipe(
       Effect.catchTags({
         IdTokenRejected: ({ reason }) => refuse(`World token rejected: ${reason}`),

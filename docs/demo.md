@@ -21,6 +21,7 @@ the final run: replace them with the recorded ones in `docs/evidence/demo-run.md
 | Worker healthy, right release | `curl -s $APP/api/health` | `"status":"ok"` and `"release"` = the commit you deployed |
 | Chain configured | `curl -s $APP/api/merchants/duck-cafe/items` | `"payTo":"0x…"` (not `null`) |
 | World configured | the approval page shows **Approve with World** (not "World approval is not configured…") | World client id/secret/issuer set; redirect URI `$APP/api/world/callback` registered at the World portal |
+| Rehearsal issuer (until the World client exists) | `APP_WORLD_ISSUER=$APP/api/dev/world`, client id and secret `stub` | **Approve with World** opens a page that says "STUB IdP — not World — rehearsal only": **rehearsal only; the submission uses auth.world.org** (`docs/evidence/2026-11-06-world-stub.md`) |
 | 0G configured | starting an errand does not answer `not configured: ZG_API_KEY` | — |
 | Mock chip ready | laptop terminal in the repo | `bun apps/chip/src/main.ts --server $APP --pair <CODE>` ready to paste |
 | Owner funded | the owner's smart account (step 2) holds ≥ 1 USDC on Arc | — |

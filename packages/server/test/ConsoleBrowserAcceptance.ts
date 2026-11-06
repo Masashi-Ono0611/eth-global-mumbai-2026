@@ -19,7 +19,7 @@ const seed = async (url: string, path: string, body: unknown) => {
 }
 
 /** A paired robot of the signed-in owner with a signed grant to a throwaway chip that never polls. */
-const seedRobot = async (url: string, accountId: string) => {
+export const seedRobot = async (url: string, accountId: string) => {
   const robotId = randomId()
   const chip = privateKeyToAccount(generatePrivateKey()).address
   await seed(url, '/test/vq/robots', { id: robotId, accountId, pairingCode: null, chipAddress: chip, chipToken: null })

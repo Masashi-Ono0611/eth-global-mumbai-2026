@@ -1,6 +1,7 @@
 import { expect } from 'bun:test'
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Alchemy from 'alchemy'
+import * as Output from 'alchemy/Output'
 import * as Test from 'alchemy/Test/Bun'
 import { Effect, Redacted, Schedule, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
@@ -29,6 +30,7 @@ import {
 import RuntimeWorker from './RuntimeWorker.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
+import { registerWorldStubAcceptance, TEST_ENFORCER_ADDRESS, TEST_WORLD_STUB_JWK } from './WorldStubAcceptance.ts'
 import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 
 // The 0G router stand-in runs in this process; the Worker reaches it on 127.0.0.1.
@@ -63,6 +65,12 @@ const makeStack = (generation: string) =>
       yield* api.bind('RuntimeConfiguration', {
         env: {
           AUTH_ORIGIN: edge.url,
+          // The rehearsal issuer (world/Stub.ts) stands in for World IdP on this stack, with a per-run RSA key.
+          WORLD_ISSUER: Output.interpolate`${edge.url}/api/dev/world`,
+          WORLD_CLIENT_ID: 'stub',
+          WORLD_CLIENT_SECRET: Redacted.make('stub'),
+          WORLD_STUB_JWK: Redacted.make(TEST_WORLD_STUB_JWK),
+          ENFORCER_ADDRESS: TEST_ENFORCER_ADDRESS,
           APP_ENV: 'local',
           APP_RELEASE: `native-${generation}`,
           MERCHANT_PAY_TO: TEST_MERCHANT_PAY_TO,
@@ -329,4 +337,5 @@ registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
+registerWorldStubAcceptance(test, stack, zeroG)
 registerChainAcceptance(test, stack)

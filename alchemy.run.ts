@@ -72,6 +72,8 @@ export default Alchemy.Stack(
         WORLD_CLIENT_ID: yield* plain('APP_WORLD_CLIENT_ID'),
         WORLD_CLIENT_SECRET: yield* secret('APP_WORLD_CLIENT_SECRET'),
         WORLD_ISSUER: yield* plain('APP_WORLD_ISSUER'),
+        // Rehearsal-only issuer key (world/Stub.ts), used only while APP_WORLD_ISSUER is $AUTH_ORIGIN/api/dev/world.
+        WORLD_STUB_JWK: yield* secret('APP_WORLD_STUB_JWK'),
         ENFORCER_ADDRESS: yield* plain('APP_ENFORCER_ADDRESS'),
         EPISODE_LOG_ADDRESS: yield* plain('APP_EPISODE_LOG_ADDRESS'),
         EVIDENCE_TOKEN: yield* secret('APP_EVIDENCE_TOKEN'),

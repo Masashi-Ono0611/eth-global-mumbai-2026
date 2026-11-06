@@ -96,13 +96,25 @@ export const makeWorldClient = Effect.fn('EthMumbai.World.client')(function* (en
         Effect.mapError(() => WorldUnavailable.make({ stage: 'token' })),
         Effect.provide(FetchHttpClient.layer),
       )
-    return {
+    const client: WorldClient = {
       issuer: config.issuer,
       clientId: config.clientId,
+      bindsSubject: true,
       authorizationEndpoint: Effect.map(discovery(false), (document) => document.authorization_endpoint),
       keys,
       exchange,
     }
+    return client
   })
 })
-export type WorldClient = Option.Option.Value<Effect.Success<ReturnType<typeof makeWorldClient>>>
+
+/** An OIDC issuer the approval flow talks to: World IdP over HTTPS, or the in-Worker rehearsal stub (`Stub.ts`). */
+export interface WorldClient {
+  readonly issuer: string
+  readonly clientId: string
+  /** Real World binds the wallet to the first World account it sees; the rehearsal stub must never claim that slot. */
+  readonly bindsSubject: boolean
+  readonly authorizationEndpoint: Effect.Effect<string, WorldUnavailable>
+  readonly keys: (refresh: boolean) => Effect.Effect<ReadonlyArray<Jwk>, WorldUnavailable>
+  readonly exchange: (code: string, redirectUri: string) => Effect.Effect<Redacted.Redacted, WorldUnavailable>
+}

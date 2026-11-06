@@ -13,10 +13,10 @@ const AddedRobot = Schema.Struct({
   pairingExpiresAt: Schema.Finite,
 })
 /** The wallet API on the native Worker: session + Origin guards, "Add robot" pairing codes, and the grant routes
- * answering 503 `not configured` while the native stack has no enforcer/approver/relayer bindings. */
+ * refusing a grant outside its limits (expiry beyond 30 days). */
 export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
   test(
-    'wallet: owner-scoped robots with pairing codes, session and Origin guards, grants 503 until configured',
+    'wallet: owner-scoped robots with pairing codes, session and Origin guards, grant limits enforced',
     Effect.gen(function* () {
       const { appUrl } = yield* stack
       const call = passkeyCall(appUrl)
@@ -61,7 +61,7 @@ export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Ef
         cookie,
       )
       expect(options.status).toBe(400)
-      const unconfigured = yield* call(
+      const tooLong = yield* call(
         '/api/wallet/grants/options',
         {
           robotId: robot.robotId,
@@ -72,11 +72,8 @@ export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Ef
         },
         cookie,
       )
-      expect(unconfigured.status).toBe(503)
-      const refusal = yield* Schema.decodeUnknownEffect(Schema.Struct({ error: Schema.String }))(
-        yield* unconfigured.json,
-      )
-      expect(refusal.error).toMatch(/^not configured: /)
+      expect(tooLong.status).toBe(409)
+      expect(yield* tooLong.json).toEqual({ error: 'the grant must expire within 30 days' })
       expect((yield* call('/api/wallet/grants/nope/revoke/options', {}, cookie)).status).toBe(404)
       const wallet = yield* HttpClient.get(`${appUrl}/api/wallet`, { headers: { cookie } })
       expect(wallet.status).toBe(200)
@@ -86,9 +83,9 @@ export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Ef
       expect((yield* HttpClient.get(`${appUrl}/api/approvals/nope`, { headers: { cookie } })).status).toBe(404)
       expect((yield* HttpClient.get(`${appUrl}/api/episodes/nope/approval`, { headers: { cookie } })).status).toBe(404)
       expect((yield* HttpClient.get(`${appUrl}/api/episodes/nope/approval`)).status).toBe(401)
-      // The native stack binds no WORLD_* client: approval sign-in answers 503 instead of redirecting to World.
+      // Approval sign-in for someone else's or a missing approval: 404 before any redirect to the issuer.
       const authorize = yield* HttpClient.get(`${appUrl}/api/world/authorize?approval=nope`, { headers: { cookie } })
-      expect(authorize.status).toBe(503)
+      expect(authorize.status).toBe(404)
       expect((yield* HttpClient.get(`${appUrl}/api/world/callback?state=nope&code=x`)).status).toBe(404)
       expect((yield* call('/api/approvals/nope/deny', {}, cookie)).status).toBe(404)
       const activity = yield* HttpClient.get(`${appUrl}/api/wallet/activity`, { headers: { cookie } })

@@ -60,6 +60,7 @@ jobs:
           APP_WORLD_CLIENT_ID: ${{ secrets.APP_WORLD_CLIENT_ID }}
           APP_WORLD_CLIENT_SECRET: ${{ secrets.APP_WORLD_CLIENT_SECRET }}
           APP_WORLD_ISSUER: ${{ secrets.APP_WORLD_ISSUER }}
+          APP_WORLD_STUB_JWK: ${{ secrets.APP_WORLD_STUB_JWK }}
           APP_ENFORCER_ADDRESS: ${{ secrets.APP_ENFORCER_ADDRESS }}
           APP_EPISODE_LOG_ADDRESS: ${{ secrets.APP_EPISODE_LOG_ADDRESS }}
           APP_EVIDENCE_TOKEN: ${{ secrets.APP_EVIDENCE_TOKEN }}

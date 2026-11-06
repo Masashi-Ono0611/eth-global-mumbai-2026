@@ -1,7 +1,7 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as AlchemyHttp from 'alchemy/Http'
 import { decodeSessionKeyring, relyingPartyFromOrigin } from '@ethmumbai/auth'
-import { Context, Effect, Layer } from 'effect'
+import { Context, Effect, Layer, Option } from 'effect'
 import { HttpServerRequest } from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import { AuthOrigin } from './auth/Origin.ts'
@@ -18,6 +18,7 @@ import { walletRoutes } from './wallet/Routes.ts'
 import { makeApprovalPort } from './world/Approve.ts'
 import { makeWorldClient } from './world/Config.ts'
 import { worldRoutes } from './world/Routes.ts'
+import { makeWorldStub } from './world/Stub.ts'
 import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
 
 const Runtime = Layer.mergeAll(
@@ -71,6 +72,7 @@ export default ApiWorker.make(
           settlement: chain.settlement,
           approvals: makeApprovalPort({ database, enforcer: chain.enforcer, approver: chain.approver }),
         })
+        const worldStub = yield* makeWorldStub(database, env, authOrigin)
         const routes = Layer.mergeAll(
           authRoutes(database),
           robotAgent.layer,
@@ -84,11 +86,13 @@ export default ApiWorker.make(
           worldRoutes({
             database,
             origin: authOrigin,
-            world: yield* makeWorldClient(env),
+            // The rehearsal stub, when WORLD_ISSUER names it (world/Stub.ts); otherwise World IdP.
+            world: Option.isSome(worldStub) ? Option.some(worldStub.value.client) : yield* makeWorldClient(env),
             approver: chain.approver,
             enforcer: chain.enforcer,
             errands: robotAgent.errands,
           }),
+          Option.match(worldStub, { onNone: () => Layer.empty, onSome: ({ routes: stubRoutes }) => stubRoutes }),
           HttpRouter.add('GET', '/api/health', health(observabilityBase.release, features(env))),
         ).pipe(Layer.provide(AlchemyHttp.Platform))
         const handle = yield* HttpRouter.toHttpEffect(routes).pipe(Effect.orDie)
