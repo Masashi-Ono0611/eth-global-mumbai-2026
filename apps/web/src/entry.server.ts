@@ -85,7 +85,9 @@ export const renderDocument: Server.DocumentRenderer = (renderedApplication, ass
       quietPageTransitions +
       '<meta name="theme-color" content="#e7f1f6"><link rel="icon" href="/app/favicon.svg">' +
       '<link rel="preload" href="/app/fonts/mukta-400-latin.woff2" as="font" type="font/woff2" crossorigin>' +
-      '<link rel="preload" href="/app/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>',
+      '<link rel="preload" href="/app/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>' +
+      // Body text's semibold: the first screen uses it, and found only from the CSS it swapped in late (a 0.012 shift).
+      '<link rel="preload" href="/app/fonts/mukta-600-latin.woff2" as="font" type="font/woff2" crossorigin>',
   }).replace(
     'content="width=device-width, initial-scale=1.0"',
     'content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"',

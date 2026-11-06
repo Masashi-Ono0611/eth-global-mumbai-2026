@@ -15,8 +15,9 @@ const walkingClassName = 'grid justify-items-center gap-2 self-center text-cente
 const liveClassName = 'grid max-w-[86%] gap-1.5 self-start rounded-[20px_20px_20px_6px] bg-surface p-2 pb-2.5'
 /** Inner radius = the bubble's 20 px minus its 8 px padding, like the scan crop. The frame keeps its own aspect: the
  *  simulator sends 4:3 (320×240), the Radxa 16:9 (640×360). */
+// The camera's frame is 4:3 (the sim's 320x240): its space is reserved, so the first frame does not push the thread.
 const liveImageClassName =
-  'block h-auto w-[24rem] max-w-full rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
+  'block aspect-[4/3] w-[24rem] max-w-full rounded-[12px] bg-paper object-contain outline outline-1 -outline-offset-1 outline-black/10'
 const liveCaptionClassName = 'px-1.5 text-[0.8rem] text-muted'
 const stopClassName =
   'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-11 cursor-pointer rounded-full bg-error-soft px-5 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
@@ -91,6 +92,7 @@ const liveFrame = (model: Model, name: string, locale: Locale, h: HtmlBuilder<Me
       h.img([
         h.Src(liveFrameUrl(model.robotId, live.sha256)),
         h.Alt(format(locale, 'thread.liveAlt', { name })),
+        h.Decoding('async'),
         h.Class(liveImageClassName),
       ]),
       h.figcaption(

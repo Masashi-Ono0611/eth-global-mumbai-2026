@@ -15,7 +15,9 @@ const teeMarkClassName =
 const seenBubbleClassName = 'grid max-w-[86%] gap-1.5 self-start rounded-[20px_20px_20px_6px] bg-surface p-2 pb-2.5'
 const seenLabelClassName = 'px-1.5 text-[0.8rem] text-muted'
 /** Inner radius = the bubble's 20 px minus its 8 px padding; a pure-black 10 % outline keeps the photo's edge clean. */
-const seenImageClassName = 'block w-44 rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
+// A crop is the QR's box plus a margin, about square: the space is reserved before the image arrives.
+const seenImageClassName =
+  'block aspect-square w-44 rounded-[12px] bg-paper object-contain outline outline-1 -outline-offset-1 outline-black/10'
 const seenCaptionClassName = 'px-1.5 text-[0.95rem]'
 const seenFrameLinkClassName = 'block px-1.5 text-[0.85rem] font-semibold text-paid decoration-paid/40'
 const seenSourceClassName = 'block px-1.5 text-[0.8rem] text-muted'
@@ -85,6 +87,7 @@ export const seenBubble = <M>(
         h.Src(observationImage(episodeId, crop.sha256)),
         h.Alt(format(locale, 'proof.seenAlt', { name: robotName })),
         h.Loading('lazy'),
+        h.Decoding('async'),
         h.Class(seenImageClassName),
       ]),
       h.figcaption(
