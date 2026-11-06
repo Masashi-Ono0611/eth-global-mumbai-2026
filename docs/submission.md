@@ -83,7 +83,7 @@ revoke [0x04f6994c…fb87](https://explorer.arc.io/tx/0x04f6994cf6c2bb7b46650d38
 whose account deploy and ERC-1271 check ran on Arc
 [0xddd15708…4a0b](https://explorer.arc.io/tx/0xddd15708400a776ba01c383aede146e83d737c6e6bf815269d3e77e59cbf4a0b)
 (`docs/evidence/2026-11-06-deployed-e2e.md`, `docs/evidence/2026-11-06-deployed-browser.md`). Arc Studio project:
-https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (both contracts, 42 Foundry tests, Arc testnet deployments `0xf334…d711` / `0xe701…3579`, a page reading the live enforcer). A robot errand paid through the deployed pages, its decision from the rehearsal brain (not 0G): [0x782f8dfc…8875](https://explorer.arc.io/tx/0x782f8dfc25083a5b9328deb949aa037487eb1d2c688492db7fd4e9225a598875); the grant then revoked with the passkey ([0xaaa018d2…27c6](https://explorer.arc.io/tx/0xaaa018d2ee34ccd3647c22cb1ec532dd595f468451839e2b8b9b5696a7fe27c6)) and the next errand refused by Arc (`CannotUseADisabledDelegation`) (`docs/evidence/2026-11-06-deployed-browser.md`, run 4).
+https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (both contracts, 42 Foundry tests, Arc testnet deployments `0xf334…d711` / `0xe701…3579`, a page reading the live enforcer). The whole journey through the deployed pages, with every decision from 0G Compute (`docs/evidence/2026-11-06-deployed-browser.md`, run 7): a passkey-granted robot paid a chai ([0xa18da6c6…814a](https://explorer.arc.io/tx/0xa18da6c6aa0b5963839d53133c72dc0e75616450779e534efedc6d687090814a)), the gate opened on the merchant's signed status, a restricted, over-cap 0.50 USDC payment went through with a co-signed approval (World stub, rehearsal) ([0xedeaf0e0…0548](https://explorer.arc.io/tx/0xedeaf0e06604c93a226f731a7499a9be7096813f209d6bac9ff96a8cb0790548)), a second one was denied with nothing signed, the grant was revoked with the passkey ([0x4f1ba8e1…8e02](https://explorer.arc.io/tx/0x4f1ba8e1625008ec90242657948a8291c495f86aa12011e7a2c7b4bc4afc8e02)) and the next chai was refused by Arc (`CannotUseADisabledDelegation`).
 
 ### 0G — Physical AI (Agents with a Body)
 
@@ -92,7 +92,14 @@ the invoice, the budget, the policy flags), each decision stored with its 0G req
 any 0G failure (never a faked decision), and every episode uploaded to 0G Storage and anchored in `EpisodeLog` on 0G
 Chain (Galileo). Proven: the decision loop, the safe stop and the evidence queue against a stub 0G on the native Worker
 (`packages/server/test/RobotAcceptance.ts`). `EpisodeLog` is deployed on 0G Galileo (16602) at `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (deploy tx
-[0xe4eb07f3…bf69](https://chainscan-galileo.0g.ai/tx/0xe4eb07f387cc5a767c019f150cc7abca7424fa68ae092ab50fe1bc49b2bebf69), code = build). _Fill in: a real 0G decision on the deployed app (request id) and the first uploaded episode (root hash, record tx)._
+[0xe4eb07f3…bf69](https://chainscan-galileo.0g.ai/tx/0xe4eb07f387cc5a767c019f150cc7abca7424fa68ae092ab50fe1bc49b2bebf69), code = build). On the deployed app the decisions come from **0G Compute** through the router
+(`router-api.0g.ai`, `qwen3-vl-plus`, 0G provider `0x000000003f486c7198d6203568a98d02b91f8044`), each logged with the
+router's request id: in the browser journey (run 7) chai `pay` `5ca4a212-1beb-4243-adc7-158156e7c9f4`, cigarettes
+`ask_human` `d230ef16-35ed-4e03-96cf-4ac173b9d21d` (approved, paid) and `7dcb97bb-f577-433f-a7b6-60e5aa8cdd64` (denied),
+chai after the revoke `pay` `1b6b2840-b760-4421-9d1e-163e58160f37` (refused by Arc); the same in the API driver's runs
+9–10 (`docs/evidence/2026-11-06-deployed-e2e.md`). The first uploaded episode (`hg2ouddwe2h5j6ekbrsn7grfja`, root
+`0x8db4ffc1…d5dd`, `EpisodeLog.record` `0xd2fe9e75…aa21`, `docs/evidence/2026-11-06-evidence-upload.md`) carries a
+rehearsal-brain decision. _Fill in: an episode with a 0G decision on 0G Storage + `EpisodeLog` (root hash, record tx)._
 
 ### World — Agent Pass
 
@@ -101,10 +108,10 @@ bound to the exact payment by using the EIP-712 digest of {invoice, payee, amoun
 backend verifies the token (Orb `acr`, `amr` contains `pop` and not `mfa`, `jti` once, `sub` bound to the wallet) and
 co-signs that single payment, which our Arc enforcer requires. Denial or a 300 s timeout means nothing is ever signed.
 Proven: the verifier and the approval flow in tests (`packages/server/test/World.test.ts`, scene tests). Rehearsed on
-the deployed app through the real pages with the in-Worker **stub issuer** (rehearsal only, not World): a 0.50 USDC
-restricted, over-cap payment approved, co-signed and paid on Arc ([0xc0e507b6…5fa7](https://explorer.arc.io/tx/0xc0e507b6a5b9da03061f98afe4f64a9aeb6879e6d8927cfd43be1504937f5fa7)), and a second one denied with
-nothing signed (`docs/evidence/2026-11-06-deployed-browser.md`, runs 5–6; the decisions came from the rehearsal brain,
-not 0G). _Fill in: the live approve and deny with an Orb ID on the deployed app._ Debrief: `docs/world-debrief.md`.
+the deployed app through the real pages with the in-Worker **stub issuer** (rehearsal only, not World): 0G asked the
+owner, a 0.50 USDC restricted, over-cap payment was approved, co-signed and paid on Arc ([0xedeaf0e0…0548](https://explorer.arc.io/tx/0xedeaf0e06604c93a226f731a7499a9be7096813f209d6bac9ff96a8cb0790548)), and a second one
+was denied with nothing signed (`docs/evidence/2026-11-06-deployed-browser.md`, run 7; runs 5–6 with the rehearsal
+brain). _Fill in: the live approve and deny with an Orb ID on the deployed app._ Debrief: `docs/world-debrief.md`.
 
 ## Links
 
@@ -126,9 +133,9 @@ during the event too.
 
 ## What is not finished (keep honest at submission time)
 
-- A real 0G decision on the deployed app: _pending a 0G key in `APP_ZG_*`_ (a robot errand paid on the deployed app is proven with the LiteLLM rehearsal brain, labelled as such).
+- A real 0G decision on the deployed app: done 6 Nov ≈ 12:36 IST (router `qwen3-vl-plus`, request ids in the 0G section; browser evidence run 7, e2e runs 9–10). An episode with a 0G decision on 0G Storage is _still to record_.
 - The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: done 6 Nov 12:06 IST for the first paid episode `hg2ouddwe2h5j6ekbrsn7grfja` (root `0x8db4ffc1…d5dd`, storage tx `0x87d1be1f…12dc`, `EpisodeLog.record` tx `0xd2fe9e75…aa21`; `docs/evidence/2026-11-06-evidence-upload.md`). The decision in that episode came from the rehearsal brain, not 0G.
-- A live World approve and deny: _pending the World IdP client_ (rehearsed on the deployed app with the stub issuer, not World: runs 5–6).
+- A live World approve and deny: _pending the World IdP client_ (rehearsed on the deployed app with the stub issuer, not World: browser runs 5–7, e2e runs 9–10).
 - On-chain verification of the World token (the S5b prototype) is a stretch; the backend co-signer is what runs.
 - The physical duck walking to the till; the virtual loop (mock chip + web gate) is the demo.
 
@@ -141,5 +148,5 @@ during the event too.
 | Demo video 2–4 min, ≥ 720p, real narration, ≤ 4 bullets per slide | _record from `docs/video-script.md`_ |
 | Up to 3 partner prizes with integration + feedback | Arc, 0G, World above; World debrief in `docs/world-debrief.md` |
 | Arc: shareable Studio URL, Studio in the demo, working frontend + backend, architecture diagram, Arc/Circle tools named | Studio URL https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75; the rest above |
-| 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo); live ids _fill in_ |
-| World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | stub rehearsal on the deployed app (approve → paid, deny → denied; browser evidence runs 5–6); live run _fill in_ |
+| 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo); router request ids `5ca4a212…`, `d230ef16…`, `7dcb97bb…`, `1b6b2840…` (browser evidence run 7); a 0G-decided episode on Storage _fill in_ |
+| World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | stub rehearsal on the deployed app (approve → paid, deny → denied; browser evidence run 7); live run _fill in_ |
