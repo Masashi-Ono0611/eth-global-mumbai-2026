@@ -300,8 +300,11 @@
     font-size: clamp(3rem, 2rem + 6vw, 7rem);
     font-weight: 700;
   }
+  /* The paid moment at the counter: OPEN pops in once (DESIGN.md "Motion"). */
   .gate-open {
     color: var(--color-gate-open);
+    animation: var(--animate-pop);
+    transform-origin: left center;
   }
   .gate-closed {
     color: var(--color-gate-closed);

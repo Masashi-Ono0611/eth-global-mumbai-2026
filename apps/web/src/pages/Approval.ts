@@ -225,6 +225,8 @@ const denyClassName =
 const statusClassName = 'rounded-card bg-surface px-4 py-3 font-semibold'
 const hintClassName = 'mt-1 block text-[0.92rem] font-normal text-muted'
 const arcLinkClassName = 'font-semibold text-paid'
+/** The paid moment: once, from 96% (DESIGN.md "Motion"). */
+const paidClassName = 'origin-left animate-pop'
 
 // VIEW
 
@@ -273,7 +275,7 @@ const statusLine = (model: Model, approval: ApprovalView, locale: Locale, h: Htm
         [
           state === 'paid'
             ? h.p(
-                [h.Role('status')],
+                [h.Role('status'), h.Class(paidClassName)],
                 [
                   `${format(locale, 'approval.paid', {})} · `,
                   txHash === null
