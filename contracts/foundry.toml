@@ -1,0 +1,31 @@
+# Vitaquack contracts (spec M1). solc 0.8.23 is the Delegation Framework v1.3.0 pin (its sources say
+# `pragma solidity 0.8.23`); `paris` is what Arc Studio's foundry.toml uses, and it runs on Arc mainnet (Osaka) and on
+# 0G Galileo (Cancun). Dependencies are vendored under lib/ (no submodules); pins are in README.md.
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+solc = "0.8.23"
+auto_detect_solc = false
+evm_version = "paris"
+optimizer = true
+optimizer_runs = 200
+fs_permissions = [{ access = "read", path = "./test/fixtures" }]
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "@delegation-framework/=lib/delegation-framework/src/",
+  "@erc7579/=lib/erc7579-implementation/src/",
+  "@account-abstraction/=lib/account-abstraction/contracts/",
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+]
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = true
+int_types = "long"
+quote_style = "double"
+number_underscore = "preserve"
+ignore = ["lib/**"]
