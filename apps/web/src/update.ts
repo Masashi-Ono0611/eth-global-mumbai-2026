@@ -32,7 +32,7 @@ export const init = (context: Flags): UpdateReturn => {
       route,
       auth: AuthState.Checking(),
       displayName: '',
-      profileSheet: Dialog.init({ id: 'profile' }),
+      profileSheet: Dialog.init({ id: 'profile', isAnimated: true }),
       telegram: Telegram.init(),
       ...pages.pages,
     },

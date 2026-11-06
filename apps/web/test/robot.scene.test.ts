@@ -21,7 +21,7 @@ import type { ConsoleRobot } from '../src/api/Robot.ts'
 import * as RobotConsole from '../src/pages/RobotConsole.ts'
 import { robotConsoleView } from '../src/pages/RobotConsoleView.ts'
 import { detail, grant, pairedRobot, payee, summary, txHash } from './Fixtures.ts'
-import { Dialog } from '@foldkit/ui'
+import { Animation, Dialog } from '@foldkit/ui'
 import * as Allowance from '../src/pages/Allowance.ts'
 
 describe('/robot/:id', () => {
@@ -303,8 +303,10 @@ describe('/robot/:id', () => {
       expect(text('0.90')).toExist(),
       expect(text('of 3.00 today')).toExist(),
       click(role('button', { name: 'Allowance: 0.90 of 3.00 USDC left today' })),
-      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(text('left of 3.00 today')).toExist(),
       expect(role('meter', { name: 'Spent today: 2.10 of 3.00 USDC' })).toExist(),
       expect(text('Resets at', { exact: false })).toExist(),
@@ -316,8 +318,10 @@ describe('/robot/:id', () => {
       { update: RobotConsole.update, view },
       given(loadedConsole()),
       click(role('button', { name: 'Allowance: 1.00 a day' })),
-      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(role('heading', { name: "Duck's allowance" })).toExist(),
       expect(text('At most 0.30 for one purchase')).toExist(),
       expect(text('Only at Duck Café')).toExist(),
@@ -325,6 +329,8 @@ describe('/robot/:id', () => {
       Command.expectExact(Allowance.StopAllowance({ grantId: grant.id })),
       expect(role('button', { name: 'Stopping on Arc...' })).toBeDisabled(),
       Command.resolve(Allowance.StopAllowance, Allowance.Message.SucceededStop()),
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 2 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 2 })),
       Command.resolve(Dialog.CloseDialog, Dialog.Message.CompletedCloseDialog()),
       Command.expectExact(RobotConsole.LoadConsole({ robotId })),
       Command.resolve(
@@ -345,8 +351,10 @@ describe('/robot/:id', () => {
       { update: RobotConsole.update, view },
       given(loadedConsole([], detailed)),
       click(role('button', { name: 'Allowance: 1.00 a day' })),
-      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(text('Robot details')).toExist(),
       expect(text('Chip (signs every payment)')).toExist(),
       expect(text('0x0000 0000 0000 0000 0000 0000 0000 0000 000c 41f0')).toExist(),
@@ -359,8 +367,11 @@ describe('/robot/:id', () => {
       { update: RobotConsole.update, view },
       given(loadedConsole([], { ...consoleRobot, grant: null })),
       click(role('button', { name: 'No allowance: give one' })),
-      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+
       expect(role('heading', { name: 'Give Duck an allowance' })).toExist(),
       click(role('radio', { name: '5.00' })),
       click(role('radio', { name: '1 week' })),

@@ -176,7 +176,7 @@ export const init = (): UpdateReturn => ({
     state: WalletState.Loading(),
     copy: Copy.Idle(),
     decline: Decline.Idle(),
-    receiveSheet: Dialog.init({ id: 'receive' }),
+    receiveSheet: Dialog.init({ id: 'receive', isAnimated: true }),
   },
   commands: [LoadWallet({ delayMillis: 0 })],
 })

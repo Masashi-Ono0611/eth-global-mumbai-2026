@@ -10,7 +10,7 @@ import { AuthState } from '../src/model.ts'
 import { AppRoute } from '../src/route.ts'
 import { init, update } from '../src/update.ts'
 import { view } from '../src/View.ts'
-import { Dialog } from '@foldkit/ui'
+import { Animation, Dialog } from '@foldkit/ui'
 
 const page = (pathname: string) =>
   init({ locale: 'en', catalogVersion, timeZone: 'UTC', referenceTime: 0, pathname }).model
@@ -105,9 +105,11 @@ describe('passkey wallet', () => {
       { update, view },
       given(modifyFields(page('/app/wallet'), { auth: () => AuthState.SignedIn({ session }) })),
       click(role('button', { name: 'Profile, records and sign out' })),
-      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
-      // Opening the sheet also asks for the Telegram row's state (spec §14).
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+
       Command.resolve(
         Telegram.LoadTelegram,
         Telegram.Message.SucceededLoadTelegram({ configured: true, linked: false, username: null }),
@@ -119,6 +121,8 @@ describe('passkey wallet', () => {
       click(role('button', { name: 'Sign out' })),
       Command.expectExact(SignOut()),
       Command.resolve(SignOut, Message.SucceededSignOut()),
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 2 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 2 })),
       Command.resolve(Dialog.CloseDialog, Dialog.Message.CompletedCloseDialog()),
       Mount.expectEnded(Dialog.AcquireResources),
       expect(role('button', { name: 'Create passkey wallet' })).toExist(),

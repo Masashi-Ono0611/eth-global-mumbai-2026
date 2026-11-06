@@ -260,7 +260,7 @@ export const init = (robotId: string): UpdateReturn => ({
     invoiceInput: '',
     decline: Decline.Idle(),
     allowance: Allowance.init(robotId, Option.none(), false),
-    allowanceSheet: Dialog.init({ id: 'allowance' }),
+    allowanceSheet: Dialog.init({ id: 'allowance', isAnimated: true }),
     intent: Intent.Idle(),
     instruction: '',
   },

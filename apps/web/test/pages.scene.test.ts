@@ -1,6 +1,6 @@
 import { Command, Mount, click, expect, given, role, scene, text, withViewInputs } from 'foldkit/scene'
 import { describe, expect as vitestExpect, test } from 'vitest'
-import { Dialog } from '@foldkit/ui'
+import { Animation, Dialog } from '@foldkit/ui'
 import * as Wallet from '../src/pages/Wallet.ts'
 import { walletView } from '../src/pages/WalletView.ts'
 import { activityRow, address, grant, pairedRobot, summary, txHash } from './Fixtures.ts'
@@ -62,8 +62,11 @@ describe('/wallet', () => {
       { update: Wallet.update, view },
       given(loadedHome(home())),
       click(role('button', { name: 'Receive' })),
-      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
+      Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+
       expect(role('heading', { name: 'Receive USDC' })).toExist(),
       expect(role('img', { name: 'QR code of your wallet address' })).toExist(),
       expect(text('0x1234 5678 90ab cdef 1234 5678 90AB CDEF 1234 5678')).toExist(),
