@@ -278,5 +278,3 @@ export const settlePayment = Effect.fn('EthMumbai.Chain.Facilitator.settle')(fun
   const outcome: SettleOutcome = { transaction: sent.txHash, payer: payment.payload.delegator, gasUsed: sent.gasUsed }
   return outcome
 })
-
-export { AlreadySubmitted }
