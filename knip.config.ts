@@ -15,11 +15,12 @@ export default {
       project: ['src/**/*.ts', 'test/**/*.ts'],
     },
     ...Object.fromEntries(
-      ['auth', 'chain', 'domain', 'observability', 'protocol', 'server'].map((name) => [
+      ['auth', 'domain', 'observability', 'protocol', 'server'].map((name) => [
         `packages/${name}`,
         { project: ['src/**/*.ts!', 'test/**/*.ts'] },
       ]),
     ),
+    'packages/chain': { entry: ['scripts/*.ts'], project: ['src/**/*.ts!', 'test/**/*.ts', 'scripts/*.ts'] },
     'packages/db': { project: ['src/**/*.ts!'] },
     'packages/i18n': { project: ['src/**/*.ts!'] },
     // The scratch site copies these libraries' browser bundles into dist/lib; nothing imports them.
