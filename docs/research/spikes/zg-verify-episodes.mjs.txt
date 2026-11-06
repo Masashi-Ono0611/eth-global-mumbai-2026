@@ -1,0 +1,40 @@
+// チームのエピソードを、外から独立に検証する(読み取りだけ、鍵不要)。
+// 各エピソード: アプリの公開 API の記録 → EpisodeLog(Galileo)の記録 → 0G Storage から証明つきで取得 → 突き合わせ。
+// 使い方: node scripts/verify-team-episodes.mjs <episodeId ...>
+import { readFileSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ethers } from 'ethers';
+import { downloadEpisode } from '../src/storage.mjs';
+
+const APP = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev';
+const LOG = '0x4C947E6D794C78d0F684e46EFC97f712E51a206A';
+const provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai');
+const log = new ethers.Contract(LOG, ['function records(bytes32) view returns (bytes32 rootHash, bytes32 requestIdsHash, address recorder, uint64 recordedAt)'], provider);
+const dir = mkdtempSync(join(tmpdir(), 'team-ep-'));
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const canon = (x) => JSON.stringify(x, Object.keys(x).sort()); // 浅い比較用ではなく、下で JSON 全体を比べる
+
+let allOk = true;
+for (const id of process.argv.slice(2)) {
+  const checks = {};
+  const api = await (await fetch(`${APP}/api/evidence/${id}`)).json();
+  const rec = await log.records(ethers.keccak256(ethers.toUtf8Bytes(id)));
+  checks.api_uploaded = api.status === 'uploaded';
+  checks.root_api_eq_chain = (api.rootHash ?? '').toLowerCase() === rec.rootHash.toLowerCase();
+  const out = join(dir, `${id}.json`);
+  await downloadEpisode(rec.rootHash, out); // Merkle 証明を検証して取得
+  const stored = JSON.parse(readFileSync(out, 'utf8'));
+  checks.stored_eq_api_payload = JSON.stringify(stored) === JSON.stringify(api.payload);
+  checks.episode_id = stored.episodeId === id;
+  const ridHash = ethers.keccak256(ethers.toUtf8Bytes(stored.requestIds.join(',')));
+  checks.requestIdsHash_eq_chain = ridHash === rec.requestIdsHash;
+  checks.decisions_from_0g_router = stored.decisions.length > 0 && stored.decisions.every((d) => String(d.provider).startsWith('router-api.0g.ai/'));
+  checks.request_ids_are_router_uuids = stored.decisions.every((d) => UUID.test(String(d.requestId)));
+  checks.recorder_is_uploader = rec.recorder.toLowerCase() === '0xc6ff8a666f4c7f674c1d129c73b46d61f2891fcd';
+  const ok = Object.values(checks).every(Boolean);
+  allOk &&= ok;
+  console.log(JSON.stringify({ id, ok, decisions: stored.decisions.map((d) => `${d.action}/${d.outcome ?? '-'} ${d.model} ${d.latencyMs}ms`), outcome: stored.outcome.state, root: rec.rootHash, failed: Object.entries(checks).filter(([, v]) => !v).map(([k]) => k) }));
+}
+console.log(allOk ? 'ALL VERIFIED' : 'SOME CHECKS FAILED');
+process.exit(allOk ? 0 : 1);
