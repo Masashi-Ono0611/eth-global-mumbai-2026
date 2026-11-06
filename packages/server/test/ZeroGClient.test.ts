@@ -106,10 +106,10 @@ describe('0G decide call', () => {
 
 /** A router that answers `429 model_overloaded` `times` times, then the decide tool call. */
 const overloaded = (times: number) => {
-  const sent: Array<{ readonly body: unknown }> = []
+  const sent: Array<{ readonly url: string; readonly body: unknown }> = []
   const client = HttpClient.make((request) =>
     Effect.sync(() => {
-      sent.push({ body: request.body.toJSON() })
+      sent.push({ url: request.url, body: request.body.toJSON() })
       const busy = sent.length <= times
       return HttpClientResponse.fromWeb(
         request,
