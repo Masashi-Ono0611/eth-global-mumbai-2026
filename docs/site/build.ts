@@ -79,6 +79,8 @@ writeFileSync(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/pitch/media/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/pitch/media/apple-touch-icon.png" />
     <title>ETH Global Mumbai 2026 — scratch</title>
     <link rel="stylesheet" href="/lib/base.css" />
   </head>

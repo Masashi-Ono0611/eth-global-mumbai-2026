@@ -79,6 +79,10 @@ const quietPageTransitions =
   'addEventListener("unhandledrejection",(event)=>{const r=event.reason;' +
   'if(r instanceof DOMException&&/^Transition was (aborted|skipped)/.test(r.message))event.preventDefault()})</script>'
 
+const APP_SHARE_TITLE = 'Vitaquack: a passkey wallet that gives your robot a budget'
+const APP_DESCRIPTION =
+  'Give your robot a USDC budget on Arc: it pays for small things by itself and asks you before big ones.'
+
 export const renderDocument: Server.DocumentRenderer = (renderedApplication, assets) =>
   Server.renderDocument(renderedApplication, assets, {
     head:
@@ -86,6 +90,12 @@ export const renderDocument: Server.DocumentRenderer = (renderedApplication, ass
       '<meta name="theme-color" content="#e7f1f6"><link rel="icon" href="/app/favicon.svg" type="image/svg+xml">' +
       // The robot duck, as on the landing page (its media/favicon.svg and apple-touch-icon.png).
       '<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">' +
+      // A summary and a share card for links to the wallet, with the landing's card image (its media/og.jpg).
+      `<meta name="description" content="${APP_DESCRIPTION}">` +
+      '<meta property="og:type" content="website"><meta property="og:site_name" content="Vitaquack">' +
+      `<meta property="og:title" content="${APP_SHARE_TITLE}">` +
+      `<meta property="og:description" content="${APP_DESCRIPTION}">` +
+      '<meta property="og:image" content="https://vitaquack.com/media/og.jpg"><meta name="twitter:card" content="summary_large_image">' +
       '<link rel="preload" href="/app/fonts/mukta-400-latin.woff2" as="font" type="font/woff2" crossorigin>' +
       '<link rel="preload" href="/app/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>' +
       // Body text's semibold: the first screen uses it, and found only from the CSS it arrived a second after the HTML.
