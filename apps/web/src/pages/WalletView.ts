@@ -258,7 +258,7 @@ const savedOnZeroG = (home: Home, episodeId: string) =>
 const paymentRow = (episode: EpisodeActivity, onZeroG: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const paid = episode.state === 'paid'
   const live = !terminalStates.has(episode.state)
-  const amount = episode.amount === null ? '—' : usdc(episode.amount)
+  const amount = episode.amount === null ? '—' : `${usdc(episode.amount)} USDC`
   // The whole row opens the errand's proof (DESIGN.md: the proof stays one tap away).
   return h.keyed('li')(
     episode.id,

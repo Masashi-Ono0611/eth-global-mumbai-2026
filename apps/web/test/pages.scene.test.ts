@@ -69,7 +69,7 @@ describe('/wallet', () => {
       ),
       expect(text('0.60 USDC left today')).toExist(),
       expect(text('Chai')).toExist(),
-      expect(text('−0.10')).toExist(),
+      expect(text('−0.10 USDC')).toExist(),
       expect(text('Paid')).toExist(),
     )
   })

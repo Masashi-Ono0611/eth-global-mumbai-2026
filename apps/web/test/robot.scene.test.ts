@@ -263,7 +263,7 @@ describe('/robot/:id', () => {
       Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
       Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
-      expect(text('left of 3.00 today')).toExist(),
+      expect(text('USDC left of 3.00 today')).toExist(),
       expect(role('meter', { name: 'Spent today: 2.10 of 3.00 USDC' })).toExist(),
       expect(text('Resets at', { exact: false })).toExist(),
     )
@@ -279,7 +279,7 @@ describe('/robot/:id', () => {
       Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(role('heading', { name: "Duck's allowance" })).toExist(),
-      expect(text('0.30 max per purchase')).toExist(),
+      expect(text('0.30 USDC max per purchase')).toExist(),
       expect(text('Duck Café only')).toExist(),
       click(role('button', { name: "Stop Duck's allowance" })),
       Command.expectExact(Allowance.StopAllowance({ grantId: grant.id })),
