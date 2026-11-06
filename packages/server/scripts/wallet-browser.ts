@@ -17,7 +17,7 @@ import { addVirtualAuthenticator } from '../test/PasskeyBrowserAcceptance.ts'
 //   --fund (default 0.01, at most 1.00) sends that much USDC from the relayer to the new owner first; a paid chai needs
 //   ≥ 0.10, chai + the approved cigarettes ≥ 0.60.
 //   The owner is throwaway (its virtual passkey ends with the run), so the funds stay in that account.
-//   Exit 0 when every step showed what it must.
+//   --only-restricted skips chai, the gate and the post-revoke chai. Exit 0 when every step showed what it must.
 const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
 const flag = (name: string) => {
   const index = Bun.argv.indexOf(`--${name}`)
@@ -26,6 +26,8 @@ const flag = (name: string) => {
 const base = new URL(flag('base-url') ?? DEPLOYED).origin
 // A throwaway owner's virtual passkey dies with the browser, so whatever it holds is stranded: fund only a little.
 const fund = flag('fund') ?? '0.01'
+/** Skip the chai, gate and post-revoke steps: only the restricted approve / deny (and the revoke). */
+const onlyRestricted = Bun.argv.includes('--only-restricted')
 const screens = join(import.meta.dir, '../../../docs/evidence/screens')
 const say = (line: string) => process.stdout.write(`browser  ${line}\n`)
 const TERMINAL = /: (paid|walked away|safe stop|denied|refused by the chip|failed|expired)$/
@@ -246,18 +248,27 @@ const main = async () => {
     await shot(page, '02-wallet')
     stops.push(await pairRobot(page))
     await grant(page)
-    const gate = await context.newPage()
-    await gate.goto(`${base}/gate/duck-cafe`, { waitUntil: 'networkidle' })
-    const ran = await errand(page)
-    await gate.waitForTimeout(3000)
-    await shot(gate, '08-gate')
-    const robotUrl = page.url()
-    if (ran) {
-      await restricted(page, 'approve', 10)
-      await restricted(page, 'deny', 15)
+    if (onlyRestricted) {
+      await page.getByRole('link', { name: 'Open console' }).first().click()
+      await page.getByRole('button', { name: 'Buy Cigarettes (0.50 USDC)' }).waitFor()
+    } else {
+      const gate = await context.newPage()
+      await gate.goto(`${base}/gate/duck-cafe`, { waitUntil: 'networkidle' })
+      await shot(gate, '08-gate-closed')
+      // The gate shows OPEN for a few seconds once its invoice is paid, then asks for a fresh one: catch it live.
+      const opened = gate
+        .getByText('OPEN', { exact: true })
+        .waitFor({ timeout: 300_000 })
+        .then(() => shot(gate, '08-gate-open').then(() => true))
+        .catch(() => false)
+      if (!(await errand(page))) return say('the errand did not start; stopping before the restricted steps')
+      say(`gate opened: ${await opened}`)
     }
+    const robotUrl = page.url()
+    await restricted(page, 'approve', 10)
+    await restricted(page, 'deny', 15)
     await revoke(page)
-    if (ran) await afterRevoke(page, robotUrl)
+    if (!onlyRestricted) await afterRevoke(page, robotUrl)
     say('done')
   } finally {
     for (const stop of stops) stop()
