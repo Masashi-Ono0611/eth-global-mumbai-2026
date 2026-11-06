@@ -1,13 +1,29 @@
-import { Bytes32, UintString } from '@ethmumbai/protocol/Hex'
+import { Bytes32, type Hex, UintString } from '@ethmumbai/protocol/Hex'
 import { Effect, FileSystem, Option, Schema } from 'effect'
 
-// The chip's state directory (spec §8): key.json (mode 600, generated once), pairing.json, used-invoices.json and
-// spent.json. The Radxa runs the same code with the same files.
-const KeyFile = Schema.Struct({ privateKey: Bytes32 })
+// The chip's state (spec §8): its key, its pairing, the invoices it signed and today's spend. `ChipState` is the
+// platform-agnostic seam client.ts runs on; `makeState` is the Bun/Radxa implementation over a directory of key.json
+// (mode 600, generated once), pairing.json, used-invoices.json and spent.json. The browser sim chip implements the
+// same interface over IndexedDB (apps/sim/src/chip/idbState.ts).
+export const KeyFile = Schema.Struct({ privateKey: Bytes32 })
 export const PairingFile = Schema.Struct({ server: Schema.String, robotId: Schema.String, chipToken: Schema.String })
 export type PairingFile = typeof PairingFile.Type
-const UsedFile = Schema.Array(Bytes32)
-const SpentFile = Schema.Struct({ day: Schema.Finite, total: UintString })
+export const UsedFile = Schema.Array(Bytes32)
+export const SpentFile = Schema.Struct({ day: Schema.Finite, total: UintString })
+
+/** Where a chip keeps its key and its spending memory; `E` is the storage's own failure. */
+export interface ChipState<E = never> {
+  readonly readKey: Effect.Effect<Option.Option<{ readonly privateKey: Hex }>, E>
+  readonly writeKey: (privateKey: Hex) => Effect.Effect<void, E>
+  readonly readPairing: Effect.Effect<Option.Option<PairingFile>, E>
+  readonly writePairing: (pairing: PairingFile) => Effect.Effect<void, E>
+  /** Lowercase invoice hashes this chip has signed. */
+  readonly usedInvoices: Effect.Effect<ReadonlySet<string>, E>
+  /** USDC base units signed on `day` ({@link dayOf}). */
+  readonly spentOn: (day: number) => Effect.Effect<bigint, E>
+  /** Persist the invoice hash and the spend before the signature leaves the chip. */
+  readonly recordSigned: (invoiceHash: string, amount: bigint, day: number) => Effect.Effect<void, E>
+}
 
 /** The chip's spending day: UTC days since the epoch (the on-chain period is 86 400 s too). */
 export const dayOf = (nowSeconds: number) => Math.floor(nowSeconds / 86_400)
@@ -45,7 +61,7 @@ export const makeState = Effect.fnUntraced(function* (directory: string) {
   const readKey = read('key.json', KeyFile).pipe(
     Effect.tap((key) => (Option.isSome(key) ? fs.chmod(file('key.json'), 0o600) : Effect.void)),
   )
-  const writeKey = (privateKey: string) => write('key.json', { privateKey })
+  const writeKey = (privateKey: Hex) => write('key.json', { privateKey })
   const readPairing = read('pairing.json', PairingFile)
   const writePairing = (pairing: PairingFile) => write('pairing.json', pairing)
   const usedInvoices = read('used-invoices.json', UsedFile).pipe(
@@ -67,7 +83,16 @@ export const makeState = Effect.fnUntraced(function* (directory: string) {
       yield* write('spent.json', { day, total: (spent + amount).toString() })
     })
 
-  return { readKey, writeKey, readPairing, writePairing, usedInvoices, spentOn, recordSigned }
+  /** Failures: the filesystem's and a malformed file's. */
+  type FileStateError = Effect.Error<ReturnType<typeof fs.readFileString>> | Schema.SchemaError
+  const state: ChipState<FileStateError> = {
+    readKey,
+    writeKey,
+    readPairing,
+    writePairing,
+    usedInvoices,
+    spentOn,
+    recordSigned,
+  }
+  return state
 })
-
-export type ChipState = Effect.Success<ReturnType<typeof makeState>>

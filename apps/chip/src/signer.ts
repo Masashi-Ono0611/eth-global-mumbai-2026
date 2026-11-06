@@ -13,7 +13,7 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import type { ChipState } from './state.ts'
 
 /** The chip's key: generated once into key.json (mode 600) and never printed. */
-export const loadOrCreateKey = (state: ChipState) =>
+export const loadOrCreateKey = <E>(state: ChipState<E>) =>
   Effect.gen(function* () {
     const existing = yield* state.readKey
     if (Option.isSome(existing)) return { privateKey: existing.value.privateKey, created: false }

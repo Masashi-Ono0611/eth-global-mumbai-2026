@@ -3,6 +3,12 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
+  "exports": {
+    "./client": "./src/client.ts",
+    "./policy": "./src/policy.ts",
+    "./signer": "./src/signer.ts",
+    "./state": "./src/state.ts"
+  },
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "@ethmumbai/protocol": "workspace:*",

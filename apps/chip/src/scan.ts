@@ -1,15 +1,12 @@
 import * as BunHttpServer from '@effect/platform-bun/BunHttpServer'
 import { Id } from '@ethmumbai/protocol/Base32'
 import { UnixMs } from '@ethmumbai/protocol/Hex'
-import { scanMessage } from '@ethmumbai/protocol/Scan'
 import { Clock, Console, Effect, Layer, Option, Result, Schema } from 'effect'
 import * as Base64 from 'effect/encoding/Base64'
-import * as HttpClient from 'effect/http/HttpClient'
-import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
-import { sha256 } from 'viem'
+import { cropProblem, postScan, signScan } from './client.ts'
 import type { Signer } from './signer.ts'
 import type { PairingFile } from './state.ts'
 
@@ -26,21 +23,16 @@ const LocalScan = Schema.Struct({
   capturedAt: Schema.optionalKey(UnixMs),
 })
 
-/** The chip signs no more than a QR crop (spec rule 4, the Worker's limit too), checked before the key is touched. */
-const MAX_SCAN_BYTES = 64 * 1024
-
 const reply = (status: number, body: unknown) => HttpServerResponse.jsonUnsafe(body, { status })
 
 /** The crop's bytes if they are base64 of a JPEG (SOI marker) of at most 64 KB; otherwise why not. */
 const cropOf = (jpegBase64: string) =>
   Option.match(Result.getSuccess(Base64.decode(jpegBase64)), {
     onNone: () => Result.fail('jpegBase64 is not base64'),
-    onSome: (bytes) =>
-      bytes.length > MAX_SCAN_BYTES
-        ? Result.fail('crop is larger than 64 KB')
-        : bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
-          ? Result.succeed(bytes)
-          : Result.fail('crop is not a JPEG'),
+    onSome: (bytes) => {
+      const problem = cropProblem(bytes)
+      return problem === undefined ? Result.succeed(bytes) : Result.fail(problem)
+    },
   })
 
 const scan = (pairing: PairingFile, signer: Signer) =>
@@ -49,23 +41,11 @@ const scan = (pairing: PairingFile, signer: Signer) =>
     if (Option.isNone(input)) return reply(400, { error: 'expected {"invoiceId", "jpegBase64", "capturedAt"?}' })
     const crop = cropOf(input.value.jpegBase64)
     if (Result.isFailure(crop)) return reply(400, { error: crop.failure })
-    const frame = crop.success
-    const digest = sha256(frame)
     const capturedAt = input.value.capturedAt ?? (yield* Clock.currentTimeMillis)
     const { invoiceId } = input.value
-    const sig = yield* signer.signScan(scanMessage(invoiceId, digest, capturedAt, pairing.robotId))
-    const body = {
-      invoiceId,
-      capturedAt,
-      frame: { mime: 'image/jpeg', sha256: digest, bytes: frame.length, b64: Base64.encode(frame) },
-      sig,
-    }
-    const response = yield* HttpClient.execute(
-      HttpClientRequest.post(`${pairing.server}/api/chips/${pairing.robotId}/scans`).pipe(
-        HttpClientRequest.bodyJsonUnsafe(body),
-        HttpClientRequest.bearerToken(pairing.chipToken),
-      ),
-    ).pipe(Effect.timeout('60 seconds'))
+    const body = yield* signScan(pairing, signer, invoiceId, crop.success, capturedAt)
+    const digest = body.frame.sha256
+    const response = yield* postScan(pairing, body)
     const answer: unknown = yield* response.json.pipe(
       Effect.orElseSucceed(() => ({ error: 'no JSON from the Worker' })),
     )
