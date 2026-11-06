@@ -621,10 +621,10 @@ export default function Hud() {
   return (
     <>
       <BackButton />
-      <PreorderButton />
+      {/* Vitaquack: no Pollen store pre-order button; the owner's panel credits Pollen with a link. */}
       {!touchMode && (
         <>
-          <Quickbar />
+          {/* Vitaquack: no colour/locomotion quickbar; the sim duck walks on its feet only. */}
           <Telemetry />
           <OsdLoad />
           <PolicyToast />

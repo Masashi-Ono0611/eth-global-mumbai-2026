@@ -29,6 +29,10 @@ ONNX walking policy at 50 Hz, the three.js rig, the R3F canvas and Pollen's HUD.
 - `src/App.jsx`: the title menu is skipped unless `?boot=0`.
 - `src/scene/CrtDistortion.jsx`, `src/scene/GameCanvas.jsx`: the CRT pass and MSAA are off unless `?crt=1` / `?aa=1`
   (CPU renderers draw 2.6 fps with them, 10-15 without); `?dpr=` pins the pixel ratio.
+- `src/ui/Hud.jsx`, `src/ui/TitleMenu.jsx`: no pre-order button to Pollen's store (7 Nov 2026). Pollen is credited, with
+  a link, at the foot of the owner's panel.
+- `src/ui/Hud.jsx`, `src/game/game.js`: no colour/locomotion quickbar, and the loco toggle (M key, gamepad) is not
+  wired, so the sim duck walks on its feet only (7 Nov 2026).
 
 ## Checks
 

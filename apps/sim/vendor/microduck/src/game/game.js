@@ -1963,7 +1963,7 @@ async function boot({ scene, camera, renderer }) {
   controller.on("spawnBall", () => spawnBall());
   controller.on("headToggle", () => toggleHeadMode());
   controller.on("chaseToggle", () => { chaseCam = !chaseCam; });
-  controller.on("locoToggle", () => toggleLoco());
+  // Vitaquack: feet only, so the M key and the gamepad's loco button do not switch to rollers.
   controller.on("roll", ({ source }) => triggerRoll(srcTag(source)));
   controller.on("groundPick", ({ source }) => triggerGroundPick(srcTag(source)));
   controller.on("kickL", ({ source }) => triggerKick("left", srcTag(source)));
