@@ -139,6 +139,10 @@ export const callback = (deps: WorldDeps) =>
     )
     if (Result.isSuccess(outcome)) {
       const continued = yield* approveErrand(deps.errands, row.episode_id, outcome.success)
+      // The errand ended on its own (its 300 s tick) before World answered: the signature is never delivered, so the
+      // approval must not read as approved.
+      if (!continued)
+        yield* moveApproval(deps.database, row.id, ['approved'], 'expired', 'the errand ended before approval')
       yield* Effect.logInfo('world approval approved').pipe(Effect.annotateLogs({ approvalId: row.id, continued }))
     } else {
       const { reason } = outcome.failure
