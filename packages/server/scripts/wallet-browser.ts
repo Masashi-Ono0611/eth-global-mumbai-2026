@@ -14,7 +14,8 @@ import { addVirtualAuthenticator } from '../test/PasskeyBrowserAcceptance.ts'
 // grant → "Buy Chai" on the console (reload mid-errand: the console restores the errand from activity and keeps
 // polling) → the gate → revoke. Screenshots go to docs/evidence/screens/. Prints ids and explorer links only.
 // Usage: bun --env-file=.env.main.local packages/server/scripts/wallet-browser.ts [--base-url URL] [--fund 0.15]
-//   --fund (default 0.01) sends that much USDC from the relayer to the new owner first; a paid chai needs ≥ 0.10.
+//   --fund (default 0.01, at most 1.00) sends that much USDC from the relayer to the new owner first; a paid chai needs
+//   ≥ 0.10, chai + the approved cigarettes ≥ 0.60.
 //   The owner is throwaway (its virtual passkey ends with the run), so the funds stay in that account.
 //   Exit 0 when every step showed what it must.
 const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
@@ -139,26 +140,57 @@ const errand = async (page: Page): Promise<boolean> => {
   return true
 }
 
-/** The restricted item: 0G asks the owner, the approval page shows what is approved, the owner denies, nothing is paid. */
-const restricted = async (page: Page) => {
+const stateText = (page: Page) => page.locator('.errand-detail [role=status]').first().textContent()
+
+/**
+ * The restricted item answered through the issuer World authorize sends us to (World IdP, or the rehearsal stub):
+ * the brain asks the owner, the approval page shows what is approved, the issuer's Approve or Deny decides.
+ * Approve → the chip signs with the co-signed approval and the console ends `paid`; Deny → `denied`, nothing paid.
+ */
+const restricted = async (page: Page, choice: 'approve' | 'deny', step: number) => {
+  const prefix = (n: number, name: string) => `${String(step + n).padStart(2, '0')}-restricted-${choice}-${name}`
   await page.getByRole('button', { name: 'Buy Cigarettes (0.50 USDC)' }).click()
-  const approve = page.getByRole('link', { name: 'Approve in World App' })
-  const asked = await approve
+  const ask = page.getByRole('link', { name: 'Approve in World App' })
+  const asked = await ask
     .waitFor({ timeout: 60_000 })
     .then(() => true)
     .catch(() => false)
   if (!asked) {
-    say('no approval link: 0G did not ask, or ENFORCER/APPROVER are not configured on this deploy')
-    return shot(page, '10-restricted')
+    say('no approval link: the brain did not ask, or ENFORCER/APPROVER are not configured on this deploy')
+    return shot(page, prefix(0, 'no-approval'))
   }
-  await shot(page, '10-restricted-asks')
-  await approve.click()
+  await shot(page, prefix(0, 'asks'))
+  await ask.click()
   await page.getByRole('heading', { name: 'Approval for a restricted item' }).waitFor({ timeout: 30_000 })
-  await shot(page, '11-approval')
-  await page.getByRole('button', { name: 'Deny' }).click()
-  await page.getByText('Denied: nothing is paid').waitFor({ timeout: 30_000 })
-  say('restricted item denied by the owner; nothing paid')
-  await shot(page, '12-approval-denied')
+  await shot(page, prefix(1, 'approval'))
+  await page.getByRole('link', { name: 'Approve with World' }).click()
+  await page.waitForLoadState('networkidle')
+  const issuerPage = (await page.locator('h1').first().textContent()) ?? ''
+  say(`issuer page: ${issuerPage}`)
+  await shot(page, prefix(2, 'issuer'))
+  await page.locator(`#${choice}`).click()
+  const outcome = choice === 'approve' ? 'Approved: the chip signs the payment now' : 'Denied: nothing is paid'
+  await page.getByText(outcome).waitFor({ timeout: 60_000 })
+  await shot(page, prefix(3, 'answered'))
+  await page.getByRole('link', { name: 'Open console' }).click()
+  await page.locator('.errand-detail').waitFor({ timeout: 30_000 })
+  await until(page, async () => TERMINAL.test((await stateText(page)) ?? ''), 'the restricted errand ending', 240)
+  say(`restricted ${choice}: ${await stateText(page)}`)
+  const payment = page.getByRole('link', { name: 'Payment on Arc' })
+  if (await payment.isVisible()) say(`paid ${await payment.getAttribute('href')}`)
+  await shot(page, prefix(4, 'console'))
+}
+
+/** After the revoke, the next purchase must fail on Arc (`CannotUseADisabledDelegation`). */
+const afterRevoke = async (page: Page, robotUrl: string) => {
+  await page.goto(robotUrl, { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: 'Buy Chai (0.10 USDC)' }).click()
+  await page.locator('.errand-detail').waitFor({ timeout: 60_000 })
+  await until(page, async () => TERMINAL.test((await stateText(page)) ?? ''), 'the post-revoke errand ending', 240)
+  say(
+    `after revoke: ${await stateText(page)} ${(await page.locator('.errand-detail .hint').first().textContent()) ?? ''}`,
+  )
+  await shot(page, '21-after-revoke')
 }
 
 const revoke = async (page: Page) => {
@@ -183,7 +215,7 @@ const revoke = async (page: Page) => {
     await until(page, () => page.getByText('(revoked)').first().isVisible(), 'revoke settling', 60, 'Refresh')
   const tx = page.getByRole('link', { name: 'Revoke transaction' })
   if (await tx.isVisible()) say(`revoked ${await tx.getAttribute('href')}`)
-  await shot(page, '09-revoked')
+  await shot(page, '20-revoked')
 }
 
 const main = async () => {
@@ -196,7 +228,7 @@ const main = async () => {
     {
       if (!isHex(owner)) throw new Error('the signup address is not hex')
       const units = usdcToUnits(fund)
-      if (units > 500_000n) throw new Error('--fund is capped at 0.50 USDC')
+      if (units > 1_000_000n) throw new Error('--fund is capped at 1.00 USDC')
       const key = process.env.APP_RELAYER_PRIVATE_KEY ?? ''
       if (!/^0x[0-9a-f]{64}$/.test(key)) throw new Error('--fund needs APP_RELAYER_PRIVATE_KEY (run with --env-file)')
       const funded = await Effect.runPromise(
@@ -219,8 +251,13 @@ const main = async () => {
     const ran = await errand(page)
     await gate.waitForTimeout(3000)
     await shot(gate, '08-gate')
-    if (ran) await restricted(page)
+    const robotUrl = page.url()
+    if (ran) {
+      await restricted(page, 'approve', 10)
+      await restricted(page, 'deny', 15)
+    }
     await revoke(page)
+    if (ran) await afterRevoke(page, robotUrl)
     say('done')
   } finally {
     for (const stop of stops) stop()
