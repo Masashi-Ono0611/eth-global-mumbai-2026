@@ -6,15 +6,17 @@ import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import { approvalDigestFor, checkLease, evaluate } from './policy.ts'
+import { serveScans } from './scan.ts'
 import { loadOrCreateKey, makeSigner, recoverDigestSigner, type Signer } from './signer.ts'
 import { type ChipState, dayOf, makeState, type PairingFile } from './state.ts'
 
-// The mock chip (spec §8): `bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR]`. One log line per
-// event; never the key, the chip token or a signature.
+// The mock chip (spec §8): `bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR] [--local-port N]`.
+// One log line per event; never the key, the chip token or a signature. `--local-port` adds the scan listener on
+// 127.0.0.1 (scan.ts).
 
 class ChipFailure extends Schema.TaggedError<ChipFailure>()('ChipFailure', { message: Schema.String }) {}
 
-const usage = 'usage: bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR]'
+const usage = 'usage: bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR] [--local-port N]'
 
 const parseArgs = (argv: ReadonlyArray<string>, home: string) => {
   const value = (flag: string) => {
@@ -22,11 +24,14 @@ const parseArgs = (argv: ReadonlyArray<string>, home: string) => {
     return index >= 0 ? argv[index + 1] : undefined
   }
   const server = value('--server')
+  const localPort = value('--local-port')
   if (server === undefined) return undefined
+  if (localPort !== undefined && !/^[1-9][0-9]{0,4}$/.test(localPort)) return undefined
   return {
     origin: new URL(server).origin,
     pairingCode: value('--pair'),
     stateDir: value('--state') ?? `${home}/.vitaquack-chip`,
+    localPort: localPort === undefined ? undefined : Number(localPort),
   }
 }
 
@@ -196,6 +201,10 @@ const main = Effect.fnUntraced(function* (argv: ReadonlyArray<string>, home: str
   }
   if (pairing.server !== args.origin)
     return yield* new ChipFailure({ message: `paired with ${pairing.server}, not ${args.origin}` })
+  if (args.localPort !== undefined) {
+    yield* Effect.forkChild(serveScans(args.localPort, pairing, signer))
+    yield* log(`scan listener on http://127.0.0.1:${args.localPort}/scan`)
+  }
   return yield* serve(pairing, signer, state)
 })
 

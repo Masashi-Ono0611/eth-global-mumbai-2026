@@ -162,7 +162,7 @@ const fakeWorker = (chipAddress: `0x${string}`) => {
 }
 
 /** Read the chip's stdout until `done` matches a line or the deadline passes. */
-const readLines = async (stream: ReadableStream<Uint8Array>, done: RegExp, deadline: number) => {
+export const readLines = async (stream: ReadableStream<Uint8Array>, done: RegExp, deadline: number) => {
   const lines: string[] = []
   const reader = stream.getReader()
   const decoder = new TextDecoder()

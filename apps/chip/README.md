@@ -5,14 +5,15 @@ its own policy and only then signs the one-time payment voucher (a delegation le
 **mock chip** on a laptop and on the duck's **Radxa Zero 3W** (spec §8). Nothing in the Worker changes for hardware.
 
 ```sh
-bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR]
+bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR] [--local-port N]
 ```
 
-| Flag          | Meaning                                                                                                                                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--server`    | The app origin, e.g. `https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev` (only the origin is used). Every invoice the chip signs must live under it: `invoice.url == <origin>/api/i/<id>`. |
-| `--pair CODE` | The 8-character code from **/wallet/robots → Add robot** (valid 10 minutes, single use). Omit it on later starts: `pairing.json` remembers the robot.                                                               |
-| `--state DIR` | State directory, default `~/.vitaquack-chip`.                                                                                                                                                                       |
+| Flag             | Meaning                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--server`       | The app origin, e.g. `https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev` (only the origin is used). Every invoice the chip signs must live under it: `invoice.url == <origin>/api/i/<id>`. |
+| `--pair CODE`    | The 8-character code from **/wallet/robots → Add robot** (valid 10 minutes, single use). Omit it on later starts: `pairing.json` remembers the robot.                                                               |
+| `--state DIR`    | State directory, default `~/.vitaquack-chip`.                                                                                                                                                                       |
+| `--local-port N` | Optional, off by default: the scan listener `POST http://127.0.0.1:N/scan`, bound to 127.0.0.1 only (see below). The Worker answers 404 unless `APP_SCANS_ENABLED` is `true`.                                       |
 
 ## State directory (created 700)
 
@@ -25,6 +26,27 @@ bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR]
 
 Delete `pairing.json` to pair again (a robot's code works once; a revoked robot answers 401). Keep `key.json`: the
 grant's delegate is this address.
+
+## Scan listener (`--local-port N`)
+
+The camera process on the same board posts the QR crop it read. The chip refuses to sign more than a JPEG crop of at most
+64 KB (spec rule 4: no scene frames leave the chip). It computes the crop's SHA-256 and signs, EIP-191 with its key,
+`vitaquack-scan:v1|<invoiceId>|<0x sha256>|<capturedAt ms>|<robotId>`. It then posts
+`{invoiceId, capturedAt, frame: {mime, sha256, bytes, b64}, sig}` to `POST <server>/api/chips/<robotId>/scans` with its
+chip token, and answers with the Worker's status and JSON.
+
+```sh
+curl -s http://127.0.0.1:8787/scan -H 'content-type: application/json' \
+  -d "{\"invoiceId\":\"<invoiceId>\",\"jpegBase64\":\"$(base64 -w0 crop.jpg)\",\"capturedAt\":$(date +%s%3N)}"
+# 201 {"episodeId":"…","state":"signing","observationId":"…"}
+```
+
+The gate's QR carries `vq1:<invoiceId>`: send the id after `vq1:`. `capturedAt` (unix ms) is optional; the chip's
+clock is used when it is absent, and the Worker accepts ±120 s. Local 400s (never signed):
+`expected {"invoiceId", "jpegBase64", "capturedAt"?}`, `jpegBase64 is not base64`, `crop is larger than 64 KB`,
+`crop is not a JPEG`. Answers 502 when the Worker does not answer within 60 s. Every other status is the Worker's own
+(`docs/hardware-handoff.md`). Repeating a scan of the same invoice gets 200 with the same errand. The crop is stored
+owner-private in R2 and never sent to 0G; the episode evidence carries only its hash and the chip's signature.
 
 ## Log lines (one per event)
 
@@ -40,6 +62,9 @@ grant's delegate is this address.
 | `poll failed: …`                                         | first network error of a streak (retries every 2 s, silently).                                                        |
 | `chip token rejected (401): pair again with --pair CODE` | the robot was revoked or re-paired: exits.                                                                            |
 | `pairing refused (404\|409\|401): …`                     | unknown/expired code, code already used or chip already paired, or a bad signature.                                   |
+| `scan listener on http://127.0.0.1:N/scan`               | `--local-port N` given: the scan listener is up.                                                                      |
+| `scan <invoiceId> 0x<first 8 hex>… → <status>`           | a scan was signed and forwarded; the Worker's status (201 new errand, 200 repeat, 4xx refused).                       |
+| `scan failed: …`                                         | the Worker did not answer the forwarded scan (the listener answered 502).                                             |
 
 ## Policy (spec §8, in this order, before the key is used)
 
@@ -89,4 +114,5 @@ hashes, not the lines). Its pure-Python recovery took 187 ms per signature (H3);
 
 `apps/chip/test/policy.test.ts` (every refusal code) runs in `bun run test:unit`; the native suite runs the real CLI
 against a stand-in Worker (`packages/server/test/ChipAcceptance.ts`: paired, lease ok, signed, payment settled, STOP
-motors, key.json 600).
+motors, key.json 600). It also runs the CLI against the real local Worker with `--local-port`
+(`packages/server/test/ScanAcceptance.ts`: pairs, refuses a non-JPEG locally, forwards a crop → 201 `signing`).

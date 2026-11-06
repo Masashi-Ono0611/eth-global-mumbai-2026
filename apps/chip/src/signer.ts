@@ -29,6 +29,8 @@ export const makeSigner = (privateKey: Hex) => {
     /** EIP-191 `personal_sign` of `Vitaquack pair <code> <address lowercase> 5042`. */
     signPairing: (code: string) =>
       Effect.promise(() => account.signMessage({ message: pairMessage(code, account.address) })),
+    /** EIP-191 `personal_sign` of a scan's `scanMessage` (packages/protocol Scan.ts). */
+    signScan: (message: string) => Effect.promise(() => account.signMessage({ message })),
     /** EIP-712 `Delegation` under the DelegationManager's domain; `args` are not part of the signed struct. */
     signLeaf: (leaf: UnsignedDelegation) =>
       Effect.promise(() =>

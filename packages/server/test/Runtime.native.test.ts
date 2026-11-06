@@ -29,7 +29,11 @@ import {
   TEST_ZG_MODEL,
 } from './RobotAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
-import { registerScanAcceptance, registerScansOffAcceptance } from './ScanAcceptance.ts'
+import {
+  registerChipScanListenerAcceptance,
+  registerScanAcceptance,
+  registerScansOffAcceptance,
+} from './ScanAcceptance.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
 import { registerWorldStubAcceptance, TEST_ENFORCER_ADDRESS, TEST_WORLD_STUB_JWK } from './WorldStubAcceptance.ts'
@@ -348,6 +352,7 @@ registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
 registerAuditAcceptance(test, stack, zeroG, chainStub)
 registerScanAcceptance(test, stack, zeroG)
+registerChipScanListenerAcceptance(test, stack)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
 registerWorldStubAcceptance(test, stack, zeroG)

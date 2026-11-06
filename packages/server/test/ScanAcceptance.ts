@@ -7,7 +7,9 @@ import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { type Hex, sha256 } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { freshConnections, randomId } from './AgentSamples.ts'
+import { freshConnections, grantRow, randomId, randomPairingCode, sampleGrant } from './AgentSamples.ts'
+import { readLines } from './ChipAcceptance.ts'
+import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
 import { errandView, mintInvoice, postTo, seedRobot, type ZeroGStub } from './RobotAcceptance.ts'
 
@@ -209,4 +211,78 @@ export const registerScanAcceptance = (test: TestApi['test'], stack: Effect.Effe
       ])
     }).pipe(Effect.provide(freshConnections)),
     { timeout: 120000 },
+  )
+
+/** A free port on 127.0.0.1 for the chip's listener. */
+const freePort = Effect.promise(async () => {
+  const probe = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => new Response(null, { status: 404 }) })
+  const port = probe.port ?? 0
+  await probe.stop(true)
+  return port
+})
+
+/** An unpaired robot with a pairing code, granted to the chip key the CLI will load from its state directory. */
+const seedPairableRobot = Effect.fnUntraced(function* (url: string, accountId: string, chip: Hex) {
+  const robotId = randomId()
+  const pairingCode = randomPairingCode()
+  const post = postTo(url)
+  const robot = { id: robotId, accountId, pairingCode, chipAddress: null, chipToken: null }
+  expect((yield* post('/test/vq/robots', robot)).status).toBe(204)
+  const delegation = sampleGrant(chip, TEST_MERCHANT_PAY_TO)
+  const grant = grantRow({ robotId, accountId, delegation, payee: TEST_MERCHANT_PAY_TO })
+  expect((yield* post('/test/vq/grants', grant)).status).toBe(204)
+  return { robotId, pairingCode }
+})
+
+const postLocal = (port: number, body: unknown) =>
+  HttpClient.post(`http://127.0.0.1:${port}/scan`, {
+    body: HttpBody.text(JSON.stringify(body), 'application/json'),
+  }).pipe(Effect.flatMap((response) => Effect.map(response.json, (json) => ({ status: response.status, json }))))
+
+export const registerChipScanListenerAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
+  test(
+    'scans: the chip CLI pairs, and its 127.0.0.1 --local-port listener hashes, signs and forwards a camera crop',
+    Effect.gen(function* () {
+      const { appUrl, url, apiUrl } = yield* stack
+      const authenticator = yield* Effect.promise(() => makeSoftwareAuthenticator())
+      const { response } = yield* registerPasskey(appUrl, authenticator, 'Listener')
+      const { accountId } = yield* Schema.decodeUnknownEffect(Schema.Struct({ accountId: Schema.String }))(
+        yield* response.json,
+      )
+      const key = generatePrivateKey()
+      const state = `/tmp/vq-chip-${randomId()}`
+      yield* Effect.promise(() => Bun.write(`${state}/key.json`, JSON.stringify({ privateKey: key })))
+      const { robotId, pairingCode } = yield* seedPairableRobot(url, accountId, privateKeyToAccount(key).address)
+      const port = yield* freePort
+      const cli = ['bun', 'apps/chip/src/main.ts', '--server', apiUrl, '--pair', pairingCode, '--state', state]
+      const chip = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          Bun.spawn([...cli, '--local-port', String(port)], {
+            cwd: `${import.meta.dir}/../../..`,
+            stdout: 'pipe',
+            stderr: 'pipe',
+          }),
+        ),
+        (process) => Effect.sync(() => process.kill()),
+      )
+      const started = yield* Clock.currentTimeMillis
+      const lines = yield* Effect.promise(() => readLines(chip.stdout, /scan listener on/, started + 15_000))
+      expect(lines).toContain(`paired ${robotId}`)
+      expect(lines).toContain(`scan listener on http://127.0.0.1:${port}/scan`)
+
+      const invoiceId = yield* mintInvoice(appUrl)
+      expect(yield* postLocal(port, { invoiceId, jpegBase64: Base64.encode(Uint8Array.from([1, 2, 3])) })).toEqual({
+        status: 400,
+        json: { error: 'crop is not a JPEG' },
+      })
+      const forwarded = yield* postLocal(port, { invoiceId, jpegBase64: Base64.encode(sampleCrop()) })
+      expect(forwarded).toMatchObject({ status: 201, json: { state: 'signing' } })
+      expect((yield* Schema.decodeUnknownEffect(Started)(forwarded.json)).observationId).toMatch(/^[a-z2-7]{26}$/)
+      const logged = (yield* Effect.promise(() =>
+        readLines(chip.stdout, /scan \S+ 0x[0-9a-f]{8}… → 201/, started + 25_000),
+      )).join('\n')
+      expect(logged).toMatch(new RegExp(`scan ${invoiceId} 0x[0-9a-f]{8}… → 201`))
+      expect([...lines, logged].join('\n')).not.toContain(key.slice(2))
+    }).pipe(Effect.scoped, Effect.provide(freshConnections)),
+    { timeout: 60000 },
   )
