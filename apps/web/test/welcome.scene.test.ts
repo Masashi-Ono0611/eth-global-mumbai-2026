@@ -66,6 +66,7 @@ describe('/welcome (first steps after the passkey wallet)', () => {
       expect(role('heading', { name: 'Add money' })).toExist(),
       click(role('button', { name: "I'll add money later" })),
       expect(role('heading', { name: 'Add your robot' })).toExist(),
+      expect(text(/Your wallet has/)).not.toExist(),
     )
     scene(
       { update: Welcome.update, view },

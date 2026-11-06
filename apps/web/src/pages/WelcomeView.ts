@@ -81,8 +81,11 @@ const fundStep = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
 ]
 
 const robotStep = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  // Only money in is news here (green): an empty wallet says nothing on this step.
   const balance =
-    Funds.guards.Loaded(model.funds) && model.funds.balanceUnits !== null ? usdc(model.funds.balanceUnits) : null
+    Funds.guards.Loaded(model.funds) && model.funds.balanceUnits !== null && BigInt(model.funds.balanceUnits) > 0n
+      ? usdc(model.funds.balanceUnits)
+      : null
   return [
     ...intro(format(locale, 'welcome.robotTitle', {}), format(locale, 'welcome.robotLead', {}), h),
     balance === null
