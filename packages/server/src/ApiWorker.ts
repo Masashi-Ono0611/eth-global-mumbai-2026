@@ -1,7 +1,7 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as AlchemyHttp from 'alchemy/Http'
 import { decodeSessionKeyring, relyingPartyFromOrigin } from '@ethmumbai/auth'
-import { Context, Effect, Layer } from 'effect'
+import { Context, Effect, Layer, Option } from 'effect'
 import { HttpServerRequest } from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import { AuthOrigin } from './auth/Origin.ts'
@@ -11,6 +11,8 @@ import { DomainLive } from './DomainLive.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
 import { AppDatabase } from './Resources.ts'
+import { noApprovals } from './robot/Errands.ts'
+import { robotAgentRoutes } from './RobotAgent.ts'
 import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
 
 const Runtime = Layer.mergeAll(
@@ -55,8 +57,16 @@ export default ApiWorker.make(
         const services = Context.make(AuthOrigin, relyingPartyFromOrigin(authOrigin)).pipe(
           Context.add(SessionAuth, yield* makeSessionAuth(database, sessionKeys)),
         )
+        const robotAgent = yield* robotAgentRoutes({
+          database,
+          env,
+          origin: authOrigin,
+          settlement: Option.none(),
+          approvals: noApprovals,
+        })
         const routes = Layer.mergeAll(
           authRoutes(database),
+          robotAgent.layer,
           HttpRouter.add('GET', '/api/health', health(observabilityBase.release)),
         ).pipe(Layer.provide(AlchemyHttp.Platform))
         const handle = yield* HttpRouter.toHttpEffect(routes).pipe(Effect.orDie)

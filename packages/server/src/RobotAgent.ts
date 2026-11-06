@@ -1,0 +1,50 @@
+import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
+import { Effect, Layer, Option, Redacted, Schema } from 'effect'
+import { chipRoutes } from './chip/Routes.ts'
+import { merchantPayees, merchantRoutes } from './merchant/Routes.ts'
+import type { Settlement } from './merchant/X402.ts'
+import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
+import { evidenceRoutes } from './robot/Evidence.ts'
+import { robotRoutes } from './robot/routes.ts'
+import { ZeroGBindings } from './robot/ZeroGClient.ts'
+import { type Bindings, optionalBinding } from './Respond.ts'
+
+const EvidenceToken = Schema.String.check(Schema.isMinLength(16))
+
+/**
+ * The merchant (§7), the chip protocol (§8), the Robot Agent's errands and the evidence queue (§6), from the Worker's
+ * bindings. Feature bindings are optional: a missing one makes only its own routes answer 503 "not configured".
+ * The returned `errands` are what the World callback (§9) calls to continue or deny an errand.
+ */
+export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(function* (input: {
+  readonly database: QueryDatabaseClient
+  readonly env: Bindings
+  readonly origin: string
+  readonly settlement: Option.Option<Settlement>
+  readonly approvals: ApprovalPort
+}) {
+  const { database, env, origin, settlement, approvals } = input
+  const baseUrl = yield* optionalBinding(env, 'ZG_BASE_URL', ZeroGBindings.baseUrl)
+  const apiKey = yield* optionalBinding(env, 'ZG_API_KEY', ZeroGBindings.apiKey)
+  const model = yield* optionalBinding(env, 'ZG_MODEL', ZeroGBindings.model)
+  const evidenceToken = yield* optionalBinding(env, 'EVIDENCE_TOKEN', EvidenceToken)
+  const payees = yield* merchantPayees(env)
+  const errands: ErrandDeps = {
+    database,
+    origin,
+    payees,
+    zeroG: Option.map(Option.all({ baseUrl, apiKey, model }), (zeroG) => ({
+      ...zeroG,
+      apiKey: Redacted.make(zeroG.apiKey),
+    })),
+    settlement,
+    approvals,
+  }
+  const layer = Layer.mergeAll(
+    yield* merchantRoutes(database, env, origin, settlement, payees),
+    chipRoutes(database, errandChipHooks(errands)),
+    robotRoutes(errands),
+    evidenceRoutes(database, Option.map(evidenceToken, Redacted.make)),
+  )
+  return { layer, errands }
+})
