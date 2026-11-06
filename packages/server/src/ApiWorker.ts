@@ -12,6 +12,7 @@ import { DomainLive } from './DomainLive.ts'
 import { features } from './Features.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
+import { PRODUCTION_NAMES, pinnedOnMain } from './ProductionNames.ts'
 import { AppDatabase } from './Resources.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
 import { walletRoutes } from './wallet/Routes.ts'
@@ -30,7 +31,7 @@ const Runtime = Layer.mergeAll(
 export class ApiWorker extends Cloudflare.Worker<ApiWorker, Cloudflare.WorkerShape>()('Api') {}
 
 export default ApiWorker.make(
-  {
+  Effect.map(pinnedOnMain(PRODUCTION_NAMES.api), (pin) => ({
     main: import.meta.url,
     // Keep local workerd and deployed Workers on the same supported date; telemetry needs >= 2026-07-28.
     compatibility: { date: '2026-10-19' },
@@ -41,7 +42,8 @@ export default ApiWorker.make(
       logs: { enabled: true, invocationLogs: true },
       traces: { enabled: true, headSamplingRate: 1 },
     },
-  },
+    ...pin,
+  })),
   Effect.gen(function* () {
     const database = yield* Cloudflare.D1.QueryDatabase(AppDatabase)
     // Bindings configured by the stack (including the web origin and secrets) exist only in the deployed request

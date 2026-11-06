@@ -3,6 +3,7 @@ import * as Alchemy from 'alchemy'
 import { Config, Effect, Redacted } from 'effect'
 import { AppMedia } from '@ethmumbai/server/Resources'
 import ApiWorkerLive, { ApiWorker } from '@ethmumbai/server/ApiWorker'
+import { PRODUCTION_NAMES, pinnedOnMain } from '@ethmumbai/server/ProductionNames'
 
 const PENDING = 'pending'
 const plain = (name: string) => Config.String(name).pipe(Config.withDefault(PENDING))
@@ -26,6 +27,7 @@ export default Alchemy.Stack(
     yield* AppMedia
     const api = yield* ApiWorker
     const website = yield* Cloudflare.Website.Foldkit('Website', {
+      ...(yield* pinnedOnMain(PRODUCTION_NAMES.website)),
       rootDir: 'apps/web',
       env: { VITE_APP_ENV: environment, VITE_APP_RELEASE: release },
       compatibility: { date: '2026-10-19' },
@@ -38,6 +40,7 @@ export default Alchemy.Stack(
       workersDev: { enabled: false, previewsEnabled: false },
     })
     const edge = yield* Cloudflare.Worker('Edge', {
+      ...(yield* pinnedOnMain(PRODUCTION_NAMES.edge)),
       main: 'packages/server/src/EdgeWorker.ts',
       env: { API: api, WEBSITE: website },
       // Service-binding fetch enters the SSR handler without the website's

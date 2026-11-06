@@ -17,7 +17,13 @@ export default Alchemy.Stack(
   { providers: Cloudflare.providers(), state: Cloudflare.state({ name: 'ethmumbai' }) },
   Effect.gen(function* () {
     // Comments are the team's feedback: a stack teardown keeps them.
-    const comments = yield* Cloudflare.D1.Database('CommentsDatabase', { migrations: 'migrations' }).pipe(retain())
+    // The `prod` database's name is pinned (6 Nov 2026): with the state store's records unreadable, a deploy without
+    // prior state adopts this exact database instead of creating an empty one.
+    const stage = yield* Alchemy.Stage
+    const comments = yield* Cloudflare.D1.Database('CommentsDatabase', {
+      migrations: 'migrations',
+      ...(stage === 'prod' ? { name: 'EthMumbaiSite-CommentsDatabase-prod-jc46wcbykvahhk7a' } : {}),
+    }).pipe(retain())
     const site = yield* Cloudflare.Website.StaticSite('Site', {
       name: 'eth-mumbai-site',
       main: 'worker.ts',
