@@ -78,7 +78,7 @@ an experiment in how robots will pay:** with your money, by your rules, and with
 | 2 | **You add a robot to it** | Pairing code, then "paired · online" | "The duck gets its own wallet: a key on its chip that never leaves it." | — |
 | 3 | **You give it a budget** | The grant sentence, one passkey signature | "The money stays in your wallet. The duck gets permission, not money: a dollar a day, thirty cents a payment, only at this café." | enforced on Arc |
 | 4 | **It buys for you** | "Buy chai": it decides, the chip signs, it pays, the gate opens | "It decides, signs and pays by itself, inside the budget." | decided by 0G |
-| 5 | **Bigger things ask you first** | 0.50, over the cap: your phone asks, you deny, then approve | "Over its limit, it has to ask. Say no and nothing is paid." | World ID |
+| 5 | **Bigger things ask you first** | a 2.00 thali, over the 1.00 per-payment cap: your phone asks, you deny, then approve | "Over its limit, it has to ask. Say no and nothing is paid." | World ID |
 | 6 | **You can see why** | The activity list: what it bought, why it decided that, who approved, the receipt | "Every decision has a reason you can read, and a receipt." | episodes on 0G |
 | 7 | **You can stop it** | Revoke, then the next buy is refused | "One tap and it's cut off, and not even our servers can undo that." | Arc refuses |
 | 8 | **What's next** | Many robots, one wallet | "Every robot gets a budget, not your wallet." | Arc · 0G · World |
@@ -94,7 +94,7 @@ These are ordered by value against the time left. Cost estimates are ours; nothi
    errand. The wallet's Activity list (`apps/web/src/pages/Wallet.ts:107`) shows only the item, state, amount and tx.
    Add three things to each row: the decision and its reason, who approved it (World or the owner's own Deny), and a
    link to the episode on 0G Storage. That makes the visibility beat true, and it doubles as the 0G and World booth
-   demos. About 1–2 h: a protocol field, the view, i18n in 5 languages.
+   demos. About 1–2 h: a protocol field, the view, the English copy.
 2. **Show "spent today, left today" read from Arc.** `ERC20PeriodTransferEnforcer.getAvailableAmount` returns what the
    duck can still spend in the current period. The robot card would show "0.60 of 1.00 spent today". The number comes
    from the contract that enforces the limit, so the UI cannot drift from what Arc will allow. That is beat 3 made
@@ -129,7 +129,7 @@ These are ordered by value against the time left. Cost estimates are ours; nothi
 - a delivery robot paying for its own charging
 - an AI agent paying per API call
 - a fleet with one budget per machine
-- a household robot with an "ask me first" list
+- a household robot with a daily limit
 
 **Proof, all real tx hashes:**
 - paid within the budget
@@ -154,8 +154,8 @@ could be a roadmap slide, or a build we haven't scoped; Gateway lists Arc mainne
 
 **What World brings us:** proof that a **real, unique, verified human**, the owner, stands behind the robot's big
 decisions. A robot can't prove that about itself; World ID can.
-- When the duck wants to spend over its cap, or buy something on the owner's ask-me-first list, the owner signs in
-  freshly with World ID in World App.
+- When the duck wants to spend over its per-payment cap (a 2.00 thali against a 1.00 cap), the owner signs in freshly
+  with World ID in World App.
 - The sign-in is bound to that exact payment: its EIP-712 digest is the OIDC nonce.
 - Our backend verifies the token (Orb `acr`, a fresh `auth_time`, `jti` once, `sub` bound to the wallet) and co-signs
   that one payment. Arc won't settle it without that co-signature, so the approval is enforced on-chain and is more
@@ -182,9 +182,10 @@ and resume only after your backend accepts the authentication." Payments are its
 - **World's only age feature is preview-only.** IDKit's Identity Check `minimum_age` "is currently in preview. To use it
   or learn more, contact us." The `passport` preset proves only that the user holds a verified passport
   (<https://docs.world.org/world-id/idkit/credentials>).
-- **So a restricted item is the owner's own rule, approved by the owner, never an age check.** Say it before anyone
-  asks: "World tells us the verified owner approved this exact payment, just now. It doesn't tell us anyone's age, and
-  we don't claim it does."
+- **So restricted items are out (Kris, 6 Nov 17:40 IST): the demo's approval story is spending limits only.** A 2.00
+  thali over the 1.00 per-payment cap asks the owner with World ID; a thali over the 3.00 daily cap makes the robot walk
+  away; after a revoke, Arc refuses. If anyone asks about age: "World tells us the verified owner approved this exact
+  payment, just now. It doesn't tell us anyone's age, and we don't claim it does."
 
 ## 6. 0G version: 0G runs the AI and keeps the episodes
 
