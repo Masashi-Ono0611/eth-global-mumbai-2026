@@ -90,6 +90,9 @@ export class WaypointSource {
       // click budget allows, or a slow deliberate press - either way, not
       // a click.
       if (moved > WAYPOINT_CLICK_SLOP || held > WAYPOINT_CLICK_MS) return;
+      // Vitaquack: a click on the scene (say, to leave the errand box) does not replace a walk the errand is driving;
+      // Stop in the owner's panel, or the keys, still take over.
+      if (this.#prog) return;
       this.#setTargetFromEvent(e);
     };
     window.addEventListener("pointerdown", this.#onDown);

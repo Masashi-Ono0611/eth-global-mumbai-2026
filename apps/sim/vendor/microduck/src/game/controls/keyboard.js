@@ -25,6 +25,10 @@ const ACTION_KEYS = {
   KeyF: "alternateKick",
 };
 
+/** Vitaquack: true while the key goes to a text field, so the engine's shortcuts leave it alone. */
+export const isTypingTarget = (target) =>
+  target instanceof HTMLElement && (target.isContentEditable || target.matches("input, textarea, select"));
+
 export class KeyboardSource {
   id = "keyboard";
   connected = true; // a keyboard is always assumed present
@@ -49,6 +53,8 @@ export class KeyboardSource {
   init() {
     this.#onKeyDown = (e) => {
       if (e.repeat) return;
+      // Vitaquack: keys typed into a text field (the owner's errand box) are text, not duck controls.
+      if (isTypingTarget(e.target)) return;
       // Space always resets, and must not scroll the page.
       if (e.code === "Space") {
         e.preventDefault();

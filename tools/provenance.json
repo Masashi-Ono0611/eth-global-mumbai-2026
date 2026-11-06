@@ -167,7 +167,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/PROVENANCE.md",
-      "sha256": "e520b94fb96ca5664681a0949857e5861b2a7558c8a442ce9129f0a9613fe240"
+      "sha256": "1ee5b50d3a379e2bcfba1764b38a13a5ac81fa334927443859641cd594884ebb"
     },
     {
       "path": "apps/sim/vendor/microduck/src/App.jsx",
@@ -207,7 +207,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/controls/keyboard.js",
-      "sha256": "9eaa6bdb74212df4daa19778acf2eb61f636db6eabf1da44bdeafdf9bdfd342b"
+      "sha256": "129d3b1bda6e1f19d124cae033d81ac38ec1db2d2ae245c1f6ccdca2080640f9"
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/controls/touch.js",
@@ -215,7 +215,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/controls/waypoint.js",
-      "sha256": "a6a24820dc25d0db16deb7d07a75789a4cd61d515e5028f1c2e1f35b455f67f7"
+      "sha256": "febd285cd1a6c052e6d40f1d1ef2e65cf0f71af65b9f4a2b9dda9c94acdc32f0"
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/custom-policy.js",
@@ -307,7 +307,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/ui/TitleMenu.jsx",
-      "sha256": "f00ea96d1096432c0e1740baf0035c8d77c0876dc54bd3af9200a906f0dc617b"
+      "sha256": "1e607697dbb8afcfbd4145d75cca111b5261339ff6cae98d0c2b3c76dcbab287"
     },
     {
       "path": "apps/sim/vendor/microduck/src/ui/TouchOverlay.jsx",

@@ -33,6 +33,10 @@ ONNX walking policy at 50 Hz, the three.js rig, the R3F canvas and Pollen's HUD.
   a link, at the foot of the owner's panel.
 - `src/ui/Hud.jsx`, `src/game/game.js`: no colour/locomotion quickbar, and the loco toggle (M key, gamepad) is not
   wired, so the sim duck walks on its feet only (7 Nov 2026).
+- `src/game/controls/keyboard.js`, `src/ui/TitleMenu.jsx`: keys typed into a text field (the owner's errand box) do
+  not drive the duck or the title/pause menu (`isTypingTarget`, 7 Nov 2026).
+- `src/game/controls/waypoint.js`: a click on the scene does not replace a programmatic walk (an errand's `go_to`);
+  the keys still take over (7 Nov 2026).
 
 ## Checks
 
