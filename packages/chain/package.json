@@ -1,0 +1,16 @@
+{
+  "name": "@ethmumbai/chain",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@ethmumbai/protocol": "workspace:*",
+    "@metamask/smart-accounts-kit": "catalog:",
+    "effect": "catalog:",
+    "viem": "catalog:"
+  }
+}

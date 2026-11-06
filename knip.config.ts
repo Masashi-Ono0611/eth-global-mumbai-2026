@@ -9,6 +9,7 @@ export default {
       // which a fresh CI checkout doesn't have, so knip's lefthook plugin can't see it there.
       ignoreDependencies: ['@effect/language-service', 'lefthook'],
     },
+    'apps/chip': { entry: ['src/main.ts!', 'test/**/*.test.ts'], project: ['src/**/*.ts', 'test/**/*.ts'] },
     'apps/web': {
       entry: ['src/entry.ts!', 'src/entry.server.ts!', 'test/**/*.test.ts'],
       project: ['src/**/*.ts', 'test/**/*.ts'],

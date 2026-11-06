@@ -1,0 +1,15 @@
+{
+  "name": "@ethmumbai/chip",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@ethmumbai/protocol": "workspace:*",
+    "effect": "catalog:",
+    "viem": "catalog:"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}

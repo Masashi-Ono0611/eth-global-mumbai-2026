@@ -10,11 +10,13 @@
     "@alchemy.run/cloudflare": "catalog:",
     "@alchemy.run/domain": "catalog:",
     "@ethmumbai/auth": "workspace:*",
+    "@ethmumbai/chain": "workspace:*",
     "@ethmumbai/domain": "workspace:*",
     "@ethmumbai/i18n": "workspace:*",
     "@ethmumbai/observability": "workspace:*",
-    "@yielded/auth": "catalog:",
+    "@ethmumbai/protocol": "workspace:*",
     "alchemy": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "viem": "catalog:"
   }
 }

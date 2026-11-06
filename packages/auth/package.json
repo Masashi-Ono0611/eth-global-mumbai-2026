@@ -5,16 +5,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
-    "./config": "./src/config.ts",
-    "./storage": "./src/storage.ts",
-    "./attempt-limiter": "./src/AttemptLimiter.ts"
+    "./config": "./src/config.ts"
   },
   "dependencies": {
-    "@effect/sql-d1": "catalog:",
-    "@ethmumbai/db": "workspace:*",
-    "@yielded/auth": "catalog:",
-    "@yielded/auth-persistence-drizzle": "catalog:",
-    "drizzle-orm": "catalog:",
+    "@simplewebauthn/server": "catalog:",
     "effect": "catalog:"
   }
 }
