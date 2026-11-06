@@ -2,6 +2,7 @@ import { Schema } from 'effect'
 import { SessionView } from '@ethmumbai/auth/config'
 import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
+import { Dialog } from '@foldkit/ui'
 import { Locale } from './Locale.ts'
 import { Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Robots, Wallet } from './pageModules.ts'
 import { AppRoute } from './route.ts'
@@ -36,6 +37,8 @@ export const Model = Schema.Struct({
   route: AppRoute,
   auth: AuthState,
   displayName: Schema.String,
+  /** The avatar's bottom sheet: who is signed in, the audit log, sign out. */
+  profileSheet: Dialog.Model,
   /** The owner pages keep their own state; only the current route's is present. */
   maybeWallet: Schema.Option(Wallet.Model),
   maybeRobots: Schema.Option(Robots.Model),

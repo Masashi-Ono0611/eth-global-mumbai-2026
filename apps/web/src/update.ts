@@ -1,7 +1,9 @@
 import { Option, String } from 'effect'
-import type { Update } from 'foldkit'
+import { Update } from 'foldkit'
+import { Dialog } from '@foldkit/ui'
+import type { SessionView } from '@ethmumbai/auth/config'
 import { modifyFields } from 'foldkit/struct'
-import { CreatePasskeyWallet, ReadSession, SignInWithPasskey, SignOut, type Services } from './command.ts'
+import { CreatePasskeyWallet, OpenWallet, ReadSession, SignInWithPasskey, SignOut, type Services } from './command.ts'
 import { Message } from './message.ts'
 import { AuthState, type Flags, type Model } from './model.ts'
 import {
@@ -15,7 +17,7 @@ import {
   foldWallet,
   initPages,
 } from './pages.ts'
-import { routeFromPathname } from './route.ts'
+import { AppRoute, routeFromPathname } from './route.ts'
 
 type UpdateReturn = Update.Return<Model, Message, Services>
 
@@ -28,10 +30,43 @@ export const init = (context: Flags): UpdateReturn => {
       route,
       auth: AuthState.Checking(),
       displayName: '',
+      profileSheet: Dialog.init({ id: 'profile' }),
       ...pages.pages,
     },
     commands: [ReadSession(), ...('commands' in pages ? pages.commands : [])],
   }
+}
+
+const foldSheetOutMessage = Dialog.OutMessage.match<Update.Step<Model, Message>>({
+  Opened: () => (model) => ({ model }),
+  Closed: () => (model) => ({ model }),
+})
+
+const foldProfileSheet = Update.foldChild({
+  update: Dialog.update,
+  read: (model: Model) => Option.some(model.profileSheet),
+  write: (model: Model, nextSheet: Dialog.Model) => modifyFields(model, { profileSheet: () => nextSheet }),
+  toParentMessage: (message: Dialog.Message) => Message.GotProfileSheetMessage({ message }),
+  foldOutMessage: foldSheetOutMessage,
+})
+
+const foldProfileSheetOpen = Update.foldChildStep({
+  update: Dialog.open,
+  read: (model: Model) => Option.some(model.profileSheet),
+  write: (model: Model, nextSheet: Dialog.Model) => modifyFields(model, { profileSheet: () => nextSheet }),
+  toParentMessage: (message: Dialog.Message) => Message.GotProfileSheetMessage({ message }),
+  foldOutMessage: foldSheetOutMessage,
+})
+
+/**
+ * Signed in: the sign-in page hands over to the wallet; any other page reloads its data, which it first read
+ * without a session.
+ */
+const signedIn = (model: Model, session: SessionView): UpdateReturn => {
+  const next = modifyFields(model, { auth: () => AuthState.SignedIn({ session }), displayName: () => '' })
+  if (AppRoute.guards.Home(model.route)) return { model: next, commands: [OpenWallet()] }
+  const pages = initPages(model.route)
+  return { model: { ...next, ...pages.pages }, commands: 'commands' in pages ? pages.commands : [] }
 }
 
 /** A passkey ceremony may start only from a signed-out page that is not already running one. */
@@ -50,9 +85,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         commands: [CreatePasskeyWallet({ displayName })],
       }
     },
-    SucceededCreatePasskeyWallet: ({ session }) => ({
-      model: modifyFields(model, { auth: () => AuthState.SignedIn({ session }), displayName: () => '' }),
-    }),
+    SucceededCreatePasskeyWallet: ({ session }) => signedIn(model, session),
     FailedCreatePasskeyWallet: ({ failure }) => ({
       model: modifyFields(model, { auth: () => AuthState.Refused({ failure }) }),
     }),
@@ -60,21 +93,18 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       canStartCeremony(model.auth)
         ? { model: modifyFields(model, { auth: () => AuthState.SigningIn() }), commands: [SignInWithPasskey()] }
         : { model },
-    SucceededSignInWithPasskey: ({ session }) => ({
-      model: modifyFields(model, { auth: () => AuthState.SignedIn({ session }) }),
-    }),
+    SucceededSignInWithPasskey: ({ session }) => signedIn(model, session),
     FailedSignInWithPasskey: ({ failure }) => ({
       model: modifyFields(model, { auth: () => AuthState.Refused({ failure }) }),
     }),
-    SucceededReadSession: ({ maybeSession }) => ({
-      model: modifyFields(model, {
-        auth: () =>
-          Option.match(maybeSession, {
-            onNone: () => AuthState.SignedOut(),
-            onSome: (session) => AuthState.SignedIn({ session }),
-          }),
+    SucceededReadSession: ({ maybeSession }) =>
+      Option.match(maybeSession, {
+        onNone: () => ({ model: modifyFields(model, { auth: () => AuthState.SignedOut() }) }),
+        onSome: (session) => ({
+          model: modifyFields(model, { auth: () => AuthState.SignedIn({ session }) }),
+          commands: AppRoute.guards.Home(model.route) ? [OpenWallet()] : [],
+        }),
       }),
-    }),
     FailedReadSession: () => ({ model: modifyFields(model, { auth: () => AuthState.Unavailable() }) }),
     ClickedRetrySession: () => ({
       model: modifyFields(model, { auth: () => AuthState.Checking() }),
@@ -90,7 +120,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         commands: [SignOut()],
       }
     },
-    SucceededSignOut: () => ({ model: modifyFields(model, { auth: () => AuthState.SignedOut() }) }),
+    SucceededSignOut: () => ({
+      model: modifyFields(model, {
+        auth: () => AuthState.SignedOut(),
+        profileSheet: () => Dialog.init({ id: 'profile' }),
+      }),
+    }),
+    ClickedProfile: () => foldProfileSheetOpen(model),
+    GotProfileSheetMessage: ({ message: sheetMessage }) => foldProfileSheet(model, sheetMessage),
+    CompletedOpenWallet: () => ({ model }),
     GotWalletMessage: ({ message: walletMessage }) => foldWallet(model, walletMessage),
     GotRobotsMessage: ({ message: robotsMessage }) => foldRobots(model, robotsMessage),
     GotConsoleMessage: ({ message: consoleMessage }) => foldConsole(model, consoleMessage),

@@ -1,6 +1,7 @@
 import { Schema } from 'effect'
 import { SessionView } from '@ethmumbai/auth/config'
 import { defineMessageUnion } from 'foldkit/message'
+import { Dialog } from '@foldkit/ui'
 import { AuthFailure } from './model.ts'
 import { Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Robots, Wallet } from './pageModules.ts'
 
@@ -16,6 +17,9 @@ export const Message = defineMessageUnion({
   FailedReadSession: {},
   ClickedRetrySession: {},
   ClickedSignOut: {},
+  ClickedProfile: {},
+  GotProfileSheetMessage: { message: Dialog.Message },
+  CompletedOpenWallet: {},
   SucceededSignOut: {},
   FailedSignOut: {},
   GotWalletMessage: { message: Wallet.Message },

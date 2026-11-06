@@ -1,9 +1,12 @@
 import { format, type Locale } from '@ethmumbai/i18n'
 import { Option } from 'effect'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
+import { Dialog } from '@foldkit/ui'
+import type { SessionView } from '@ethmumbai/auth/config'
+import { sheetTitleClassName, sheetView } from './Sheet.ts'
 import { Message } from './message.ts'
 import { AuthState, type Model } from './model.ts'
-import { homeView } from './pages/Home.ts'
+import { architectureUrl, homeView } from './pages/Home.ts'
 import * as Approval from './pages/Approval.ts'
 import { episodeView } from './pages/EpisodeView.ts'
 import * as Episodes from './pages/Episodes.ts'
@@ -12,21 +15,109 @@ import * as Merchant from './pages/merchant/Merchant.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { robotsView } from './pages/RobotsView.ts'
 import * as Wallet from './pages/Wallet.ts'
-import { AppRoute, episodesRouter, homeRouter, robotsRouter, walletRouter } from './route.ts'
-/** Links to the owner pages once the session is known. */
-const ownerNav = (model: Model, h: HtmlBuilder<Message>): Html => {
+import { AppRoute, episodesRouter, homeRouter, walletRouter } from './route.ts'
+// STYLES
+
+const appShellClassName =
+  'mx-auto flex min-h-svh w-full max-w-[30rem] flex-col pt-[env(safe-area-inset-top)] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))]'
+const topBarClassName = 'flex items-center justify-between px-1.5 pt-2 pb-1'
+const avatarClassName =
+  'grid size-11 cursor-pointer place-items-center rounded-full bg-ink pt-0.5 font-display text-lg font-bold text-surface transition-transform active:scale-[0.96]'
+const profileListClassName =
+  'grid gap-1 [&_a]:flex [&_a]:min-h-11 [&_a]:items-center [&_a]:no-underline [&_a]:font-semibold'
+const profileAddressClassName = 'font-mono text-sm break-all text-muted'
+const signOutClassName =
+  'min-h-12 cursor-pointer rounded-control bg-error-soft font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
+const wideNavClassName = 'flex gap-4'
+
+/** The audit, merchant and gate pages keep the wide layout and a small masthead until they are redesigned. */
+const wideNav = (model: Model, h: HtmlBuilder<Message>): Html => {
   const { locale } = model.context
   return AuthState.guards.SignedIn(model.auth)
     ? h.nav(
-        [h.Class('owner-nav')],
+        [h.Class(wideNavClassName)],
         [
           h.a([h.Href(walletRouter())], [format(locale, 'wallet.title', {})]),
-          h.a([h.Href(robotsRouter())], [format(locale, 'robots.title', {})]),
           h.a([h.Href(episodesRouter())], [format(locale, 'episodes.title', {})]),
         ],
       )
     : h.empty
 }
+
+/** The avatar's sheet: who is signed in, their address, the audit log and sign out. */
+const profileSheet = (model: Model, session: SessionView, signingOut: boolean, h: HtmlBuilder<Message>): Html => {
+  const { locale } = model.context
+  return h.submodel({
+    slotId: model.profileSheet.id,
+    model: model.profileSheet,
+    view: Dialog.view,
+    viewInputs: {
+      hasDescription: true,
+      toView: (render: Dialog.RenderInfo) =>
+        sheetView(
+          render,
+          [
+            h.h2([...render.title, h.Class(sheetTitleClassName)], [session.displayName]),
+            h.div(
+              [...render.description, h.Class('grid gap-1')],
+              [
+                h.p([h.Class('text-muted')], [format(locale, 'profile.address', {})]),
+                h.p([h.Class(profileAddressClassName)], [session.smartAccount]),
+              ],
+            ),
+            h.div(
+              [h.Class(profileListClassName)],
+              [
+                h.a([h.Href(episodesRouter())], [format(locale, 'profile.records', {})]),
+                h.a([h.Href(architectureUrl)], [format(locale, 'profile.howItWorks', {})]),
+              ],
+            ),
+            h.button(
+              [
+                h.Type('button'),
+                h.Class(signOutClassName),
+                h.Disabled(signingOut),
+                h.OnClick(Message.ClickedSignOut()),
+              ],
+              [format(locale, 'auth.signOut', {})],
+            ),
+          ],
+          h,
+        ),
+    },
+    toParentMessage: (message) => Message.GotProfileSheetMessage({ message }),
+  })
+}
+
+/** The wallet home's top bar: the avatar opens the profile sheet. */
+const walletTopBar = (model: Model, h: HtmlBuilder<Message>): Html =>
+  AuthState.match(model.auth, {
+    SignedIn: ({ session }) => topBar(model, session, false, h),
+    SigningOut: ({ session }) => topBar(model, session, true, h),
+    Checking: () => h.empty,
+    SignedOut: () => h.empty,
+    Refused: () => h.empty,
+    CreatingWallet: () => h.empty,
+    SigningIn: () => h.empty,
+    Unavailable: () => h.empty,
+  })
+
+const topBar = (model: Model, session: SessionView, signingOut: boolean, h: HtmlBuilder<Message>): Html =>
+  h.header(
+    [h.Class(topBarClassName)],
+    [
+      h.button(
+        [
+          h.Type('button'),
+          h.Class(avatarClassName),
+          h.AriaLabel(format(model.context.locale, 'profile.open', {})),
+          h.OnClick(Message.ClickedProfile()),
+        ],
+        [session.displayName.trim().slice(0, 1).toUpperCase()],
+      ),
+      profileSheet(model, session, signingOut, h),
+    ],
+  )
 
 const notFoundView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.main(
@@ -200,19 +291,51 @@ const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
   })
 }
 
+/** The owner's app: sign-in, the wallet, robots and approvals, in one phone-width column. */
+const isOwnerRoute = (route: AppRoute): boolean =>
+  AppRoute.match(route, {
+    Home: () => true,
+    Wallet: () => true,
+    Robots: () => true,
+    RobotConsole: () => true,
+    Approval: () => true,
+    Episodes: () => false,
+    RobotEpisodes: () => false,
+    Episode: () => false,
+    Merchant: () => false,
+    Gate: () => false,
+    NotFound: () => false,
+  })
+
+/** Without a session an owner page shows the passkey sign-in in its place; it reloads its data once signed in. */
+const needsSignIn = (auth: AuthState): boolean =>
+  AuthState.guards.SignedOut(auth) ||
+  AuthState.guards.Refused(auth) ||
+  AuthState.guards.CreatingWallet(auth) ||
+  AuthState.guards.SigningIn(auth)
+
+const ownerBody = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
+  if (AppRoute.guards.Home(model.route) || needsSignIn(model.auth)) return homeView(model, h)
+  return AppRoute.guards.Wallet(model.route)
+    ? h.div([h.Class('contents')], [walletTopBar(model, h), page.body])
+    : page.body
+}
+
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { locale } = model.context
   const page = pageOf(model, h)
+  const base = { title: `${page.title} | Vitaquack`, lang: locale, dir: 'Ltr' as const }
+  if (isOwnerRoute(model.route)) {
+    return { ...base, body: h.div([h.Class(appShellClassName)], [ownerBody(model, page, h)]) }
+  }
   return {
-    title: `${page.title} | Vitaquack`,
-    lang: locale,
-    dir: 'Ltr',
+    ...base,
     body: h.div(
       [h.Class('site')],
       [
         h.header(
           [h.Class('masthead')],
-          [h.a([h.Href(homeRouter()), h.Class('brand')], ['Vitaquack']), ownerNav(model, h)],
+          [h.a([h.Href(walletRouter()), h.Class('brand')], ['Vitaquack']), wideNav(model, h)],
         ),
         page.body,
         h.footer(

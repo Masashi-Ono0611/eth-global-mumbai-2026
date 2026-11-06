@@ -66,22 +66,28 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episode.action':
     '{action, select, verify {Verify} verifying {Verifying…} replay {Replay decision (non-binding)} replaying {Replaying…} other {{action}}}',
   'episode.card':
-    '{card, select, decision {Decision} chip {Chip} payment {Payment on Arc} approval {World approval} evidence {Evidence on 0G} timeline {Timeline} other {{card}}}',
+    '{card, select, decision {Decision} chip {Chip} payment {Payment on Arc} approval {World approval} evidence {Evidence on 0G} timeline {Timeline} observation {What the robot saw} other {{card}}}',
   'episode.event':
-    '{kind, select, errand_started {Errand started} decision {The brain decided} chip_requested {Sign request sent to the chip} chip_delivered {The chip picked it up} chip_signed {The chip signed} chip_refused {The chip refused} payment_submitted {Payment submitted to Arc} payment_settled {Settled on Arc} approval_requested {Owner approval requested} approval_answered {Owner approval answered} evidence_uploaded {Evidence stored on 0G} state {Errand state} other {{kind}}}',
+    '{kind, select, errand_started {Errand started} decision {The brain decided} chip_requested {Sign request sent to the chip} chip_delivered {The chip picked it up} chip_signed {The chip signed} chip_refused {The chip refused} payment_submitted {Payment submitted to Arc} payment_settled {Settled on Arc} approval_requested {Owner approval requested} approval_answered {Owner approval answered} evidence_uploaded {Evidence stored on 0G} state {Errand state} observation {The robot scanned the QR} other {{kind}}}',
   'episode.field':
-    '{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} other {{field}}}',
+    '{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} capturedAt {Captured} sha256 {SHA-256} signer {Signed by} other {{field}}}',
   'episode.input': 'Input sent to the brain (exact JSON)',
   'episode.meta': '{robot} · started {started}',
   'episode.none':
     '{card, select, decision {No decision was recorded.} chip {No sign request was sent to the chip.} payment {Nothing was paid for this errand.} approval {No approval was needed.} evidence {No evidence record yet.} other {—}}',
   'episode.notOnChain': 'No EpisodeLog record on 0G Chain yet.',
+  'episode.observationAlt': "The QR crop the robot's chip scanned and signed",
+  'episode.observationCheck':
+    "{check, select, verified {Verified: the image matches its hash and this robot's chip signed it} hash {Not verified: the image does not match its recorded hash} signer {Not verified: it was not signed by this robot's chip} other {Not checked yet: press Verify under Evidence on 0G}}",
+  'episode.observationNote':
+    "Only this crop of the scanned QR left the robot's chip. It stays private to you; the evidence on 0G holds only its hash and the chip's signature.",
   'episode.replayNote':
     'A replay sends the same input to the brain again. It is non-binding: it never pays and never changes the errand.',
   'episode.replayResult':
     'Replay: {brain} would {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
   'episode.replaySame':
     '{same, select, yes {Same action as the original.} other {A different action from the original.}}',
+  'episode.signedBy': 'chip {chip}',
   'episode.title': 'Errand: {item}',
   'episode.verifyMatch':
     '{field, select, rootHash {Root hash} other {Request-ids hash}}: {matches, select, yes {matches the EpisodeLog record on 0G Chain} other {does not match the EpisodeLog record}}',
@@ -170,4 +176,10 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'wallet.signInFirst': 'Sign in with your passkey to see this page.',
   'wallet.title': 'Wallet',
   'wallet.viewTx': 'View transaction',
+  'profile.open': 'Profile, records and sign out',
+  'profile.signedInAs': 'Signed in as {name}',
+  'profile.address': 'Your wallet on Arc',
+  'profile.records': 'Payment records',
+  'profile.howItWorks': 'How it works',
+  'profile.close': 'Close',
 }

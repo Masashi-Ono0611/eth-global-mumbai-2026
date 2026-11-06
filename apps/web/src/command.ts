@@ -2,6 +2,7 @@ import { Effect, Option, Predicate, Schema } from 'effect'
 import * as AuthClient from '@ethmumbai/auth/client'
 import type * as HttpClient from 'effect/http/HttpClient'
 import { Command } from 'foldkit'
+import * as Navigation from 'foldkit/navigation'
 import { Message } from './message.ts'
 import type { Clipboard } from './Clipboard.ts'
 import { Passkeys } from './Passkey.ts'
@@ -49,6 +50,12 @@ export const SignOut = Command.define('SignOut', {
     Effect.as(Message.SucceededSignOut()),
     Effect.catch(() => Effect.succeed(Message.FailedSignOut())),
   ),
+})
+
+/** A signed-in owner on the sign-in page goes to the wallet (a full load: the app has no client-side routing). */
+export const OpenWallet = Command.define('OpenWallet', {
+  messages: [Message.CompletedOpenWallet],
+  execute: Navigation.load('/wallet').pipe(Effect.as(Message.CompletedOpenWallet())),
 })
 
 /** What the Commands run against: the browser provides these in entry.ts. */

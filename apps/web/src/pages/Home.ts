@@ -8,7 +8,7 @@ import { walletRouter } from '../route.ts'
 // VIEW
 
 /** The team's architecture page on the scratch site (docs/site). */
-const architectureUrl = 'https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/'
+export const architectureUrl = 'https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/'
 
 type Ceremony = 'idle' | 'creating' | 'signingIn'
 

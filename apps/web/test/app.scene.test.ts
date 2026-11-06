@@ -1,14 +1,15 @@
 import { catalogVersion } from '@ethmumbai/i18n'
 import { Option } from 'effect'
-import { Command, click, expect, given, label, role, scene, selector, submit, text, type } from 'foldkit/scene'
+import { Command, Mount, click, expect, given, label, role, scene, selector, submit, text, type } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect as vitestExpect, test } from 'vitest'
-import { CreatePasskeyWallet, ReadSession, SignInWithPasskey, SignOut } from '../src/command.ts'
+import { CreatePasskeyWallet, OpenWallet, ReadSession, SignInWithPasskey, SignOut } from '../src/command.ts'
 import { Message } from '../src/message.ts'
 import { AuthState } from '../src/model.ts'
 import { AppRoute } from '../src/route.ts'
 import { init, update } from '../src/update.ts'
 import { view } from '../src/View.ts'
+import { Dialog } from '@foldkit/ui'
 
 const page = (pathname: string) =>
   init({ locale: 'en', catalogVersion, timeZone: 'UTC', referenceTime: 0, pathname }).model
@@ -74,7 +75,7 @@ describe('passkey wallet', () => {
     scene({ update, view }, given(page('/')), expect(role('status')).toHaveText('Loading...'))
   })
 
-  test('creating a passkey wallet shows the counterfactual smart account, and signing out returns to signup', () => {
+  test('creating a passkey wallet on the sign-in page opens the wallet', () => {
     scene(
       { update, view },
       given(signedOut('/')),
@@ -84,14 +85,34 @@ describe('passkey wallet', () => {
       expect(role('button', { name: 'Sign in with passkey' })).toBeDisabled(),
       Command.expectExact(CreatePasskeyWallet({ displayName: 'Ana' })),
       Command.resolve(CreatePasskeyWallet, Message.SucceededCreatePasskeyWallet({ session })),
-      expect(text('Signed in as Ana')).toExist(),
-      expect(role('heading', { name: 'Your smart account on Arc' })).toExist(),
+      Command.expectExact(OpenWallet()),
+      Command.resolve(OpenWallet, Message.CompletedOpenWallet()),
+    )
+  })
+
+  test('an owner page without a session shows the sign-in in its place', () => {
+    scene(
+      { update, view },
+      given(signedOut('/wallet')),
+      expect(role('button', { name: 'Create passkey wallet' })).toBeEnabled(),
+      expect(role('button', { name: 'Sign in with passkey' })).toBeEnabled(),
+    )
+  })
+
+  test('the avatar opens the profile sheet; signing out there returns to the sign-in', () => {
+    scene(
+      { update, view },
+      given(modifyFields(page('/wallet'), { auth: () => AuthState.SignedIn({ session }) })),
+      click(role('button', { name: 'Profile, records and sign out' })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(role('heading', { name: 'Ana' })).toExist(),
       expect(text(session.smartAccount)).toExist(),
-      expect(role('link', { name: 'Open wallet' })).toHaveAttr('href', '/wallet'),
-      expect(role('link', { name: 'Robots' })).toHaveAttr('href', '/wallet/robots'),
+      expect(role('link', { name: 'Payment records' })).toHaveAttr('href', '/wallet/episodes'),
       click(role('button', { name: 'Sign out' })),
       Command.expectExact(SignOut()),
       Command.resolve(SignOut, Message.SucceededSignOut()),
+      Mount.expectEnded(Dialog.AcquireResources),
       expect(role('button', { name: 'Create passkey wallet' })).toExist(),
     )
   })
@@ -117,7 +138,7 @@ describe('passkey wallet', () => {
       expect(role('alert')).toHaveText('The passkey step did not finish. Please try again.'),
       click(role('button', { name: 'Sign in with passkey' })),
       Command.resolve(SignInWithPasskey, Message.SucceededSignInWithPasskey({ session })),
-      expect(text(session.smartAccount)).toExist(),
+      Command.resolve(OpenWallet, Message.CompletedOpenWallet()),
     )
   })
 
@@ -140,7 +161,7 @@ describe('passkey wallet', () => {
       expect(role('alert')).toHaveText('Something went wrong'),
       click(role('button', { name: 'Retry' })),
       Command.resolve(ReadSession, Message.SucceededReadSession({ maybeSession: Option.some(session) })),
-      expect(text('Signed in as Ana')).toExist(),
+      Command.resolve(OpenWallet, Message.CompletedOpenWallet()),
     )
   })
 })

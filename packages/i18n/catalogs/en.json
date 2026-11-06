@@ -66,16 +66,20 @@
   },
   "episode": {
     "action": "{action, select, verify {Verify} verifying {Verifying…} replay {Replay decision (non-binding)} replaying {Replaying…} other {{action}}}",
-    "card": "{card, select, decision {Decision} chip {Chip} payment {Payment on Arc} approval {World approval} evidence {Evidence on 0G} timeline {Timeline} other {{card}}}",
-    "event": "{kind, select, errand_started {Errand started} decision {The brain decided} chip_requested {Sign request sent to the chip} chip_delivered {The chip picked it up} chip_signed {The chip signed} chip_refused {The chip refused} payment_submitted {Payment submitted to Arc} payment_settled {Settled on Arc} approval_requested {Owner approval requested} approval_answered {Owner approval answered} evidence_uploaded {Evidence stored on 0G} state {Errand state} other {{kind}}}",
-    "field": "{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} other {{field}}}",
+    "card": "{card, select, decision {Decision} chip {Chip} payment {Payment on Arc} approval {World approval} evidence {Evidence on 0G} timeline {Timeline} observation {What the robot saw} other {{card}}}",
+    "event": "{kind, select, errand_started {Errand started} decision {The brain decided} chip_requested {Sign request sent to the chip} chip_delivered {The chip picked it up} chip_signed {The chip signed} chip_refused {The chip refused} payment_submitted {Payment submitted to Arc} payment_settled {Settled on Arc} approval_requested {Owner approval requested} approval_answered {Owner approval answered} evidence_uploaded {Evidence stored on 0G} state {Errand state} observation {The robot scanned the QR} other {{kind}}}",
+    "field": "{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} capturedAt {Captured} sha256 {SHA-256} signer {Signed by} other {{field}}}",
     "input": "Input sent to the brain (exact JSON)",
     "meta": "{robot} · started {started}",
     "none": "{card, select, decision {No decision was recorded.} chip {No sign request was sent to the chip.} payment {Nothing was paid for this errand.} approval {No approval was needed.} evidence {No evidence record yet.} other {—}}",
     "notOnChain": "No EpisodeLog record on 0G Chain yet.",
+    "observationAlt": "The QR crop the robot's chip scanned and signed",
+    "observationCheck": "{check, select, verified {Verified: the image matches its hash and this robot's chip signed it} hash {Not verified: the image does not match its recorded hash} signer {Not verified: it was not signed by this robot's chip} other {Not checked yet: press Verify under Evidence on 0G}}",
+    "observationNote": "Only this crop of the scanned QR left the robot's chip. It stays private to you; the evidence on 0G holds only its hash and the chip's signature.",
     "replayNote": "A replay sends the same input to the brain again. It is non-binding: it never pays and never changes the errand.",
     "replayResult": "Replay: {brain} would {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}",
     "replaySame": "{same, select, yes {Same action as the original.} other {A different action from the original.}}",
+    "signedBy": "chip {chip}",
     "title": "Errand: {item}",
     "verifyMatch": "{field, select, rootHash {Root hash} other {Request-ids hash}}: {matches, select, yes {matches the EpisodeLog record on 0G Chain} other {does not match the EpisodeLog record}}"
   },
@@ -166,5 +170,13 @@
     "signInFirst": "Sign in with your passkey to see this page.",
     "title": "Wallet",
     "viewTx": "View transaction"
+  },
+  "profile": {
+    "open": "Profile, records and sign out",
+    "signedInAs": "Signed in as {name}",
+    "address": "Your wallet on Arc",
+    "records": "Payment records",
+    "howItWorks": "How it works",
+    "close": "Close"
   }
 }

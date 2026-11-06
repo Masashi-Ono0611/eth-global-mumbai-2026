@@ -17,9 +17,8 @@ export default {
     'apps/chip': { entry: ['src/main.ts!', 'test/**/*.test.ts'], project: ['src/**/*.ts!', 'test/**/*.ts'] },
     'apps/web': {
       entry: ['src/entry.ts!', 'src/entry.server.ts!', 'test/**/*.test.ts'],
-      // tailwindcss is imported by styles.css (`@import 'tailwindcss'`), which Knip does not read. @foldkit/ui is
-      // installed for the redesign's interactive widgets (styling skill); drop it from this list once a view imports it.
-      ignoreDependencies: ['tailwindcss', '@foldkit/ui'],
+      // tailwindcss is imported by styles.css (`@import 'tailwindcss'`), which Knip does not read.
+      ignoreDependencies: ['tailwindcss'],
       project: ['src/**/*.ts!', 'test/**/*.ts'],
     },
     ...Object.fromEntries(

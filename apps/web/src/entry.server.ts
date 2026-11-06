@@ -62,7 +62,10 @@ export const renderPage: Server.EntryModule['renderPage'] = (request) =>
 
 export const renderDocument: Server.DocumentRenderer = (renderedApplication, assets) =>
   Server.renderDocument(renderedApplication, assets, {
-    head: '<meta name="theme-color" content="#efede7"><link rel="icon" href="/favicon.svg">',
+    head:
+      '<meta name="theme-color" content="#e7f1f6"><link rel="icon" href="/favicon.svg">' +
+      '<link rel="preload" href="/fonts/mukta-400-latin.woff2" as="font" type="font/woff2" crossorigin>' +
+      '<link rel="preload" href="/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>',
   }).replace(
     'content="width=device-width, initial-scale=1.0"',
     'content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"',

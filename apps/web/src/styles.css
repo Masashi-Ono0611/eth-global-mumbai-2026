@@ -1,29 +1,79 @@
 @import 'tailwindcss';
 
-/* Design tokens: Tailwind generates a utility for each (`bg-paper`, `text-muted`, `border-rule`, `font-display`,
- * `rounded-control`) and exposes it as a CSS variable (`var(--color-ink)`). The values are the palette inherited from
- * the styldappv2 foundation (light only); the redesign replaces them here. Add a token before using a new colour. */
-@theme {
-  --color-paper: oklch(94.5% 0.01 76);
-  --color-ink: oklch(19% 0.024 52);
-  /* Secondary text, hints and empty states. */
-  --color-muted: oklch(47% 0.014 60);
-  /* Hairlines and field edges. */
-  --color-rule: oklch(81% 0.011 70);
-  /* The keyboard focus ring. */
-  --color-focus: oklch(50% 0.095 248);
-  /* Error text, and an invalid field's edge. */
-  --color-error: oklch(48% 0.16 25);
-  --color-invalid: oklch(58% 0.16 25);
-  --color-online: oklch(45% 0.12 150);
-  --color-gate-open: oklch(50% 0.15 150);
-  --color-gate-closed: oklch(50% 0.16 25);
+/* Self-hosted Latin subsets of Baloo 2 and Mukta (Ek Type, SIL OFL 1.1; licences beside the files in /fonts). */
+@font-face {
+  font-family: 'Baloo 2';
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url('/fonts/baloo2-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Mukta';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/mukta-400-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Mukta';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/mukta-500-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Mukta';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/mukta-600-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Mukta';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/mukta-700-latin.woff2') format('woff2');
+}
 
-  --font-sans: 'Hanken Grotesk', system-ui, sans-serif;
-  --font-display: 'Sentient', Georgia, serif;
+/* Design tokens (apps/web/DESIGN.md, direction "Quack chat"): Tailwind generates a utility for each (`bg-paper`,
+ * `text-muted`, `bg-duck`, `font-display`, `rounded-bubble`) and exposes it as a CSS variable. Light only. Add a token
+ * before using a new colour, font or radius. */
+@theme {
+  /* The page. */
+  --color-paper: #e7f1f6;
+  /* Cards, lists, robot bubbles, sheets. */
+  --color-surface: #ffffff;
+  /* Default text, the owner's bubbles, primary buttons. */
+  --color-ink: #1f2d36;
+  /* Secondary text, hints and empty states. */
+  --color-muted: #5b6b75;
+  /* Hairlines and field edges. */
+  --color-rule: #d3e2ea;
+  /* Only for "the robot needs you": approvals, the needs-you card, badges. */
+  --color-duck: #ffe07a;
+  --color-duck-deep: #6b5200;
+  /* Money that moved. */
+  --color-paid: #1b8550;
+  /* The keyboard focus ring. */
+  --color-focus: #2f6fb3;
+  /* Refusals, failures, Stop; an invalid field's edge. */
+  --color-error: #b9433a;
+  --color-error-soft: #fbe9e7;
+  --color-invalid: #d0574d;
+  --color-online: #23b064;
+  --color-gate-open: #1b8550;
+  --color-gate-closed: #b9433a;
+
+  --font-sans: 'Mukta', system-ui, sans-serif;
+  --font-display: 'Baloo 2', 'Mukta', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
-  --radius-control: 3px;
+  --radius-control: 15px;
+  --radius-bubble: 20px;
+  --radius-card: 22px;
+  --radius-sheet: 30px;
 }
 
 /* Document defaults, on top of Tailwind's preflight. */
@@ -32,8 +82,12 @@
     color-scheme: light;
     background: var(--color-paper);
     color: var(--color-ink);
-    line-height: 1.55;
+    font-family: var(--font-sans);
+    font-size: 16.5px;
+    line-height: 1.45;
     font-synthesis: none;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
   }
   html {
     -webkit-text-size-adjust: 100%;
@@ -43,17 +97,17 @@
   h1,
   h2 {
     font-family: var(--font-display);
-    font-weight: 300;
-    line-height: 1.12;
+    font-weight: 700;
+    line-height: 1.15;
     text-wrap: balance;
   }
   h1 {
-    font-size: clamp(2.5rem, 1.5rem + 4vw, 5rem);
-    letter-spacing: -0.022em;
-    max-inline-size: 15ch;
+    font-size: clamp(2rem, 1.6rem + 2vw, 3rem);
+    letter-spacing: -0.015em;
+    max-inline-size: 20ch;
   }
   h2 {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
   p {
     max-inline-size: 65ch;
