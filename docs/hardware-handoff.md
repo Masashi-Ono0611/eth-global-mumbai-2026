@@ -82,8 +82,9 @@ Chip protocol (spec §8). Shapes, with values from the native tests:
    `now < lease_until`.
 
 Not yet proven on the deployed edge: a 25 s long-poll through `$APP` (the local dev proxy reset such long responses;
-the Lead's end-to-end run checks the deployed one). If the deployed edge resets them too, point the chip at the API
-Worker's own origin instead (a config change, not code).
+the Lead's end-to-end run checks the deployed one). **Do not point the chip at the API Worker's own origin** as a
+workaround: invoice links carry the public origin, so such a chip refuses every payment with `bad_invoice_origin`
+(Spike B, `docs/spikes/sim-results.md`). Always pair against the public app address `$APP`.
 
 ## 3. Network (bench H4)
 

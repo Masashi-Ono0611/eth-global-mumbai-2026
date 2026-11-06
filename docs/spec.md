@@ -450,3 +450,34 @@ one-time link straight into the World sign-in, bound to the owner's `world_sub`)
 - **Tests.** Webhook secret check (403), link code single-use and expiry, outbox dedup, and the payment path still
   succeeding when Telegram answers 500 (mocked). Live: link Kris's chat, buy chai → the paid message, buy thali → the
   approval message with a working button.
+
+## 15. Simulator robot (added 6 Nov; Kris, via session simulator-robot-build-plan)
+
+A robot is either `kind = chip` (hardware or the CLI mock chip, §8) or `kind = sim`: a duck in a browser physics sim at
+`/sim/?robot=<id>#pair=<CODE>` (`apps/sim`, served from the Edge Worker's assets on the same origin). The sim duck gets
+the same wallet, allowance, merchant, 0G `decide`, chip signature, Arc settlement, gate and evidence as the real one.
+Evidence for the design: `docs/spikes/sim-results.md`; plan: `docs/sim-plan.md`.
+
+- **Body.** `apps/sim` vendors Pollen's Apache-2.0 Microduck sandbox (MuJoCo WASM + the ONNX walking policy at 50 Hz).
+  The duck is a Microduck stand-in, not our Open Duck Mini. The meshes, GLB and policies (CC BY-NC-SA / model licence)
+  are fetched at runtime, never committed. Three Duck Café stalls (chai, samosa, thali) each show a `vq1:<invoiceId>`
+  QR of an invoice the sim minted through the public merchant API; a stall's gate opens on the signed `paid` status.
+- **Software chip (deviation from §8's hardware seam).** The sim's chip runs in the browser (`apps/sim/src/chip`, on
+  the shared `apps/chip/src/client.ts`, the unchanged `policy.ts` and `signer.ts`), with its secp256k1 key in IndexedDB.
+  It pairs with the Add-robot code, long-polls and signs every payment and every scan. Accepted for the proof of
+  concept (only the team runs simulators); the Worker still never holds a robot key.
+- **Errand intents.** `POST /api/robots/:robotId/intents {instruction ≤ 200, item?}` (owner) creates the one open
+  intent per robot (`intents` table; 409 while one is open; lazy expiry after 10 min without a turn). The Buy chips,
+  typed text and voice all use `createIntent` (`robot/Intents.ts`). A scan by that robot claims the running intent
+  before `decide`, which then receives `owner: {instruction, item?}` and `requested = owner.item ?? item`; the decide
+  prompt walks away when the invoice is not what the owner asked for. Without an intent a scan behaves as in §6. The
+  instruction is logged and stored in decisions only as its hash.
+- **0G navigation.** For a sim robot the intent is also the navigation session. `POST /api/chips/:robotId/intents/:id
+  /turn {results, scene}` (chip token) stores the sim's tool results, rebuilds the prompt from D1, calls glm-5.3
+  (`reasoning_effort: "low"`, `tool_choice: "required"`, 12 s, one retry on 429), stores the turn (`nav_turns`: ids,
+  calls, short reasoning, TEE proof) and returns the next calls: `go_to(place)`, `look()`, `scan_qr()`, `say(text)`,
+  `wait(s)`, `finish(summary)`. Results of `scan_qr` and `wait` are written by the Worker from the real errand, never by
+  the sim. `look()` is text from sim state, never pixels; the only image that leaves the sim is the chip-signed QR
+  crop of the scan path. A 0G failure stops the intent ("0G brain busy/offline"), never a scripted fallback; at most 2
+  nav turns are in flight globally and `decide` never waits for them. The episode evidence carries `navigation:
+  {instructionSha256, turns}` (optional key).
