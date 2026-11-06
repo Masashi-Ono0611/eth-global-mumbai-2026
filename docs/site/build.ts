@@ -2,7 +2,7 @@
  * Builds the team scratch site into `dist/`: every page folder under docs/site as-is, the pinned visualization
  * libraries under `/lib/`, and a generated index of the pages. No bundler, no framework: a page is one HTML file.
  */
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const root = import.meta.dir
@@ -18,6 +18,9 @@ const libraries: Record<string, string> = {
 
 /** Folders and files in docs/site that are tooling, not pages. */
 const skip = new Set(['node_modules', 'dist', '.alchemy', 'lib', 'package.json', 'build.ts', 'alchemy.run.ts', 'worker.ts', 'threads.ts', 'markdown.ts', 'schema.ts', 'drizzle.config.ts', 'migrations', 'README.md', 'tsconfig.json'])
+
+/** Cloudflare's per-asset size limit. */
+const assetLimit = 25 * 1024 * 1024
 
 const escape = (text: string) =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
@@ -44,7 +47,20 @@ if (scripts.length > 0) {
 const pages: { slug: string; title: string }[] = []
 for (const entry of readdirSync(root, { withFileTypes: true })) {
   if (skip.has(entry.name) || entry.name.startsWith('.')) continue
-  cpSync(path.join(root, entry.name), path.join(out, entry.name), { recursive: true })
+  // Dotfiles are editor and transfer leftovers (rsync's `.name.XXXXXX`); Cloudflare refuses assets over 25 MB, so a raw
+  // phone video dropped into a page folder would fail the whole deploy. Both are skipped, the big ones with a warning.
+  cpSync(path.join(root, entry.name), path.join(out, entry.name), {
+    recursive: true,
+    filter: (source) => {
+      if (path.basename(source).startsWith('.')) return false
+      const size = statSync(source).size
+      if (size > assetLimit) {
+        console.warn(`site: skipping ${path.relative(root, source)} (${Math.round(size / 1048576)} MB is over the 25 MB asset limit)`)
+        return false
+      }
+      return true
+    },
+  })
   const page = path.join(root, entry.name, 'index.html')
   if (entry.isDirectory() && !entry.name.startsWith('_') && existsSync(page)) {
     pages.push({ slug: entry.name, title: titleOf(readFileSync(page, 'utf8'), entry.name) })
