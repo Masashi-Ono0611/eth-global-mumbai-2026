@@ -60,9 +60,20 @@ export const renderRequest = (
 export const renderPage: Server.EntryModule['renderPage'] = (request) =>
   Effect.runPromise(renderRequest(request).pipe(Effect.provide(cloudflareTracer)))
 
+/**
+ * The page crossfade (styles.css `@view-transition`) is skipped by the browser whenever it cannot run (a second
+ * navigation lands mid-fade, the tab is hidden, the next page is not ready), and each skip rejects the transition's
+ * promises. Nothing awaits them, so they are handled here before the first render, as Foldkit does for its own view
+ * transitions, instead of surfacing as unhandled rejections.
+ */
+const quietPageTransitions =
+  '<script>for(const type of["pageswap","pagereveal"])addEventListener(type,(event)=>{const t=event.viewTransition;' +
+  'if(t)for(const p of[t.ready,t.finished,t.updateCallbackDone])p.catch(()=>{})})</script>'
+
 export const renderDocument: Server.DocumentRenderer = (renderedApplication, assets) =>
   Server.renderDocument(renderedApplication, assets, {
     head:
+      quietPageTransitions +
       '<meta name="theme-color" content="#e7f1f6"><link rel="icon" href="/app/favicon.svg">' +
       '<link rel="preload" href="/app/fonts/mukta-400-latin.woff2" as="font" type="font/woff2" crossorigin>' +
       '<link rel="preload" href="/app/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>',
