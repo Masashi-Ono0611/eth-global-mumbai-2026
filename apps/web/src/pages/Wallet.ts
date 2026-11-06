@@ -1,63 +1,142 @@
-import { format, type Locale } from '@ethmumbai/i18n'
-import { Effect, Schema } from 'effect'
-import { Command, Submodel, type Update } from 'foldkit'
+import { Dialog } from '@foldkit/ui'
+import { Clock, Effect, Option, Schema } from 'effect'
+import { Command, Update } from 'foldkit'
 import type * as HttpClient from 'effect/http/HttpClient'
-import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
-import { isSignedOut } from '../api/Http.ts'
-import { Clipboard } from '../Clipboard.ts'
-import { robotsRouter } from '../route.ts'
-import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
+import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
+import { isSignedOut, postJson } from '../api/Http.ts'
+import { loadEpisodeApproval, terminalStates } from '../api/Robot.ts'
 import {
   ActivityView,
   type EpisodeActivity,
-  explorerAddress,
-  explorerTx,
+  listRobots,
   loadActivity,
   loadWallet,
-  usdc,
+  RobotView,
   WalletView,
 } from '../api/Wallet.ts'
+import { Clipboard } from '../Clipboard.ts'
 
 // MODEL
 
-const WalletState = defineTaggedUnion({
+/** A robot waiting for the owner: its errand, the approval to answer and 0G's reason for asking. */
+const NeedsYou = Schema.Struct({
+  episodeId: Schema.String,
+  approvalId: Schema.String,
+  robotId: Schema.String,
+  robotName: Schema.String,
+  item: Schema.String,
+  amount: Schema.NullOr(Schema.String),
+  reason: Schema.NullOr(Schema.String),
+})
+export type NeedsYou = typeof NeedsYou.Type
+
+export const Home = Schema.Struct({
+  wallet: WalletView,
+  activity: ActivityView,
+  robots: Schema.Array(RobotView),
+  episodes: Schema.Array(EpisodeSummary),
+  needsYou: Schema.Array(NeedsYou),
+  /** USDC base units paid by robots in the 24 hours before the load. */
+  spentLastDay: Schema.String,
+})
+export type Home = typeof Home.Type
+
+export const WalletState = defineTaggedUnion({
   Loading: {},
   SignedOut: {},
-  Loaded: { wallet: WalletView, activity: ActivityView },
+  Loaded: { home: Home },
   Failed: { error: Schema.String },
 })
-const Copy = defineTaggedUnion({ Idle: {}, Copied: {}, Failed: {} })
-export const Model = Schema.Struct({ state: WalletState, copy: Copy })
+export const Copy = defineTaggedUnion({ Idle: {}, Copied: {}, Failed: {} })
+export const Decline = defineTaggedUnion({
+  Idle: {},
+  Declining: { approvalId: Schema.String },
+  Failed: { approvalId: Schema.String, error: Schema.String },
+})
+export const Model = Schema.Struct({
+  state: WalletState,
+  copy: Copy,
+  decline: Decline,
+  receiveSheet: Dialog.Model,
+})
 export type Model = typeof Model.Type
 
 // MESSAGE
 
 export const Message = defineMessageUnion({
-  SucceededLoadWallet: { wallet: WalletView, activity: ActivityView },
+  SucceededLoadWallet: { home: Home },
   FailedLoadWallet: { error: Schema.String, signedOut: Schema.Boolean },
   ClickedReload: {},
+  ClickedReceive: {},
+  GotReceiveSheetMessage: { message: Dialog.Message },
   ClickedCopyAddress: { address: Schema.String },
   CompletedCopyAddress: { copied: Schema.Boolean },
+  ClickedDecline: { approvalId: Schema.String },
+  SucceededDecline: {},
+  FailedDecline: { approvalId: Schema.String, error: Schema.String },
 })
 export type Message = typeof Message.Type
 
 // COMMAND
 
-/** @internal Exported for the scene tests; the page update is its only production caller. */
-export const LoadWallet = Command.define('LoadWallet', {
-  messages: [Message.SucceededLoadWallet, Message.FailedLoadWallet],
-  execute: Effect.all([loadWallet, loadActivity], { concurrency: 2 }).pipe(
-    Effect.map(([wallet, activity]) => Message.SucceededLoadWallet({ wallet, activity })),
-    Effect.catch((failure) =>
-      Effect.succeed(Message.FailedLoadWallet({ error: failure.error, signedOut: isSignedOut(failure) })),
-    ),
-  ),
-})
+const DAY_MILLIS = 86_400_000
+/** While an errand runs, or a new robot waits for its chip, the page re-reads on this period. */
+export const POLL_MILLIS = 3000
 
-// INIT
+const spentSince = (episodes: ReadonlyArray<EpisodeActivity>, since: number): string =>
+  episodes
+    .filter((episode) => episode.state === 'paid' && episode.amount !== null && episode.createdAt >= since)
+    .reduce((total, episode) => total + BigInt(episode.amount ?? '0'), 0n)
+    .toString()
+
+/**
+ * The balance, the payments, the robots, every errand (for each robot's last line) and the approvals waiting for the
+ * owner. `delayMillis` paces the re-reads while something is live.
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
+export const LoadWallet = Command.define('LoadWallet', {
+  args: { delayMillis: Schema.Number },
+  messages: [Message.SucceededLoadWallet, Message.FailedLoadWallet],
+  execute: ({ delayMillis }) =>
+    Effect.gen(function* () {
+      yield* Effect.sleep(delayMillis)
+      const [wallet, activity, { robots }, { episodes }] = yield* Effect.all(
+        [loadWallet, loadActivity, listRobots, listEpisodes(null)],
+        { concurrency: 4 },
+      )
+      const waiting = episodes.filter((episode) => episode.state === 'awaiting_approval')
+      const approvals = yield* Effect.all(
+        waiting.map((episode) => Effect.option(loadEpisodeApproval(episode.id))),
+        { concurrency: 4 },
+      )
+      const needsYou = waiting.flatMap((episode, index) =>
+        Option.match(approvals[index] ?? Option.none(), {
+          onNone: () => [],
+          onSome: (approval) => [
+            {
+              episodeId: episode.id,
+              approvalId: approval.id,
+              robotId: episode.robotId,
+              robotName: episode.robotName,
+              item: episode.item,
+              amount: activity.episodes.find((row) => row.id === episode.id)?.amount ?? null,
+              reason: episode.decision?.reason ?? null,
+            },
+          ],
+        }),
+      )
+      const now = yield* Clock.currentTimeMillis
+      const spentLastDay = spentSince(activity.episodes, now - DAY_MILLIS)
+      return Message.SucceededLoadWallet({ home: { wallet, activity, robots, episodes, needsYou, spentLastDay } })
+    }).pipe(
+      Effect.catch((failure) =>
+        Effect.succeed(Message.FailedLoadWallet({ error: failure.error, signedOut: isSignedOut(failure) })),
+      ),
+    ),
+})
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const CopyAddress = Command.define('CopyAddress', {
@@ -73,19 +152,69 @@ export const CopyAddress = Command.define('CopyAddress', {
     ),
 })
 
+/** "No" to a waiting approval: the errand ends `denied` and nothing is signed (spec §9).
+ * @internal Exported for the scene tests; the page update is its only production caller. */
+export const DeclineApproval = Command.define('DeclineApproval', {
+  args: { approvalId: Schema.String },
+  messages: [Message.SucceededDecline, Message.FailedDecline],
+  execute: ({ approvalId }) =>
+    postJson(
+      `/api/approvals/${encodeURIComponent(approvalId)}/deny`,
+      {},
+      Schema.Struct({ status: Schema.String }),
+    ).pipe(
+      Effect.as(Message.SucceededDecline()),
+      Effect.catch((failure) => Effect.succeed(Message.FailedDecline({ approvalId, error: failure.error }))),
+    ),
+})
+
+// INIT
+
 type UpdateReturn = Update.Return<Model, Message, HttpClient.HttpClient | Clipboard>
 
 export const init = (): UpdateReturn => ({
-  model: { state: WalletState.Loading(), copy: Copy.Idle() },
-  commands: [LoadWallet()],
+  model: {
+    state: WalletState.Loading(),
+    copy: Copy.Idle(),
+    decline: Decline.Idle(),
+    receiveSheet: Dialog.init({ id: 'receive' }),
+  },
+  commands: [LoadWallet({ delayMillis: 0 })],
 })
 
 // UPDATE
 
+/** Something on the page will change without the owner doing anything: re-read it. */
+const isLive = (home: Home): boolean =>
+  home.episodes.some((episode) => !terminalStates.has(episode.state)) ||
+  home.robots.some((robot) => robot.status === 'unpaired' && robot.pairingCode !== null)
+
+const foldSheetOutMessage = Dialog.OutMessage.match<Update.Step<Model, Message>>({
+  Opened: () => (model) => ({ model }),
+  Closed: () => (model) => ({ model }),
+})
+
+const foldReceiveSheet = Update.foldChild({
+  update: Dialog.update,
+  read: (model: Model) => Option.some(model.receiveSheet),
+  write: (model: Model, next: Dialog.Model) => modifyFields(model, { receiveSheet: () => next }),
+  toParentMessage: (message: Dialog.Message) => Message.GotReceiveSheetMessage({ message }),
+  foldOutMessage: foldSheetOutMessage,
+})
+
+const foldReceiveSheetOpen = Update.foldChildStep({
+  update: Dialog.open,
+  read: (model: Model) => Option.some(model.receiveSheet),
+  write: (model: Model, next: Dialog.Model) => modifyFields(model, { receiveSheet: () => next }),
+  toParentMessage: (message: Dialog.Message) => Message.GotReceiveSheetMessage({ message }),
+  foldOutMessage: foldSheetOutMessage,
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SucceededLoadWallet: ({ wallet, activity }) => ({
-      model: modifyFields(model, { state: () => WalletState.Loaded({ wallet, activity }) }),
+    SucceededLoadWallet: ({ home }) => ({
+      model: modifyFields(model, { state: () => WalletState.Loaded({ home }) }),
+      commands: isLive(home) ? [LoadWallet({ delayMillis: POLL_MILLIS })] : [],
     }),
     FailedLoadWallet: ({ error, signedOut }) => ({
       model: modifyFields(model, {
@@ -94,109 +223,26 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     }),
     ClickedReload: () => ({
       model: modifyFields(model, { state: () => WalletState.Loading() }),
-      commands: [LoadWallet()],
+      commands: [LoadWallet({ delayMillis: 0 })],
     }),
+    ClickedReceive: () => foldReceiveSheetOpen(model),
+    GotReceiveSheetMessage: ({ message: sheetMessage }) => foldReceiveSheet(model, sheetMessage),
     ClickedCopyAddress: ({ address }) => ({ model, commands: [CopyAddress({ address })] }),
     CompletedCopyAddress: ({ copied }) => ({
       model: modifyFields(model, { copy: () => (copied ? Copy.Copied() : Copy.Failed()) }),
     }),
-  })
-
-// VIEW
-
-const episodeRow = (episode: EpisodeActivity, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.keyed('li')(
-    episode.id,
-    [h.Class('activity-row')],
-    [
-      h.span([h.Class('activity-what')], [`${episode.robotName} · ${episode.item}`]),
-      h.span([h.Class(`state state-${episode.state}`)], [format(locale, 'robot.state', { state: episode.state })]),
-      episode.amount === null ? h.empty : h.span([], [`${usdc(episode.amount)} USDC`]),
-      episode.txHash === null
-        ? h.empty
-        : h.a([h.Href(explorerTx(episode.txHash)), h.Class('tx-link')], [format(locale, 'wallet.viewTx', {})]),
-    ],
-  )
-
-const copyView = (model: Model, address: string, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class('copy-row')],
-    [
-      h.button(
-        [h.Type('button'), h.Class('secondary-action'), h.OnClick(Message.ClickedCopyAddress({ address }))],
-        [format(locale, 'wallet.copyAddress', {})],
-      ),
-      Copy.match(model.copy, {
-        Idle: () => h.empty,
-        Copied: () => h.span([h.Role('status')], [format(locale, 'wallet.copied', {})]),
-        Failed: () => h.span([h.Role('alert')], [format(locale, 'wallet.copyFailed', {})]),
-      }),
-    ],
-  )
-
-const loadedView = (
-  model: Model,
-  wallet: WalletView,
-  activity: ActivityView,
-  locale: Locale,
-  h: HtmlBuilder<Message>,
-): Html =>
-  h.div(
-    [h.Class('wallet-page')],
-    [
-      h.section(
-        [h.Class('wallet-card')],
-        [
-          h.p([], [format(locale, 'wallet.signedInAs', { name: wallet.account.displayName })]),
-          h.h2([], [format(locale, 'wallet.balance', {})]),
-          h.p(
-            [h.Class('balance')],
-            [wallet.balance === null ? format(locale, 'wallet.balanceUnknown', {}) : `${wallet.balance.usdc} USDC`],
-          ),
-          h.h2([], [format(locale, 'wallet.address', {})]),
-          h.a(
-            [h.Href(explorerAddress(wallet.account.smartAccount)), h.Class('smart-account')],
-            [wallet.account.smartAccount],
-          ),
-          copyView(model, wallet.account.smartAccount, locale, h),
-          h.p(
-            [h.Class('hint')],
-            [format(locale, wallet.account.deployStatus === 'deployed' ? 'wallet.deployed' : 'wallet.addressNote', {})],
-          ),
-          h.h2([], [format(locale, 'wallet.fundTitle', {})]),
-          h.p([], [format(locale, 'wallet.fundInstructions', {})]),
-          h.a([h.Href(robotsRouter()), h.Class('primary-action')], [format(locale, 'robots.title', {})]),
-        ],
-      ),
-      h.section(
-        [h.Class('activity')],
-        [
-          h.h2([], [format(locale, 'wallet.activity', {})]),
-          activity.episodes.length === 0
-            ? h.p([h.Class('empty-state')], [format(locale, 'wallet.noActivity', {})])
-            : h.ul(
-                [h.Class('activity-list')],
-                activity.episodes.map((episode) => episodeRow(episode, locale, h)),
-              ),
-          h.button(
-            [h.Type('button'), h.Class('secondary-action'), h.OnClick(Message.ClickedReload())],
-            [format(locale, 'common.refresh', {})],
-          ),
-        ],
-      ),
-    ],
-  )
-
-/** `/wallet`: balance, fund instructions and activity. */
-export const view = Submodel.defineView<Model, Message, { readonly locale: Locale }>((model, { locale }, h) =>
-  ownerMain(
-    format(locale, 'wallet.title', {}),
-    WalletState.match(model.state, {
-      Loading: () => loadingView(locale, h),
-      SignedOut: () => signedOutView(locale, h),
-      Loaded: ({ wallet, activity }) => loadedView(model, wallet, activity, locale, h),
-      Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
+    ClickedDecline: ({ approvalId }) =>
+      Decline.guards.Declining(model.decline)
+        ? { model }
+        : {
+            model: modifyFields(model, { decline: () => Decline.Declining({ approvalId }) }),
+            commands: [DeclineApproval({ approvalId })],
+          },
+    SucceededDecline: () => ({
+      model: modifyFields(model, { decline: () => Decline.Idle() }),
+      commands: [LoadWallet({ delayMillis: 0 })],
     }),
-    h,
-  ),
-)
+    FailedDecline: ({ approvalId, error }) => ({
+      model: modifyFields(model, { decline: () => Decline.Failed({ approvalId, error }) }),
+    }),
+  })

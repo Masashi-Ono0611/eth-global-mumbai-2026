@@ -13,16 +13,19 @@ const sheetPanelClassName =
   'relative grid w-full max-w-[30rem] gap-4 rounded-t-sheet bg-surface px-5 pt-3 pb-[calc(2rem+env(safe-area-inset-bottom))] text-ink shadow-[0_-12px_40px_-20px_rgb(0_0_0/0.35)] transition-[translate,opacity] duration-200 ease-out data-[closed]:translate-y-6 data-[closed]:opacity-0 motion-reduce:transition-none'
 
 const sheetHandleClassName = 'h-[5px] w-10 justify-self-center rounded-full bg-rule'
+const closeClassName =
+  'min-h-12 cursor-pointer rounded-control font-semibold text-muted transition-transform active:scale-[0.96]'
 
 export const sheetTitleClassName = 'font-display text-2xl leading-tight font-bold'
 
 // VIEW
 
-/** A bottom sheet (Foldkit UI Dialog, DESIGN.md "Sheets"): the backdrop, a handle and the content, rendered only while
- *  the dialog is open or animating. */
+/** A bottom sheet (Foldkit UI Dialog, DESIGN.md "Sheets"): the backdrop, a handle, the content and a visible Close
+ *  (Escape and the backdrop close it too), rendered only while the dialog is open. */
 export const sheetView = <M>(
-  { dialog, backdrop, panel, isVisible }: Dialog.RenderInfo,
+  { dialog, backdrop, panel, isVisible, closeButton }: Dialog.RenderInfo,
   content: ReadonlyArray<Html>,
+  closeLabel: string,
   h: HtmlBuilder<M>,
 ): Html =>
   h.dialog(
@@ -30,7 +33,14 @@ export const sheetView = <M>(
     isVisible
       ? [
           h.div([...backdrop, h.Class(sheetBackdropClassName)]),
-          h.div([...panel, h.Class(sheetPanelClassName)], [h.span([h.Class(sheetHandleClassName)]), ...content]),
+          h.div(
+            [...panel, h.Class(sheetPanelClassName)],
+            [
+              h.span([h.Class(sheetHandleClassName), h.AriaHidden(true)]),
+              ...content,
+              h.button([...closeButton, h.Type('button'), h.Class(closeClassName)], [closeLabel]),
+            ],
+          ),
         ]
       : [],
   )

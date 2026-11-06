@@ -7,7 +7,7 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import type * as HttpClient from 'effect/http/HttpClient'
 import { getJson, isSignedOut, postJson } from '../api/Http.ts'
-import { loadErrand, terminalStates } from '../api/Robot.ts'
+import { loadErrand, terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { explorerTx, usdc } from '../api/Wallet.ts'
 import { robotConsoleRouter } from '../route.ts'
 import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
@@ -184,7 +184,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 // VIEW
 
 /** World IdP's sign-in for this approval: a full navigation, so the browser follows the 302 to World. */
-const worldAuthorizeUrl = (approvalId: string) => `/api/world/authorize?approval=${encodeURIComponent(approvalId)}`
 
 const actions = (model: Model, approval: ApprovalView, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const denying = Denial.guards.Denying(model.denial)

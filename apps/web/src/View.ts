@@ -14,7 +14,7 @@ import * as Gate from './pages/gate/Gate.ts'
 import * as Merchant from './pages/merchant/Merchant.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { robotsView } from './pages/RobotsView.ts'
-import * as Wallet from './pages/Wallet.ts'
+import { walletView } from './pages/WalletView.ts'
 import { AppRoute, episodesRouter, homeRouter, walletRouter } from './route.ts'
 // STYLES
 
@@ -82,6 +82,7 @@ const profileSheet = (model: Model, session: SessionView, signingOut: boolean, h
               [format(locale, 'auth.signOut', {})],
             ),
           ],
+          format(locale, 'profile.close', {}),
           h,
         ),
     },
@@ -152,7 +153,7 @@ const walletPage = (model: Model, h: HtmlBuilder<Message>): Page =>
       h.submodel({
         slotId: 'wallet',
         model: wallet,
-        view: Wallet.view,
+        view: walletView,
         viewInputs: { locale: model.context.locale },
         toParentMessage: (message) => Message.GotWalletMessage({ message }),
       }),

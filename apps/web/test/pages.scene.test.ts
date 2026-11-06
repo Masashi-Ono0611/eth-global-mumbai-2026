@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import {
   Command,
+  Mount,
   click,
   expect,
   given,
@@ -13,7 +14,8 @@ import {
   type,
   withViewInputs,
 } from 'foldkit/scene'
-import { describe, test } from 'vitest'
+import { describe, expect as vitestExpect, test } from 'vitest'
+import { Dialog } from '@foldkit/ui'
 import { ActionFailure } from '../src/api/OwnerAction.ts'
 import type { RobotView } from '../src/api/Wallet.ts'
 import * as RobotConsole from '../src/pages/RobotConsole.ts'
@@ -21,6 +23,7 @@ import { robotConsoleView } from '../src/pages/RobotConsoleView.ts'
 import * as Robots from '../src/pages/Robots.ts'
 import { robotsView } from '../src/pages/RobotsView.ts'
 import * as Wallet from '../src/pages/Wallet.ts'
+import { walletView } from '../src/pages/WalletView.ts'
 
 const address = '0x1234567890abcdef1234567890ABCDEF12345678'
 const payee = '0x000000000000000000000000000000000000c0de'
@@ -72,66 +75,146 @@ const detail = (state: string, paid: boolean) => ({
   evidence: null,
 })
 
-describe('/wallet', () => {
-  const view = withViewInputs(Wallet.view, { locale: 'en' })()
-  const loadedWallet = Wallet.update(
-    Wallet.init().model,
-    Wallet.Message.SucceededLoadWallet({
-      wallet: {
-        account: {
-          accountId: 'a',
-          displayName: 'Ana',
-          smartAccount: address,
-          deployStatus: 'deployed',
-          deployTx: txHash,
-        },
-        balance: { units: '1230000', usdc: '1.23' },
-        fund: { network: 'eip155:5042', asset: '0x3600000000000000000000000000000000000000', address },
-      },
-      activity: {
-        episodes: [
-          {
-            id: 'e1',
-            robotId: pairedRobot.id,
-            robotName: 'Duck',
-            item: 'chai',
-            state: 'paid',
-            createdAt: 0,
-            amount: '100000',
-            txHash,
-          },
-        ],
-        grants: [],
-      },
-    }),
-  ).model
+const activityRow = (id: string, item: string, state: string, amount: string, tx: string | null) => ({
+  id,
+  robotId: pairedRobot.id,
+  robotName: 'Duck',
+  item,
+  state,
+  createdAt: 0,
+  amount,
+  txHash: tx,
+})
+const summary = (id: string, item: string, state: string, reason: string) => ({
+  id,
+  robotId: pairedRobot.id,
+  robotName: 'Duck',
+  item,
+  state,
+  result: null,
+  createdAt: 0,
+  endedAt: null,
+  decision: { action: 'pay', reason, requestId: 'req-1', provider: 'router-api.0g.ai/m', latencyMs: 900 },
+  payment: null,
+  approval: null,
+  evidence: null,
+})
+const loadedHome = (value: Wallet.Home) =>
+  Wallet.update(Wallet.init().model, Wallet.Message.SucceededLoadWallet({ home: value })).model
 
-  test('loads on start and shows the balance, the smart account, fund instructions and the activity', () => {
+const home = (overrides: Partial<Wallet.Home> = {}): Wallet.Home => ({
+  wallet: {
+    account: {
+      accountId: 'a',
+      displayName: 'Ana',
+      smartAccount: address,
+      deployStatus: 'deployed',
+      deployTx: txHash,
+    },
+    balance: { units: '1400000', usdc: '1.40' },
+    fund: { network: 'eip155:5042', asset: '0x3600000000000000000000000000000000000000', address },
+  },
+  activity: { episodes: [activityRow('e1', 'chai', 'paid', '100000', txHash)], grants: [] },
+  robots: [{ ...pairedRobot, grant }],
+  episodes: [summary('e1', 'chai', 'paid', 'within budget')],
+  needsYou: [],
+  spentLastDay: '100000',
+  ...overrides,
+})
+describe('/wallet', () => {
+  const view = withViewInputs(walletView, { locale: 'en' })()
+
+  test('shows the balance, what the robots spent, the robots as conversations and the payments', () => {
     scene({ update: Wallet.update, view }, given(Wallet.init().model), expect(role('status')).toHaveText('Loading...'))
     scene(
       { update: Wallet.update, view },
-      given(loadedWallet),
-      expect(text('1.23 USDC')).toExist(),
-      expect(role('link', { name: address })).toHaveAttr('href', `https://explorer.arc.io/address/${address}`),
-      expect(text('Your smart account is deployed on Arc.')).toExist(),
-      expect(text('Duck · chai')).toExist(),
-      expect(text('paid')).toExist(),
-      expect(role('link', { name: 'View transaction' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
-      expect(role('link', { name: 'Robots' })).toHaveAttr('href', '/wallet/robots'),
-      expect(
-        text(
-          'Send USDC on Arc to this address. Keep it small: your robots spend from it only within the limits you grant.',
-        ),
-      ).toExist(),
+      given(loadedHome(home())),
+      expect(text('1.40')).toExist(),
+      expect(text('Your robots spent 0.10 USDC in the last 24 hours')).toExist(),
+      expect(role('button', { name: 'Send, coming soon' })).toBeDisabled(),
+      expect(role('link', { name: 'Add a robot' })).toHaveAttr('href', '/wallet/robots'),
+      expect(role('link', { name: /Duck/ })).toHaveAttr('href', `/robot/${pairedRobot.id}`),
+      expect(text('Bought chai')).toExist(),
+      expect(text('Chai')).toExist(),
+      expect(text('−0.10')).toExist(),
+      expect(text('Paid')).toExist(),
+    )
+  })
+
+  test('Receive opens a sheet with the address as a QR code, in groups, and a copy button', () => {
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(home())),
+      click(role('button', { name: 'Receive' })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(role('heading', { name: 'Receive USDC' })).toExist(),
+      expect(role('img', { name: 'QR code of your wallet address' })).toExist(),
+      expect(text('0x1234 5678 90ab cdef 1234 5678 90AB CDEF 1234 5678')).toExist(),
       click(role('button', { name: 'Copy address' })),
       Command.expectExact(Wallet.CopyAddress({ address })),
       Command.resolve(Wallet.CopyAddress, Wallet.Message.CompletedCopyAddress({ copied: true })),
-      expect(text('Copied')).toExist(),
-      click(role('button', { name: 'Refresh' })),
-      Command.expectExact(Wallet.LoadWallet()),
-      Command.resolve(Wallet.LoadWallet, Wallet.Message.FailedLoadWallet({ error: 'not signed in', signedOut: true })),
+      expect(text('Address copied')).toExist(),
+    )
+  })
+
+  test('a waiting approval is answered on the home: Approve goes to World, No declines it', () => {
+    const waiting = home({
+      activity: { episodes: [activityRow('e2', 'cigarettes', 'awaiting_approval', '500000', null)], grants: [] },
+      episodes: [summary('e2', 'cigarettes', 'awaiting_approval', 'Restricted item the owner asked for')],
+      needsYou: [
+        {
+          episodeId: 'e2',
+          approvalId: 'ap1',
+          robotId: pairedRobot.id,
+          robotName: 'Duck',
+          item: 'cigarettes',
+          amount: '500000',
+          reason: 'Restricted item the owner asked for',
+        },
+      ],
+    })
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(waiting)),
+      expect(role('heading', { name: 'Needs you' })).toExist(),
+      expect(text('I want to buy cigarettes for 0.50 USDC, and that needs your OK first.')).toExist(),
+      expect(text('0G: “Restricted item the owner asked for”')).toExist(),
+      expect(text('Waiting for your answer')).toExist(),
+      expect(role('link', { name: 'Approve with World ID' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
+      click(role('button', { name: 'No' })),
+      Command.expectExact(Wallet.DeclineApproval({ approvalId: 'ap1' })),
+      expect(role('button', { name: 'Saying no...' })).toBeDisabled(),
+      Command.resolve(Wallet.DeclineApproval, Wallet.Message.SucceededDecline()),
+      Command.expectExact(Wallet.LoadWallet({ delayMillis: 0 })),
+      Command.resolve(Wallet.LoadWallet, Wallet.Message.SucceededLoadWallet({ home: home() })),
+      expect(role('heading', { name: 'Needs you' })).not.toExist(),
+    )
+  })
+
+  test('re-reads every 3 s while an errand runs, and not once everything has ended', () => {
+    const running = Wallet.update(
+      Wallet.init().model,
+      Wallet.Message.SucceededLoadWallet({
+        home: home({ episodes: [summary('e3', 'samosa', 'signing', 'within budget')] }),
+      }),
+    )
+    vitestExpect(running.commands?.map((command) => [command.name, command.args])).toEqual([
+      ['LoadWallet', { delayMillis: Wallet.POLL_MILLIS }],
+    ])
+    vitestExpect(
+      Wallet.update(Wallet.init().model, Wallet.Message.SucceededLoadWallet({ home: home() })).commands,
+    ).toEqual([])
+  })
+
+  test('without a session it says to sign in', () => {
+    scene(
+      { update: Wallet.update, view },
+      given(
+        Wallet.update(Wallet.init().model, Wallet.Message.FailedLoadWallet({ error: 'not signed in', signedOut: true }))
+          .model,
+      ),
       expect(role('alert')).toHaveText('Sign in with your passkey to see this page.'),
-      expect(role('link', { name: 'Sign in with passkey' })).toHaveAttr('href', '/'),
     )
   })
 })

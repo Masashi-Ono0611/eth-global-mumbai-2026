@@ -128,4 +128,3 @@ export const usdc = (units: string): string => {
 }
 
 export const explorerTx = (hash: string) => `https://explorer.arc.io/tx/${hash}`
-export const explorerAddress = (address: string) => `https://explorer.arc.io/address/${address}`

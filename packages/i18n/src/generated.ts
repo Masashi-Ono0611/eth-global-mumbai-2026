@@ -108,6 +108,45 @@ export interface MessageArgumentsByKey<T = string> {
   'gate.title': Readonly<Record<string, never>>
   'gate.verified': Readonly<Record<string, never>>
   'gate.waiting': Readonly<Record<string, never>>
+  'home.actions': Readonly<Record<string, never>>
+  'home.addRobot': Readonly<Record<string, never>>
+  'home.addRobotHint': Readonly<Record<string, never>>
+  'home.approve': Readonly<Record<string, never>>
+  'home.ask': { readonly item: string | number; readonly amount: string | number }
+  'home.askNoAmount': { readonly item: string | number }
+  'home.balanceLabel': Readonly<Record<string, never>>
+  'home.balanceUnknown': Readonly<Record<string, never>>
+  'home.connected': Readonly<Record<string, never>>
+  'home.decline': Readonly<Record<string, never>>
+  'home.declineFailed': { readonly message: string | number }
+  'home.declining': Readonly<Record<string, never>>
+  'home.lineBusy': { readonly item: string | number }
+  'home.lineCodeExpired': Readonly<Record<string, never>>
+  'home.lineDenied': { readonly item: string | number }
+  'home.lineNoAllowance': Readonly<Record<string, never>>
+  'home.lineOffline': Readonly<Record<string, never>>
+  'home.linePaid': { readonly item: string | number }
+  'home.linePairing': { readonly code: string | number }
+  'home.lineReady': Readonly<Record<string, never>>
+  'home.lineWaiting': Readonly<Record<string, never>>
+  'home.needsYou': Readonly<Record<string, never>>
+  'home.noPayments': Readonly<Record<string, never>>
+  'home.notPaid': Readonly<Record<string, never>>
+  'home.offline': Readonly<Record<string, never>>
+  'home.paid': Readonly<Record<string, never>>
+  'home.paymentBy': { readonly state: string | number; readonly robot: string | number }
+  'home.payments': Readonly<Record<string, never>>
+  'home.pending': Readonly<Record<string, never>>
+  'home.receive': Readonly<Record<string, never>>
+  'home.robot': Readonly<Record<string, never>>
+  'home.robots': Readonly<Record<string, never>>
+  'home.send': Readonly<Record<string, never>>
+  'home.sendSoon': Readonly<Record<string, never>>
+  'home.soon': Readonly<Record<string, never>>
+  'home.spent': { readonly amount: string | number }
+  'home.spentNone': Readonly<Record<string, never>>
+  'home.waitingCount': { readonly count: number }
+  'home.zeroGReason': { readonly reason: string | number }
   'landing.browse': Readonly<Record<string, never>>
   'landing.contact': Readonly<Record<string, never>>
   'landing.description': Readonly<Record<string, never>>
@@ -127,6 +166,12 @@ export interface MessageArgumentsByKey<T = string> {
   'profile.open': Readonly<Record<string, never>>
   'profile.records': Readonly<Record<string, never>>
   'profile.signedInAs': { readonly name: string | number }
+  'receive.copied': Readonly<Record<string, never>>
+  'receive.copy': Readonly<Record<string, never>>
+  'receive.copyFailed': Readonly<Record<string, never>>
+  'receive.note': Readonly<Record<string, never>>
+  'receive.qrAlt': Readonly<Record<string, never>>
+  'receive.title': Readonly<Record<string, never>>
   'robot.state': { readonly state: string | number }
   'robots.add': Readonly<Record<string, never>>
   'robots.allowlist': { readonly payees: string | number }
@@ -179,4 +224,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'f049b717fbd22c8285563ec63fb827ce90769cd54bf6f0d83e787e8e8babb49c'
+export const catalogVersion = 'e86d120ae0698aa004d8d560d97d8e708190121c368abe9318b5f3719f8fdad2'

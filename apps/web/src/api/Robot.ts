@@ -86,7 +86,10 @@ export const loadErrand = (robotId: string, episodeId: string) =>
   getJson(`/api/robots/${robotId}/errands/${episodeId}`, ErrandDetail)
 
 export const loadEpisodeApproval = (episodeId: string) =>
-  getJson(`/api/episodes/${episodeId}/approval`, Schema.Struct({ approvalUrl: Schema.String }))
+  getJson(
+    `/api/episodes/${episodeId}/approval`,
+    Schema.Struct({ id: Schema.String, status: Schema.String, approvalUrl: Schema.String }),
+  )
 
 /**
  * Which brain answered a decision, from `decisions.provider` (`<host>/<model>`, plus `@<0G provider>` when the 0G
@@ -105,3 +108,7 @@ export const terminalStates: ReadonlySet<string> = new Set([
   'failed',
   'expired',
 ])
+
+/** World IdP's sign-in for one approval: a full navigation, so the browser follows the 302 to World (spec §9). */
+export const worldAuthorizeUrl = (approvalId: string) =>
+  `/api/world/authorize?${new URLSearchParams({ approval: approvalId }).toString()}`

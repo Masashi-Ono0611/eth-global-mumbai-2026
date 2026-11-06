@@ -54,6 +54,9 @@
   /* Only for "the robot needs you": approvals, the needs-you card, badges. */
   --color-duck: #ffe07a;
   --color-duck-deep: #6b5200;
+  /* The robot duck's body and bill (Duck.ts). */
+  --color-duck-body: #ffd43b;
+  --color-bill: #f08a1c;
   /* Money that moved. */
   --color-paid: #1b8550;
   /* The keyboard focus ring. */

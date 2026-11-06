@@ -17,8 +17,10 @@
     "@ethmumbai/observability": "workspace:*",
     "@ethmumbai/protocol": "workspace:*",
     "@foldkit/ui": "catalog:",
+    "clsx": "catalog:",
     "effect": "catalog:",
-    "foldkit": "catalog:"
+    "foldkit": "catalog:",
+    "uqr": "catalog:"
   },
   "devDependencies": {
     "@foldkit/vite-plugin": "catalog:",
