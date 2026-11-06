@@ -1,0 +1,44 @@
+// チームの decide 呼び出し(現行)そのものの応答を、TEE 署名で独立検証する。使い方: node --env-file=.env.local scripts/verify-tee-decide.mjs [model] [N]
+import { ethers } from 'ethers';
+import { createZGComputeNetworkBroker } from '@0gfoundation/0g-compute-ts-sdk';
+const KEY = process.env.OG_ROUTER_API_KEY;
+const model = process.argv[2] ?? 'glm-5.3'; const N = Number(process.argv[3] ?? 4);
+const APPROVAL_RULE = 'Never pay when approvalRequired is true. When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown.';
+const SYSTEM_PROMPT = [
+  'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool: call it once with {"action": "pay" | "ask_human" | "walk_away", "reason": one short sentence}.',
+  'Decision table, apply the first row that matches:',
+  '1. The item, the price or the merchant does not match (requested differs from catalogue.itemId, invoice.amount differs from catalogue.amount, or merchant.trust is untrusted) → walk_away.',
+  "2. policy.approvalRequired=true and the item is what the owner asked for → ask_human. The per-payment cap and the allowlist never justify walk_away: the owner's approval in World App lifts them (see the approval field).",
+  '3. policy.approvalRequired=false and invoice.amount is within budget.remainingToday → pay.',
+  '4. Otherwise → walk_away.',
+  'Examples:',
+  '- requested chai, catalogue chai 100000, invoice 100000, approvalRequired false, remainingToday 1000000 → {"action":"pay","reason":"Chai as asked, within budget."}',
+  '- requested cigarettes, catalogue cigarettes 500000 restricted, invoice 500000, approvalRequired true → {"action":"ask_human","reason":"Restricted item the owner asked for; the owner approves it in World App."}',
+  '- requested chai, catalogue samosa → {"action":"walk_away","reason":"Not the item the owner asked for."}',
+  APPROVAL_RULE,
+].join('\n');
+const promptInput = (input) => (input.policy.approvalRequired ? { ...input, approval: { required: true, canBeGrantedBy: 'the owner in World App', capsDoNotBlock: true } } : input);
+const DECIDE_TOOL = { type: 'function', function: { name: 'decide', parameters: { type: 'object', required: ['action', 'reason'], properties: { action: { type: 'string', enum: ['pay', 'ask_human', 'walk_away'] }, reason: { type: 'string', maxLength: 200 } } } } };
+const body = (model, input, extra) => ({ model, temperature: 0, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: JSON.stringify(promptInput(input)) }], tools: [DECIDE_TOOL], tool_choice: { type: 'function', function: { name: 'decide' } }, ...extra });
+
+const exp = Math.floor(Date.now() / 1000) + 600;
+const budget = { dailyCap: '1000000', spentToday: '0', remainingToday: '1000000', perPaymentCap: '300000' };
+const SCENARIOS = {
+  chai: { expect: 'pay', input: { requested: 'chai', catalogue: { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false }, invoice: { id: 'probeprobeprobeprobeprobea', payTo: '0x000000000000000000000000000000000000c0de', amount: '100000', expiresAt: exp }, budget, policy: { payeeAllowlisted: true, restricted: false, approvalRequired: false }, merchant: { id: 'duck-cafe', trust: 'known' } } },
+  cigarettes: { expect: 'ask_human', input: { requested: 'cigarettes', catalogue: { itemId: 'cigarettes', name: 'Cigarettes', amount: '500000', restricted: true }, invoice: { id: 'probeprobeprobeprobeprobeb', payTo: '0x000000000000000000000000000000000000dead', amount: '500000', expiresAt: exp }, budget, policy: { payeeAllowlisted: false, restricted: true, approvalRequired: true }, merchant: { id: 'duck-cafe', trust: 'known' } } },
+  mismatch: { expect: 'walk_away', input: { requested: 'chai', catalogue: { itemId: 'samosa', name: 'Samosa', amount: '100000', restricted: false }, invoice: { id: 'probeprobeprobeprobeprobec', payTo: '0x000000000000000000000000000000000000c0de', amount: '100000', expiresAt: exp }, budget, policy: { payeeAllowlisted: true, restricted: false, approvalRequired: false }, merchant: { id: 'duck-cafe', trust: 'known' } } },
+  untrusted: { expect: 'walk_away', input: { requested: 'chai', catalogue: { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false }, invoice: { id: 'probeprobeprobeprobeprobed', payTo: '0x000000000000000000000000000000000000beef', amount: '100000', expiresAt: exp }, budget, policy: { payeeAllowlisted: false, restricted: false, approvalRequired: true }, merchant: { id: 'shady-stall', trust: 'untrusted' } } },
+};
+
+
+const broker = await createZGComputeNetworkBroker(ethers.Wallet.createRandom().connect(new ethers.JsonRpcProvider('https://evmrpc.0g.ai')));
+const scens = Object.keys(SCENARIOS);
+for (let i = 0; i < N; i++) {
+  const scen = scens[i % scens.length];
+  const r = await fetch('https://router-api.0g.ai/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` }, body: JSON.stringify(body(model, SCENARIOS[scen].input, {})), signal: AbortSignal.timeout(30000) });
+  const d = await r.json().catch(() => null);
+  const provider = d?.x_0g_trace?.provider; const chatID = r.headers.get('ZG-Res-Key') ?? d?.id;
+  const args = d?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+  let v; try { v = provider && chatID ? await broker.inference.processResponse(provider, chatID) : 'no handle'; } catch (e) { v = 'error: ' + String(e?.message ?? e).slice(0, 120); }
+  console.log(`${scen.padEnd(11)} http ${r.status} request_id ${d?.x_0g_trace?.request_id ?? '-'} decide ${String(args).slice(0, 60)} -> verified ${JSON.stringify(v)}`);
+}
