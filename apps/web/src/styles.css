@@ -77,6 +77,80 @@
   --radius-bubble: 20px;
   --radius-card: 22px;
   --radius-sheet: 30px;
+
+  /* Motion (DESIGN.md "Motion"): strong custom curves, UI motion under 300ms, transform and opacity only. Every
+   * transition-* utility without its own ease uses the ease-out, so a press answers on the first frame. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Bottom sheets (iOS drawer curve). */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  /* A fast spinner reads as a fast app. */
+  --animate-spinner: spin 600ms linear infinite;
+  /* Skeleton blocks while a page loads: a calm pulse. */
+  --animate-skeleton: skeleton 1.5s ease-in-out infinite;
+  /* The three "working" dots; each dot is delayed by 150ms. */
+  --animate-dot: dot 900ms ease-in-out infinite both;
+  /* A paid moment: once, from 96%. */
+  --animate-pop: pop 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  /* The duck's single hop when its errand is paid. */
+  --animate-hop: hop 420ms cubic-bezier(0.23, 1, 0.32, 1) 1;
+
+  @keyframes skeleton {
+    50% {
+      opacity: 0.5;
+    }
+  }
+  @keyframes dot {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    40% {
+      opacity: 1;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+  @keyframes hop {
+    40% {
+      translate: 0 -4px;
+    }
+  }
+}
+
+/* Page to page (every link is a full load): a short crossfade where the browser supports cross-document view
+ * transitions (Chrome 126+, Safari 18.2+); elsewhere navigation stays a plain cut. Opacity only, so reduced motion
+ * keeps it. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* Reduced motion: fades stay, movement goes; looping indicators slow down instead of stopping. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes pop {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes hop {
+    from,
+    to {
+      translate: none;
+    }
+  }
+  .animate-spinner {
+    animation-duration: 1.5s;
+  }
 }
 
 /* Document defaults, on top of Tailwind's preflight. */
