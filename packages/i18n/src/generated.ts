@@ -136,6 +136,9 @@ export interface MessageArgumentsByKey<T = string> {
   }
   'episode.replaySame': { readonly same: string | number }
   'episode.signedBy': { readonly chip: string | number }
+  'episode.tee': { readonly state: string | number; readonly chat: string | number }
+  'episode.teeNote': Readonly<Record<string, never>>
+  'episode.teeText': Readonly<Record<string, never>>
   'episode.title': { readonly item: string | number }
   'episode.verifyMatch': { readonly field: string | number; readonly matches: string | number }
   'episodes.allRobots': Readonly<Record<string, never>>
@@ -308,4 +311,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '0ecdf019937dcf6304158d9796b5ba6d7deb1708106c89583034203188069339'
+export const catalogVersion = 'd76ddab2bfe51dc9173869115f1c1a1a18b2a103a5a633290bf6d393aebacab7'

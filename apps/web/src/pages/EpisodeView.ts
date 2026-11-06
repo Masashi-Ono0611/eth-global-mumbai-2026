@@ -15,6 +15,7 @@ import { explorerTx } from '../api/Wallet.ts'
 import { episodesRouter, robotConsoleRouter } from '../route.ts'
 import { AuditState, Message, type Model, Replay, Verify } from './Episode.ts'
 import { observationCard } from './ObservationCard.ts'
+import { teeView } from './TeeBadge.ts'
 import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
 import {
   actionRowClassName,
@@ -92,8 +93,9 @@ const replayResultView = (result: ReplayResult, locale: Locale, h: HtmlBuilder<M
   )
 }
 
-const decisionView = (decision: AuditDecision, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const decisionView = (model: Model, decision: AuditDecision, inputs: Inputs, h: HtmlBuilder<Message>): Html => {
+  const { locale } = inputs
+  return h.div(
     [h.Class(stackClassName)],
     [
       h.p(
@@ -124,17 +126,20 @@ const decisionView = (decision: AuditDecision, locale: Locale, h: HtmlBuilder<Me
             [h.Class(inputDetailsClassName)],
             [h.summary([], [format(locale, 'episode.input', {})]), h.pre([], [prettyInput(decision.input_json)])],
           ),
+      teeView(model, decision, inputs, h),
     ],
   )
+}
 
-const decisionCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  card(
+const decisionCard = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBuilder<Message>): Html => {
+  const { locale } = inputs
+  return card(
     'decision',
     locale,
     [
       ...(audit.decisions.length === 0
         ? [none('decision', locale, h)]
-        : audit.decisions.map((decision) => decisionView(decision, locale, h))),
+        : audit.decisions.map((decision) => decisionView(model, decision, inputs, h))),
       audit.decisions.length === 0
         ? h.empty
         : h.button(
@@ -151,6 +156,7 @@ const decisionCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
     ],
     h,
   )
+}
 
 const chipCard = (audit: EpisodeAudit, locale: Locale, h: HtmlBuilder<Message>): Html =>
   card(
@@ -361,7 +367,7 @@ const auditView = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBui
         : h.p([h.Class('hint')], [format(locale, 'console.reason', { reason: episode.result })]),
       timelineCard(audit, inputs, h),
       observationCard(model, audit, inputs, h),
-      decisionCard(model, audit, locale, h),
+      decisionCard(model, audit, inputs, h),
       chipCard(audit, locale, h),
       paymentCard(audit, locale, h),
       approvalCard(audit, locale, h),

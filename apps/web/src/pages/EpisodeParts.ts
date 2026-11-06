@@ -56,6 +56,8 @@ type Field =
   | 'capturedAt'
   | 'sha256'
   | 'signer'
+  | 'teeSigner'
+  | 'teeFetched'
 type Card = 'observation' | 'decision' | 'chip' | 'payment' | 'approval' | 'evidence' | 'timeline'
 
 export const link = (href: string, label: string, h: HtmlBuilder<Message>): Html => h.a([h.Href(href)], [label])

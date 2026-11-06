@@ -108,6 +108,8 @@ export const VerifyResult = Schema.Struct({
   ),
   matches: Schema.Struct({ rootHash: Schema.Boolean, requestIdsHash: Schema.Boolean }),
   links: Schema.Struct({ storagescan: Text, chainscan: Text, arcTx: Schema.optionalKey(Schema.String) }),
+  /** The decision's TeeML proof: present, and whether its signature recovers to the provider's TEE signer. */
+  tee: Schema.optionalKey(Schema.Struct({ present: Schema.Boolean, signerMatches: Schema.Boolean })),
   /** Each observation's bytes against its hash, and its signature against the robot's chip (absent before M+R's change). */
   observations: Schema.optionalKey(
     Schema.Array(Schema.Struct({ sha256: Schema.String, hashMatches: Schema.Boolean, signerMatches: Schema.Boolean })),

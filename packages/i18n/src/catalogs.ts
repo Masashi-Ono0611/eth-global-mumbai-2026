@@ -76,7 +76,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episode.event':
     '{kind, select, errand_started {Errand started} decision {The brain decided} chip_requested {Sign request sent to the chip} chip_delivered {The chip picked it up} chip_signed {The chip signed} chip_refused {The chip refused} payment_submitted {Payment submitted to Arc} payment_settled {Settled on Arc} approval_requested {Owner approval requested} approval_answered {Owner approval answered} evidence_uploaded {Evidence stored on 0G} state {Errand state} observation {The robot scanned the QR} other {{kind}}}',
   'episode.field':
-    '{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} capturedAt {Captured} sha256 {SHA-256} signer {Signed by} other {{field}}}',
+    '{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} capturedAt {Captured} sha256 {SHA-256} signer {Signed by} teeSigner {TEE signer} teeFetched {Proof fetched} other {{field}}}',
   'episode.input': 'Input sent to the brain (exact JSON)',
   'episode.meta': '{robot} · started {started}',
   'episode.none':
@@ -94,6 +94,11 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episode.replaySame':
     '{same, select, yes {Same action as the original.} other {A different action from the original.}}',
   'episode.signedBy': 'chip {chip}',
+  'episode.tee':
+    "{state, select, sealed {Sealed in a TEE ✓ (0G chat {chat})} unchecked {TEE proof present, not yet checked: press Verify under Evidence on 0G} mismatch {TEE proof present, but its signature does not match the provider's TEE signer} other {Not TEE-verifiable: this brain publishes no TEE proof}}",
+  'episode.teeNote':
+    "The provider's registered TEE signed that it answered this 0G chat. The signed text commits to the encrypted request and response, not to the wording of the reply.",
+  'episode.teeText': 'Text the TEE signed',
   'episode.title': 'Errand: {item}',
   'episode.verifyMatch':
     '{field, select, rootHash {Root hash} other {Request-ids hash}}: {matches, select, yes {matches the EpisodeLog record on 0G Chain} other {does not match the EpisodeLog record}}',

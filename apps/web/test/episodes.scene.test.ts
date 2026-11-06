@@ -175,6 +175,10 @@ const verified: VerifyResult = {
   downloadCheckedBy: 'uploader',
 }
 
+/** Verify's answer with the decision's TEE check. */
+const verifiedTee = (signerMatches: boolean) =>
+  Episode.Message.SucceededVerify({ result: { ...verified, tee: { present: true, signerMatches } } })
+
 const replayed: ReplayResult = {
   episodeId: 'ep1',
   binding: false,
@@ -317,6 +321,49 @@ describe('/wallet/episodes/:id', () => {
       click(role('button', { name: 'Verify' })),
       Command.resolve(Episode.VerifyEvidence, checked(false, true)),
       expect(text('Not verified: the image does not match its recorded hash')).toExist(),
+    )
+  })
+
+  test('the decision says whether a TEE sealed it: not verifiable, present before Verify, sealed or a mismatch after', () => {
+    const teeSigner = '0x83df4b8eba7c0b3b740019b8f9898d9e8e5a7b0b'
+    const proof = {
+      signer: teeSigner,
+      text: 'chatcmpl-7f3a:{"action":"ask_human","reason":"Restricted item the owner asked for"}',
+      signature: `0x${'3c'.repeat(65)}`,
+      signingAddress: teeSigner,
+      serviceUrl: 'https://tee.example.0g.ai',
+      fetchedAt: at + 3500,
+      verified: true,
+    }
+    scene(
+      { update: Episode.update, view },
+      given(loaded),
+      expect(text('Not TEE-verifiable: this brain publishes no TEE proof')).toExist(),
+      expect(text('Text the TEE signed')).toBeAbsent(),
+    )
+    const sealed = Episode.update(
+      Episode.init('ep1').model,
+      Episode.Message.SucceededLoadAudit({
+        audit: {
+          ...audit,
+          decisions: audit.decisions.map((decision) => ({ ...decision, tee_json: JSON.stringify(proof) })),
+        },
+      }),
+    ).model
+    scene(
+      { update: Episode.update, view },
+      given(sealed),
+      expect(text('TEE proof present, not yet checked: press Verify under Evidence on 0G')).toExist(),
+      expect(text(`${teeSigner.slice(0, 10)}…${teeSigner.slice(-6)}`)).toExist(),
+      expect(text('Text the TEE signed')).toExist(),
+      expect(text(proof.text)).toExist(),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, verifiedTee(true)),
+      expect(text('Sealed in a TEE ✓ (0G chat chat-1)')).toExist(),
+      expect(text(teeSigner)).toExist(),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, verifiedTee(false)),
+      expect(text("TEE proof present, but its signature does not match the provider's TEE signer")).toExist(),
     )
   })
 })

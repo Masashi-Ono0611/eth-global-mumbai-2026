@@ -73,7 +73,7 @@
     "action": "{action, select, verify {Verify} verifying {Verifying…} replay {Replay decision (non-binding)} replaying {Replaying…} other {{action}}}",
     "card": "{card, select, decision {Decision} chip {Chip} payment {Payment on Arc} approval {World approval} evidence {Evidence on 0G} timeline {Timeline} observation {What the robot saw} other {{card}}}",
     "event": "{kind, select, errand_started {Errand started} decision {The brain decided} chip_requested {Sign request sent to the chip} chip_delivered {The chip picked it up} chip_signed {The chip signed} chip_refused {The chip refused} payment_submitted {Payment submitted to Arc} payment_settled {Settled on Arc} approval_requested {Owner approval requested} approval_answered {Owner approval answered} evidence_uploaded {Evidence stored on 0G} state {Errand state} observation {The robot scanned the QR} other {{kind}}}",
-    "field": "{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} capturedAt {Captured} sha256 {SHA-256} signer {Signed by} other {{field}}}",
+    "field": "{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} capturedAt {Captured} sha256 {SHA-256} signer {Signed by} teeSigner {TEE signer} teeFetched {Proof fetched} other {{field}}}",
     "input": "Input sent to the brain (exact JSON)",
     "meta": "{robot} · started {started}",
     "none": "{card, select, decision {No decision was recorded.} chip {No sign request was sent to the chip.} payment {Nothing was paid for this errand.} approval {No approval was needed.} evidence {No evidence record yet.} other {—}}",
@@ -85,6 +85,9 @@
     "replayResult": "Replay: {brain} would {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}",
     "replaySame": "{same, select, yes {Same action as the original.} other {A different action from the original.}}",
     "signedBy": "chip {chip}",
+    "tee": "{state, select, sealed {Sealed in a TEE ✓ (0G chat {chat})} unchecked {TEE proof present, not yet checked: press Verify under Evidence on 0G} mismatch {TEE proof present, but its signature does not match the provider's TEE signer} other {Not TEE-verifiable: this brain publishes no TEE proof}}",
+    "teeNote": "The provider's registered TEE signed that it answered this 0G chat. The signed text commits to the encrypted request and response, not to the wording of the reply.",
+    "teeText": "Text the TEE signed",
     "title": "Errand: {item}",
     "verifyMatch": "{field, select, rootHash {Root hash} other {Request-ids hash}}: {matches, select, yes {matches the EpisodeLog record on 0G Chain} other {does not match the EpisodeLog record}}"
   },
