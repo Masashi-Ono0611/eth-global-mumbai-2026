@@ -80,9 +80,9 @@ workers build from `docs/spec.md` while Kris does the prerequisites and the team
 | Time | Beat |
 | --- | --- |
 | 0:00 | The problem: don't give a robot your wallet, give it a budget |
-| 0:20 | Owner (passkey, funded on Arc) grants Vitaquack's chip 5.00 USDC a day, 1.00 per payment, Duck Café only, on the consent screen (the form defaults; chai/samosa go through, the 2.00 thali needs World approval over the cap, cigarettes need it as a restricted off-list payee; approved payments count against the daily cap) |
+| 0:20 | Owner (passkey, funded on Arc) grants Vitaquack's chip 3.00 USDC a day, 1.00 per payment, Duck Café only, on the consent screen (the form defaults; chai/samosa go through, the 2.00 thali needs World approval over the per-payment cap; a thali over the daily cap makes the robot walk away) |
 | 0:50 | "Buy me a chai": 0G decides (show the request id) → the chip signs → paid on Arc (explorer link) → **the gate opens** |
-| 1:50 | Mock cigarette pack → Agent Pass on the phone → **deny: nothing paid** → approve: paid |
+| 1:50 | Thali 2.00, over the per-payment cap → Agent Pass on the phone → **approve: paid** → another thali → **deny: nothing paid** → a third is over the daily cap → the robot walks away |
 | 2:50 | Revoke in the wallet → the next attempt fails on-chain |
 | 3:20 | How it works: the architecture, our enforcer in Arc Studio, the episode log on 0G Storage |
 | 3:50 | Close |
