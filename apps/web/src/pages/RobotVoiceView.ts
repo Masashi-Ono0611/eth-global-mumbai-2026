@@ -194,12 +194,15 @@ export const statusView = Submodel.defineView<RobotVoice.Model, Message, ViewInp
 )
 
 /** While the mic is open or the clip is with 0G: the owner's bubble-to-be, faint, with three dots. */
-const pendingBubble = (locale: Locale, h: HtmlBuilder<Message>): Html =>
+const pendingBubble = (sent: boolean, locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.p(
     [h.Class(clsx(ownerClassName, 'opacity-55')), h.AriaHidden(true)],
     [
       h.span([h.Class('inline-flex items-center py-1.5')], [workingDots(h)]),
-      h.span([h.Class(ownerSaidClassName)], [micIcon(iconClassName, h), format(locale, 'voice.pending', {})]),
+      h.span(
+        [h.Class(ownerSaidClassName)],
+        [micIcon(iconClassName, h), format(locale, sent ? 'voice.sent' : 'voice.pending', {})],
+      ),
     ],
   )
 
@@ -211,7 +214,7 @@ export const turnsView = Submodel.defineView<RobotVoice.Model, Message, ViewInpu
     [
       ...voice.entries.filter((entry) => entry.kind === 'turn').map((entry) => entryView(entry, name, locale, h)),
       RobotVoice.Status.guards.Listening(voice.status) || RobotVoice.Status.guards.Thinking(voice.status)
-        ? pendingBubble(locale, h)
+        ? pendingBubble(RobotVoice.Status.guards.Thinking(voice.status), locale, h)
         : h.empty,
     ],
   ),

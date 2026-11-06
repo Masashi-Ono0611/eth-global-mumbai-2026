@@ -335,6 +335,7 @@ export interface MessageArgumentsByKey<T = string> {
   'voice.micOnlyWhileHeld': Readonly<Record<string, never>>
   'voice.pending': Readonly<Record<string, never>>
   'voice.reason': Readonly<Record<string, never>>
+  'voice.sent': Readonly<Record<string, never>>
   'voice.speaking': { readonly name: string | number }
   'voice.thinking': { readonly name: string | number }
   'voice.vitaSaid': { readonly name: string | number }
@@ -359,4 +360,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'fe5d23cbbdebe0e721c3cde9bb67241e4738ed7dc49983c1b5d1f1df4c512cc8'
+export const catalogVersion = '0165a1d483f52b4f0b35b242e8edd0033b33fd76933e51220d5e7b539eff9047'

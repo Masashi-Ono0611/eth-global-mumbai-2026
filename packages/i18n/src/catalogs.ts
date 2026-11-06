@@ -377,4 +377,5 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'voice.headerSpeaking': 'Speaking…',
   'voice.pending': 'listening',
   'voice.empty': 'Nothing yet. Tap something below, or hold the mic and ask {name}.',
+  'voice.sent': 'sent',
 }

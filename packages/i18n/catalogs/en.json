@@ -378,6 +378,7 @@
     "headerListening": "Listening…",
     "headerSpeaking": "Speaking…",
     "pending": "listening",
-    "empty": "Nothing yet. Tap something below, or hold the mic and ask {name}."
+    "empty": "Nothing yet. Tap something below, or hold the mic and ask {name}.",
+    "sent": "sent"
   }
 }
