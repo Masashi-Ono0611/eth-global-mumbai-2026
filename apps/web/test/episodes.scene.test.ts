@@ -69,14 +69,14 @@ describe('/wallet/episodes', () => {
       expect(text('The rehearsal brain (not 0G): pay')).toExist(),
       expect(role('link', { name: 'settled' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
       expect(text('consumed · orb')).toExist(),
-      expect(role('link', { name: 'Inspect' })).toHaveAttr('href', '/wallet/episodes/ep1'),
+      expect(role('link', { name: 'Inspect' })).toHaveAttr('href', '/app/wallet/episodes/ep1'),
       change(label('Robot'), 'r2'),
       Command.expectExact(Episodes.LoadEpisodes({ robotId: 'r2' })),
       Command.resolve(
         Episodes.LoadEpisodes,
         Episodes.Message.SucceededLoadEpisodes({ episodes: [summary('ep2', 'r2', { item: 'chai' })] }),
       ),
-      expect(role('link', { name: 'Inspect' })).toHaveAttr('href', '/wallet/episodes/ep2'),
+      expect(role('link', { name: 'Inspect' })).toHaveAttr('href', '/app/wallet/episodes/ep2'),
       change(label('Robot'), ''),
       Command.expectExact(Episodes.LoadEpisodes({ robotId: null })),
       Command.resolve(Episodes.LoadEpisodes, Episodes.Message.SucceededLoadEpisodes({ episodes: [] })),
@@ -216,7 +216,7 @@ describe('/wallet/episodes/:id', () => {
         'href',
         `https://chainscan-galileo.0g.ai/tx/${logTx}`,
       ),
-      expect(role('link', { name: 'Open console' })).toHaveAttr('href', '/robot/r1'),
+      expect(role('link', { name: 'Open console' })).toHaveAttr('href', '/app/robot/r1'),
     )
   })
 

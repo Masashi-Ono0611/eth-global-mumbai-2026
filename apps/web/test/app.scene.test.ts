@@ -27,7 +27,7 @@ describe('routes', () => {
   test('the home page renders and unknown paths render not found', () => {
     scene(
       { update, view },
-      given(signedOut('/')),
+      given(signedOut('/app')),
       expect(role('heading', { name: 'A duck with a budget.' })).toExist(),
       expect(role('button', { name: 'Create passkey wallet' })).toBeEnabled(),
       expect(role('link', { name: 'Read the architecture' })).toHaveAttr(
@@ -39,31 +39,31 @@ describe('routes', () => {
       { update, view },
       given(page('/nope')),
       expect(role('heading', { name: 'Page not found' })).toExist(),
-      expect(role('link', { name: 'Go to home' })).toHaveAttr('href', '/'),
+      expect(role('link', { name: 'Go to home' })).toHaveAttr('href', '/app'),
     )
-    vitestExpect(AppRoute.guards.Home(page('/').route)).toBe(true)
+    vitestExpect(AppRoute.guards.Home(page('/app').route)).toBe(true)
     vitestExpect(AppRoute.guards.NotFound(page('/login').route)).toBe(true)
   })
 
   test('owner, merchant and gate paths parse into their pages and start loading', () => {
-    vitestExpect(AppRoute.guards.Wallet(page('/wallet').route)).toBe(true)
-    vitestExpect(AppRoute.guards.Robots(page('/wallet/robots').route)).toBe(true)
-    vitestExpect(page('/robot/abc').route).toEqual(AppRoute.RobotConsole({ robotId: 'abc' }))
-    vitestExpect(AppRoute.guards.Merchant(page('/merchant').route)).toBe(true)
-    vitestExpect(page('/gate/duck-cafe').route).toEqual(AppRoute.Gate({ merchantId: 'duck-cafe' }))
+    vitestExpect(AppRoute.guards.Wallet(page('/app/wallet').route)).toBe(true)
+    vitestExpect(AppRoute.guards.Robots(page('/app/wallet/robots').route)).toBe(true)
+    vitestExpect(page('/app/robot/abc').route).toEqual(AppRoute.RobotConsole({ robotId: 'abc' }))
+    vitestExpect(AppRoute.guards.Merchant(page('/app/merchant').route)).toBe(true)
+    vitestExpect(page('/app/gate/duck-cafe').route).toEqual(AppRoute.Gate({ merchantId: 'duck-cafe' }))
     vitestExpect(
       init({
         locale: 'en',
         catalogVersion,
         timeZone: 'UTC',
         referenceTime: 0,
-        pathname: '/wallet/robots',
+        pathname: '/app/wallet/robots',
       }).commands?.map((command) => command.name),
     ).toEqual(['ReadSession', 'LoadAddRobot'])
-    scene({ update, view }, given(signedOut('/gate/duck-cafe')), expect(role('status')).toHaveText('CLOSED'))
+    scene({ update, view }, given(signedOut('/app/gate/duck-cafe')), expect(role('status')).toHaveText('CLOSED'))
     scene(
       { update, view },
-      given(page('/wallet')),
+      given(page('/app/wallet')),
       expect(role('heading', { name: 'Wallet', level: 1 })).toExist(),
       expect(role('status')).toHaveText('Loading...'),
     )
@@ -72,14 +72,14 @@ describe('routes', () => {
 
 describe('passkey wallet', () => {
   test('the first render asks for the session and waits for it', () => {
-    vitestExpect(init(page('/').context).commands?.map((command) => command.name)).toEqual(['ReadSession'])
-    scene({ update, view }, given(page('/')), expect(role('status')).toHaveText('Loading...'))
+    vitestExpect(init(page('/app').context).commands?.map((command) => command.name)).toEqual(['ReadSession'])
+    scene({ update, view }, given(page('/app')), expect(role('status')).toHaveText('Loading...'))
   })
 
   test('creating a passkey wallet on the sign-in page opens the wallet', () => {
     scene(
       { update, view },
-      given(signedOut('/')),
+      given(signedOut('/app')),
       type(label('Your name'), 'Ana'),
       submit(selector('form')),
       expect(role('button', { name: 'Creating your wallet...' })).toBeDisabled(),
@@ -94,7 +94,7 @@ describe('passkey wallet', () => {
   test('an owner page without a session shows the sign-in in its place', () => {
     scene(
       { update, view },
-      given(signedOut('/wallet')),
+      given(signedOut('/app/wallet')),
       expect(role('button', { name: 'Create passkey wallet' })).toBeEnabled(),
       expect(role('button', { name: 'Sign in with passkey' })).toBeEnabled(),
     )
@@ -103,7 +103,7 @@ describe('passkey wallet', () => {
   test('the avatar opens the profile sheet; signing out there returns to the sign-in', () => {
     scene(
       { update, view },
-      given(modifyFields(page('/wallet'), { auth: () => AuthState.SignedIn({ session }) })),
+      given(modifyFields(page('/app/wallet'), { auth: () => AuthState.SignedIn({ session }) })),
       click(role('button', { name: 'Profile, records and sign out' })),
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
@@ -115,7 +115,7 @@ describe('passkey wallet', () => {
       expect(role('button', { name: 'Connect Telegram' })).toExist(),
       expect(role('heading', { name: 'Ana' })).toExist(),
       expect(text(session.smartAccount)).toExist(),
-      expect(role('link', { name: 'Payment records' })).toHaveAttr('href', '/wallet/episodes'),
+      expect(role('link', { name: 'Payment records' })).toHaveAttr('href', '/app/wallet/episodes'),
       click(role('button', { name: 'Sign out' })),
       Command.expectExact(SignOut()),
       Command.resolve(SignOut, Message.SucceededSignOut()),
@@ -128,7 +128,7 @@ describe('passkey wallet', () => {
   test('an empty name starts no ceremony', () => {
     scene(
       { update, view },
-      given(signedOut('/')),
+      given(signedOut('/app')),
       type(label('Your name'), '   '),
       submit(selector('form')),
       expect(role('button', { name: 'Create passkey wallet' })).toBeEnabled(),
@@ -138,7 +138,7 @@ describe('passkey wallet', () => {
   test('signing in with a passkey shows the account; a dismissed prompt says so and can be retried', () => {
     scene(
       { update, view },
-      given(signedOut('/')),
+      given(signedOut('/app')),
       click(role('button', { name: 'Sign in with passkey' })),
       expect(role('button', { name: 'Signing in...' })).toBeDisabled(),
       Command.expectExact(SignInWithPasskey()),
@@ -153,7 +153,7 @@ describe('passkey wallet', () => {
   test('a Worker failure during signup is reported separately from the passkey prompt', () => {
     scene(
       { update, view },
-      given(signedOut('/')),
+      given(signedOut('/app')),
       type(label('Your name'), 'Ana'),
       submit(selector('form')),
       Command.resolve(CreatePasskeyWallet, Message.FailedCreatePasskeyWallet({ failure: 'server' })),
@@ -165,7 +165,7 @@ describe('passkey wallet', () => {
   test('an unreachable session service offers a retry', () => {
     scene(
       { update, view },
-      given(modifyFields(page('/'), { auth: () => AuthState.Unavailable() })),
+      given(modifyFields(page('/app'), { auth: () => AuthState.Unavailable() })),
       expect(role('alert')).toHaveText('Something went wrong'),
       click(role('button', { name: 'Retry' })),
       Command.resolve(ReadSession, Message.SucceededReadSession({ maybeSession: Option.some(session) })),

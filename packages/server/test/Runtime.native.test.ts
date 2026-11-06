@@ -189,7 +189,7 @@ test(
   'serves the built Foldkit document and assets through the public edge',
   Effect.gen(function* () {
     const { appUrl } = yield* stack
-    const document = yield* HttpClient.get(appUrl, { headers: { accept: 'text/html' } })
+    const document = yield* HttpClient.get(`${appUrl}/app/`, { headers: { accept: 'text/html' } })
     const html = yield* document.text
     expect(document.status).toBe(200)
     expect(document.headers['content-type']).toContain('text/html')

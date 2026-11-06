@@ -38,8 +38,8 @@ describe('/wallet', () => {
       expect(text('1.40')).toExist(),
       expect(text('Your robots spent 0.10 USDC in the last 24 hours')).toExist(),
       expect(role('button', { name: 'Send, coming soon' })).toBeDisabled(),
-      expect(role('link', { name: 'Add a robot' })).toHaveAttr('href', '/wallet/robots'),
-      expect(role('link', { name: /Duck/ })).toHaveAttr('href', `/robot/${pairedRobot.id}`),
+      expect(role('link', { name: 'Add a robot' })).toHaveAttr('href', '/app/wallet/robots'),
+      expect(role('link', { name: /Duck/ })).toHaveAttr('href', `/app/robot/${pairedRobot.id}`),
       expect(text('Bought chai')).toExist(),
     )
   })

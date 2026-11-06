@@ -43,11 +43,11 @@ export const verifyPasskeyBrowser = async (browser: Browser, origin: string): Pr
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await addVirtualAuthenticator(context, page)
-    await page.goto(origin, { waitUntil: 'networkidle' })
+    await page.goto(new URL('/app/', origin).toString(), { waitUntil: 'networkidle' })
     await page.locator('#display-name').fill('Browser Owner')
     await page.getByRole('button', { name: 'Create passkey wallet' }).click()
     // Signed up on the sign-in page, the owner lands on the wallet.
-    await page.waitForURL(new URL('/wallet', origin).toString())
+    await page.waitForURL(new URL('/app/wallet', origin).toString())
     const address = await smartAccount(page)
     expect(address).toMatch(/^0x[0-9a-fA-F]{40}$/)
     const session = (await context.cookies()).find((cookie) => cookie.name === 'vq_session')

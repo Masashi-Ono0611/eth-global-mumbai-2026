@@ -78,7 +78,7 @@ describe('/wallet/approvals/:id', () => {
       expect(role('status')).toHaveText('Denied: nothing is paid'),
       expect(text('denied by the owner')).toExist(),
       expect(role('link', { name: 'Approve with World ID' })).toBeAbsent(),
-      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/app/robot/${robotId}`),
     )
   })
 
@@ -95,7 +95,7 @@ describe('/wallet/approvals/:id', () => {
       Command.resolve(Approval.FollowErrand, ended('paid', { txHash })),
       expect(role('status')).toHaveText('Paid · view on Arc'),
       expect(role('link', { name: 'view on Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
-      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/app/robot/${robotId}`),
     )
   })
 
@@ -107,7 +107,7 @@ describe('/wallet/approvals/:id', () => {
       expect(role('status')).toHaveText('The payment failed: nothing is paid'),
       expect(text('CannotUseADisabledDelegation')).toExist(),
       expect(role('link', { name: 'view on Arc' })).toBeAbsent(),
-      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/app/robot/${robotId}`),
     )
   })
 
@@ -121,7 +121,7 @@ describe('/wallet/approvals/:id', () => {
       { update: Approval.update, view },
       given(stopped.model),
       expect(text('No final state after 2 minutes; the conversation shows the latest.')).toExist(),
-      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/robot/${robotId}`),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', `/app/robot/${robotId}`),
     )
   })
 

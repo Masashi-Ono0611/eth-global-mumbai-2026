@@ -1,5 +1,5 @@
 import { Option, Schema, pipe } from 'effect'
-import { defineRouteUnion, literal, mapTo, oneOf, parseUrlWithFallback, root, slash, string } from 'foldkit/route'
+import { defineRouteUnion, literal, mapTo, oneOf, parseUrlWithFallback, slash, string } from 'foldkit/route'
 
 /** Every page of the website. A route both parses its URL and, called as a function, builds its link. */
 export const AppRoute = defineRouteUnion({
@@ -17,32 +17,43 @@ export const AppRoute = defineRouteUnion({
 })
 export type AppRoute = typeof AppRoute.Type
 
-export const homeRouter = pipe(root, mapTo(AppRoute.Home))
-export const walletRouter = pipe(literal('wallet'), mapTo(AppRoute.Wallet))
-export const robotsRouter = pipe(literal('wallet'), slash(literal('robots')), mapTo(AppRoute.Robots))
-export const robotConsoleRouter = pipe(literal('robot'), slash(string('robotId')), mapTo(AppRoute.RobotConsole))
-export const episodesRouter = pipe(literal('wallet'), slash(literal('episodes')), mapTo(AppRoute.Episodes))
+/** Every page lives under /app (vitaquack.com: "/" is the static landing page, /api stays where it is). */
+const app = literal('app')
+
+export const homeRouter = pipe(app, mapTo(AppRoute.Home))
+export const walletRouter = pipe(app, slash(literal('wallet')), mapTo(AppRoute.Wallet))
+export const robotsRouter = pipe(app, slash(literal('wallet')), slash(literal('robots')), mapTo(AppRoute.Robots))
+export const robotConsoleRouter = pipe(
+  app,
+  slash(literal('robot')),
+  slash(string('robotId')),
+  mapTo(AppRoute.RobotConsole),
+)
+export const episodesRouter = pipe(app, slash(literal('wallet')), slash(literal('episodes')), mapTo(AppRoute.Episodes))
 export const episodeRouter = pipe(
-  literal('wallet'),
+  app,
+  slash(literal('wallet')),
   slash(literal('episodes')),
   slash(string('episodeId')),
   mapTo(AppRoute.Episode),
 )
 export const robotEpisodesRouter = pipe(
-  literal('robot'),
+  app,
+  slash(literal('robot')),
   slash(string('robotId')),
   slash(literal('episodes')),
   mapTo(AppRoute.RobotEpisodes),
 )
 
 const approvalRouter = pipe(
-  literal('wallet'),
+  app,
+  slash(literal('wallet')),
   slash(literal('approvals')),
   slash(string('approvalId')),
   mapTo(AppRoute.Approval),
 )
-const merchantRouter = pipe(literal('merchant'), mapTo(AppRoute.Merchant))
-export const gateRouter = pipe(literal('gate'), slash(string('merchantId')), mapTo(AppRoute.Gate))
+const merchantRouter = pipe(app, slash(literal('merchant')), mapTo(AppRoute.Merchant))
+export const gateRouter = pipe(app, slash(literal('gate')), slash(string('merchantId')), mapTo(AppRoute.Gate))
 
 const parser = oneOf(
   robotsRouter,

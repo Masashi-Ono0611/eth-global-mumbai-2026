@@ -72,7 +72,7 @@ describe('merchant page', () => {
       expect(text('Duck Café')).toExist(),
       expect(text('0.50 USDC')).toExist(),
       expect(text("Restricted item: needs the owner's approval")).toExist(),
-      expect(role('link', { name: 'Open the gate screen' })).toHaveAttr('href', '/gate/duck-cafe'),
+      expect(role('link', { name: 'Open the gate screen' })).toHaveAttr('href', '/app/gate/duck-cafe'),
     )
   })
 })

@@ -84,7 +84,7 @@ describe('/robot/:id', () => {
       expect(text('Paid with my chip')).toExist(),
       expect(text('0.10 USDC')).toExist(),
       expect(role('link', { name: 'On Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
-      expect(role('link', { name: 'Show proof' })).toHaveAttr('href', '/wallet/episodes/e1'),
+      expect(role('link', { name: 'Show proof' })).toHaveAttr('href', '/app/wallet/episodes/e1'),
       Command.expectExact(RobotConsole.LoadConsole({ robotId })),
       Command.resolve(
         RobotConsole.LoadConsole,

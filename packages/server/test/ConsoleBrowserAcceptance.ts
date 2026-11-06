@@ -53,17 +53,17 @@ export const registerConsoleAcceptance = (test: TestApi['test'], stack: Effect.E
           const errors: Array<string> = []
           page.on('pageerror', (error) => errors.push(error.message))
           await addVirtualAuthenticator(context, page)
-          await page.goto(appUrl, { waitUntil: 'networkidle' })
+          await page.goto(new URL('/app/', appUrl).toString(), { waitUntil: 'networkidle' })
           await page.locator('#display-name').fill('Console Owner')
           await page.getByRole('button', { name: 'Create passkey wallet' }).click()
-          await page.waitForURL(new URL('/wallet', appUrl).toString())
+          await page.waitForURL(new URL('/app/wallet', appUrl).toString())
           const body: unknown = await (
             await context.request.get(new URL('/api/auth/session', appUrl).toString())
           ).json()
           if (!Schema.is(Session)(body)) throw new Error('no session after the browser signup')
           const robotId = await seedRobot(url, body.accountId)
 
-          await page.goto(new URL(`/robot/${robotId}`, appUrl).toString(), { waitUntil: 'networkidle' })
+          await page.goto(new URL(`/app/robot/${robotId}`, appUrl).toString(), { waitUntil: 'networkidle' })
           await page.getByRole('button', { name: 'Buy Chai for 0.10 USDC' }).click()
           // 0G's reason is quoted verbatim under the decision; a 0G provider is labelled 0G, not the rehearsal brain.
           await page.getByText('chai is allowlisted and within budget').waitFor({ timeout: 30_000 })

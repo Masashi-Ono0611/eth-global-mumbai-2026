@@ -10,6 +10,7 @@ import { isSignedOut } from '../api/Http.ts'
 import { AddedRobot, addRobot, listRobots, loadCatalogue } from '../api/Wallet.ts'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
+import { robotConsoleRouter } from '../route.ts'
 
 /**
  * `/wallet/robots`: adding a robot as a short conversation (DESIGN.md): its name, the pairing code the chip takes,
@@ -130,7 +131,7 @@ export const OpenRobot = Command.define('OpenRobot', {
   args: { robotId: Schema.String },
   messages: [Message.CompletedOpenRobot],
   execute: ({ robotId }) =>
-    Navigation.load(`/robot/${encodeURIComponent(robotId)}`).pipe(Effect.as(Message.CompletedOpenRobot())),
+    Navigation.load(robotConsoleRouter({ robotId })).pipe(Effect.as(Message.CompletedOpenRobot())),
 })
 
 // INIT

@@ -6,35 +6,35 @@
   font-style: normal;
   font-weight: 500 800;
   font-display: swap;
-  src: url('/fonts/baloo2-latin.woff2') format('woff2');
+  src: url('/app/fonts/baloo2-latin.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Mukta';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/mukta-400-latin.woff2') format('woff2');
+  src: url('/app/fonts/mukta-400-latin.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Mukta';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/mukta-500-latin.woff2') format('woff2');
+  src: url('/app/fonts/mukta-500-latin.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Mukta';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/mukta-600-latin.woff2') format('woff2');
+  src: url('/app/fonts/mukta-600-latin.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Mukta';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/mukta-700-latin.woff2') format('woff2');
+  src: url('/app/fonts/mukta-700-latin.woff2') format('woff2');
 }
 
 /* Design tokens (apps/web/DESIGN.md, direction "Quack chat"): Tailwind generates a utility for each (`bg-paper`,

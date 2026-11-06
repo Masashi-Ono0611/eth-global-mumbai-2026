@@ -10,7 +10,7 @@ test('concurrent server renders carry the exact English catalog and the release 
   const results = await Effect.runPromise(
     Effect.all(
       Array.from({ length: 4 }, () =>
-        renderRequest(new Request('https://app.test/', { headers: { 'accept-language': 'sl,ja;q=0.8' } }), {
+        renderRequest(new Request('https://app.test/app/', { headers: { 'accept-language': 'sl,ja;q=0.8' } }), {
           buildId: 'test-release',
         }),
       ),
@@ -42,10 +42,13 @@ const respond = async (path: string, requestInit?: RequestInit) =>
   )
 
 test('typed routes decide the status, and a preflight gets the allowed methods without a render', async () => {
-  expect((await respond('/')).status).toBe(200)
+  expect((await respond('/app')).status).toBe(200)
+  expect((await respond('/app/')).status).toBe(200)
+  // "/" is the static landing page on vitaquack.com; the app itself no longer claims it.
+  expect((await respond('/')).status).toBe(404)
   expect((await respond('/login')).status).toBe(404)
   expect((await respond('/account')).status).toBe(404)
-  for (const path of ['/wallet', '/wallet/robots', '/robot/abc', '/merchant', '/gate/duck-cafe'])
+  for (const path of ['/app/wallet', '/app/wallet/robots', '/app/robot/abc', '/app/merchant', '/app/gate/duck-cafe'])
     expect((await respond(path)).status, path).toBe(200)
   const preflight = await respond('/', { method: 'OPTIONS' })
   expect(preflight.status).toBe(204)
