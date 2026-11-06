@@ -152,7 +152,14 @@ const serve = Effect.fnUntraced(function* (pairing: PairingFile, signer: Signer,
             refusal === undefined
               ? yield* answer(request, signer, state, pairing.server)
               : { requestId: request.id, ok: false, refused: { code: refusal.code, detail: refusal.detail } }
-          yield* respond(pairing, result)
+          // The Worker settles inside this POST (up to a minute for the receipt): answer in the background and keep
+          // polling, so the lease never lapses while a payment lands.
+          yield* Effect.forkChild(
+            respond(pairing, result).pipe(
+              Effect.timeout('90 seconds'),
+              Effect.catch((error) => log(`response for ${result.requestId} failed: ${String(error)}`)),
+            ),
+          )
         }),
       ),
     ),

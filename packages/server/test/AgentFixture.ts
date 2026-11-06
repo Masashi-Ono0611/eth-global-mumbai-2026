@@ -35,6 +35,15 @@ const QueuedRequest = Schema.Struct({
   expiresAt: Schema.Finite,
 })
 
+const StuckEpisode = Schema.Struct({
+  id: Schema.String,
+  robotId: Schema.String,
+  accountId: Schema.String,
+  invoiceId: Schema.String,
+  ageSeconds: Schema.Finite,
+  settledTx: Schema.NullOr(Schema.String),
+})
+
 const body = <A>(schema: Schema.ConstraintDecoder<A>) => HttpServerRequest.schemaBodyJson(schema).pipe(Effect.orDie)
 const noContent = HttpServerResponse.empty({ status: 204 })
 
@@ -123,6 +132,35 @@ const forcePaidRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
+/** An errand left in `settling` by a Worker that died, optionally with the payment D1 recorded as settled. */
+const stuckEpisodeRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/stuck-episodes',
+    Effect.gen(function* () {
+      const episode = yield* body(StuckEpisode)
+      const statements = [
+        database
+          .prepare(
+            `INSERT INTO episodes (id, robot_id, account_id, item, invoice_id, state, decision_count, state_changed_at,
+              created_at) VALUES (?, ?, ?, 'chai', ?, 'settling', 0, unixepoch() - ?, unixepoch() * 1000)`,
+          )
+          .bind(episode.id, episode.robotId, episode.accountId, episode.invoiceId, episode.ageSeconds),
+      ]
+      if (episode.settledTx !== null)
+        statements.push(
+          database
+            .prepare(
+              `INSERT INTO payments (invoice_hash, invoice_id, robot_id, episode_id, status, tx_hash, created_at, settled_at)
+                SELECT invoice_hash, id, ?, ?, 'settled', ?, unixepoch() * 1000, unixepoch() FROM invoices WHERE id = ?`,
+            )
+            .bind(episode.robotId, episode.id, episode.settledTx, episode.invoiceId),
+        )
+      yield* database.batch(statements)
+      return noContent
+    }),
+  )
+
 const ChipRequestStatus = Schema.Struct({ status: Schema.String })
 
 const chipRequestRoute = (database: QueryDatabaseClient) =>
@@ -149,4 +187,5 @@ export const agentFixtureRoutes = (database: QueryDatabaseClient) =>
     queueRoute(database),
     forcePaidRoute(database),
     chipRequestRoute(database),
+    stuckEpisodeRoute(database),
   ])

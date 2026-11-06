@@ -107,18 +107,89 @@ export const transition = Effect.fnUntraced(function* (
   return true
 })
 
-/** Apply every due timeout for this robot's live errands. */
+/** A `settling` errand older than this is reconciled from `payments` and `relayer_txs` (a Worker can die mid-settle). */
+const SETTLING_RECONCILE_SECONDS = 120
+/** With no broadcast at all after this long, the settlement is over: the invoice's relayer key stays claimed. */
+const SETTLING_ABANDON_SECONDS = 300
+
+const SettlementTrace = Schema.Struct({
+  payment_status: Schema.NullOr(Schema.String),
+  payment_tx: Schema.NullOr(Schema.String),
+  fail_reason: Schema.NullOr(Schema.String),
+  relayer_status: Schema.NullOr(Schema.String),
+  relayer_tx: Schema.NullOr(Schema.String),
+  relayer_error: Schema.NullOr(Schema.String),
+})
+
+const settlementTrace = (database: QueryDatabaseClient, invoiceId: string) =>
+  firstRow(
+    database
+      .prepare(
+        `SELECT payments.status AS payment_status, payments.tx_hash AS payment_tx, payments.fail_reason AS fail_reason,
+          relayer_txs.status AS relayer_status, relayer_txs.tx_hash AS relayer_tx, relayer_txs.error AS relayer_error
+          FROM invoices LEFT JOIN payments ON payments.invoice_hash = invoices.invoice_hash
+          LEFT JOIN relayer_txs ON relayer_txs.key = 'settle:' || lower(invoices.invoice_hash)
+          WHERE invoices.id = ?`,
+      )
+      .bind(invoiceId),
+    SettlementTrace,
+  )
+
+/** What the stored settlement says happened: paid (with its tx), failed (with a reason), or not known yet. */
+const verdictOf = (trace: typeof SettlementTrace.Type, ageSeconds: number) => {
+  const paidTx =
+    trace.payment_status === 'settled'
+      ? trace.payment_tx
+      : trace.relayer_status === 'confirmed'
+        ? trace.relayer_tx
+        : null
+  if (paidTx !== null) return { paid: true, ref: paidTx } as const
+  if (trace.payment_status === 'failed') return { paid: false, ref: trace.fail_reason ?? 'settlement failed' } as const
+  if (trace.relayer_status === 'failed')
+    return { paid: false, ref: trace.relayer_error ?? 'relayer send failed' } as const
+  if (trace.relayer_tx === null && trace.payment_tx === null && ageSeconds >= SETTLING_ABANDON_SECONDS)
+    return { paid: false, ref: 'settlement interrupted before broadcast' } as const
+  return undefined
+}
+
+/** A stuck `settling` errand ends `paid` or `failed` from what D1 recorded; a sent but unconfirmed tx keeps it waiting. */
+const reconcileSettling = Effect.fnUntraced(function* (
+  database: QueryDatabaseClient,
+  episode: EpisodeRow,
+  now: number,
+) {
+  const age = now - (episode.state_changed_at ?? 0)
+  if (age < SETTLING_RECONCILE_SECONDS || episode.invoice_id === null) return
+  const trace = yield* settlementTrace(database, episode.invoice_id)
+  const verdict = Option.isNone(trace) ? undefined : verdictOf(trace.value, age)
+  if (verdict === undefined) return
+  if (!verdict.paid) {
+    if (yield* transition(database, episode.id, 'settling', 'failed', verdict.ref))
+      yield* settleDecision(database, episode.id, 'failed', verdict.ref)
+    return
+  }
+  yield* database
+    .prepare(`UPDATE invoices SET status = 'paid', paid_tx = ? WHERE id = ? AND status = 'pending'`)
+    .bind(verdict.ref, episode.invoice_id)
+    .run()
+  if (yield* transition(database, episode.id, 'settling', 'paid', verdict.ref))
+    yield* settleDecision(database, episode.id, 'paid', verdict.ref)
+})
+
+/** Apply every due timeout for this robot's live errands, and reconcile settlements a dead Worker left behind. */
 export const tickRobot = Effect.fn('EthMumbai.Robot.tick')(function* (database: QueryDatabaseClient, robotId: string) {
   const now = yield* nowSeconds
   const live = yield* allRows(
     database
       .prepare(
-        `SELECT * FROM episodes WHERE robot_id = ? AND state IN ('queued', 'deciding', 'awaiting_approval', 'signing')`,
+        `SELECT * FROM episodes WHERE robot_id = ?
+          AND state IN ('queued', 'deciding', 'awaiting_approval', 'signing', 'settling')`,
       )
       .bind(robotId),
     EpisodeRow,
   )
   yield* Effect.forEach(live, (episode) => {
+    if (episode.state === 'settling') return reconcileSettling(database, episode, now)
     const due = TIMEOUTS.find(
       (timeout) => timeout.from === episode.state && now - (episode.state_changed_at ?? 0) >= timeout.seconds,
     )

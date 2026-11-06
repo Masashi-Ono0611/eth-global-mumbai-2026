@@ -63,7 +63,11 @@ const Created = Schema.Struct({
   decision: Schema.Struct({ action: Schema.String, reason: Schema.String, requestId: Schema.NullOr(Schema.String) }),
 })
 const ErrandView = Schema.Struct({
-  episode: Schema.Struct({ state: Schema.String, invoice_id: Schema.NullOr(Schema.String) }),
+  episode: Schema.Struct({
+    state: Schema.String,
+    invoice_id: Schema.NullOr(Schema.String),
+    result: Schema.NullOr(Schema.String),
+  }),
   decisions: Schema.Array(
     Schema.Struct({
       step: Schema.Finite,
@@ -131,6 +135,41 @@ const evidenceRoundTrip = (appUrl: string, episodeId: string) =>
     expect(uploaded.status).toBe(200)
     const recorded = yield* (yield* HttpClient.get(`${appUrl}/api/evidence/${episodeId}`)).json
     expect(recorded).toMatchObject({ status: 'uploaded', ...proof, payload: { episodeId } })
+  })
+
+const Invoice = Schema.Struct({ id: Schema.String })
+
+/** A Worker that died mid-settle must not wedge the robot: the next read ends the errand from what D1 recorded. */
+const stuckSettlementsReconcile = (input: {
+  readonly appUrl: string
+  readonly url: string
+  readonly cookie: string
+  readonly accountId: string
+  readonly robotId: string
+}) =>
+  Effect.gen(function* () {
+    const { appUrl, url, cookie, accountId, robotId } = input
+    const post = postTo(url)
+    const invoiceFor = postTo(appUrl)('/api/merchants/duck-cafe/invoices', { itemId: 'chai' }).pipe(
+      Effect.flatMap((created) => created.json),
+      Effect.flatMap(Schema.decodeUnknownEffect(Invoice)),
+    )
+    const settledTx = `0x${'5e'.repeat(32)}`
+    const landed = { id: randomId(), robotId, accountId, invoiceId: (yield* invoiceFor).id, ageSeconds: 200, settledTx }
+    const lost = {
+      id: randomId(),
+      robotId,
+      accountId,
+      invoiceId: (yield* invoiceFor).id,
+      ageSeconds: 400,
+      settledTx: null,
+    }
+    expect((yield* post('/test/vq/stuck-episodes', landed)).status).toBe(204)
+    expect((yield* post('/test/vq/stuck-episodes', lost)).status).toBe(204)
+    const landedView = yield* errandView(appUrl, cookie, robotId, landed.id)
+    expect(landedView.episode).toMatchObject({ state: 'paid', result: settledTx })
+    const lostView = yield* errandView(appUrl, cookie, robotId, lost.id)
+    expect(lostView.episode).toMatchObject({ state: 'failed', result: 'settlement interrupted before broadcast' })
   })
 
 /** M5 acceptance with the stub 0G: `pay` → `signing` + one decision with its request id; timeout and garbage →
@@ -202,6 +241,7 @@ export const registerRobotAcceptance = (test: TestApi['test'], stack: Effect.Eff
       expect((yield* errandView(appUrl, cookie, confusedRobot, garbled.episodeId)).chipRequest).toBeNull()
 
       yield* evidenceRoundTrip(appUrl, stopped.episodeId)
+      yield* stuckSettlementsReconcile({ appUrl, url, cookie, accountId, robotId: robot })
     }).pipe(Effect.provide(freshConnections)),
     { timeout: 90000 },
   )
