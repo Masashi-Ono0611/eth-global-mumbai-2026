@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Talk to Vita</title>
+    <meta name="theme-color" content="#1c1d45" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --dusk: #1c1d45; --dusk-up: #26285a; --duck: #ffd24a; --beak: #ff9f43; --satchel: #48b3ad; --paper: #fff8e8;
+        --ink-soft: rgb(255 248 232 / 0.82); --ink-faint: rgb(255 248 232 / 0.55); --line: rgb(255 248 232 / 0.18);
+        --display: 'Fredoka', ui-rounded, system-ui, sans-serif; --body: 'Nunito Sans', system-ui, sans-serif;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100svh; background: radial-gradient(120% 80% at 50% 30%, #2b2d6b, var(--dusk) 70%); color: var(--paper); font: 400 1.0625rem/1.5 var(--body); }
+      main { min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; padding: 1.25rem 1rem 1.5rem; gap: 0.75rem; }
+      header { text-align: center; }
+      h1 { margin: 0; font: 600 clamp(1.8rem, 5vw, 2.6rem)/1.05 var(--display); }
+      .sub { margin: 0.2rem 0 0; color: var(--ink-faint); font-size: 0.95rem; }
+
+      .stage { display: grid; justify-items: center; align-content: center; gap: 1rem; width: min(100%, 40rem); }
+      svg.duck { width: min(62vw, 300px); height: auto; overflow: visible; transform-origin: 50% 90%; animation: bob 2.6s ease-in-out infinite; }
+      @keyframes bob { 50% { transform: translateY(-6px) rotate(-1.5deg); } }
+      body[data-state='thinking'] svg.duck { animation: wobble 0.5s ease-in-out infinite; }
+      @keyframes wobble { 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+      body[data-state='listening'] .ring { opacity: 1; animation: pulse 1s ease-out infinite; }
+      .ring { opacity: 0; transform-origin: 150px 170px; }
+      @keyframes pulse { from { transform: scale(0.9); opacity: 0.9; } to { transform: scale(1.25); opacity: 0; } }
+      #jaw { transform-origin: 226px 118px; transition: transform 60ms linear; }
+
+      .bubble { min-height: 4.2rem; max-width: 34rem; text-align: center; }
+      .said { margin: 0; color: var(--ink-faint); font-size: 0.95rem; }
+      .reply { margin: 0.25rem 0 0; font: 500 clamp(1.2rem, 3.4vw, 1.6rem)/1.3 var(--display); text-wrap: balance; }
+      .reply .catch { color: var(--duck); font-weight: 600; text-shadow: 0 0 0.6em rgb(255 210 74 / 0.45); }
+      .reply .quackword { display: inline-block; margin-left: 0.1em; transition: transform 0.3s cubic-bezier(.3,1.6,.5,1); }
+      .reply .quackword.big { transform: scale(1.6) rotate(-4deg); }
+      .reply .pun { color: var(--satchel); font-weight: 600; }
+      body.hop svg.duck { animation: hop 0.55s cubic-bezier(.3,1.6,.5,1) 2; }
+      @keyframes hop { 40% { transform: translateY(-34px) rotate(-6deg) scale(1.04, 0.97); } 100% { transform: none; } }
+      .status { margin: 0; color: var(--satchel); font-weight: 600; font-size: 0.9rem; min-height: 1.4em; }
+
+      .controls { display: grid; justify-items: center; gap: 0.9rem; width: min(100%, 34rem); }
+      button.talk {
+        width: 7.5rem; height: 7.5rem; border-radius: 50%; border: 0; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
+        background: var(--duck); color: var(--dusk); font: 600 1.05rem/1.1 var(--display); box-shadow: 0 0.6rem 0 #c9a024, 0 1rem 2rem rgb(0 0 0 / 0.35);
+        transition: transform 80ms, box-shadow 80ms;
+      }
+      button.talk:active, button.talk[aria-pressed='true'] { transform: translateY(0.45rem); box-shadow: 0 0.15rem 0 #c9a024, 0 0.5rem 1rem rgb(0 0 0 / 0.35); background: #ffe07a; }
+      button.talk:disabled { opacity: 0.55; cursor: wait; }
+      button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--duck); outline-offset: 3px; }
+      form.type { display: flex; gap: 0.5rem; width: 100%; }
+      form.type input { flex: 1; min-width: 0; padding: 0.7rem 0.9rem; border-radius: 999px; border: 1px solid var(--line); background: var(--dusk-up); color: var(--paper); font: inherit; }
+      form.type button { padding: 0.7rem 1.1rem; border-radius: 999px; border: 0; background: rgb(255 248 232 / 0.14); color: var(--paper); font: 600 1rem/1 var(--display); cursor: pointer; }
+      details { width: 100%; color: var(--ink-soft); font-size: 0.92rem; }
+      summary { cursor: pointer; color: var(--ink-faint); text-align: center; }
+      .knobs { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem 0.8rem; align-items: center; margin-top: 0.7rem; }
+      .knobs select, .knobs input[type='range'] { width: 100%; }
+      .knobs select { padding: 0.4rem; border-radius: 0.5rem; background: var(--dusk-up); color: var(--paper); border: 1px solid var(--line); font: inherit; }
+      .credit { margin: 0; text-align: center; font-size: 0.82rem; color: var(--ink-faint); }
+      .credit b { color: var(--satchel); }
+    </style>
+  </head>
+  <body data-state="idle">
+    <main>
+      <header>
+        <h1>Talk to Vita</h1>
+        <p class="sub">The Vitaquack duck. Hold the button (or Space) and speak.</p>
+      </header>
+
+      <div class="stage">
+        <svg class="duck" viewBox="0 0 300 300" role="img" aria-label="Vita the duck">
+          <circle class="ring" cx="150" cy="170" r="120" fill="none" stroke="#48b3ad" stroke-width="6" />
+          <ellipse cx="150" cy="282" rx="95" ry="12" fill="rgb(0 0 0 / 0.25)" />
+          <ellipse cx="140" cy="200" rx="105" ry="78" fill="#ffd24a" />
+          <path d="M60 190 q-30 -10 -40 -40 q25 5 45 20 z" fill="#ffd24a" />
+          <path d="M110 205 q40 30 85 5" fill="none" stroke="#e8b52a" stroke-width="6" stroke-linecap="round" />
+          <circle cx="185" cy="105" r="62" fill="#ffd24a" />
+          <path d="M150 150 L95 250" stroke="#48b3ad" stroke-width="12" stroke-linecap="round" />
+          <rect x="72" y="232" width="52" height="40" rx="10" fill="#48b3ad" />
+          <circle cx="200" cy="92" r="9" fill="#1c1d45" /><circle cx="203" cy="89" r="3" fill="#fff" />
+          <path d="M218 104 q34 -4 48 8 q-20 8 -48 6 z" fill="#ff9f43" />
+          <path id="jaw" d="M218 118 q30 2 42 0 q-14 12 -42 6 z" fill="#f08a2c" />
+          <ellipse cx="190" cy="125" rx="12" ry="7" fill="rgb(255 120 120 / 0.35)" />
+        </svg>
+        <div class="bubble" aria-live="polite">
+          <p class="said" id="said"></p>
+          <p class="reply" id="reply"><span class="catch">Quack quack!</span> Ask me what I can buy for you.</p>
+        </div>
+        <p class="status" id="status"></p>
+      </div>
+
+      <div class="controls">
+        <button class="talk" id="talk" aria-pressed="false">Hold to talk</button>
+        <form class="type" id="typeForm" autocomplete="off">
+          <input id="typeInput" placeholder="…or type to Vita" aria-label="Type a message to Vita" />
+          <button type="submit">Send</button>
+        </form>
+        <details>
+          <summary>Voice settings</summary>
+          <div class="knobs">
+            <label for="voice">Voice</label><select id="voice"></select>
+            <label for="pitch">Duck pitch</label><input id="pitch" type="range" min="1" max="1.4" step="0.02" value="1.16" />
+            <label for="tempo">Talk speed</label><input id="tempo" type="range" min="0.8" max="1.2" step="0.05" value="0.95" />
+            <label for="quackOn">Quack sound</label><input id="quackOn" type="checkbox" checked />
+          </div>
+        </details>
+        <p class="credit">Hearing and thinking: <b id="chatModel">0G</b> · Voice: <b id="ttsModel">0G</b> · <span id="timing"></span></p>
+      </div>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const setState = (s) => (document.body.dataset.state = s)
+      const history = []
+      let ctx, analyser, player, playerSource
+
+      const audio = () => {
+        if (!ctx) {
+          ctx = new AudioContext()
+          analyser = ctx.createAnalyser(); analyser.fftSize = 512
+          player = new Audio(); player.preservesPitch = false; player.webkitPreservesPitch = false
+          playerSource = ctx.createMediaElementSource(player)
+          playerSource.connect(analyser); analyser.connect(ctx.destination)
+        }
+        if (ctx.state === 'suspended') ctx.resume()
+        return ctx
+      }
+
+      // A synthesized quack (no sample files): a falling buzzy tone through a nasal band-pass.
+      const quack = (when = 0, pitch = 1) => {
+        if (!$('quackOn').checked) return
+        const c = audio(); const t = c.currentTime + when
+        const osc = c.createOscillator(); osc.type = 'sawtooth'
+        osc.frequency.setValueAtTime(620 * pitch, t); osc.frequency.exponentialRampToValueAtTime(380 * pitch, t + 0.17)
+        const osc2 = c.createOscillator(); osc2.type = 'square'
+        osc2.frequency.setValueAtTime(310 * pitch, t); osc2.frequency.exponentialRampToValueAtTime(200 * pitch, t + 0.17)
+        const band = c.createBiquadFilter(); band.type = 'bandpass'; band.frequency.value = 1350; band.Q.value = 4
+        const nasal = c.createBiquadFilter(); nasal.type = 'peaking'; nasal.frequency.value = 2600; nasal.gain.value = 9
+        const gain = c.createGain()
+        gain.gain.setValueAtTime(0.0001, t); gain.gain.exponentialRampToValueAtTime(0.5, t + 0.015); gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.21)
+        osc.connect(band); osc2.connect(band); band.connect(nasal); nasal.connect(gain); gain.connect(c.destination)
+        osc.start(t); osc2.start(t); osc.stop(t + 0.23); osc2.stop(t + 0.23)
+      }
+
+      // Beak follows the voice's loudness.
+      const level = new Uint8Array(512)
+      const mouth = () => {
+        let open = 0
+        if (analyser && !player.paused) {
+          analyser.getByteTimeDomainData(level)
+          let sum = 0; for (const v of level) sum += (v - 128) ** 2
+          open = Math.min(1, Math.sqrt(sum / level.length) / 28)
+        }
+        $('jaw').style.transform = `rotate(${open * 16}deg) translateY(${open * 6}px)`
+        requestAnimationFrame(mouth)
+      }
+      requestAnimationFrame(mouth)
+
+      // Recording: raw PCM, sent as a 16 kHz mono WAV (0G's omni models take WAV as a data URI).
+      // `holding` is the button state; recording starts only if it is still held once the mic permission resolves.
+      let stream, source, processor, chunks = [], recording = false, holding = false, startedAt = 0
+      const startRec = async () => {
+        if (recording || holding || $('talk').disabled) return
+        holding = true
+        const c = audio()
+        try { stream ??= await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } }) }
+        catch { holding = false; $('status').textContent = 'Microphone blocked. You can type instead.'; return }
+        if (!holding) { $('status').textContent = 'Microphone ready. Hold the button while you speak.'; return }
+        chunks = []; recording = true; startedAt = performance.now()
+        source = c.createMediaStreamSource(stream)
+        processor = c.createScriptProcessor(4096, 1, 1)
+        processor.onaudioprocess = (e) => { if (recording) chunks.push(new Float32Array(e.inputBuffer.getChannelData(0))) }
+        source.connect(processor); processor.connect(c.destination)
+        $('talk').setAttribute('aria-pressed', 'true'); $('talk').textContent = 'Listening…'; setState('listening'); $('status').textContent = ''
+      }
+      const stopRec = () => {
+        holding = false
+        if (!recording) return
+        recording = false
+        source.disconnect(); processor.disconnect()
+        $('talk').setAttribute('aria-pressed', 'false'); $('talk').textContent = 'Hold to talk'
+        if (performance.now() - startedAt < 400) { setState('idle'); $('status').textContent = 'Hold the button while you speak.'; return }
+        send({ audioB64: toWavBase64(chunks, ctx.sampleRate) })
+      }
+      const toWavBase64 = (parts, rate) => {
+        const total = parts.reduce((n, p) => n + p.length, 0)
+        const ratio = rate / 16000, length = Math.floor(total / ratio)
+        const flat = new Float32Array(total); let o = 0; for (const p of parts) { flat.set(p, o); o += p.length }
+        const buf = new DataView(new ArrayBuffer(44 + length * 2))
+        const str = (at, s) => { for (let i = 0; i < s.length; i++) buf.setUint8(at + i, s.charCodeAt(i)) }
+        str(0, 'RIFF'); buf.setUint32(4, 36 + length * 2, true); str(8, 'WAVE'); str(12, 'fmt ')
+        buf.setUint32(16, 16, true); buf.setUint16(20, 1, true); buf.setUint16(22, 1, true); buf.setUint32(24, 16000, true)
+        buf.setUint32(28, 32000, true); buf.setUint16(32, 2, true); buf.setUint16(34, 16, true); str(36, 'data'); buf.setUint32(40, length * 2, true)
+        for (let i = 0; i < length; i++) {
+          const s = Math.max(-1, Math.min(1, flat[Math.floor(i * ratio)]))
+          buf.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+        }
+        let bin = ''; const bytes = new Uint8Array(buf.buffer)
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+        return btoa(bin)
+      }
+
+      // Catchphrases in duck yellow, puns in satchel teal; built as DOM nodes (the reply is model text, never HTML).
+      const CATCH = /(quack quack!|what the duck\?!|waddle waddle!|qua+ck!|budget first, snacks second, quack!|that's a boss decision, quack!)/gi
+      const PUN = /\b(egg-cellent|quack-tually|un-beak-lievable|in-duck-tive|no fowl play|duck-ument|feather-weight|quackers|a bill for my bill)\b/gi
+      const showReply = (text) => {
+        const el = $('reply'); el.replaceChildren()
+        const marks = []
+        for (const re of [CATCH, PUN]) for (const m of text.matchAll(re)) marks.push({ at: m.index, end: m.index + m[0].length, cls: re === CATCH ? 'catch' : 'pun' })
+        marks.sort((a, b) => a.at - b.at)
+        let pos = 0
+        for (const m of marks) {
+          if (m.at < pos) continue
+          el.append(text.slice(pos, m.at))
+          const span = document.createElement('span'); span.className = m.cls; span.textContent = text.slice(m.at, m.end); el.append(span)
+          pos = m.end
+        }
+        el.append(text.slice(pos))
+        // The final "QUACK!" gets its own span so it alone can grow while the slow QUACK plays.
+        const closer = [...el.querySelectorAll('.catch')].pop()
+        const m = closer && /^(.*?)(QUACK!)$/i.exec(closer.textContent)
+        if (m) {
+          closer.textContent = m[1]
+          const word = document.createElement('span'); word.className = 'catch quackword'; word.textContent = m[2]
+          closer.after(word)
+        }
+      }
+      // While the big QUACK plays, the closing "QUACK!" in the reply grows.
+      const bigQuack = (on) => {
+        document.querySelector('#reply .quackword')?.classList.toggle('big', on)
+      }
+      const hop = () => { document.body.classList.remove('hop'); void document.body.offsetWidth; document.body.classList.add('hop'); setTimeout(() => document.body.classList.remove('hop'), 1200) }
+
+      // The pitch-up also speeds playback up, so 0G speaks slower by the same factor: heard tempo = Talk speed.
+      const ttsSpeed = () => Math.min(1.5, Math.max(0.5, Number($('tempo').value) / Number($('pitch').value)))
+      const send = async (payload) => {
+        $('talk').disabled = true; setState('thinking'); $('status').textContent = 'Vita is thinking on 0G…'
+        quack(0, 1.1)
+        try {
+          const r = await fetch('/talk', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, history, voice: $('voice').value, speed: ttsSpeed() }) })
+          const j = await r.json()
+          if (!r.ok) throw new Error(j.error || r.status)
+          history.push({ heard: j.heard || payload.text || '', reply: j.reply })
+          $('said').textContent = j.heard || payload.text ? `You: ${j.heard || payload.text}` : ''
+          showReply(j.reply)
+          $('timing').textContent = `think ${(j.ms / 1000).toFixed(1)} s, voice ${(j.speakMs / 1000).toFixed(1)} s`
+          $('status').textContent = ''
+          setState('speaking')
+          hop(); quack(0, 1); quack(0.24, 1.05)
+          player.src = 'data:audio/mpeg;base64,' + j.mp3B64
+          player.playbackRate = Number($('pitch').value)
+          await new Promise((ok) => setTimeout(ok, 480))
+          await player.play()
+          await new Promise((ok) => (player.onended = ok))
+          // The closer: a beat of silence, then a slow, big QUAAACK with a hop, the word lit up and quacks on top.
+          await new Promise((ok) => setTimeout(ok, 280))
+          bigQuack(true)
+          hop(); quack(0, 1.15)
+          if (j.quackB64) {
+            player.src = 'data:audio/mpeg;base64,' + j.quackB64
+            player.playbackRate = Number($('pitch').value)
+            await player.play()
+            await new Promise((ok) => (player.onended = ok))
+          }
+          quack(0, 1.05); quack(0.18, 1.25)
+          await new Promise((ok) => setTimeout(ok, 500))
+          bigQuack(false)
+        } catch (e) {
+          $('status').textContent = `Quack… 0G did not answer (${String(e.message || e).slice(0, 80)}). Try again.`
+        } finally {
+          $('talk').disabled = false; setState('idle')
+        }
+      }
+
+      const talk = $('talk')
+      talk.addEventListener('pointerdown', (e) => { e.preventDefault(); talk.setPointerCapture(e.pointerId); startRec() })
+      talk.addEventListener('pointerup', stopRec)
+      talk.addEventListener('pointercancel', stopRec)
+      addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.repeat && !e.target.closest('input, select, summary, form button')) { e.preventDefault(); startRec() } })
+      addEventListener('keyup', (e) => { if (e.code === 'Space' && (recording || holding)) { e.preventDefault(); stopRec() } })
+      $('typeForm').addEventListener('submit', (e) => {
+        e.preventDefault(); const text = $('typeInput').value.trim(); if (!text || talk.disabled) return
+        $('typeInput').value = ''; audio(); send({ text })
+      })
+
+      fetch('/voices').then((r) => r.json()).then((v) => {
+        for (const name of v.voices) $('voice').add(new Option(name.replace(/_/g, ' '), name))
+        $('chatModel').textContent = v.chatModel; $('ttsModel').textContent = v.ttsModel
+      })
+    </script>
+  </body>
+</html>
