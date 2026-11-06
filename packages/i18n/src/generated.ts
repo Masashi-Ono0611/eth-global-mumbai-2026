@@ -6,6 +6,7 @@ export interface MessageArgumentsByKey<T = string> {
   'addRobot.askName': Readonly<Record<string, never>>
   'addRobot.cancelPairing': Readonly<Record<string, never>>
   'addRobot.close': Readonly<Record<string, never>>
+  'addRobot.codeLimits': Readonly<Record<string, never>>
   'addRobot.connected': { readonly name: string | number }
   'addRobot.expired': Readonly<Record<string, never>>
   'addRobot.giveCode': { readonly name: string | number }
@@ -16,6 +17,7 @@ export interface MessageArgumentsByKey<T = string> {
   'addRobot.nameLabel': Readonly<Record<string, never>>
   'addRobot.namePlaceholder': Readonly<Record<string, never>>
   'addRobot.next': Readonly<Record<string, never>>
+  'addRobot.onRobot': Readonly<Record<string, never>>
   'addRobot.openSimulator': Readonly<Record<string, never>>
   'addRobot.simCode': { readonly name: string | number }
   'addRobot.startOver': Readonly<Record<string, never>>
@@ -314,9 +316,11 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.deciding': Readonly<Record<string, never>>
   'thread.denied': Readonly<Record<string, never>>
   'thread.dockBusy': { readonly name: string | number }
+  'thread.dockEnded': { readonly name: string | number }
   'thread.dockNoAllowance': { readonly name: string | number }
   'thread.dockStopped': { readonly name: string | number }
   'thread.empty': { readonly name: string | number }
+  'thread.emptyNoAllowance': { readonly name: string | number }
   'thread.expired': { readonly why: string | number }
   'thread.failed': { readonly reason: string | number }
   'thread.instructionFor': { readonly item: string | number }
@@ -331,7 +335,7 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.liveAlt': { readonly name: string | number }
   'thread.liveSeen': { readonly name: string | number; readonly seconds: number }
   'thread.needsOk': Readonly<Record<string, never>>
-  'thread.noAllowance': Readonly<Record<string, never>>
+  'thread.noAllowance': { readonly status: string | number }
   'thread.offline': Readonly<Record<string, never>>
   'thread.onArc': Readonly<Record<string, never>>
   'thread.openSimulator': Readonly<Record<string, never>>
@@ -388,4 +392,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '404b6221027d5e5d000ed92b4a109fa7a1d7cbed0b3acf525bee97ebaa6f37d4'
+export const catalogVersion = '4d8866762a9cbd5765d29b5b67ff7ec4d5b6e1f29882930aca357896d4d0315c'

@@ -58,6 +58,11 @@ const systemClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-c
 const emptyClassName = 'my-auto grid justify-items-center gap-3 px-6 py-8 text-center'
 // The same face as the robot's row on home: ink while its chip is on, grey (and the duck asleep) while it is off.
 const emptyFaceClassName = 'grid size-24 place-items-center rounded-full'
+const failedClassName = 'grid gap-4 px-1 pt-4'
+const failedBackClassName =
+  'inline-flex min-h-11 items-center gap-1.5 justify-self-start rounded-full bg-surface px-3.5 font-semibold no-underline transition-transform active:scale-[0.96]'
+const emptyActionClassName =
+  'inline-flex min-h-11 cursor-pointer items-center rounded-full bg-ink px-5 font-semibold text-surface transition-transform active:scale-[0.96]'
 const emptyTextClassName = 'max-w-[15rem] text-[0.95rem] text-muted text-balance'
 const stepTextClassName = 'transition-opacity duration-150 starting:opacity-0'
 /** The live errand's messages enter (DESIGN.md "Motion"); the history above never moves. A contents box, so the
@@ -130,7 +135,13 @@ const header = (model: Model, view: ConsoleRobot, paid: boolean, locale: Locale,
               h.AriaLabel(format(locale, 'allowance.openNone', {})),
               h.OnClick(Message.ClickedAllowance()),
             ],
-            [h.span([h.Class(allowanceLabelClassName)], [format(locale, 'thread.noAllowance', {})])],
+            // Never given, stopped or past its window: say which.
+            [
+              h.span(
+                [h.Class(allowanceLabelClassName)],
+                [format(locale, 'thread.noAllowance', { status: view.grant?.status ?? 'none' })],
+              ),
+            ],
           )
         : h.button(
             [
@@ -493,11 +504,22 @@ const loadedView = (
                     [
                       format(
                         locale,
-                        RobotVoice.Status.guards.Unavailable(model.voice.status) ? 'thread.empty' : 'voice.empty',
+                        view.grant === null
+                          ? 'thread.emptyNoAllowance'
+                          : RobotVoice.Status.guards.Unavailable(model.voice.status)
+                            ? 'thread.empty'
+                            : 'voice.empty',
                         { name: view.robot.name },
                       ),
                     ],
                   ),
+                  // Without an allowance the pills rest: the way forward is right here.
+                  view.grant === null
+                    ? h.button(
+                        [h.Type('button'), h.Class(emptyActionClassName), h.OnClick(Message.ClickedAllowance())],
+                        [format(locale, 'allowance.give', { name: view.robot.name })],
+                      )
+                    : h.empty,
                 ],
               )
             : past.length === 0
@@ -543,7 +565,18 @@ export const robotConsoleView = Submodel.defineView<
       ConsoleState.match(model.state, {
         Loading: () => threadSkeleton(locale, h),
         SignedOut: () => signedOutView(locale, h),
-        Failed: ({ error }) => failedView(error, Message.ClickedRefresh(), locale, h),
+        // A robot that cannot be read (gone, or another owner's): a way back beside Retry.
+        Failed: ({ error }) =>
+          h.div(
+            [h.Class(failedClassName)],
+            [
+              h.a(
+                [h.Href(walletRouter()), h.Class(failedBackClassName)],
+                [h.span([h.AriaHidden(true)], ['‹']), format(locale, 'episodes.backToWallet', {})],
+              ),
+              failedView(error, Message.ClickedRefresh(), locale, h),
+            ],
+          ),
         Loaded: ({ robot, catalogue, history, amounts }) =>
           loadedView(model, robot, catalogue, history, amounts, locale, timeZone, h),
       }),

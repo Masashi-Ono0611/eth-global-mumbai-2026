@@ -312,7 +312,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       return Status.guards.Starting(status)
         ? {
             model: modifyFields(model, { status: () => Status.Listening({ holdId: status.holdId }) }),
-            commands: [LimitListening({ holdId: status.holdId })],
+            // The owner's faint bubble appears at the bottom of the thread: bring it above the dock.
+            commands: [LimitListening({ holdId: status.holdId }), ShowNewest()],
           }
         : { model, commands: [StopListening()] }
     },

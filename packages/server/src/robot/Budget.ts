@@ -90,3 +90,8 @@ export const spentInPeriod = (database: QueryDatabaseClient, grant: Grant, nowSe
 
 export const isApprovalRequired = (grant: Grant, payTo: string, amount: bigint) =>
   amount > grant.perPaymentCap || !grant.allowlist.some((payee) => payee.toLowerCase() === payTo.toLowerCase())
+
+/** The grant's status as the owner should read it now: an active grant past its window has ended (Arc refuses it), so
+ *  it reads `expired`, not `active`; the stored row keeps what was signed. */
+export const statusAt = (row: { readonly status: string; readonly expires_at: number }, now: number) =>
+  row.status === 'active' && row.expires_at <= now ? 'expired' : row.status

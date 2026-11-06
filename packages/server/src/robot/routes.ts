@@ -3,7 +3,7 @@ import { CreateErrandRequest } from '@ethmumbai/protocol/Errand'
 import { Clock, Effect, Option, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
-import { latestSignedGrant, periodStartOf, spentInPeriod } from './Budget.ts'
+import { latestSignedGrant, periodStartOf, spentInPeriod, statusAt } from './Budget.ts'
 import { firstObservation } from './Observations.ts'
 import { decisionsOf } from './Decide.ts'
 import { type EpisodeRow, type ErrandDeps, readEpisode, tickRobot } from './Errands.ts'
@@ -138,7 +138,7 @@ const readRobotView = (deps: ErrandDeps) =>
         onNone: () => null,
         onSome: ({ row, dailyCap, perPaymentCap, allowlist }) => ({
           id: row.id,
-          status: row.status,
+          status: statusAt(row, now),
           delegationHash: row.delegation_hash,
           dailyCap: dailyCap.toString(),
           perPaymentCap: perPaymentCap.toString(),
