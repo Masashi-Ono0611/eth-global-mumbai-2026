@@ -15,16 +15,25 @@ import {
   startErrand,
   terminalStates,
 } from '../api/Robot.ts'
-import { Catalogue, loadActivity, loadCatalogue } from '../api/Wallet.ts'
+import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
+import { Catalogue, denyApproval, loadActivity, loadCatalogue } from '../api/Wallet.ts'
 
 // MODEL
 
 export const ConsoleState = defineTaggedUnion({
   Loading: {},
   SignedOut: {},
-  Loaded: { robot: ConsoleRobot, catalogue: Catalogue },
+  Loaded: {
+    robot: ConsoleRobot,
+    catalogue: Catalogue,
+    /** The robot's errands, oldest first: the conversation's history. */
+    history: Schema.Array(EpisodeSummary),
+    /** What each errand paid or asked for (USDC base units), by errand id. */
+    amounts: Schema.Record(Schema.String, Schema.String),
+  },
   Failed: { error: Schema.String },
 })
+export const Decline = defineTaggedUnion({ Idle: {}, Declining: {}, Failed: { error: Schema.String } })
 export const Errand = defineTaggedUnion({
   Idle: {},
   Starting: { item: Schema.String },
@@ -41,6 +50,7 @@ export const Model = Schema.Struct({
   state: ConsoleState,
   errand: Errand,
   invoiceInput: Schema.String,
+  decline: Decline,
 })
 export type Model = typeof Model.Type
 
@@ -50,6 +60,8 @@ export const Message = defineMessageUnion({
   SucceededLoadConsole: {
     robot: ConsoleRobot,
     catalogue: Catalogue,
+    history: Schema.Array(EpisodeSummary),
+    amounts: Schema.Record(Schema.String, Schema.String),
     maybeLatestEpisode: Schema.Option(Schema.String),
   },
   FailedLoadConsole: { error: Schema.String, signedOut: Schema.Boolean },
@@ -61,6 +73,9 @@ export const Message = defineMessageUnion({
   FailedLoadErrand: { episodeId: Schema.String },
   CompletedFindApproval: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
   ClickedRefresh: {},
+  ClickedDecline: { approvalId: Schema.String },
+  SucceededDecline: {},
+  FailedDecline: { error: Schema.String },
 })
 export type Message = typeof Message.Type
 
@@ -75,14 +90,25 @@ export const LoadConsole = Command.define('LoadConsole', {
   messages: [Message.SucceededLoadConsole, Message.FailedLoadConsole],
   execute: ({ robotId }) =>
     Effect.gen(function* () {
-      const [robot, catalogue, activity] = yield* Effect.all([loadConsoleRobot(robotId), loadCatalogue, loadActivity], {
-        concurrency: 3,
-      })
+      const [robot, catalogue, activity, { episodes }] = yield* Effect.all(
+        [loadConsoleRobot(robotId), loadCatalogue, loadActivity, listEpisodes(robotId)],
+        { concurrency: 4 },
+      )
+      const amounts = Object.fromEntries(
+        activity.episodes.flatMap((episode) =>
+          episode.amount === null ? [] : [[episode.id, episode.amount] as const],
+        ),
+      )
       const latest = activity.episodes.find((episode) => episode.robotId === robotId)
       return Message.SucceededLoadConsole({
         robot,
         catalogue,
-        maybeLatestEpisode: Option.fromNullishOr(latest?.id),
+        history: episodes.toReversed(),
+        amounts,
+        // Resume only an errand that is still running; an ended one is already in the history.
+        maybeLatestEpisode: Option.fromNullishOr(
+          latest !== undefined && !terminalStates.has(latest.state) ? latest.id : undefined,
+        ),
       })
     }).pipe(
       Effect.catch((failure) =>
@@ -138,6 +164,18 @@ export const FindApproval = Command.define('FindApproval', {
     ),
 })
 
+/** "No" to the waiting approval: the errand ends `denied` and nothing is signed (spec §9).
+ * @internal Exported for the scene tests; the page update is its only production caller. */
+export const DeclineApproval = Command.define('DeclineApproval', {
+  args: { approvalId: Schema.String },
+  messages: [Message.SucceededDecline, Message.FailedDecline],
+  execute: ({ approvalId }) =>
+    denyApproval(approvalId).pipe(
+      Effect.as(Message.SucceededDecline()),
+      Effect.catch((failure) => Effect.succeed(Message.FailedDecline({ error: failure.error }))),
+    ),
+})
+
 type Services = HttpClient.HttpClient
 
 // INIT
@@ -146,7 +184,7 @@ type UpdateReturn = Update.Return<Model, Message, Services>
 const POLL_MILLIS = 1500
 
 export const init = (robotId: string): UpdateReturn => ({
-  model: { robotId, state: ConsoleState.Loading(), errand: Errand.Idle(), invoiceInput: '' },
+  model: { robotId, state: ConsoleState.Loading(), errand: Errand.Idle(), invoiceInput: '', decline: Decline.Idle() },
   commands: [LoadConsole({ robotId })],
 })
 
@@ -163,10 +201,33 @@ export const isLive = (errand: Errand) =>
 const running = (episodeId: string, maybeApprovalUrl: Option.Option<string>) =>
   Errand.Running({ episodeId, maybeDetail: Option.none(), maybeApprovalUrl })
 
+/** A read of the running errand: keep polling while it is live, reload the conversation once it has ended. */
+const loadedErrand = (model: Model, episodeId: string, detail: ErrandDetail): UpdateReturn => {
+  const { errand } = model
+  if (!Errand.guards.Running(errand) || errand.episodeId !== episodeId) {
+    return { model }
+  }
+  const live = !terminalStates.has(detail.episode.state)
+  const findApproval =
+    detail.episode.state === 'awaiting_approval' && Option.isNone(errand.maybeApprovalUrl)
+      ? [FindApproval({ episodeId })]
+      : []
+  return {
+    model: modifyFields(model, {
+      errand: () => Errand.Running({ ...errand, maybeDetail: Option.some(detail) }),
+    }),
+    commands: live
+      ? [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS }), ...findApproval]
+      : [LoadConsole({ robotId: model.robotId })],
+  }
+}
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SucceededLoadConsole: ({ robot, catalogue, maybeLatestEpisode }) => {
-      const loaded = modifyFields(model, { state: () => ConsoleState.Loaded({ robot, catalogue }) })
+    SucceededLoadConsole: ({ robot, catalogue, history, amounts, maybeLatestEpisode }) => {
+      const loaded = modifyFields(model, {
+        state: () => ConsoleState.Loaded({ robot, catalogue, history, amounts }),
+      })
       const resume = Errand.guards.Idle(model.errand) ? maybeLatestEpisode : Option.none()
       return Option.match(resume, {
         onNone: () => ({ model: loaded }),
@@ -194,25 +255,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
     }),
     FailedStartErrand: ({ error }) => ({ model: modifyFields(model, { errand: () => Errand.Refused({ error }) }) }),
-    SucceededLoadErrand: ({ episodeId, detail }) => {
-      const { errand } = model
-      if (!Errand.guards.Running(errand) || errand.episodeId !== episodeId) {
-        return { model }
-      }
-      const live = !terminalStates.has(detail.episode.state)
-      const findApproval =
-        detail.episode.state === 'awaiting_approval' && Option.isNone(errand.maybeApprovalUrl)
-          ? [FindApproval({ episodeId })]
-          : []
-      return {
-        model: modifyFields(model, {
-          errand: () => Errand.Running({ ...errand, maybeDetail: Option.some(detail) }),
-        }),
-        commands: live
-          ? [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS }), ...findApproval]
-          : [LoadConsole({ robotId: model.robotId })],
-      }
-    },
+    SucceededLoadErrand: ({ episodeId, detail }) => loadedErrand(model, episodeId, detail),
     CompletedFindApproval: ({ episodeId, maybeApprovalUrl }) => {
       const { errand } = model
       if (!Errand.guards.Running(errand) || errand.episodeId !== episodeId) {
@@ -225,4 +268,21 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ? { model, commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS * 2 })] }
         : { model },
     ClickedRefresh: () => ({ model, commands: [LoadConsole({ robotId: model.robotId })] }),
+    ClickedDecline: ({ approvalId }) =>
+      Decline.guards.Declining(model.decline)
+        ? { model }
+        : {
+            model: modifyFields(model, { decline: () => Decline.Declining() }),
+            commands: [DeclineApproval({ approvalId })],
+          },
+    SucceededDecline: () => {
+      const { errand } = model
+      return {
+        model: modifyFields(model, { decline: () => Decline.Idle() }),
+        commands: Errand.guards.Running(errand)
+          ? [PollErrand({ robotId: model.robotId, episodeId: errand.episodeId, delayMillis: 0 })]
+          : [],
+      }
+    },
+    FailedDecline: ({ error }) => ({ model: modifyFields(model, { decline: () => Decline.Failed({ error }) }) }),
   })

@@ -209,6 +209,39 @@ export interface MessageArgumentsByKey<T = string> {
   'robots.signingGrant': Readonly<Record<string, never>>
   'robots.status': { readonly status: string | number; readonly online: string | number }
   'robots.title': Readonly<Record<string, never>>
+  'thread.askOk': { readonly item: string | number }
+  'thread.asksYou': Readonly<Record<string, never>>
+  'thread.atCounter': Readonly<Record<string, never>>
+  'thread.back': Readonly<Record<string, never>>
+  'thread.buy': { readonly item: string | number }
+  'thread.buyChip': { readonly item: string | number; readonly amount: string | number }
+  'thread.conversation': { readonly name: string | number }
+  'thread.couldNotStart': { readonly message: string | number }
+  'thread.deciding': Readonly<Record<string, never>>
+  'thread.denied': Readonly<Record<string, never>>
+  'thread.dockBusy': { readonly name: string | number }
+  'thread.dockNoAllowance': { readonly name: string | number }
+  'thread.dockReady': { readonly name: string | number }
+  'thread.empty': { readonly name: string | number }
+  'thread.expired': Readonly<Record<string, never>>
+  'thread.failed': { readonly reason: string | number }
+  'thread.invoice': { readonly item: string | number; readonly amount: string | number }
+  'thread.needsOk': Readonly<Record<string, never>>
+  'thread.noAllowance': Readonly<Record<string, never>>
+  'thread.offline': Readonly<Record<string, never>>
+  'thread.onArc': Readonly<Record<string, never>>
+  'thread.paidWithChip': Readonly<Record<string, never>>
+  'thread.perDay': Readonly<Record<string, never>>
+  'thread.proof': Readonly<Record<string, never>>
+  'thread.records': { readonly name: string | number }
+  'thread.refused': { readonly reason: string | number }
+  'thread.rehearsalDecided': { readonly action: string | number }
+  'thread.safeStop': { readonly reason: string | number }
+  'thread.settling': Readonly<Record<string, never>>
+  'thread.signing': Readonly<Record<string, never>>
+  'thread.specificQr': Readonly<Record<string, never>>
+  'thread.walkedAway': Readonly<Record<string, never>>
+  'thread.zeroGDecided': { readonly action: string | number }
   'wallet.activity': Readonly<Record<string, never>>
   'wallet.address': Readonly<Record<string, never>>
   'wallet.addressNote': Readonly<Record<string, never>>
@@ -229,4 +262,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '7f0a24ff7c27b4e06ad4f7baba401d22142c410c425d2aa7515b811e46c53cdb'
+export const catalogVersion = '20096434a1858d26c96e43cd335cc46898d399ca714315de98a069bf13248179'

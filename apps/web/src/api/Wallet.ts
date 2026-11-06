@@ -128,3 +128,7 @@ export const usdc = (units: string): string => {
 }
 
 export const explorerTx = (hash: string) => `https://explorer.arc.io/tx/${hash}`
+
+/** "No" to a waiting approval (spec §9): the errand ends `denied`, nothing is signed. */
+export const denyApproval = (approvalId: string) =>
+  postJson(`/api/approvals/${encodeURIComponent(approvalId)}/deny`, {}, Schema.Struct({ status: Schema.String }))

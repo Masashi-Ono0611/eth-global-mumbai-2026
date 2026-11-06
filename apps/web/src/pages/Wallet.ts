@@ -6,10 +6,11 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
-import { isSignedOut, postJson } from '../api/Http.ts'
+import { isSignedOut } from '../api/Http.ts'
 import { loadEpisodeApproval, terminalStates } from '../api/Robot.ts'
 import {
   ActivityView,
+  denyApproval,
   type EpisodeActivity,
   listRobots,
   loadActivity,
@@ -159,11 +160,7 @@ export const DeclineApproval = Command.define('DeclineApproval', {
   args: { approvalId: Schema.String },
   messages: [Message.SucceededDecline, Message.FailedDecline],
   execute: ({ approvalId }) =>
-    postJson(
-      `/api/approvals/${encodeURIComponent(approvalId)}/deny`,
-      {},
-      Schema.Struct({ status: Schema.String }),
-    ).pipe(
+    denyApproval(approvalId).pipe(
       Effect.as(Message.SucceededDecline()),
       Effect.catch((failure) => Effect.succeed(Message.FailedDecline({ approvalId, error: failure.error }))),
     ),

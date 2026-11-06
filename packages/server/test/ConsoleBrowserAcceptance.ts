@@ -28,10 +28,11 @@ export const seedRobot = async (url: string, accountId: string) => {
   return robotId
 }
 
-const errandState = (page: Page) => page.locator('.errand-detail [role=status]').first()
+/** The live errand's step, as the robot says it in the conversation. */
+const signingStep = (page: Page) => page.getByRole('status').filter({ hasText: 'My chip is signing the payment...' })
 
 /**
- * The robot console in a real browser (spec §6, M7): "Buy Chai" runs the 0G decision (stub) and queues the chip's sign
+ * The robot conversation in a real browser (spec §6, M7): "Buy Chai" runs the 0G decision (stub) and queues the chip's sign
  * request; after a reload the console restores the robot's latest errand from /api/wallet/activity and keeps polling
  * it (the chip never answers here, so the errand stays live in `signing`).
  */
@@ -63,22 +64,20 @@ export const registerConsoleAcceptance = (test: TestApi['test'], stack: Effect.E
           const robotId = await seedRobot(url, body.accountId)
 
           await page.goto(new URL(`/robot/${robotId}`, appUrl).toString(), { waitUntil: 'networkidle' })
-          await page.getByRole('button', { name: 'Buy Chai (0.10 USDC)' }).click()
-          await page.getByText('0G decided to pay: chai is allowlisted and within budget').waitFor({ timeout: 30_000 })
-          expect(
-            await page.getByText(/^request id stub-request-\d+ · \S+\/native-stub-model@0x[0-9a-f]+ · \d+ ms$/).count(),
-          ).toBe(1)
-          expect(await errandState(page).textContent()).toBe('chai: chip signing')
-          expect(await page.getByRole('button', { name: 'Buy Chai (0.10 USDC)' }).isDisabled()).toBe(true)
+          await page.getByRole('button', { name: 'Buy Chai for 0.10 USDC' }).click()
+          // 0G's reason is quoted verbatim under the decision; a 0G provider is labelled 0G, not the rehearsal brain.
+          await page.getByText('chai is allowlisted and within budget').waitFor({ timeout: 30_000 })
+          expect(await page.getByText('0G decided: buy it').count()).toBe(1)
+          await signingStep(page).waitFor()
+          expect(await page.getByRole('button', { name: 'Buy Chai for 0.10 USDC' }).isDisabled()).toBe(true)
 
           const polls: Array<string> = []
           page.on('request', (request) => {
             if (ERRAND_POLL.test(new URL(request.url()).pathname)) polls.push(request.url())
           })
           await page.reload({ waitUntil: 'networkidle' })
-          await page.getByText('0G decided to pay: chai is allowlisted and within budget').waitFor({ timeout: 15_000 })
-          expect(await errandState(page).textContent()).toBe('chai: chip signing')
-          expect(await page.getByText('Waiting for the chip to poll').isVisible()).toBe(true)
+          await page.getByText('chai is allowlisted and within budget').waitFor({ timeout: 15_000 })
+          await signingStep(page).waitFor()
           await page.waitForTimeout(4_000)
           expect(polls.length).toBeGreaterThanOrEqual(2)
           expect(errors).toEqual([])
