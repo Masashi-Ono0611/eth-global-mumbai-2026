@@ -41,6 +41,16 @@ const respond = async (path: string, requestInit?: RequestInit) =>
     await Effect.runPromise(renderRequest(new Request(`https://app.test${path}`, requestInit), { buildId: 'test' })),
   )
 
+test('a page response names its first API reads for the browser to preload; a missing page names none', async () => {
+  const session = '</api/auth/session>; rel=preload; as=fetch; crossorigin'
+  expect((await respond('/app/')).headers.get('link')).toBe(session)
+  expect((await respond('/app/wallet')).headers.get('link')).toContain(
+    '</api/wallet>; rel=preload; as=fetch; crossorigin',
+  )
+  expect((await respond('/app/wallet')).headers.get('link')).toContain(session)
+  expect((await respond('/app/nowhere')).headers.get('link')).toBeNull()
+})
+
 test("the merchant counter's server render already shows the menu, not a loading state", async () => {
   const html = await (await respond('/app/merchant')).text()
   expect(html).toMatch(/<h1[^>]*>Duck Café<\/h1>/)

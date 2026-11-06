@@ -4,6 +4,7 @@ import * as Server from 'foldkit/experimental/server'
 import { catalogVersion } from '@ethmumbai/i18n'
 import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
 import { Flags } from './model.ts'
+import { preloadLink } from './Preloads.ts'
 import { AppRoute, routeFromPathname } from './route.ts'
 import { init } from './update.ts'
 import { view } from './View.ts'
@@ -31,13 +32,17 @@ const renderApplication = (
       pathname: url.pathname,
     }
     const rendered = yield* Server.renderToString(application, { ...options, flags })
+    const route = routeFromPathname(url.pathname)
+    const link = preloadLink(route)
     return Server.Rendered(rendered, {
-      status: AppRoute.guards.NotFound(routeFromPathname(url.pathname)) ? 404 : 200,
+      status: AppRoute.guards.NotFound(route) ? 404 : 200,
       headers: {
         'cache-control': 'private, no-store',
         'content-language': flags.locale,
         'x-content-type-options': 'nosniff',
         'referrer-policy': 'strict-origin-when-cross-origin',
+        // The page's first API reads start with this response, not after the app boots (Preloads.ts).
+        ...(link === undefined ? {} : { link }),
       },
     })
   })
