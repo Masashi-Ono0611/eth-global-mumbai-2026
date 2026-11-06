@@ -33,6 +33,19 @@ const Runtime = Layer.mergeAll(
   Cloudflare.R2.ReadWriteBucketBinding,
 )
 
+/**
+ * Once a minute: expire errands and approvals nobody is looking at and send queued Telegram messages, so neither waits
+ * for unrelated traffic. Same isolate-cached application as fetch; a failed sweep is logged, never fatal.
+ */
+const everyMinute = <E, R, S>(
+  application: (
+    env: Cloudflare.Workers.WorkerEnvironment['Service'],
+  ) => Effect.Effect<{ readonly sweep: Effect.Effect<void, never, S> }, E, R>,
+) =>
+  Cloudflare.Workers.cron('* * * * *', () =>
+    Effect.flatMap(Cloudflare.Workers.WorkerEnvironment, (env) => Effect.flatMap(application(env), (app) => app.sweep)),
+  )
+
 export class ApiWorker extends Cloudflare.Worker<ApiWorker, Cloudflare.WorkerShape>()('Api') {}
 
 export default ApiWorker.make(
@@ -135,15 +148,7 @@ export default ApiWorker.make(
       yield* execution.waitUntil(notify)
       return response
     })
-    // Once a minute: expire errands and approvals nobody is looking at and send queued Telegram messages, so neither
-    // waits for unrelated traffic. Same isolate-cached application as fetch; a failed sweep is logged, never fatal.
-    yield* Cloudflare.Workers.cron('* * * * *', () =>
-      Effect.gen(function* () {
-        const env = yield* Cloudflare.Workers.WorkerEnvironment
-        const app = yield* application(env)
-        yield* app.sweep
-      }),
-    )
+    yield* everyMinute(application)
     return { fetch }
   }).pipe(Effect.provide(Layer.merge(Cloudflare.Workers.CronEventSourceLive, Runtime))),
 )
