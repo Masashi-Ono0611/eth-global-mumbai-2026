@@ -79,13 +79,20 @@
       .live .row.back { animation-direction: reverse; animation-duration: 120s; }
       .live .row img { width: 15rem; border-radius: 1.25rem; border: 4px solid #2b2d62; display: block; }
       @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-      .live .path { position: absolute; inset: auto 0 9%; z-index: -1; width: 100%; height: 100px; pointer-events: none; }
-      .live .path line { stroke: rgb(255 231 176 / 0.35); stroke-width: 2; }
-      .live .path .pulse { stroke: var(--chip); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 60 2000; animation: pulse 6s linear infinite; }
-      .live .path circle { fill: var(--night); stroke: var(--lamp); stroke-width: 2; }
-      .live .path text { fill: var(--lamp); font: 600 14px var(--body); text-anchor: middle; }
-      @keyframes pulse { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -2060; } }
-      @media (prefers-reduced-motion: reduce) { .live .row, .live .path .pulse { animation: none; } }
+      /* The payment's path: six stops, a light that travels along the rail at a steady pace, each stop glowing as it passes. */
+      .flow { position: absolute; left: 50%; bottom: 7%; translate: -50% 0; width: min(72rem, 94vw); z-index: -1; pointer-events: none; }
+      .flow .nodes { display: grid; grid-template-columns: repeat(6, 1fr); list-style: none; margin: 0; padding: 0; }
+      .flow li { display: grid; justify-items: center; gap: 0.5rem; }
+      .flow .mark { width: 3.4rem; height: 3.4rem; border-radius: 50%; display: grid; place-items: center; color: var(--lamp); background: var(--night); border: 2px solid rgb(255 231 176 / 0.6); animation: stop 9s linear infinite; animation-delay: calc(var(--i) * 1.8s); }
+      .flow .mark svg { width: 1.7rem; height: 1.7rem; display: block; }
+      .flow .name { font: 600 0.9rem/1 var(--body); color: var(--lamp); }
+      .flow .track { position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: 1.7rem; height: 2px; background: rgb(255 231 176 / 0.35); container-type: inline-size; }
+      .flow .dot { position: absolute; left: 0; top: 50%; width: 0.8rem; height: 0.8rem; margin: -0.4rem 0 0 -0.4rem; border-radius: 50%; background: var(--chip); box-shadow: 0 0 1rem 0.2rem rgb(63 214 196 / 0.7); animation: travel 9s linear infinite; }
+      .flow .dot.trail { opacity: 0.45; box-shadow: 0 0 1.5rem 0.5rem rgb(63 214 196 / 0.45); animation-delay: -0.12s; }
+      @keyframes travel { 0% { transform: translateX(0); opacity: 0; } 4% { opacity: 1; } 96% { opacity: 1; } 100% { transform: translateX(100cqw); opacity: 0; } }
+      @keyframes stop { 0%, 1% { box-shadow: 0 0 0 0 rgb(63 214 196 / 0); border-color: rgb(255 231 176 / 0.6); } 3% { box-shadow: 0 0 1.4rem 0.3rem rgb(63 214 196 / 0.7); border-color: var(--chip); } 12%, 100% { box-shadow: 0 0 0 0 rgb(63 214 196 / 0); border-color: rgb(255 231 176 / 0.6); } }
+      @media (max-width: 40rem) { .flow .mark { width: 2.6rem; height: 2.6rem; } .flow .mark svg { width: 1.3rem; height: 1.3rem; } .flow .name { font-size: 0.75rem; } .flow .track { top: 1.3rem; } }
+      @media (prefers-reduced-motion: reduce) { .live .row, .flow .dot, .flow .mark { animation: none; } .flow .dot { display: none; } }
 
       .live { place-content: center; text-align: center; background: radial-gradient(60rem 40rem at 50% 60%, #2a2c66, var(--night)); }
       .live h2 { font-size: clamp(3rem, 10vw, 7rem); }
@@ -175,27 +182,35 @@
       <!-- Part 3: live, then the close -->
       <section class="chapter live" tabindex="-1" aria-labelledby="c7">
         <div class="wall" aria-hidden="true">
-          <div class="row">
-            <img src="media/app-home.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" />
-            <img src="media/app-home.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" />
-          </div>
-          <div class="row back">
-            <img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" />
-            <img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" />
-          </div>
+          <div class="row"><img src="media/app-home.webp" alt="" /><img src="media/app-wallet.webp" alt="" /><img src="media/app-pairing.webp" alt="" /><img src="media/app-episodes.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-wallet.webp" alt="" /><img src="media/app-pairing.webp" alt="" /><img src="media/app-episodes.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /></div>
+          <div class="row back"><img src="media/app-episodes.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-wallet.webp" alt="" /><img src="media/app-pairing.webp" alt="" /><img src="media/app-episodes.webp" alt="" /><img src="media/app-gate.webp" alt="" /><img src="media/app-merchant.webp" alt="" /><img src="media/app-home.webp" alt="" /><img src="media/app-wallet.webp" alt="" /><img src="media/app-pairing.webp" alt="" /></div>
         </div>
-        <svg class="path" viewBox="0 0 1000 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <line x1="80" y1="50" x2="920" y2="50" />
-          <line class="pulse" x1="80" y1="50" x2="920" y2="50" />
-        </svg>
-        <svg class="path" viewBox="0 0 1000 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <g transform="translate(0,0)">
-            <circle cx="80" cy="50" r="7" /><text x="80" y="82">You</text>
-            <circle cx="360" cy="50" r="7" /><text x="360" y="82">Duck</text>
-            <circle cx="640" cy="50" r="7" /><text x="640" y="82">Arc</text>
-            <circle cx="920" cy="50" r="7" /><text x="920" y="82">Gate</text>
-          </g>
-        </svg>
+        <div class="flow" aria-hidden="true">
+          <div class="track"><span class="dot"></span><span class="dot trail"></span></div>
+          <ol class="nodes">
+            <li style="--i:0"><span class="mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="name">You</span></li>
+            <li style="--i:1"><span class="mark"><svg viewBox="0 0 24 24"><path d="M3 9.5l18-2.5v8l-18 2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8.3" cy="12.6" r="1.7" fill="currentColor"/><circle cx="15" cy="11.7" r="1.7" fill="currentColor"/><path d="M8.5 7.6L7.3 3.2M15.5 6.6l1.1-4.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="name">Robot</span></li>
+            <li style="--i:2"><span class="mark"><svg  viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="mask0_6138_615" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="25" y="86" width="246" height="121">
+<path d="M126.817 188.82C104.397 211.239 68.4709 211.92 45.2311 190.862L64.1127 171.98L97.5114 138.582L103.791 144.861L71.8683 176.784C83.7947 182.012 98.2146 179.744 107.978 169.981C120.694 157.264 120.694 136.646 107.978 123.929C95.2608 111.212 74.6426 111.212 61.9258 123.929C50.6387 135.216 49.3697 152.728 58.1188 165.415L39.1066 184.427C20.0511 161.17 21.3776 126.798 43.0863 105.089C66.2079 81.9677 103.695 81.9677 126.817 105.089C149.938 128.211 149.938 165.698 126.817 188.82Z" fill="#fff"/>
+<path d="M211.019 204.427C242.726 204.427 268.611 179.504 270.153 148.181H196.218V157.062H241.363C236.626 169.191 224.827 177.784 211.02 177.784C193.035 177.784 178.456 163.205 178.456 145.22C178.456 127.236 193.035 112.657 211.02 112.657C226.982 112.657 240.262 124.142 243.046 139.3H269.934C266.963 109.381 241.72 86.0137 211.019 86.0137C178.321 86.0137 151.813 112.521 151.813 145.22C151.813 177.919 178.321 204.427 211.019 204.427Z" fill="#fff"/>
+</mask>
+<g mask="url(#mask0_6138_615)">
+<path d="M22 84H280V208H22V84Z" fill="currentColor"/>
+</g>
+</svg></span><span class="name">0G</span></li>
+            <li style="--i:3"><span class="mark"><svg  viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  
+  <path transform="translate(2.6592, 2.6656) scale(1.333307)" d="M10.0022 20.0044C4.48657 20.0044 0 15.5178 0 10.0022C0 4.48656 4.48811 0 10.0022 0C15.5163 0 20.0044 4.48656 20.0044 10.0022C20.0044 15.5178 15.5179 20.0044 10.0022 20.0044ZM10.0022 2.00568C5.59277 2.00568 2.00569 5.59275 2.00569 10.0022C2.00569 14.4117 5.59277 17.9987 10.0022 17.9987C14.4116 17.9987 17.9987 14.4117 17.9987 10.0022C17.9987 5.59275 14.4116 2.00568 10.0022 2.00568Z" fill="currentColor"/>
+  
+  <path transform="translate(10.6880, 7.9904) scale(1.333178)" d="M3.98201 7.96413C1.78656 7.96413 0 6.1775 0 3.98205C0 1.78659 1.78656 0 3.98201 0C6.17753 0 7.96409 1.78659 7.96409 3.98205C7.96409 6.1775 6.17753 7.96413 3.98201 7.96413ZM3.98201 2.00726C2.89282 2.00726 2.00565 2.89437 2.00565 3.98362C2.00565 5.07281 2.89282 5.95999 3.98201 5.95999C5.07127 5.95999 5.95845 5.07281 5.95845 3.98362C5.95845 2.89437 5.07127 2.00726 3.98201 2.00726Z" fill="currentColor"/>
+  
+  <path transform="translate(6.5280, 20.6592) scale(1.333533)" d="M1.72181 3.57477L0 2.54564C0.939586 0.975085 2.68142 0 4.54677 0H9.65355C11.3969 0 13.0231 0.839313 14.0043 2.24324L12.3597 3.39113C11.7533 2.52254 10.7412 2.00414 9.65355 2.00414H4.54677C3.38345 2.00414 2.30037 2.60585 1.72181 3.57319V3.57477Z" fill="currentColor"/>
+</svg></span><span class="name">World</span></li>
+            <li style="--i:4"><span class="mark"><svg viewBox="0 0 48 50"><path d="M23.8574 0C31.0115 0 37.371 6.19775 41.7656 17.4521C44.0513 23.3056 45.7332 30.2603 46.7295 37.8262C46.8186 38.5019 46.8939 39.1888 46.9717 39.874C46.9969 39.9162 47.0119 39.9553 47.0068 39.9873C47.0068 39.9873 47.5924 43.6447 47.7168 50H47.6514C46.7829 49.2873 36.54 41.2389 19.5615 43.5693C19.8177 40.6962 20.1699 37.9004 20.625 35.2207C20.6482 35.0838 20.6755 34.9514 20.6992 34.8154C27.3585 34.6146 33.1876 35.3879 37.6572 36.4014C37.6406 36.2954 37.6263 36.1865 37.6094 36.0811C36.6906 30.3599 35.3355 25.1217 33.5879 20.6455C30.7304 13.3264 27.001 8.77832 23.8574 8.77832C20.7141 8.77863 16.9853 13.3266 14.1279 20.6455C13.4363 22.4157 12.8068 24.3036 12.2422 26.2949C11.4483 29.0854 10.7807 32.0773 10.248 35.2207C9.45968 39.8629 8.96755 44.8418 8.78613 50H0C0.405408 37.7593 2.48104 26.3352 5.9502 17.4521C10.3437 6.19798 16.7036 0.000184295 23.8574 0Z" fill="currentColor"/></svg></span><span class="name">Arc</span></li>
+            <li style="--i:5"><span class="mark"><svg viewBox="0 0 24 24"><path d="M4 21V9l8-5 8 5v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21v-7h6v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span class="name">Gate</span></li>
+          </ol>
+        </div>
         <div class="words">
           <h2 id="c7">Now, live.</h2>
           <p class="lede">A chai within budget, a thali that asks, and the off switch.</p>
