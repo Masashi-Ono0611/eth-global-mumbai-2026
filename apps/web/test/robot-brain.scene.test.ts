@@ -40,7 +40,7 @@ describe('/robot/:id, the brain for the next message', () => {
       ...pick(/^qwen3-vl-plus/),
       expect(role('listbox')).not.toExist(),
       expect(role('button', { name: '0G brain for your next message: qwen3-vl-plus' })).toExist(),
-      click(role('button', { name: 'Get me a chai' })),
+      click(role('button', { name: 'Get me a chai, 0.10 USDC' })),
       Command.expectExact(
         RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai', model: 'qwen3-vl-plus' }),
       ),
@@ -48,7 +48,7 @@ describe('/robot/:id, the brain for the next message', () => {
       // Back to the TEE brain: the next message names it explicitly.
       ...openMenu('0G brain for your next message: qwen3-vl-plus'),
       ...pick(/^glm-5\.3/),
-      click(role('button', { name: 'Get me a samosa' })),
+      click(role('button', { name: 'Get me a samosa, 0.25 USDC' })),
       Command.expectExact(
         RobotConsole.SendIntent({ robotId, instruction: 'Get me a samosa', item: 'samosa', model: 'glm-5.3' }),
       ),

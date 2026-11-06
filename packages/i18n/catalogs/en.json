@@ -253,6 +253,7 @@
     "leftOf": "of {daily} today",
     "waitingScan": "Waiting for {name} to scan the QR code at the counter.",
     "askChip": "Get me a {item}",
+    "askChipLabel": "{restricted, select, yes {Get me a {item}, {amount} USDC, asks you first} other {Get me a {item}, {amount} USDC}}",
     "liveAlt": "What {name} sees right now",
     "liveSeen": "Live from {name}'s camera · {seconds, plural, =0 {just now} one {# second ago} other {# seconds ago}}"
   },

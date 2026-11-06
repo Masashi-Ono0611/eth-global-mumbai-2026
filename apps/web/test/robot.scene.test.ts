@@ -16,8 +16,8 @@ describe('/robot/:id', () => {
       given(loadedConsole()),
       expect(text('Nothing yet. Ask Duck for something below.')).toExist(),
       // The ready dock says nothing: the pills and the composer speak for themselves.
-      expect(role('button', { name: 'Get me a chai' })).toBeEnabled(),
-      expect(role('button', { name: 'Get me a chai' })).not.toHaveAttr('aria-describedby'),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeEnabled(),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).not.toHaveAttr('aria-describedby'),
     )
     // The errand the robot's scan started (or a reload found) is followed in the thread.
     const resumed = resumedConsole('e1')
@@ -33,7 +33,7 @@ describe('/robot/:id', () => {
       expect(text('0G decided: buy it')).toExist(),
       expect(text('under the cap')).toExist(),
       expect(text('My chip is signing the payment...')).toExist(),
-      expect(role('button', { name: 'Get me a chai' })).toBeDisabled(),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeDisabled(),
       expect(label('Tell Duck what to get')).toBeDisabled(),
       expect(text('Duck is on an errand. You can send the next one when it ends.')).toExist(),
     )
@@ -144,7 +144,7 @@ describe('/robot/:id', () => {
       given(loadedConsole([], { ...consoleRobot, grant: null })),
       expect(text('No allowance')).toExist(),
       expect(text("Duck has no allowance yet, so it can't buy anything.")).toExist(),
-      expect(role('button', { name: 'Get me a chai' })).toBeDisabled(),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeDisabled(),
       expect(label('Tell Duck what to get')).toBeDisabled(),
     )
   })
@@ -155,8 +155,8 @@ describe('/robot/:id', () => {
       given(loadedConsole([], { ...consoleRobot, grant: { ...grant, status: 'revoked' } })),
       expect(text('No allowance')).toExist(),
       expect(text("Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain.")).toExist(),
-      expect(role('button', { name: 'Get me a chai' })).toBeEnabled(),
-      expect(role('button', { name: 'Get me a chai' })).toHaveAccessibleDescription(
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeEnabled(),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toHaveAccessibleDescription(
         "Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain.",
       ),
     )
@@ -340,14 +340,14 @@ describe('/robot/:id', () => {
       { update: RobotConsole.update, view },
       given(loadedConsole()),
       expect(role('link', { name: 'Open simulator' })).not.toExist(),
-      click(role('button', { name: 'Get me a chai' })),
+      click(role('button', { name: 'Get me a chai, 0.10 USDC' })),
       Command.expectExact(
         RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai', model: null }),
       ),
       Command.resolve(RobotConsole.SendIntent, RobotConsole.Message.SucceededCreateIntent({ intent: waiting })),
       expect(text('Waiting for Duck to scan the QR code at the counter.')).toExist(),
       expect(role('button', { name: 'Stop Duck' })).toBeEnabled(),
-      expect(role('button', { name: 'Get me a samosa' })).toBeDisabled(),
+      expect(role('button', { name: 'Get me a samosa, 0.25 USDC' })).toBeDisabled(),
       Command.resolve(RobotConsole.PollIntent, RobotConsole.Message.FailedLoadIntent({ intentId: 'other' })),
     )
   })

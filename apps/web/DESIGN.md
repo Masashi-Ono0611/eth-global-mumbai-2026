@@ -99,7 +99,8 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   then one quiet status line ("Saved on 0G" with a check, or "Saving to 0G..."). The 0G Storage, EpisodeLog and
   frame links live on the errand's page behind Show proof, never in the thread.
 - System pill: centred and muted, for events that are not anyone's words ("Duck connected at 15:56").
-- Get me pills: one fully round pill per catalogue item ("Get me a chai") in a single row that scrolls sideways. A
+- Get me pills: one fully round pill per catalogue item ("Get me a chai" and its price, quiet, "0.10 USDC") in a single
+  row that scrolls sideways. A
   pill sends the same intent as typed words; the robot fetches it (a real duck waits for its own scan). There is no
   pay-now button (Kris, 7 Nov).
 - Composer: one card-radius surface with the owner's words on top and a toolbar inside it: the brain menu on the
@@ -113,8 +114,9 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
 - Mic (when the Worker has voice on): a round paper button inside the composer, left of Send and the same size, so
   Send stays the ink primary. Hold it (or Space while it is focused): it turns duck yellow with a small halo, the
   header says "Listening…" and a faint owner bubble waits in the thread. The mic is open only while held. A line under
-  the composer says what the voice is doing ("listening to you…", "speaking…", or a failure in error red) and nothing
-  at rest. While the owner talks, the pills and the composer rest.
+  the composer, one line high at all times so the composer never moves, says what the voice is doing ("Listening · let
+  go to send", "listening to you…", "speaking…", or a failure in error red) and nothing at rest. The composer's focus
+  frame is for typing only, not for a press on the mic. While the owner talks, the pills and the composer rest.
 - Spoken bubbles: what Vita heard is an owner bubble with a small "you said"; Vita's line is a white bubble with a duck
   ring, its opener and closer in duck yellow, and "Vita said" under it. Vita's lines come from the Worker, built from
   the errand's real state; 0G's own reason sits under them as a quote, never spoken.

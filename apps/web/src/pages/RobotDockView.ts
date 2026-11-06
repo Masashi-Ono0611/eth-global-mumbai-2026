@@ -2,7 +2,7 @@ import { format, type Locale } from '@ethmumbai/i18n'
 import { Option } from 'effect'
 import { childAttributes, type Html, type HtmlBuilder } from 'foldkit/html'
 import type { ConsoleRobot } from '../api/Robot.ts'
-import type { Catalogue } from '../api/Wallet.ts'
+import { type Catalogue, usdc } from '../api/Wallet.ts'
 import { arrowUp, check, chevronDown } from '../Icon.ts'
 import { BrainListbox } from './RobotBrain.ts'
 import { isIntentOpen, isLive, Message, type Model } from './RobotConsole.ts'
@@ -18,10 +18,12 @@ const dockHintClassName = 'px-1.5 text-[0.85rem] leading-snug text-muted'
 const pillsClassName =
   '-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
 const pillClassName =
-  'inline-flex min-h-11 shrink-0 cursor-pointer snap-start items-center gap-1.5 rounded-full bg-surface px-4 text-[0.95rem] font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
+  'grid min-h-11 shrink-0 cursor-pointer snap-start content-center justify-items-center rounded-[18px] bg-surface px-4 py-1.5 text-[0.95rem] leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
 const pillAsksClassName = 'text-[0.75rem] font-semibold text-duck-deep'
+/** The price, quiet beside the words, so the owner knows the cost before sending. */
+const pillPriceClassName = 'text-[0.8rem] font-medium text-muted'
 const composerClassName =
-  'rounded-card border border-rule bg-surface shadow-[0_1px_2px_rgb(31_45_54/0.06)] transition-[border-color,box-shadow] focus-within:border-focus focus-within:ring-2 focus-within:ring-focus/20'
+  'rounded-card border border-rule bg-surface shadow-[0_1px_2px_rgb(31_45_54/0.06)] transition-[border-color,box-shadow] has-[input:focus]:border-focus has-[input:focus]:ring-2 has-[input:focus]:ring-focus/20'
 const composerRowClassName = 'flex items-center gap-1 pr-1.5'
 const inputClassName =
   'min-h-12 w-full min-w-0 flex-1 bg-transparent px-4 text-base text-ink placeholder:text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-60'
@@ -174,7 +176,7 @@ const composer = (
   )
 }
 
-/** "Get me a chai": one pill per item, the same intent for a real robot (it waits for the duck's scan) and a simulator. */
+/** "Get me a chai" with its price: one pill per item, the same intent for a real robot (it waits for the duck's scan) and a simulator. */
 const suggestions = (
   catalogue: Catalogue,
   blocked: boolean,
@@ -192,11 +194,27 @@ const suggestions = (
           h.Class(pillClassName),
           h.Disabled(blocked),
           ...(described ? [h.AriaDescribedBy('dock-hint')] : []),
+          h.AriaLabel(
+            format(locale, 'thread.askChipLabel', {
+              item: item.name.toLowerCase(),
+              amount: usdc(item.amount),
+              restricted: item.restricted ? 'yes' : 'no',
+            }),
+          ),
           h.OnClick(Message.ClickedAskFor({ item: item.itemId })),
         ],
         [
           format(locale, 'thread.askChip', { item: item.name.toLowerCase() }),
-          item.restricted ? h.span([h.Class(pillAsksClassName)], [format(locale, 'thread.asksYou', {})]) : h.empty,
+          // The price under the words, so a pill stays as narrow as its item.
+          h.span(
+            [h.Class(pillPriceClassName)],
+            [
+              `${usdc(item.amount)} USDC`,
+              item.restricted
+                ? h.span([h.Class(pillAsksClassName)], [` · ${format(locale, 'thread.asksYou', {})}`])
+                : h.empty,
+            ],
+          ),
         ],
       ),
     ),
@@ -255,7 +273,8 @@ export const dock = (
         : h.p([h.Class(dockHintClassName), h.Id('dock-hint')], [format(locale, line, { name: view.robot.name })]),
       pills,
       composer(model, view, blocked, line !== null, mic, locale, h),
-      voiceOn ? voiceIn(model, view, 'status', statusView, locale, h) : h.empty,
+      // The voice's line keeps its height at rest, so the composer stays put when it starts to listen.
+      voiceOn ? h.div([h.Class('min-h-6')], [voiceIn(model, view, 'status', statusView, locale, h)]) : h.empty,
     ],
   )
 }

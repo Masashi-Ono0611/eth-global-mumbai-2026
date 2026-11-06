@@ -254,6 +254,8 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.leftOf': 'of {daily} today',
   'thread.waitingScan': 'Waiting for {name} to scan the QR code at the counter.',
   'thread.askChip': 'Get me a {item}',
+  'thread.askChipLabel':
+    '{restricted, select, yes {Get me a {item}, {amount} USDC, asks you first} other {Get me a {item}, {amount} USDC}}',
   'thread.liveAlt': 'What {name} sees right now',
   'thread.liveSeen':
     "Live from {name}'s camera · {seconds, plural, =0 {just now} one {# second ago} other {# seconds ago}}",

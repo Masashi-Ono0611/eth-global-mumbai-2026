@@ -21,7 +21,8 @@ const micListeningClassName =
   'bg-duck text-ink shadow-[0_0_0_4px_rgb(255_224_122/0.45),0_0_0_9px_rgb(255_224_122/0.2)] motion-reduce:shadow-[0_0_0_4px_rgb(255_224_122/0.6)]'
 const micBusyClassName = 'bg-paper text-muted'
 const statusClassName = 'flex min-h-6 items-center justify-end gap-1.5 pr-1 text-[0.85rem] text-muted'
-const listeningClassName = 'flex items-center gap-2.5 rounded-[18px] bg-surface px-3.5 py-2.5 font-semibold'
+// One line, the same height as the other states, so the composer above it never moves while the owner talks.
+const listeningClassName = 'flex min-h-6 items-center justify-end gap-2 pr-1 text-[0.85rem] font-semibold'
 const waveClassName = 'inline-flex h-[18px] items-center gap-[3px]'
 const waveBarClassName =
   'w-[3px] rounded-sm bg-ink motion-safe:animate-voice-wave motion-safe:[animation-delay:var(--delay)]'
@@ -130,7 +131,7 @@ const voiceStatus = (voice: RobotVoice.Model, name: string, locale: Locale, h: H
         [
           wave(h),
           format(locale, 'voice.listening', {}),
-          h.small([h.Class('ml-auto font-medium text-muted')], [format(locale, 'voice.letGo', {})]),
+          h.small([h.Class('font-medium text-muted')], [format(locale, 'voice.letGo', {})]),
         ],
       ),
     Thinking: () => h.p([h.Class(statusClassName), h.Role('status')], [format(locale, 'voice.thinking', { name })]),

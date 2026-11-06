@@ -62,7 +62,7 @@ describe('/robot/:id, a simulator robot', () => {
       { update: RobotConsole.update, view },
       given(loadedConsole([], simRobot)),
       expect(role('link', { name: 'Open simulator' })).toHaveAttr('href', `/sim/?robot=${robotId}`),
-      click(role('button', { name: 'Get me a chai' })),
+      click(role('button', { name: 'Get me a chai, 0.10 USDC' })),
       Command.expectExact(
         RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai', model: null }),
       ),
@@ -74,7 +74,7 @@ describe('/robot/:id, a simulator robot', () => {
       expect(text('Off to the chai stall!')).toExist(),
       expect(text('Walking to the chai stall')).toExist(),
       expect(role('button', { name: 'Stop Duck' })).toBeEnabled(),
-      expect(role('button', { name: 'Get me a chai' })).toBeDisabled(),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeDisabled(),
       Command.expectExact(RobotConsole.PollIntent({ robotId, intentId, delayMillis: 2000 })),
       Command.resolve(RobotConsole.PollIntent, RobotConsole.Message.FailedLoadIntent({ intentId: 'other' })),
     )
@@ -126,7 +126,7 @@ describe('/robot/:id, a simulator robot', () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole([], simRobot)),
-      click(role('button', { name: 'Get me a chai' })),
+      click(role('button', { name: 'Get me a chai, 0.10 USDC' })),
       Command.resolve(
         RobotConsole.SendIntent,
         RobotConsole.Message.SucceededCreateIntent({ intent: intent('running', null) }),
@@ -189,7 +189,7 @@ describe('/robot/:id, a simulator robot', () => {
         RobotConsole.Message.SucceededStopIntent({ intent: intent('stopped', null) }),
       ),
       expect(text('I stopped: 0G brain busy')).toExist(),
-      expect(role('button', { name: 'Get me a chai' })).toBeEnabled(),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeEnabled(),
     )
   })
 })

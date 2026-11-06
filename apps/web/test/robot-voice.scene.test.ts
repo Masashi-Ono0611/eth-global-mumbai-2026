@@ -283,7 +283,7 @@ describe('/robot/:id voice', () => {
       Scene.expect(Scene.text('let go to send')).toExist(),
       Scene.expect(Scene.text('Listening…')).toExist(),
       Scene.expect(Scene.text('listening')).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Get me a chai' })).toBeDisabled(),
+      Scene.expect(Scene.role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeDisabled(),
       Scene.expect(Scene.label('Tell Duck what to get')).toBeDisabled(),
     )
     Scene.scene(
