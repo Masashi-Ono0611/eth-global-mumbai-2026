@@ -64,6 +64,8 @@ export const registerConsoleAcceptance = (test: TestApi['test'], stack: Effect.E
           const robotId = await seedRobot(url, body.accountId)
 
           await page.goto(new URL(`/app/robot/${robotId}`, appUrl).toString(), { waitUntil: 'networkidle' })
+          // A real robot fetches from the item row; paying its counter directly sits in the fold below it.
+          await page.getByText('Pay the counter directly').click()
           await page.getByRole('button', { name: 'Buy Chai for 0.10 USDC' }).click()
           // 0G's reason is quoted verbatim under the decision; a 0G provider is labelled 0G, not the rehearsal brain.
           await page.getByText('chai is allowlisted and within budget').waitFor({ timeout: 30_000 })

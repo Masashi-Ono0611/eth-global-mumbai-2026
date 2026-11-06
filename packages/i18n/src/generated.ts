@@ -269,7 +269,6 @@ export interface MessageArgumentsByKey<T = string> {
   'telegram.waiting': Readonly<Record<string, never>>
   'thread.askChip': { readonly item: string | number }
   'thread.askOk': { readonly item: string | number }
-  'thread.askRowHint': { readonly name: string | number }
   'thread.asksYou': Readonly<Record<string, never>>
   'thread.atCounter': Readonly<Record<string, never>>
   'thread.back': Readonly<Record<string, never>>
@@ -364,4 +363,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '1c0c7b104dc74f20a452f6288ef764b6df4597a0a9fdc5a83de071cb7f385e1b'
+export const catalogVersion = '6c40084d3bcd73b383c073071e21eb72ee48e1799f25341c52484df232255c35'

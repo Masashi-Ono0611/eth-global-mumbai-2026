@@ -14,9 +14,9 @@ import { micView, statusView } from './RobotVoiceView.ts'
 // STYLES
 
 const dockClassName =
-  'sticky bottom-0 grid gap-2 bg-gradient-to-b from-paper/0 via-paper to-paper px-1 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
+  'sticky bottom-0 grid gap-2 bg-gradient-to-b from-paper/0 via-paper via-[1rem] to-paper px-1 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
 const dockHintClassName = 'pl-1.5 text-[0.85rem] text-muted'
-const chipsClassName = 'grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-1.5'
+const chipsClassName = 'grid grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] gap-1.5'
 const withMicClassName = 'grid grid-cols-[1fr_auto] items-end gap-2'
 const chipClassName =
   'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface px-2 text-center leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
@@ -25,21 +25,25 @@ const askChipClassName = 'text-[0.75rem] font-semibold text-duck-deep'
 const detailsClassName = 'px-1.5 text-sm text-muted [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-2.5'
 const invoiceInputClassName =
   'mt-1 min-h-11 w-full rounded-control border border-rule bg-surface px-3 text-base text-ink placeholder:text-muted'
-const brainRowClassName = 'flex flex-wrap items-center gap-x-2 gap-y-1 pl-1.5'
-const brainLabelClassName = 'text-[0.85rem] text-muted'
-const brainGroupClassName = 'flex flex-wrap gap-1.5'
+const brainRowClassName = 'flex flex-wrap items-center gap-x-1 gap-y-0.5 pl-1.5'
+const brainLabelClassName = 'pr-0.5 text-[0.78rem] text-muted'
+const brainGroupClassName = 'flex flex-wrap gap-0.5'
+// Small and quiet: the TEE brain is the default, the other one a tap away. Not duck yellow (that means "needs you").
 const brainOptionClassName =
-  'inline-flex min-h-11 cursor-pointer items-center rounded-full bg-surface px-3.5 text-[0.85rem] font-semibold text-muted shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,background-color,color] active:scale-[0.96] data-[checked]:bg-duck data-[checked]:text-ink'
+  'inline-flex min-h-9 cursor-pointer items-center rounded-full px-2.5 text-[0.78rem] font-medium text-muted transition-[transform,background-color,color] active:scale-[0.96] data-[checked]:bg-surface data-[checked]:font-semibold data-[checked]:text-ink data-[checked]:shadow-[0_1px_2px_rgb(31_45_54/0.08)]'
+const bottomRowClassName = 'grid gap-0.5'
 
 // VIEW
 
-/** Pay one exact invoice: the gate's payment link or its 26-character id; empty = the counter's open invoice. */
-const invoiceDetails = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => {
+/** Paying the counter directly, folded away: for a real robot its open invoice now (`payNow`), and for any robot one
+ *  exact invoice by the gate's payment link or its 26-character id (empty = the counter's open invoice). */
+const invoiceDetails = (model: Model, payNow: Html, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const invoiceInvalid = model.invoiceInput.trim().length > 0 && invoiceIdFrom(model.invoiceInput) === null
   return h.details(
     [h.Class(detailsClassName)],
     [
       h.summary([], [format(locale, 'thread.specificQr', {})]),
+      payNow,
       h.label([h.For('gate-invoice')], [format(locale, 'console.gateInvoice', {})]),
       h.input([
         h.Id('gate-invoice'),
@@ -112,38 +116,43 @@ const brainChoice = (model: Model, view: ConsoleRobot, locale: Locale, h: HtmlBu
   )
 }
 
-/** A real robot's "Get me …" row: an intent that waits for the duck's own scan (its Buy row pays the counter now). */
-const askChips = (
+/** One chip per catalogue item, its name over its price ("asks you" for a restricted one). A real robot fetches it
+ *  (its own scan pays the counter); a simulator buys it now. */
+const itemChips = (
   view: ConsoleRobot,
   catalogue: Catalogue,
   disabled: boolean,
-  withMic: (chips: Html) => Html,
+  fetch: boolean,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
-    [h.Class('grid gap-1')],
-    [
-      h.p([h.Class(dockHintClassName)], [format(locale, 'thread.askRowHint', { name: view.robot.name })]),
-      withMic(
-        h.div(
-          [h.Class(chipsClassName)],
-          catalogue.items.map((item) =>
-            h.keyed('button')(
-              `ask-${item.itemId}`,
-              [
-                h.Type('button'),
-                h.Class(chipClassName),
-                h.Disabled(disabled),
-                h.OnClick(Message.ClickedAskFor({ item: item.itemId })),
-              ],
-              [format(locale, 'thread.askChip', { item: item.name.toLowerCase() })],
-            ),
+    [h.Class(chipsClassName)],
+    catalogue.items.map((item) =>
+      h.keyed('button')(
+        `${fetch ? 'ask' : 'buy'}-${item.itemId}`,
+        [
+          h.Type('button'),
+          h.Class(chipClassName),
+          h.Disabled(disabled),
+          h.AriaDescribedBy('dock-hint'),
+          h.AriaLabel(
+            fetch
+              ? format(locale, 'thread.askChip', { item: item.name.toLowerCase() })
+              : format(locale, 'thread.buyChip', { item: item.name, amount: usdc(item.amount) }),
           ),
-        ),
+          h.OnClick(
+            fetch ? Message.ClickedAskFor({ item: item.itemId }) : Message.ClickedStartErrand({ item: item.itemId }),
+          ),
+        ],
+        [
+          item.name,
+          item.restricted
+            ? h.span([h.Class(askChipClassName)], [format(locale, 'thread.asksYou', {})])
+            : h.span([h.Class(chipPriceClassName)], [`${usdc(item.amount)} USDC`]),
+        ],
       ),
-      h.p([h.Class(dockHintClassName)], [format(locale, 'thread.buyRowHint', {})]),
-    ],
+    ),
   )
 
 /** One of Vita's voice views mounted in the conversation (the mic, its status line, the spoken bubbles). */
@@ -174,7 +183,7 @@ const dockHint = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.p(
-    [h.Class(dockHintClassName), h.Id('dock-hint')],
+    [h.Class(noAllowance || errandBusy || stopped ? dockHintClassName : 'sr-only'), h.Id('dock-hint')],
     [
       format(
         locale,
@@ -220,37 +229,34 @@ export const dock = (
           [h.Class('grid gap-1')],
           [h.div([h.Class(withMicClassName)], [row, voiceSlot('mic', micView)]), voiceSlot('status', statusView)],
         )
-  const buyChips = h.div(
-    [h.Class(chipsClassName)],
-    catalogue.items.map((item) =>
-      h.keyed('button')(
-        item.itemId,
-        [
-          h.Type('button'),
-          h.Class(chipClassName),
-          h.Disabled(busy || noAllowance),
-          h.AriaDescribedBy('dock-hint'),
-          h.AriaLabel(format(locale, 'thread.buyChip', { item: item.name, amount: usdc(item.amount) })),
-          h.OnClick(Message.ClickedStartErrand({ item: item.itemId })),
-        ],
-        [
-          item.name,
-          item.restricted
-            ? h.span([h.Class(askChipClassName)], [format(locale, 'thread.asksYou', {})])
-            : h.span([h.Class(chipPriceClassName)], [usdc(item.amount)]),
-        ],
-      ),
-    ),
-  )
   return h.div(
     [h.Class(dockClassName)],
     [
       dockHint(view.robot.name, noAllowance, errandBusy, stopped, locale, h),
-      brainChoice(model, view, locale, h),
+      // One row of items: a real robot fetches (its scan pays), a simulator buys. Paying a real robot's counter
+      // directly is folded away below.
+      withMic(itemChips(view, catalogue, busy || noAllowance, !sim, locale, h)),
       instructionForm(model, view.robot.name, busy || noAllowance, locale, h),
-      sim ? h.empty : askChips(view, catalogue, busy || noAllowance, withMic, locale, h),
-      sim ? withMic(buyChips) : buyChips,
-      invoiceDetails(model, locale, h),
+      h.div(
+        [h.Class(bottomRowClassName)],
+        [
+          invoiceDetails(
+            model,
+            sim
+              ? h.empty
+              : h.div(
+                  [h.Class('grid gap-1 pb-1')],
+                  [
+                    h.p([], [format(locale, 'thread.buyRowHint', {})]),
+                    itemChips(view, catalogue, busy || noAllowance, false, locale, h),
+                  ],
+                ),
+            locale,
+            h,
+          ),
+          brainChoice(model, view, locale, h),
+        ],
+      ),
     ],
   )
 }
