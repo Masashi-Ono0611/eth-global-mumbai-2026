@@ -13,16 +13,16 @@ v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the fo
 **Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.** On Fri 05:00 no product code existed. Three Opus
 workers build from `docs/spec.md` while Kris does the prerequisites and the teammates build the physical duck.
 
-### Status board (Fri 6 Nov 12:39 IST)
+### Status board (Fri 6 Nov 16:10 IST)
 
 | Lane | State | Blocker |
 | --- | --- | --- |
-| **Full MUST loop, real 0G** | **Proven in one command on the deployed app, Arc mainnet (runs 9–10):** passkey owner → grant with the enforcer → chip paired → "buy chai": **0G Compute decided `pay`** (router request id `642ed186…`) → chip signed → settled `0xd8d27c74…0f0b` → gate `paid` → `used`; cigarettes: **0G `ask_human`** → approve on the stub → **paid 0.50 through the enforcer's approval path** `0x33f30e0f…42b3` (`PaymentApproved`); second cigarettes → deny → `denied`, nothing paid. 7 real-0G episodes on 0G Storage + `EpisodeLog` (`docs/evidence/2026-11-06-evidence-upload.md`) | World approval = the labelled in-Worker stub until the real client exists |
-| Chain / contracts | Done: enforcer `0x7c21…e4D3` (Arc), `EpisodeLog` `0x4C94…206A` (Galileo), Arc Studio project; `APP_ZG_EXTRA_JSON` binding for the 0GM switch | **relayer 4.17 USDC → top up** `0x404b09F43db64fB08f70b0b3e2b785bC312D6fDb` |
-| Wallet / World | Done, deployed; approve + deny proven through the real UI and the API (stub); final real-0G browser journey running | **World client** (production portal: Kris's Google account not eligible; booth ask) |
-| Merchant / Robot / evidence | Done, deployed; 0G router live (`qwen3-vl-plus`, 8/8 on the probe); uploader fixed; first upload done, real-0G episodes uploading | 0GM-1.0-35B (TeeML) provider answers 502: switch when up (`APP_ZG_MODEL` + `APP_ZG_EXTRA_JSON`) |
-| Still unproven | a real phone passkey (Kris's) end to end · real World approve/deny with an Orb ID · the Radxa running the chip client (`docs/hardware-handoff.md`) | Kris at the venue; the teammates |
-| Next | Kris's phone rehearsal (`docs/demo.md`) → video (`docs/video-script.md`) → submission (`docs/submission.md`) by Sat 08:00 | |
+| **Everything real, on the deployed app** | **Kris, real passkey owner (Mac), real 0G, real World:** chai paid `0x652cae43…05de`; cigarettes: 0G `ask_human` → **approved in World App with his Orb-verified account** → enforcer `PaymentApproved` → paid `0xae55688e…ffa9`; his episodes on 0G Storage + `EpisodeLog`; the first attempt refused on our too-strict `amr` rule (fixed: `acr` + fresh `auth_time` decide; real token carries `amr ["pop","user","mfa"]`). One-command e2e (runs 9–10) and the browser journey (run 7) prove the loop with real 0G and the stub World | live **deny** and **revoke** still to click (`docs/demo.md` steps 8–10) |
+| Infra | **State-store incident resolved:** an Alchemy bug re-bootstrapped the Cloudflare state store from CI (new encryption key, state unreadable). Recovered by name pins + adoption, zero data loss, same URLs; a bun patch now refuses to re-bootstrap an existing store; written up in `docs/DEPLOYMENT.md`. CI deploys resumed (release `e4c67ea`) | Kris revokes the Alchemy CLI OAuth grant and re-logs in (after the event is fine) |
+| Audit view | **`/wallet/episodes` + `/wallet/episodes/:id` live:** timeline, 0G decision with the exact input, chip, Arc payment, World `acr`/`amr`, 0G evidence links, **Verify** (recomputes hashes, reads `EpisodeLog` on-chain) and **Replay decision (non-binding)** | styled; check on a phone |
+| Contracts | **Arc Studio is the single source:** pinned pull in `contracts/studio/`, Foundry builds it, 92 tests, deploy scripts byte-identical to Studio's testnet code; mainnet enforcer and Galileo `EpisodeLog` match the pull (metadata aside) | none |
+| 0G | Router `qwen3-vl-plus` live (8/8 probe); 0GM-1.0-35B TeeML switch ready (`APP_ZG_MODEL` + `APP_ZG_EXTRA_JSON`) when its provider stops answering 502 | provider down |
+| Next | notification channel decision (QR on the robot page / Telegram push) · S5b `eth_call` artefact (optional) · demo rehearsal · video (`docs/video-script.md`) Sat 06:00 · submission (`docs/submission.md`) by 08:00 | Kris |
 
 ### Scope
 

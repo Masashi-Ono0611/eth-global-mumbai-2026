@@ -74,7 +74,7 @@
   <nav class="tabs"><a href="/architecture/">Architecture</a><a href="/plan/" aria-current="page">Plan</a></nav>
   <div class="kicker">ETHGlobal Mumbai 2026 · the plan in full (from docs/plan.md) · comment with 💬</div>
 <h1>Plan v3.4: Vitaquack at ETHGlobal Mumbai</h1>
-<nav class="toc"><a class="h2" href="#0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</a><a class="h3" href="#status-board-fri-6-nov-12-39-ist">Status board (Fri 6 Nov 12:39 IST)</a><a class="h3" href="#scope">Scope</a><a class="h3" href="#who-does-what">Who does what</a><a class="h3" href="#prerequisites-kris-they-block-m2-m5-m6">Prerequisites (Kris; they block M2/M5/M6)</a><a class="h3" href="#checkpoints-ist">Checkpoints (IST)</a><a class="h3" href="#demo-script-4-minute-finalist-slot-the-video-follows-the-sam">Demo script (4-minute finalist slot; the video follows the same story)</a><a class="h3" href="#fallbacks-decided-in-advance">Fallbacks, decided in advance</a><a class="h3" href="#submission-checklist">Submission checklist</a><a class="h2" href="#1-the-architecture-in-one-paragraph">1. The architecture, in one paragraph</a><a class="h2" href="#2-what-is-proven-what-is-not-honest-labels">2. What is proven, what is not (honest labels)</a><a class="h2" href="#3-spikes">3. Spikes</a><a class="h2" href="#4-booth-questions">4. Booth questions</a><a class="h2" href="#5-alternatives-considered-and-rejected">5. Alternatives considered and rejected</a></nav>
+<nav class="toc"><a class="h2" href="#0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</a><a class="h3" href="#status-board-fri-6-nov-16-10-ist">Status board (Fri 6 Nov 16:10 IST)</a><a class="h3" href="#scope">Scope</a><a class="h3" href="#who-does-what">Who does what</a><a class="h3" href="#prerequisites-kris-they-block-m2-m5-m6">Prerequisites (Kris; they block M2/M5/M6)</a><a class="h3" href="#checkpoints-ist">Checkpoints (IST)</a><a class="h3" href="#demo-script-4-minute-finalist-slot-the-video-follows-the-sam">Demo script (4-minute finalist slot; the video follows the same story)</a><a class="h3" href="#fallbacks-decided-in-advance">Fallbacks, decided in advance</a><a class="h3" href="#submission-checklist">Submission checklist</a><a class="h2" href="#1-the-architecture-in-one-paragraph">1. The architecture, in one paragraph</a><a class="h2" href="#2-what-is-proven-what-is-not-honest-labels">2. What is proven, what is not (honest labels)</a><a class="h2" href="#3-spikes">3. Spikes</a><a class="h2" href="#4-booth-questions">4. Booth questions</a><a class="h2" href="#5-alternatives-considered-and-rejected">5. Alternatives considered and rejected</a></nav>
 <p><strong>What this file is:</strong> the schedule, scope and story. <strong>What it is not:</strong> the build order (<code>docs/spec.md</code>) or the
 decision log (<code>docs/decisions.md</code>). Where this file and those disagree, they win. Evidence lives in <code>docs/research/</code>
 (index: <code>docs/research/README.md</code>), <code>docs/spikes/</code> and <code>docs/evidence/</code>.</p>
@@ -84,7 +84,7 @@ v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the fo
 <h2 id="0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</h2>
 <p><strong>Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.</strong> On Fri 05:00 no product code existed. Three Opus
 workers build from <code>docs/spec.md</code> while Kris does the prerequisites and the teammates build the physical duck.</p>
-<h3 id="status-board-fri-6-nov-12-39-ist">Status board (Fri 6 Nov 12:39 IST)</h3>
+<h3 id="status-board-fri-6-nov-16-10-ist">Status board (Fri 6 Nov 16:10 IST)</h3>
 <table>
 <thead>
 <tr>
@@ -94,34 +94,34 @@ workers build from <code>docs/spec.md</code> while Kris does the prerequisites a
 </tr>
 </thead>
 <tbody><tr>
-<td><strong>Full MUST loop, real 0G</strong></td>
-<td><strong>Proven in one command on the deployed app, Arc mainnet (runs 9–10):</strong> passkey owner → grant with the enforcer → chip paired → &quot;buy chai&quot;: <strong>0G Compute decided <code>pay</code></strong> (router request id <code>642ed186…</code>) → chip signed → settled <code>0xd8d27c74…0f0b</code> → gate <code>paid</code> → <code>used</code>; cigarettes: <strong>0G <code>ask_human</code></strong> → approve on the stub → <strong>paid 0.50 through the enforcer&#39;s approval path</strong> <code>0x33f30e0f…42b3</code> (<code>PaymentApproved</code>); second cigarettes → deny → <code>denied</code>, nothing paid. 7 real-0G episodes on 0G Storage + <code>EpisodeLog</code> (<code>docs/evidence/2026-11-06-evidence-upload.md</code>)</td>
-<td>World approval = the labelled in-Worker stub until the real client exists</td>
+<td><strong>Everything real, on the deployed app</strong></td>
+<td><strong>Kris, real passkey owner (Mac), real 0G, real World:</strong> chai paid <code>0x652cae43…05de</code>; cigarettes: 0G <code>ask_human</code> → <strong>approved in World App with his Orb-verified account</strong> → enforcer <code>PaymentApproved</code> → paid <code>0xae55688e…ffa9</code>; his episodes on 0G Storage + <code>EpisodeLog</code>; the first attempt refused on our too-strict <code>amr</code> rule (fixed: <code>acr</code> + fresh <code>auth_time</code> decide; real token carries <code>amr [&quot;pop&quot;,&quot;user&quot;,&quot;mfa&quot;]</code>). One-command e2e (runs 9–10) and the browser journey (run 7) prove the loop with real 0G and the stub World</td>
+<td>live <strong>deny</strong> and <strong>revoke</strong> still to click (<code>docs/demo.md</code> steps 8–10)</td>
 </tr>
 <tr>
-<td>Chain / contracts</td>
-<td>Done: enforcer <code>0x7c21…e4D3</code> (Arc), <code>EpisodeLog</code> <code>0x4C94…206A</code> (Galileo), Arc Studio project; <code>APP_ZG_EXTRA_JSON</code> binding for the 0GM switch</td>
-<td><strong>relayer 4.17 USDC → top up</strong> <code>0x404b09F43db64fB08f70b0b3e2b785bC312D6fDb</code></td>
+<td>Infra</td>
+<td><strong>State-store incident resolved:</strong> an Alchemy bug re-bootstrapped the Cloudflare state store from CI (new encryption key, state unreadable). Recovered by name pins + adoption, zero data loss, same URLs; a bun patch now refuses to re-bootstrap an existing store; written up in <code>docs/DEPLOYMENT.md</code>. CI deploys resumed (release <code>e4c67ea</code>)</td>
+<td>Kris revokes the Alchemy CLI OAuth grant and re-logs in (after the event is fine)</td>
 </tr>
 <tr>
-<td>Wallet / World</td>
-<td>Done, deployed; approve + deny proven through the real UI and the API (stub); final real-0G browser journey running</td>
-<td><strong>World client</strong> (production portal: Kris&#39;s Google account not eligible; booth ask)</td>
+<td>Audit view</td>
+<td><strong><code>/wallet/episodes</code> + <code>/wallet/episodes/:id</code> live:</strong> timeline, 0G decision with the exact input, chip, Arc payment, World <code>acr</code>/<code>amr</code>, 0G evidence links, <strong>Verify</strong> (recomputes hashes, reads <code>EpisodeLog</code> on-chain) and <strong>Replay decision (non-binding)</strong></td>
+<td>styled; check on a phone</td>
 </tr>
 <tr>
-<td>Merchant / Robot / evidence</td>
-<td>Done, deployed; 0G router live (<code>qwen3-vl-plus</code>, 8/8 on the probe); uploader fixed; first upload done, real-0G episodes uploading</td>
-<td>0GM-1.0-35B (TeeML) provider answers 502: switch when up (<code>APP_ZG_MODEL</code> + <code>APP_ZG_EXTRA_JSON</code>)</td>
+<td>Contracts</td>
+<td><strong>Arc Studio is the single source:</strong> pinned pull in <code>contracts/studio/</code>, Foundry builds it, 92 tests, deploy scripts byte-identical to Studio&#39;s testnet code; mainnet enforcer and Galileo <code>EpisodeLog</code> match the pull (metadata aside)</td>
+<td>none</td>
 </tr>
 <tr>
-<td>Still unproven</td>
-<td>a real phone passkey (Kris&#39;s) end to end · real World approve/deny with an Orb ID · the Radxa running the chip client (<code>docs/hardware-handoff.md</code>)</td>
-<td>Kris at the venue; the teammates</td>
+<td>0G</td>
+<td>Router <code>qwen3-vl-plus</code> live (8/8 probe); 0GM-1.0-35B TeeML switch ready (<code>APP_ZG_MODEL</code> + <code>APP_ZG_EXTRA_JSON</code>) when its provider stops answering 502</td>
+<td>provider down</td>
 </tr>
 <tr>
 <td>Next</td>
-<td>Kris&#39;s phone rehearsal (<code>docs/demo.md</code>) → video (<code>docs/video-script.md</code>) → submission (<code>docs/submission.md</code>) by Sat 08:00</td>
-<td></td>
+<td>notification channel decision (QR on the robot page / Telegram push) · S5b <code>eth_call</code> artefact (optional) · demo rehearsal · video (<code>docs/video-script.md</code>) Sat 06:00 · submission (<code>docs/submission.md</code>) by 08:00</td>
+<td>Kris</td>
 </tr>
 </tbody></table>
 <h3 id="scope">Scope</h3>
