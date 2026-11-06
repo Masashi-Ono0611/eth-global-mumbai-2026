@@ -21,7 +21,7 @@ export const ConsoleState = defineTaggedUnion({
   Failed: { error: Schema.String },
 })
 export const Decline = defineTaggedUnion({ Idle: {}, Declining: {}, Failed: { error: Schema.String } })
-/** A simulator robot's errand intent: the owner's instruction, while 0G walks the duck to the counter (sim-plan.md). */
+/** A simulator robot's errand intent: the owner's instruction, while 0G walks the duck to the counter (spec §15). */
 export const Intent = defineTaggedUnion({
   Idle: {},
   Sending: { instruction: Schema.String },

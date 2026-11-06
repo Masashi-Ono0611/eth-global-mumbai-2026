@@ -1,6 +1,6 @@
 # Simulator robot spikes A–C (6 Nov 2026)
 
-These spikes tested a simulator fallback for the duck. They are evidence for `docs/sim-plan.md`. The spike code lives
+These spikes tested a simulator fallback for the duck. The simulator they led to is `docs/spec.md` §15. The spike code lives
 outside the repo, in `~/code/vitaquack-sim-spikes/{a-sim,b-chip,c-brain}` on netcup, and each folder has its own
 `RESULTS.md` with raw data. All numbers below were measured on netcup in headless Chromium.
 

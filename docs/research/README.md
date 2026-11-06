@@ -1,9 +1,12 @@
 # Research notes
 
 These notes were written on 5 and 6 Nov 2026, before and during the build. They are evidence, not the plan: build from
-`docs/spec.md` and take decisions from `docs/decisions.md`. Notes about options we did not build (7702 session keys, a
-wallet over MCP, the robot as an MCP server, the Nod/Froggy patterns, World Chain with ENS, and the two long World
-notes) were removed on 7 Nov; git history has them, and `references/README.md` still names them in its last column.
+`docs/spec.md` and take decisions from `docs/decisions.md`.
+
+On 7 Nov we removed the notes about options we did not build (7702 session keys, a wallet over MCP, the robot as an MCP
+server, the Nod/Froggy patterns, World Chain with ENS, and the two long World notes) and the working notes
+`bench-answers.md`, the ChatGPT brainstorm, `sim-plan.md` and `spikes/hardware-bench.md`. Git history has them. The notes
+below and `references/README.md` still cite some of them by name.
 
 | Note | What it holds | Still true? |
 | --- | --- | --- |

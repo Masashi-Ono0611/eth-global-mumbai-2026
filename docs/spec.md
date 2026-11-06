@@ -479,7 +479,7 @@ happy path through the real World IdP is **untested** until Kris runs it on the 
 A robot is either `kind = chip` (hardware or the CLI mock chip, §8) or `kind = sim`: a duck in a browser physics sim at
 `/sim/?robot=<id>#pair=<CODE>` (`apps/sim`, served from the Edge Worker's assets on the same origin). The sim duck gets
 the same wallet, allowance, merchant, 0G `decide`, chip signature, Arc settlement, gate and evidence as the real one.
-Evidence for the design: `docs/spikes/sim-results.md`; plan: `docs/sim-plan.md`.
+Evidence for the design: `docs/spikes/sim-results.md`.
 
 - **Body.** `apps/sim` vendors Pollen's Apache-2.0 Microduck sandbox (MuJoCo WASM + the ONNX walking policy at 50 Hz).
   The duck is a Microduck stand-in, not our Open Duck Mini. The meshes, GLB and policies (CC BY-NC-SA / model licence)

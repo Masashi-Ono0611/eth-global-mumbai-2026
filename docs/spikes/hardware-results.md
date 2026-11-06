@@ -1,6 +1,6 @@
 # Hardware bench results
 
-Results of `docs/spikes/hardware-bench.md` (H1–H6). Append one section per spike.
+Results of the hardware spikes H1 to H6 and C1, one section per spike.
 
 ## H1 Radxa health and inventory (2026-11-06, MacBook agent) — partial
 Setup: Radxa Zero 3W booted from a 64 GB microSD (`radxa-zero3_bookworm_kde_b1`, 7.7 GiB image), 5 V from a Mac USB-C port (left corner,
