@@ -48,8 +48,7 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-/** @internal Exported for the scene tests; the page update is its only production caller. */
-export const StartGate = Command.define('StartGate', {
+const StartGate = Command.define('StartGate', {
   args: { merchantId: Schema.String },
   messages: [Message.SucceededStartGate, Message.FailedStartGate],
   execute: ({ merchantId }) =>
@@ -60,8 +59,7 @@ export const StartGate = Command.define('StartGate', {
 })
 
 /** One signed status read after `delayMillis`. */
-/** @internal Exported for the scene tests; the page update is its only production caller. */
-export const ReadStatus = Command.define('ReadStatus', {
+const ReadStatus = Command.define('ReadStatus', {
   args: { invoiceId: Schema.String, publicKey: Schema.String, delayMillis: Schema.Finite },
   messages: [Message.ReceivedStatus, Message.FailedReadStatus],
   execute: ({ invoiceId, publicKey, delayMillis }) =>
@@ -72,8 +70,7 @@ export const ReadStatus = Command.define('ReadStatus', {
     ),
 })
 
-/** @internal Exported for the scene tests; the page update is its only production caller. */
-export const NewInvoice = Command.define('NewInvoice', {
+const NewInvoice = Command.define('NewInvoice', {
   args: { merchantId: Schema.String, delayMillis: Schema.Finite },
   messages: [Message.SucceededNewInvoice, Message.FailedNewInvoice],
   execute: ({ merchantId, delayMillis }) =>
