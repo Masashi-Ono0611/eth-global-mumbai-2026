@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { Indexer, MemData } from '@0gfoundation/0g-storage-ts-sdk'
 import { Contract, JsonRpcProvider, keccak256, toUtf8Bytes, Wallet } from 'ethers'
+import { makeEvidenceApi, type Pending } from './api.ts'
 
 // Drains the Worker's pending episode evidence to 0G Storage (Galileo, turbo indexer) and records each upload in
 // EpisodeLog on 0G Chain 16602 (spec §6). Runs on netcup, outside Cloudflare:
@@ -70,36 +71,7 @@ const signer = new Wallet(config.storageKey, provider)
 const episodeLog = new Contract(config.episodeLog, EPISODE_LOG_ABI, signer)
 const indexer = new Indexer(config.indexer)
 
-type Pending = { readonly episodeId: string; readonly requestIdsHash: string; readonly payloadJson: string }
-
-/** GET without a body, POST with one; always with the uploader's bearer token. */
-const api = async (path: string, body?: unknown) => {
-  const method = body === undefined ? 'GET' : 'POST'
-  const response = await fetch(`${config.server}${path}`, {
-    method,
-    headers: { authorization: `Bearer ${config.token}`, 'content-type': 'application/json' },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  })
-  if (!response.ok) throw new Error(`${method} ${path} answered ${response.status}`)
-  const reply: unknown = await response.json()
-  return reply
-}
-
-const isPending = (value: unknown): value is Pending =>
-  typeof value === 'object' &&
-  value !== null &&
-  'episodeId' in value &&
-  typeof value.episodeId === 'string' &&
-  'requestIdsHash' in value &&
-  typeof value.requestIdsHash === 'string' &&
-  'payloadJson' in value &&
-  typeof value.payloadJson === 'string'
-
-const claimPending = async (): Promise<Pending[]> => {
-  const body = await api('/api/evidence/pending')
-  const episodes = typeof body === 'object' && body !== null && 'episodes' in body ? body.episodes : []
-  return Array.isArray(episodes) ? episodes.filter(isPending) : []
-}
+const evidence = makeEvidenceApi(config.server, config.token)
 
 /** The episode JSON to 0G Storage; the storage SDK returns the Merkle root and the flow submission tx. */
 const store = async (payloadJson: string) => {
@@ -159,22 +131,23 @@ const uploadOne = async (episode: Pending) => {
   try {
     const { rootHash, storageTx } = await store(episode.payloadJson)
     const logTx = await record(episode, rootHash)
-    await api(`/api/evidence/${episode.episodeId}/uploaded`, { rootHash, storageTx, logTx })
+    await evidence.markUploaded(episode.episodeId, { rootHash, storageTx, logTx })
     console.log(`episode ${episode.episodeId} rootHash ${rootHash} storageTx ${storageTx} logTx ${logTx}`)
     return true
   } catch (error) {
     const reason = errorText(error)
     console.error(`episode ${episode.episodeId} failed: ${reason}`)
-    await api(`/api/evidence/${episode.episodeId}/failed`, {
-      method: 'POST',
-      body: JSON.stringify({ error: reason }),
-    }).catch(() => undefined)
+    await evidence
+      .markFailed(episode.episodeId, reason)
+      .catch((error: unknown) =>
+        console.error(`episode ${episode.episodeId}: could not record the failure: ${errorText(error)}`),
+      )
     return false
   }
 }
 
 const drain = async () => {
-  const pending = await claimPending()
+  const pending = await evidence.claimPending()
   if (pending.length === 0) console.log('no pending evidence')
   const results = []
   for (const episode of pending) results.push(await uploadOne(episode))
