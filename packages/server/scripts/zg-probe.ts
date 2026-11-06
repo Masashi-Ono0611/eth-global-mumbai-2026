@@ -7,7 +7,8 @@ import { decide, ZeroGBindings } from '../src/robot/ZeroGClient.ts'
 // One real 0G `decide` call, exactly as an errand makes it (spec §6), for a sample invoice under a sample policy.
 // Usage: bun packages/server/scripts/zg-probe.ts [--env-file .env.main.local] [--scenario chai|cigarettes]
 // Prints the router host, model, HTTP status, latency, request id / chat id and the parsed decision, or the exact
-// failure. Never the key, never the prompt. Exit 0 only on a parsed decision; 2 when APP_ZG_* are not configured.
+// failure. Never the key, never the prompt. Exit 0 only on the expected decision (chai → pay, cigarettes → ask_human),
+// 3 on another decision, 1 on a failed call, 2 when APP_ZG_* are not configured.
 
 const argument = (name: string) => {
   const index = process.argv.indexOf(`--${name}`)
@@ -79,8 +80,11 @@ const probe = Effect.gen(function* () {
   yield* Console.log(`latency ${call.latencyMs} ms`)
   yield* Console.log(`request ${call.requestId ?? '-'}   chat ${call.chatId ?? '-'}   brain ${call.provider}`)
   if (outcome.ok) {
+    const expected = scenario === 'cigarettes' ? 'ask_human' : 'pay'
     yield* Console.log(`decision ${outcome.result.action}: ${outcome.result.reason}`)
-    return 0
+    if (outcome.result.action === expected) return 0
+    yield* Console.error(`unexpected: the ${scenario} case should be ${expected}`)
+    return 3
   }
   yield* Console.error(`failed  ${outcome.error}`)
   if (outcome.detail !== null) yield* Console.error(`reply   ${outcome.detail}`)

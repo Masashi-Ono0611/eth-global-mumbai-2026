@@ -13,8 +13,14 @@ export interface ZeroGConfig {
 
 export const ZEROG_TIMEOUT = '10 seconds'
 
-const SYSTEM_PROMPT =
-  'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool. Never pay when approvalRequired is true or merchant trust is untrusted.'
+/**
+ * Spec §6's prompt with the approval rule spelled out (6 Nov): a restricted or over-limit item the owner asked for goes
+ * to the owner (`ask_human` → World approval), it is not dropped (`walk_away`).
+ */
+export const APPROVAL_RULE =
+  'Never pay when approvalRequired is true. When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown.'
+
+const SYSTEM_PROMPT = `You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool. Never pay when merchant trust is untrusted. ${APPROVAL_RULE}`
 
 const DECIDE_TOOL = {
   type: 'function',

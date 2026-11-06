@@ -3,7 +3,7 @@ import { Effect, Layer, Redacted } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientResponse from 'effect/http/HttpClientResponse'
 import { describe, expect, test } from 'vitest'
-import { decide } from '../src/robot/ZeroGClient.ts'
+import { APPROVAL_RULE, decide, decideRequestBody } from '../src/robot/ZeroGClient.ts'
 
 const input: DecideInput = {
   requested: 'chai',
@@ -37,6 +37,15 @@ const run = (stub: ReturnType<typeof answering>) =>
   Effect.runPromise(decide(config, input).pipe(Effect.provide(stub.layer)))
 
 describe('0G decide call', () => {
+  test('the prompt sends an approval-required item the owner asked for to the owner, at temperature 0', () => {
+    const body = decideRequestBody('m', input)
+    expect(body.messages[0]?.content).toContain(
+      'When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown.',
+    )
+    expect(body.messages[0]?.content).toContain(APPROVAL_RULE)
+    expect(body).toMatchObject({ temperature: 0, tool_choice: { type: 'function', function: { name: 'decide' } } })
+  })
+
   test('a router reply keeps its x_0g_trace request id beside the chat id', async () => {
     const stub = answering(
       { id: 'body-id', choices: [{ message: toolCall }], x_0g_trace: { request_id: 'trace-1', provider: '0xabc' } },
