@@ -1,0 +1,22 @@
+# The evidence uploader as a system service on netcup (see README.md, "Running on netcup").
+# Install: sudo install -m 644 tools/evidence-uploader/vitaquack-evidence-uploader.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now vitaquack-evidence-uploader
+[Unit]
+Description=Vitaquack evidence uploader (episodes and frames to 0G Storage, EpisodeLog on 0G Galileo)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=kristjan
+WorkingDirectory=/home/kristjan/code/eth-global-mumbai-2026
+ExecStart=/home/kristjan/.bun/bin/bun tools/evidence-uploader/main.ts --server https://vitaquack.com --interval 15
+# A hung 0G upload exits with 3 after 4 minutes; any exit restarts it.
+Restart=always
+RestartSec=10
+MemoryMax=1G
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

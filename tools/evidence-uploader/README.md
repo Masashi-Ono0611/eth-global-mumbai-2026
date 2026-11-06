@@ -12,6 +12,27 @@ bun tools/evidence-uploader/main.ts --server https://<app origin> --interval 15 
 Per pending episode it prints one line: `episode <id> rootHash <0x…> storageTx <0x…> logTx <0x…>`, then
 `GET <server>/api/evidence/<id>` shows the same values.
 
+## Running on netcup
+
+Since 7 Nov 2026 the uploader runs as the system service **`vitaquack-evidence-uploader`** on netcup, from this
+checkout (`~/code/eth-global-mumbai-2026`, user `kristjan`). The unit file is
+[`vitaquack-evidence-uploader.service`](vitaquack-evidence-uploader.service) and starts with the box. Before that it
+ran by hand in a tmux session, which froze for 2 h on 6 Nov when a reverted 0G Storage tx left the SDK waiting forever.
+
+```bash
+systemctl status vitaquack-evidence-uploader          # running?
+journalctl -u vitaquack-evidence-uploader -f          # live log (one line per episode / frame)
+sudo systemctl restart vitaquack-evidence-uploader    # after changing main.ts
+# install or update the unit:
+sudo install -m 644 tools/evidence-uploader/vitaquack-evidence-uploader.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now vitaquack-evidence-uploader
+```
+
+- **Restarts:** any exit restarts it after 10 s. One 0G Storage upload that runs past 4 minutes exits on purpose
+  (code 3): the SDK's wait cannot be cancelled. The Worker hands the unfinished claim out again after 5 minutes.
+- **Code:** it runs the working tree as it is, so a restart picks up whatever is on disk in this checkout.
+- **Secrets:** read from `.env.main.local` as below; nothing secret is in the unit file or the journal.
+
 ## What it does
 
 1. `GET /api/evidence/pending` (bearer `APP_EVIDENCE_TOKEN`) claims up to 10 episodes (`pending`, retryable `failed`,
