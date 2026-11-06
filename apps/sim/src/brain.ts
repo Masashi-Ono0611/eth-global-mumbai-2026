@@ -2,8 +2,10 @@ import type { NavCall, NavTurnView } from '@ethmumbai/protocol/Intent'
 import { clsx } from 'clsx'
 import { el } from './dom.ts'
 
-// The live "0G brain" list: one card per stored navigation turn, with the tool calls glm-5.3 chose, its short
-// reasoning (model output, shown to the owner only) and whether the turn's TEE signature verified.
+// The live "0G brain" list: one card per stored navigation turn, with the model that answered it (ZG_MODEL or the
+// brain the owner picked with the message), the tool calls it chose, its short reasoning (model output, shown to the
+// owner only) and whether the turn's TEE signature verified. A turn is stored with its proof, so a turn without one
+// (a provider that publishes none, or a proof that could not be fetched) has none.
 
 // STYLES
 const listClassName = 'grid gap-2'
@@ -28,7 +30,7 @@ export const callLabel = (call: NavCall) => {
 
 const teeBadge = (turn: NavTurnView) => {
   const verified = turn.tee?.verified === true
-  const text = turn.tee === null ? 'TEE pending' : verified ? 'TEE ✓ verified' : 'TEE unverified'
+  const text = turn.tee === null ? 'No TEE proof' : verified ? 'TEE ✓ verified' : 'TEE unverified'
   return el(
     'span',
     clsx(badgeClassName, {
