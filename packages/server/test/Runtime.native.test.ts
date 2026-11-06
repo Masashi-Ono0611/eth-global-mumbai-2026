@@ -9,6 +9,7 @@ import * as HttpClient from 'effect/http/HttpClient'
 import { type Browser, chromium } from 'playwright'
 import { keccak256, stringToHex } from 'viem'
 import { verifyBrowser } from './BrowserAcceptance.ts'
+import { registerChainAcceptance } from './ChainAcceptance.ts'
 import { registerChipAcceptance, registerMockChipAcceptance } from './ChipAcceptance.ts'
 import {
   registerMerchantAcceptance,
@@ -326,3 +327,4 @@ registerChipAcceptance(test, stack)
 registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
 registerWalletAcceptance(test, stack)
+registerChainAcceptance(test, stack)

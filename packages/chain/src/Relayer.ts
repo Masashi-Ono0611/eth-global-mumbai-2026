@@ -70,6 +70,8 @@ export const makeRelayer = (config: {
   readonly client: ArcClient
   readonly privateKey: Hex
   readonly store: RelayerStore
+  /** How long to wait for a receipt before the outcome is reported unknown (default 60 s; tests shorten it). */
+  readonly receiptTimeoutMs?: number
 }) => {
   const account = privateKeyToAccount(config.privateKey)
   const { client, store } = config
@@ -127,7 +129,11 @@ export const makeRelayer = (config: {
     )
     yield* store.markSent(tx.key, txHash)
     const receipt = yield* rpc('waitForTransactionReceipt', () =>
-      client.waitForTransactionReceipt({ hash: txHash, timeout: 60_000, pollingInterval: 1_000 }),
+      client.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: config.receiptTimeoutMs ?? 60_000,
+        pollingInterval: Math.min(1_000, config.receiptTimeoutMs ?? 1_000),
+      }),
     ).pipe(
       Effect.mapError((error) => new RelayerError({ key: tx.key, stage: 'receipt', message: error.message, txHash })),
     )

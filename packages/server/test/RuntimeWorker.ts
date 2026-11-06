@@ -5,6 +5,7 @@ import { HttpServerRequest } from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { agentFixtureRoutes } from './AgentFixture.ts'
+import { chainFixtureRoutes } from './ChainFixture.ts'
 import { DomainLive } from '../src/DomainLive.ts'
 import { recoveryRoutes } from './RecoveryFixture.ts'
 import { AppDatabase, AppMedia } from '../src/Resources.ts'
@@ -26,12 +27,14 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
     const media = yield* Cloudflare.R2.ReadWriteBucket(AppMedia)
     const fixtureHandle = yield* HttpRouter.toHttpEffect(yield* recoveryRoutes(media)).pipe(Effect.orDie)
     const agentHandle = yield* HttpRouter.toHttpEffect(agentFixtureRoutes(database)).pipe(Effect.orDie)
+    const chainHandle = yield* HttpRouter.toHttpEffect(chainFixtureRoutes(database)).pipe(Effect.orDie)
     return {
       fetch: Effect.gen(function* () {
         const request = yield* HttpServerRequest
         const url = new URL(request.url, 'http://local.invalid')
         if (url.pathname.startsWith('/test/recovery/')) return yield* fixtureHandle
         if (url.pathname.startsWith('/test/vq/')) return yield* agentHandle
+        if (url.pathname.startsWith('/test/chain/')) return yield* chainHandle
         if (url.pathname === '/intl')
           return yield* HttpServerResponse.json({
             en: format('en', 'catalog.pieces', { count: 2 }),
