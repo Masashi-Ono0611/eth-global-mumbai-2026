@@ -20,7 +20,7 @@ const seenLabelClassName = 'px-1.5 text-[0.8rem] text-muted'
 /** Inner radius = the bubble's 20 px minus its 8 px padding; a pure-black 10 % outline keeps the photo's edge clean. */
 // A crop is the QR's box plus a margin, about square: the space is reserved before the image arrives.
 const seenImageClassName =
-  'block aspect-square w-44 rounded-[12px] bg-paper object-contain outline outline-1 -outline-offset-1 outline-black/10'
+  'photo-frame block aspect-square w-44 rounded-[12px] bg-paper object-contain outline outline-1 -outline-offset-1 outline-black/10'
 const seenCaptionClassName = 'px-1.5 text-[0.95rem]'
 const seenSourceClassName = 'block px-1.5 text-[0.8rem] text-muted'
 

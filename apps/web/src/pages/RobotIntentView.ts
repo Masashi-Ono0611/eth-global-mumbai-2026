@@ -1,9 +1,10 @@
 import { format, type Locale } from '@ethmumbai/i18n'
-import { isOpenIntent, type NavCall, type NavTurnView } from '@ethmumbai/protocol/Intent'
+import { type NavCall, type NavTurnView } from '@ethmumbai/protocol/Intent'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { liveFrameUrl, simulatorUrl } from '../api/Robot.ts'
 import { Intent, Message, type Model } from './RobotConsole.ts'
 import { busyLabel } from '../Busy.ts'
+import { duck } from '../Duck.ts'
 
 // STYLES
 
@@ -11,7 +12,11 @@ const ownerBubbleClassName = 'max-w-[82%] self-end rounded-[20px_20px_6px_20px] 
 const robotBubbleClassName = 'max-w-[86%] self-start rounded-[20px_20px_20px_6px] bg-surface px-3.5 pt-2 pb-2'
 const errorBubbleClassName = 'max-w-[86%] self-start rounded-[20px_20px_20px_6px] bg-error-soft px-3.5 py-2 text-error'
 const stepClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-center text-sm text-muted'
-const walkingClassName = 'grid justify-items-center gap-2 self-center text-center text-sm text-muted'
+// The duck says it is on its way, in its own bubble, with Stop under it.
+const walkingClassName = 'grid justify-items-start gap-1.5 self-start'
+const walkingBubbleClassName =
+  'flex max-w-[86%] items-center gap-2.5 rounded-[20px_20px_20px_6px] bg-surface py-2 pr-3.5 pl-2.5 text-[0.95rem]'
+const walkingFaceClassName = 'grid size-8 shrink-0 place-items-center rounded-full bg-ink'
 const liveClassName = 'grid max-w-[86%] gap-1.5 self-start rounded-[20px_20px_20px_6px] bg-surface p-2 pb-2.5'
 /** Inner radius = the bubble's 20 px minus its 8 px padding, like the scan crop. The frame keeps its own aspect: the
  *  simulator sends 4:3 (320×240), the Radxa 16:9 (640×360). */
@@ -98,14 +103,24 @@ const liveFrame = (model: Model, name: string, locale: Locale, h: HtmlBuilder<Me
   )
 }
 
-/** While the duck walks: say so, and let the owner stop it. */
+/** While the duck walks to the counter: say so, and let the owner stop it. Once it has scanned, the errand's own
+ *  messages say what happens, so this goes. */
 const walking = (model: Model, name: string, sim: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const { intent } = model
-  if (!Intent.guards.Open(intent) || !isOpenIntent(intent.intent.state)) return h.empty
+  if (!Intent.guards.Open(intent) || intent.intent.state !== 'running') return h.empty
   return h.div(
     [h.Class(walkingClassName)],
     [
-      h.p([h.Role('status')], [format(locale, sim ? 'thread.walking' : 'thread.waitingScan', { name })]),
+      h.p(
+        [h.Role('status'), h.Class(walkingBubbleClassName)],
+        [
+          h.span(
+            [h.Class(walkingFaceClassName), h.AriaHidden(true)],
+            [duck('size-6 motion-safe:animate-bob', false, h)],
+          ),
+          format(locale, sim ? 'thread.walking' : 'thread.waitingScan', {}),
+        ],
+      ),
       h.button(
         [
           h.Type('button'),

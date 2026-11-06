@@ -1,5 +1,5 @@
 import { Effect, Option, Schema } from 'effect'
-import { Command, Update } from 'foldkit'
+import { Command, Dom, Update } from 'foldkit'
 import { Dialog, Listbox } from '@foldkit/ui'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -65,6 +65,7 @@ export const Message = defineMessageUnion({
   ClickedAskFor: { item: Schema.String },
   SucceededLoadErrand: { episodeId: Schema.String, detail: ErrandDetail },
   FailedLoadErrand: { episodeId: Schema.String },
+  CompletedShowLatest: {},
   CompletedFindApproval: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
   ClickedRefresh: {},
   ClickedDecline: { approvalId: Schema.String },
@@ -125,6 +126,15 @@ export const LoadConsole = Command.define('LoadConsole', {
         Effect.succeed(Message.FailedLoadConsole({ error: failure.error, signedOut: isSignedOut(failure) })),
       ),
     ),
+})
+
+/**
+ * The thread moved on: bring its newest message into view above the dock (as the voice does for Vita's lines).
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
+export const ShowLatest = Command.define('ShowLatest', {
+  messages: [Message.CompletedShowLatest],
+  execute: Dom.scrollIntoView('#main', { block: 'end' }).pipe(Effect.ignore, Effect.as(Message.CompletedShowLatest())),
 })
 
 /**
@@ -299,6 +309,9 @@ const intentStep = (model: Model, intent: IntentView): UpdateReturn => {
     isOpenIntent(intent.state) &&
     (intent.live ?? null) !== null &&
     !Option.exists(model.maybeLiveIntentId, (id) => id === intent.id)
+  // A new intent, or one whose state moved (scanned, stopped, ended): its bubbles change at the bottom, so show them.
+  const moved = !Intent.guards.Open(model.intent) || model.intent.intent.state !== intent.state
+  const show = moved ? [ShowLatest()] : []
   const next = modifyFields(model, {
     intent: () => Intent.Open({ intent, stopping }),
     maybeLiveIntentId: () => (startLive ? Option.some(intent.id) : model.maybeLiveIntentId),
@@ -313,10 +326,10 @@ const intentStep = (model: Model, intent: IntentView): UpdateReturn => {
     : []
   const episodeId = intent.episodeId
   const following = Errand.guards.Running(model.errand) && model.errand.episodeId === episodeId
-  if (episodeId === null || following) return { model: next, commands: poll }
+  if (episodeId === null || following) return { model: next, commands: [...poll, ...show] }
   return {
     model: modifyFields(next, { errand: () => running(episodeId, Option.none()) }),
-    commands: [...poll, PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
+    commands: [...poll, PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 }), ...show],
   }
 }
 
@@ -362,6 +375,12 @@ const loadedErrand = (model: Model, episodeId: string, detail: ErrandDetail): Up
     return { model }
   }
   const live = !terminalStates.has(detail.episode.state)
+  // A new state adds messages at the bottom of the thread: scroll to them, once per change.
+  const moved = Option.match(errand.maybeDetail, {
+    onNone: () => true,
+    onSome: (before) => before.episode.state !== detail.episode.state,
+  })
+  const show = moved ? [ShowLatest()] : []
   const findApproval =
     detail.episode.state === 'awaiting_approval' && Option.isNone(errand.maybeApprovalUrl)
       ? [FindApproval({ episodeId })]
@@ -371,8 +390,8 @@ const loadedErrand = (model: Model, episodeId: string, detail: ErrandDetail): Up
       errand: () => Errand.Running({ ...errand, maybeDetail: Option.some(detail) }),
     }),
     commands: live
-      ? [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS }), ...findApproval]
-      : [LoadConsole({ robotId: model.robotId })],
+      ? [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS }), ...findApproval, ...show]
+      : [LoadConsole({ robotId: model.robotId }), ...show],
   }
 }
 
@@ -503,7 +522,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         }
       }
       return Option.match(resume, {
-        onNone: () => ({ model: loaded }),
+        // Open at the newest message, as a chat does (a live errand or intent scrolls there when its state arrives).
+        onNone: () => ({ model: loaded, commands: history.length > 0 ? [ShowLatest()] : [] }),
         onSome: (episodeId) => ({
           model: modifyFields(loaded, { errand: () => running(episodeId, Option.none()) }),
           commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
@@ -528,6 +548,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ? { model, commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS * 2 })] }
         : { model },
     ClickedRefresh: () => ({ model, commands: [LoadConsole({ robotId: model.robotId })] }),
+    CompletedShowLatest: () => ({ model }),
     ...ownerHandlers(model),
     ...intentHandlers(model),
     GotAllowanceSheetMessage: ({ message: sheetMessage }) => allowanceSheet.fold(model, sheetMessage),

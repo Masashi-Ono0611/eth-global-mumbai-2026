@@ -1,5 +1,6 @@
 import { Option } from 'effect'
 import { format, type Locale } from '@ethmumbai/i18n'
+import { clsx } from 'clsx'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { simulatorUrl } from '../api/Robot.ts'
@@ -11,8 +12,11 @@ import { Message, type Model, Stage } from './AddRobot.ts'
 import { allowanceView } from './AllowanceView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 import { workingDots } from '../Busy.ts'
+import { clockIcon } from '../Icons.ts'
 
 // STYLES
+
+const limitsClassName = 'flex items-center gap-1.5 text-[0.85rem] text-muted [&_svg]:size-4'
 
 const pageClassName = 'flex flex-col'
 const headerClassName = 'grid grid-cols-[44px_44px_1fr] items-center gap-2.5 border-b border-rule px-1 pt-1 pb-2.5'
@@ -96,6 +100,7 @@ const codeBubble = (robot: AddedRobot, locale: Locale, h: HtmlBuilder<Message>):
         [
           h.span([h.Class(labelClassName)], [format(locale, 'addRobot.simCode', { name: robot.name })]),
           code(robot, h),
+          limits(locale, h),
           h.a(
             [
               h.Href(simulatorUrl(robot.robotId, robot.pairingCode)),
@@ -112,9 +117,15 @@ const codeBubble = (robot: AddedRobot, locale: Locale, h: HtmlBuilder<Message>):
         [
           h.span([h.Class(labelClassName)], [format(locale, 'addRobot.giveCode', { name: robot.name })]),
           code(robot, h),
+          limits(locale, h),
+          h.span([h.Class(clsx(labelClassName, 'mt-1.5'))], [format(locale, 'addRobot.onRobot', {})]),
           h.code([h.Class(commandClassName)], [`./vitaquack-chip --pair ${robot.pairingCode}`]),
         ],
       )
+
+/** How long and how often the code works, as a small clock line under it. */
+const limits = (locale: Locale, h: HtmlBuilder<Message>): Html =>
+  h.span([h.Class(limitsClassName)], [clockIcon(h), format(locale, 'addRobot.codeLimits', {})])
 
 /** Real robot or simulator, as two radio segments (keyboard and screen readers get a native radio group). */
 const kindChoice = (model: Model, busy: boolean, locale: Locale, h: HtmlBuilder<Message>): Html =>

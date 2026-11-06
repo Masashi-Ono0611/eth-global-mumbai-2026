@@ -61,7 +61,11 @@ const paymentAmountClassName = 'shrink-0 text-right font-semibold whitespace-now
 const paidClassName = 'block text-[0.92rem] text-paid'
 const emptyClassName = 'px-2 text-muted'
 const stepsCardClassName = 'mx-1 mt-3 grid gap-2 rounded-card bg-surface p-4'
-const stepRowClassName = 'grid min-h-11 grid-cols-[1.25rem_1fr_auto] items-center gap-2'
+const stepRowClassName = 'grid min-h-11 grid-cols-[1.75rem_1fr_auto] items-center gap-2.5'
+// Where the owner is, at a glance: one segment per step, filled once done.
+const progressClassName = 'grid auto-cols-fr grid-flow-col gap-1'
+const segmentClassName = 'h-1.5 rounded-full'
+const stepMarkClassName = 'grid size-7 place-items-center rounded-full text-[0.8rem] font-semibold'
 const stepActionClassName =
   'inline-flex min-h-10 cursor-pointer items-center rounded-control bg-ink px-3.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 
@@ -280,7 +284,8 @@ const paymentRow = (episode: EpisodeActivity, onZeroG: boolean, locale: Locale, 
             [
               paid ? h.span([], [`−${amount}`]) : live ? h.span([], [amount]) : h.s([h.Class('text-muted')], [amount]),
               h.span(
-                [h.Class(clsx(paid ? paidClassName : paymentSubClassName))],
+                // Not paid is already plain from the struck amount and the reason beside it: said to screen readers only.
+                [h.Class(paid ? paidClassName : live ? paymentSubClassName : 'sr-only')],
                 [format(locale, paid ? 'home.paid' : live ? 'home.pending' : 'home.notPaid', {})],
               ),
             ],
@@ -363,6 +368,10 @@ const firstSteps = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Readon
   ]
 }
 
+/** A step's mark: a green check once done, the next step in ink, the rest quiet. */
+const stepMark = (done: boolean, isNext: boolean) =>
+  clsx(stepMarkClassName, done ? 'bg-paid/12 text-paid' : isNext ? 'bg-ink text-surface' : 'bg-paper text-muted')
+
 /** The first-steps card: each open step one tap from where it is done (the next one only, so the order is clear). */
 const firstStepsCard = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const steps = firstSteps(home, locale, h)
@@ -372,6 +381,10 @@ const firstStepsCard = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Ht
     [h.Class(stepsCardClassName), h.AriaLabelledBy('first-steps')],
     [
       h.h2([h.Id('first-steps'), h.Class('font-semibold')], [format(locale, 'home.firstSteps', {})]),
+      h.div(
+        [h.Class(progressClassName), h.AriaHidden(true)],
+        steps.map((step) => h.span([h.Class(clsx(segmentClassName, step.done ? 'bg-paid' : 'bg-rule'))])),
+      ),
       h.ol(
         [h.Class('grid gap-1.5')],
         steps.map((step, index) =>
@@ -379,11 +392,11 @@ const firstStepsCard = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Ht
             [h.Class(stepRowClassName)],
             [
               h.span(
-                [h.Class(step.done ? 'text-paid' : 'text-muted'), h.AriaHidden(true)],
+                [h.Class(stepMark(step.done, index === next)), h.AriaHidden(true)],
                 [step.done ? '✓' : `${index + 1}`],
               ),
               h.span(
-                [h.Class(step.done ? 'text-muted line-through' : '')],
+                [h.Class(step.done ? 'text-muted' : index === next ? 'font-semibold' : '')],
                 [step.label, step.done ? h.span([h.Class('sr-only')], [format(locale, 'home.stepDone', {})]) : h.empty],
               ),
               index === next ? step.action : h.span([]),

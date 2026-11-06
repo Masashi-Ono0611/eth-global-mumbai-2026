@@ -8,7 +8,7 @@ import { decodeBody } from '../auth/Routes.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { leaseOf, RobotRow } from '../chip/Lease.ts'
 import { json, jsonError, nowSeconds, randomBytes } from '../Respond.ts'
-import { GrantRow, periodStartOf, spentSince } from '../robot/Budget.ts'
+import { GrantRow, periodStartOf, spentSince, statusAt } from '../robot/Budget.ts'
 import { allRows, changes } from '../Sql.ts'
 import type { WalletDeps } from './Deps.ts'
 import { answerWalletErrors } from './Errors.ts'
@@ -135,7 +135,11 @@ const listRobots = (deps: WalletDeps) =>
           grant:
             latest === undefined
               ? null
-              : { ...(yield* grantView(latest)), ...(yield* budgetOf(database, latest, now)) },
+              : {
+                  ...(yield* grantView(latest)),
+                  ...(yield* budgetOf(database, latest, now)),
+                  status: statusAt(latest, now),
+                },
         }
       }),
     )

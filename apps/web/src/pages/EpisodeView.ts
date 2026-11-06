@@ -1,4 +1,5 @@
 import { format, type Locale } from '@ethmumbai/i18n'
+import { clsx } from 'clsx'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -37,6 +38,9 @@ import {
 } from './EpisodeParts.ts'
 import type { Inputs } from './EpisodeParts.ts'
 import { busyLabel } from '../Busy.ts'
+
+const stateRowClassName = 'flex flex-wrap items-center gap-x-2 gap-y-1'
+const statePillClassName = 'inline-flex min-h-8 items-center rounded-full px-3 text-[0.9rem] font-semibold'
 
 const brainOf = (provider: string | null, locale: Locale) =>
   format(locale, isZeroGDecision(provider) ? 'console.brainZeroG' : 'console.brainRehearsal', {})
@@ -390,10 +394,28 @@ const auditView = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBui
           }),
         ],
       ),
-      h.p([h.Role('status'), h.Class('font-semibold')], [format(locale, 'episodes.state', { state: episode.state })]),
-      episode.result === null
-        ? h.empty
-        : h.p([h.Class(mutedClassName)], [format(locale, 'console.reason', { reason: episode.result })]),
+      // How it ended at a glance: a pill in the outcome's colour, the recorded reason beside it.
+      h.p(
+        [h.Role('status'), h.Class(stateRowClassName)],
+        [
+          h.span(
+            [
+              h.Class(
+                clsx(
+                  statePillClassName,
+                  episode.state === 'paid'
+                    ? 'bg-paid/12 text-paid'
+                    : terminalStates.has(episode.state)
+                      ? 'bg-error-soft text-error'
+                      : 'bg-surface text-ink',
+                ),
+              ),
+            ],
+            [format(locale, 'episodes.state', { state: episode.state })],
+          ),
+          episode.result === null ? h.empty : h.span([h.Class(mutedClassName)], [episode.result]),
+        ],
+      ),
       timelineCard(audit, inputs, h),
       observationCard(model, audit, inputs, h),
       decisionCard(model, audit, inputs, h),

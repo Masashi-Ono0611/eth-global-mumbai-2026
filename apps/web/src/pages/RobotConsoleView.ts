@@ -19,9 +19,10 @@ import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
 import { dock, voiceIn } from './RobotDockView.ts'
+import { emptyThread, failedConsole } from './RobotEmptyView.ts'
 import { seenBubble, teeMark, zeroGStatus, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
-import { failedView, signedOutView } from './Shared.ts'
+import { signedOutView } from './Shared.ts'
 import { workingDots } from '../Busy.ts'
 import { threadSkeleton } from '../Skeleton.ts'
 import { busyLabel } from '../Busy.ts'
@@ -40,7 +41,7 @@ const faceAsleepClassName = 'relative grid size-11 place-items-center rounded-fu
 const nameClassName = 'block truncate pt-1 font-display text-xl leading-none font-bold'
 const statusClassName = 'text-sm text-muted'
 const allowanceClassName =
-  'grid min-h-11 cursor-pointer justify-items-end rounded-[14px] bg-surface px-3 pt-1.5 pb-1 leading-tight transition-transform active:scale-[0.96]'
+  'grid min-h-11 cursor-pointer content-center justify-items-end rounded-[14px] bg-surface px-3 py-1.5 leading-tight transition-transform active:scale-[0.96]'
 const allowanceAmountClassName = 'font-display text-lg leading-none font-extrabold'
 const allowanceLabelClassName = 'text-xs text-muted'
 const threadClassName = 'flex flex-1 flex-col gap-2 px-1 pt-3 pb-4'
@@ -126,7 +127,13 @@ const header = (model: Model, view: ConsoleRobot, paid: boolean, locale: Locale,
               h.AriaLabel(format(locale, 'allowance.openNone', {})),
               h.OnClick(Message.ClickedAllowance()),
             ],
-            [h.span([h.Class(allowanceLabelClassName)], [format(locale, 'thread.noAllowance', {})])],
+            // Never given, stopped or past its window: say which.
+            [
+              h.span(
+                [h.Class(allowanceLabelClassName)],
+                [format(locale, 'thread.noAllowance', { status: view.grant?.status ?? 'none' })],
+              ),
+            ],
           )
         : h.button(
             [
@@ -229,7 +236,13 @@ const outcome = (
     case 'failed':
       return ended(format(locale, 'thread.failed', { reason }), true)
     case 'expired':
-      return ended(format(locale, 'thread.expired', {}), true)
+      // Two timeouts end an errand (Errands.ts): the owner's approval window, or a chip that never signed.
+      return ended(
+        format(locale, 'thread.expired', {
+          why: reason.includes('approval') ? 'approval' : reason.includes('chip') ? 'chip' : 'other',
+        }),
+        true,
+      )
     default:
       return h.empty
   }
@@ -466,21 +479,17 @@ const loadedView = (
         ],
         [
           view.robot.kind === 'sim' ? simulatorLink(view.robot.id, locale, h) : h.empty,
-          past.length === 0 && Errand.guards.Idle(model.errand) && Intent.guards.Idle(model.intent)
-            ? h.p(
-                [h.Class(systemClassName)],
-                [
-                  format(
-                    locale,
-                    RobotVoice.Status.guards.Unavailable(model.voice.status) ? 'thread.empty' : 'voice.empty',
-                    { name: view.robot.name },
-                  ),
-                ],
-              )
-            : h.a(
-                [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
-                [format(locale, 'thread.records', { name: view.robot.name })],
-              ),
+          past.length === 0 &&
+          Errand.guards.Idle(model.errand) &&
+          Intent.guards.Idle(model.intent) &&
+          model.voice.entries.length === 0
+            ? emptyThread(model, view, locale, h)
+            : past.length === 0
+              ? h.empty
+              : h.a(
+                  [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
+                  [format(locale, 'thread.records', { name: view.robot.name })],
+                ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
           voiceIn(model, view, 'turns', turnsView, locale, h),
           // Keyed by the history's length: stable while an errand runs, new when the next errand begins.
@@ -518,7 +527,7 @@ export const robotConsoleView = Submodel.defineView<
       ConsoleState.match(model.state, {
         Loading: () => threadSkeleton(locale, h),
         SignedOut: () => signedOutView(locale, h),
-        Failed: ({ error }) => failedView(error, Message.ClickedRefresh(), locale, h),
+        Failed: ({ error }) => failedConsole(error, locale, h),
         Loaded: ({ robot, catalogue, history, amounts }) =>
           loadedView(model, robot, catalogue, history, amounts, locale, timeZone, h),
       }),
