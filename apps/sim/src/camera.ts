@@ -45,6 +45,9 @@ export interface HeadCamera {
   readonly nextSighting: (timeoutMs: number) => Promise<Sighting | null>
   /** The chip-signable JPEG crop (starts FF D8 FF, at most 64 KiB). */
   readonly crop: (sighting: Sighting) => Promise<Uint8Array>
+  /** The latest whole camera frame as a JPEG (at most 64 KiB) and when it was read back, for the owner's live view;
+   *  null before the first frame. Never decision input. */
+  readonly snapshot: () => Promise<{ readonly jpeg: Uint8Array; readonly capturedAt: number } | null>
   readonly tick: () => void
 }
 
@@ -115,6 +118,21 @@ const cropJpeg = async (sighting: Sighting) => {
   throw new Error('crop does not fit 64 KiB')
 }
 
+/** A whole frame as a JPEG under the frame limit: the highest of a few qualities that fits. */
+const frameJpeg = async (frame: ImageData) => {
+  const canvas = document.createElement('canvas')
+  canvas.width = frame.width
+  canvas.height = frame.height
+  const context = canvas.getContext('2d')
+  if (context === null) throw new Error('2D canvas unavailable')
+  context.putImageData(frame, 0, 0)
+  for (const quality of [0.7, 0.5, 0.3]) {
+    const bytes = new Uint8Array(await (await jpegOf(canvas, quality)).arrayBuffer())
+    if (bytes.byteLength <= MAX_JPEG_BYTES) return bytes
+  }
+  throw new Error('frame does not fit in 64 KiB')
+}
+
 /** The camera on jaw_soft, rolled so image-up is world-up (Spike A's fix for the kinematics export's frame). */
 const mountCamera = (engine: EngineContext) => {
   const camera = new THREE.PerspectiveCamera(FOVY, WIDTH / HEIGHT, 0.01, 6)
@@ -179,6 +197,7 @@ export const makeHeadCamera = (engine: EngineContext): HeadCamera => {
   const panel = makePanel()
   const readback = makeReadback(renderer, raw)
   let latest: Sighting | null = null
+  let lastFrame: { readonly frame: ImageData; readonly capturedAt: number } | null = null
   let lastFrameAt = 0
   const waiters = new Set<(sighting: Sighting) => void>()
 
@@ -193,6 +212,7 @@ export const makeHeadCamera = (engine: EngineContext): HeadCamera => {
 
   const process = () => {
     const frame = toSrgbFrame(raw)
+    lastFrame = { frame, capturedAt: Date.now() }
     const code = jsQR(frame.data, WIDTH, HEIGHT, { inversionAttempts: 'dontInvert' })
     panel.context.putImageData(frame, 0, 0)
     const invoiceId = code === null ? null : parseInvoicePayload(code.data)
@@ -222,6 +242,10 @@ export const makeHeadCamera = (engine: EngineContext): HeadCamera => {
         waiters.add(done)
       }),
     crop: cropJpeg,
+    snapshot: async () => {
+      const shot = lastFrame
+      return shot === null ? null : { jpeg: await frameJpeg(shot.frame), capturedAt: shot.capturedAt }
+    },
     tick: () => {
       if (readback.poll()) process()
       const now = performance.now()

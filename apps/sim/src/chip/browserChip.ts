@@ -1,5 +1,6 @@
-import { ChipEvent, ChipFailure, pair, serve, signScan } from '@ethmumbai/chip/client'
+import { ChipEvent, ChipFailure, pair, serve, signFrame, signScan } from '@ethmumbai/chip/client'
 import { loadOrCreateKey, makeSigner } from '@ethmumbai/chip/signer'
+import type { FrameRequest } from '@ethmumbai/protocol/Frame'
 import type { Hex } from '@ethmumbai/protocol/Hex'
 import type { ScanRequest } from '@ethmumbai/protocol/Scan'
 import { Data, Effect, Fiber, Option } from 'effect'
@@ -36,6 +37,8 @@ export interface SimChip {
   readonly address: Hex
   /** Hash the JPEG crop and sign its `scanMessage` (EIP-191): the body for `POST /api/chips/<robotId>/scans`. */
   readonly signScan: (invoiceId: string, jpeg: Uint8Array, capturedAt: number) => Promise<ScanRequest>
+  /** Hash a whole camera frame and sign its `frameMessage` (never a scan): the body for `…/frames`, the live view. */
+  readonly signFrame: (jpeg: Uint8Array, capturedAt: number) => Promise<FrameRequest>
   /** `fetch` with the chip token, for this robot's chip routes only: `path` must start `/api/chips/<robotId>/`. */
   readonly chipFetch: (path: string, init?: RequestInit) => Promise<Response>
   /** Stop polling; the lease lapses on the Worker and the robot reads as offline. */
@@ -85,6 +88,7 @@ const handle = ({ pairing, signer, fiber }: Effect.Success<ReturnType<typeof sta
     address: signer.address,
     signScan: (invoiceId, jpeg, capturedAt) =>
       Effect.runPromise(signScan(pairing, signer, invoiceId, jpeg, Math.trunc(capturedAt))),
+    signFrame: (jpeg, capturedAt) => Effect.runPromise(signFrame(pairing, signer, jpeg, Math.trunc(capturedAt))),
     chipFetch: (path, init) => {
       if (!path.startsWith(prefix) || path.includes('..'))
         return Promise.reject(new Error(`chipFetch is for ${prefix}… only`))

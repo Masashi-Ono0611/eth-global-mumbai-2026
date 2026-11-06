@@ -99,6 +99,8 @@ export default Alchemy.Stack(
         RESTRICTED_PAY_TO: yield* plain('APP_RESTRICTED_PAY_TO'),
         // Scan-initiated errands: `true` turns them on; the `pending` default keeps them off (Features.scansEnabled).
         SCANS_ENABLED: yield* plain('APP_SCANS_ENABLED'),
+        // The robot's live camera view: `true` turns it on; the `pending` default keeps it off (Features.liveEnabled).
+        LIVE_ENABLED: yield* plain('APP_LIVE_ENABLED'),
         // Telegram notifications (spec §14): both set turns them on; `pending` keeps them off, never a 500.
         TELEGRAM_BOT_TOKEN: yield* secret('APP_TELEGRAM_BOT_TOKEN'),
         TELEGRAM_WEBHOOK_SECRET: yield* secret('APP_TELEGRAM_WEBHOOK_SECRET'),

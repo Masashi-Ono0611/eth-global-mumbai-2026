@@ -283,6 +283,8 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.intentStoppedNoReason': Readonly<Record<string, never>>
   'thread.invoice': { readonly item: string | number; readonly amount: string | number }
   'thread.leftOf': { readonly daily: string | number }
+  'thread.liveAlt': { readonly name: string | number }
+  'thread.liveSeen': { readonly name: string | number; readonly seconds: number }
   'thread.needsOk': Readonly<Record<string, never>>
   'thread.noAllowance': Readonly<Record<string, never>>
   'thread.offline': Readonly<Record<string, never>>
@@ -313,4 +315,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '7127fdebe433f21c9c45d3582ea09e3cd2f8b1e9c172f793adb90bcb4d0bc921'
+export const catalogVersion = '5b73338ec4ec010a36f16ff324ff015c8a2b65b94f9bf184763371f6f25cb917'

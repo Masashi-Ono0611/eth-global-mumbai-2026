@@ -1,5 +1,6 @@
 import { PairResponse, PollResponse, type RefusalCode, type SignRequest } from '@ethmumbai/protocol/Chip'
 import type { Hex } from '@ethmumbai/protocol/Hex'
+import { FRAME_MAX_BYTES, frameMessage, type FrameRequest } from '@ethmumbai/protocol/Frame'
 import { scanMessage, type ScanRequest } from '@ethmumbai/protocol/Scan'
 import { Clock, Data, Effect, Ref, Schema } from 'effect'
 import * as Base64 from 'effect/encoding/Base64'
@@ -225,4 +226,36 @@ export const signScan = Effect.fnUntraced(function* (
 export const postScan = (pairing: PairingFile, body: ScanRequest) =>
   postJson(`${pairing.server}/api/chips/${pairing.robotId}/scans`, body, pairing.chipToken).pipe(
     Effect.timeout('60 seconds'),
+  )
+
+/** Why `bytes` is not a live frame the chip signs (a JPEG of at most 64 KB), or undefined if it is. */
+export const frameProblem = (bytes: Uint8Array) =>
+  bytes.length > FRAME_MAX_BYTES
+    ? 'frame is larger than 64 KB'
+    : bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+      ? undefined
+      : 'frame is not a JPEG'
+
+/** The live frame body for `POST /api/chips/:robotId/frames`: the JPEG's SHA-256, signed EIP-191 over `frameMessage`. */
+export const signFrame = Effect.fnUntraced(function* (
+  pairing: PairingFile,
+  signer: Signer,
+  jpeg: Uint8Array,
+  capturedAt: number,
+) {
+  const problem = frameProblem(jpeg)
+  if (problem !== undefined) return yield* new ChipFailure({ message: problem })
+  const digest: Hex = sha256(jpeg)
+  const sig = yield* signer.signFrame(frameMessage(pairing.robotId, digest, capturedAt))
+  return {
+    capturedAt,
+    frame: { mime: 'image/jpeg', sha256: digest, bytes: jpeg.length, b64: Base64.encode(jpeg) },
+    sig,
+  } satisfies FrameRequest
+})
+
+/** Forward a signed live frame to the Worker; the caller reads the status and JSON. */
+export const postFrame = (pairing: PairingFile, body: FrameRequest) =>
+  postJson(`${pairing.server}/api/chips/${pairing.robotId}/frames`, body, pairing.chipToken).pipe(
+    Effect.timeout('10 seconds'),
   )

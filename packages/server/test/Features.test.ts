@@ -17,6 +17,7 @@ const configured = {
   GATE_ED25519_SEED: 'c'.repeat(64),
   EVIDENCE_TOKEN: 'evidence-token-0123456789',
   SCANS_ENABLED: 'true',
+  LIVE_ENABLED: 'true',
   TELEGRAM_BOT_TOKEN: `12345678:${'k'.repeat(35)}`,
   TELEGRAM_WEBHOOK_SECRET: 'webhook-secret-0123456789',
 }
@@ -43,6 +44,7 @@ test('a `pending` placeholder, a missing or a malformed binding turns only its o
     gate: false,
     evidence: false,
     scans: false,
+    live: false,
     telegram: false,
   })
 })
@@ -51,6 +53,11 @@ test('scans are on only for the exact string `true`', () => {
   expect(features({ ...configured, SCANS_ENABLED: 'pending' })).toMatchObject({ scans: false, gate: true })
   expect(features({ ...configured, SCANS_ENABLED: 'TRUE' }).scans).toBe(false)
   expect(features({ ...configured, SCANS_ENABLED: '1' }).scans).toBe(false)
+})
+
+test('the live view is on only for the exact string `true`', () => {
+  expect(features({ ...configured, LIVE_ENABLED: 'pending' })).toMatchObject({ live: false, scans: true })
+  expect(features({ ...configured, LIVE_ENABLED: 'yes' }).live).toBe(false)
 })
 
 test('telegram needs both its secrets, and never counts a `pending` placeholder', () => {

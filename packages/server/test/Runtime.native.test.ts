@@ -31,6 +31,7 @@ import {
   TEST_ZG_API_KEY,
   TEST_ZG_MODEL,
 } from './RobotAcceptance.ts'
+import { registerLiveAcceptance, registerLiveOffAcceptance } from './LiveAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
 import {
   registerChipScanListenerAcceptance,
@@ -109,6 +110,8 @@ const makeStack = (generation: string) =>
           ZG_INFERENCE_CONTRACT: TEST_INFERENCE,
           // Off in the first generation (the flag-off 404 runs there), on after the restart test (ScanAcceptance.ts).
           SCANS_ENABLED: generation === 'after' ? 'true' : 'pending',
+          // The live camera view follows the same two generations (LiveAcceptance.ts).
+          LIVE_ENABLED: generation === 'after' ? 'true' : 'pending',
           TELEGRAM_BOT_TOKEN: Redacted.make(TEST_TELEGRAM_TOKEN),
           TELEGRAM_WEBHOOK_SECRET: Redacted.make(TEST_TELEGRAM_SECRET),
           TELEGRAM_API_BASE_URL: telegram.baseUrl,
@@ -268,6 +271,7 @@ test(
           'grants',
           'intents',
           'invoices',
+          'live_frames',
           'nav_turns',
           'notifications',
           'observations',
@@ -329,6 +333,7 @@ test(
 )
 
 registerScansOffAcceptance(test, stack)
+registerLiveOffAcceptance(test, stack)
 
 test(
   'recovers auth sessions and R2 bytes after a Worker restart',
@@ -381,6 +386,7 @@ registerScanAcceptance(test, stack, zeroG, storageStub)
 registerCounterAcceptance(test, stack)
 registerChipIntentAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)
+registerLiveAcceptance(test, stack)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
 registerWorldStubAcceptance(test, stack, zeroG)

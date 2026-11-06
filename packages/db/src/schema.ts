@@ -335,6 +335,17 @@ export const observations = sqliteTable(
   ],
 )
 
+// The robot's live camera view (Kris, 6 Nov): only the latest chip-signed frame per robot, its JPEG in R2 at
+// `live/<robotId>.jpg`. `received_at` (unix ms, the Worker's clock) caps the write rate per robot; `captured_at` is the
+// chip's signed capture time. Frames here are never evidence and never 0G decision input.
+export const liveFrames = sqliteTable('live_frames', {
+  robotId: text('robot_id').primaryKey(),
+  frameSha256: text('frame_sha256').notNull(),
+  bytes: integer('bytes').notNull(),
+  capturedAt: integer('captured_at').notNull(),
+  receivedAt: integer('received_at').notNull(),
+})
+
 /**
  * An owner's Telegram chat (spec §14). `chat_id` is null until the bot sees `/start <code>`; the code itself is never
  * stored, only its sha256, and it is single-use and lives 10 minutes. `linked_at` and `code_expires_at` are seconds.
@@ -459,6 +470,7 @@ export const appSchema = {
   relayerTxs,
   usedNonces,
   observations,
+  liveFrames,
   telegramLinks,
   notifications,
   intents,

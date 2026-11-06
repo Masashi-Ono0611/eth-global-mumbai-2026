@@ -5,6 +5,7 @@ import { vqBridge } from './bridge.ts'
 import { type SimChipEvent, SimChipLifecycle, startSimChip, takePairCode } from './chip/browserChip.ts'
 import { describePlace, describeScene } from './facts.ts'
 import { runInvoices } from './invoices.ts'
+import { runLive } from './live.ts'
 import { runNav } from './nav.ts'
 import { ENTRANCE } from './scene.ts'
 import { mountPanel, type Panel } from './ui.ts'
@@ -76,8 +77,10 @@ const start = async (robot: string) => {
   runInvoices(ready.cafe, ({ stall, invoiceId }) => panel.chipLog(`${stall} invoice ${invoiceId} paid: gate open`))
   const paired = await chip
   if (paired === null) return
+  const live = runLive(ready, paired, panel.chipLog)
   runNav(ready, paired, {
     intent: (intent) => {
+      live.active()
       panel.intent(intent)
       panel.navStatus(`errand: “${intent.instruction}”`)
     },
@@ -85,7 +88,10 @@ const start = async (robot: string) => {
     calling: (call) => panel.navStatus(`doing ${callLabel(call)}`),
     say: panel.say,
     status: panel.navStatus,
-    ended: (_, reason) => panel.ended(reason),
+    ended: (_, reason) => {
+      live.ended()
+      panel.ended(reason)
+    },
   })
 }
 

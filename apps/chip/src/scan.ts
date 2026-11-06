@@ -6,7 +6,7 @@ import * as Base64 from 'effect/encoding/Base64'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
-import { cropProblem, postScan, signScan } from './client.ts'
+import { cropProblem, frameProblem, postFrame, postScan, signFrame, signScan } from './client.ts'
 import type { Signer } from './signer.ts'
 import type { PairingFile } from './state.ts'
 
@@ -59,9 +59,51 @@ const scan = (pairing: PairingFile, signer: Signer) =>
     ),
   )
 
-/** Serve `POST /scan` on 127.0.0.1:`port` until the chip stops; never on another interface. */
-export const serveScans = (port: number, pairing: PairingFile, signer: Signer) =>
-  HttpRouter.serve(HttpRouter.add('POST', '/scan', scan(pairing, signer)), { disableLogger: true }).pipe(
-    Layer.provide(BunHttpServer.layer({ hostname: '127.0.0.1', port })),
-    Layer.launch,
+/** What the camera process posts for the live view: one full camera frame as a JPEG of at most 64 KB. */
+const LocalFrame = Schema.Struct({
+  jpegBase64: Schema.String,
+  /** Unix ms when the frame was taken; the chip's clock when absent. */
+  capturedAt: Schema.optionalKey(UnixMs),
+})
+
+const frameOf = (jpegBase64: string) =>
+  Option.match(Result.getSuccess(Base64.decode(jpegBase64)), {
+    onNone: () => Result.fail('jpegBase64 is not base64'),
+    onSome: (bytes) => {
+      const problem = frameProblem(bytes)
+      return problem === undefined ? Result.succeed(bytes) : Result.fail(problem)
+    },
+  })
+
+/** `POST /frame`: the chip hashes and signs the frame (`frameMessage`, never a scan) and forwards it to the Worker. */
+const frame = (pairing: PairingFile, signer: Signer) =>
+  Effect.gen(function* () {
+    const input = yield* HttpServerRequest.schemaBodyJson(LocalFrame).pipe(Effect.option)
+    if (Option.isNone(input)) return reply(400, { error: 'expected {"jpegBase64", "capturedAt"?}' })
+    const bytes = frameOf(input.value.jpegBase64)
+    if (Result.isFailure(bytes)) return reply(400, { error: bytes.failure })
+    const capturedAt = input.value.capturedAt ?? (yield* Clock.currentTimeMillis)
+    const body = yield* signFrame(pairing, signer, bytes.success, capturedAt)
+    const response = yield* postFrame(pairing, body)
+    const answer: unknown = yield* response.json.pipe(
+      Effect.orElseSucceed(() => ({ error: 'no JSON from the Worker' })),
+    )
+    yield* Console.log(`frame ${body.frame.sha256.slice(0, 10)}… → ${response.status}`)
+    return reply(response.status, answer)
+  }).pipe(
+    Effect.catch((error) =>
+      Console.log(`frame failed: ${String(error)}`).pipe(
+        Effect.as(reply(502, { error: 'the Worker did not answer the frame' })),
+      ),
+    ),
   )
+
+/** Serve `POST /scan` and `POST /frame` on 127.0.0.1:`port` until the chip stops; never on another interface. */
+export const serveScans = (port: number, pairing: PairingFile, signer: Signer) =>
+  HttpRouter.serve(
+    HttpRouter.addAll([
+      HttpRouter.route('POST', '/scan', scan(pairing, signer)),
+      HttpRouter.route('POST', '/frame', frame(pairing, signer)),
+    ]),
+    { disableLogger: true },
+  ).pipe(Layer.provide(BunHttpServer.layer({ hostname: '127.0.0.1', port })), Layer.launch)

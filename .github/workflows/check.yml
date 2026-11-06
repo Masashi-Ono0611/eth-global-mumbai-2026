@@ -68,6 +68,7 @@ jobs:
           APP_MERCHANT_PAY_TO: ${{ secrets.APP_MERCHANT_PAY_TO }}
           APP_RESTRICTED_PAY_TO: ${{ secrets.APP_RESTRICTED_PAY_TO }}
           APP_SCANS_ENABLED: ${{ secrets.APP_SCANS_ENABLED }}
+          APP_LIVE_ENABLED: ${{ secrets.APP_LIVE_ENABLED }}
           APP_TELEGRAM_BOT_TOKEN: ${{ secrets.APP_TELEGRAM_BOT_TOKEN }}
           APP_TELEGRAM_WEBHOOK_SECRET: ${{ secrets.APP_TELEGRAM_WEBHOOK_SECRET }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

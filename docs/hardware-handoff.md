@@ -215,6 +215,31 @@ allowance. Follow it on `$APP/app/robot/<robotId>`, or let the gate show PAID. T
 the crop at `/app/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
 `observations: [{sha256, hashMatches, signerMatches}]`.
 
+### 5.3 Live camera frames (`POST /frame`, behind `APP_LIVE_ENABLED`)
+
+The owner's conversation shows what the robot sees while it is out, about one frame a second. The camera process posts
+one **whole** frame per second to the same local listener as `/scan`. The chip logs
+`frame listener on http://127.0.0.1:8787/frame`, signs EIP-191 `vitaquack-frame:v1|<robotId>|<0x sha256>|<capturedAt ms>`
+(its own prefix, so a frame can never pass as a scan) and forwards
+`{capturedAt, frame: {mime, sha256, bytes, b64}, sig}` to `POST $APP/api/chips/<robotId>/frames`:
+
+```sh
+curl -s -w ' %{http_code}\n' http://127.0.0.1:8787/frame -H 'content-type: application/json' \
+  -d "{\"jpegBase64\":\"$(base64 -w0 frame.jpg)\",\"capturedAt\":$(date +%s%3N)}"
+{"sha256":"0x…","capturedAt":1793990000000} 201
+```
+
+- **201**: stored as the robot's latest frame. **429** `too many frames: at most one per 400 ms per robot` (no
+  `Retry-After`; nothing is stored). **404**: `APP_LIVE_ENABLED` is not `true` on this deploy. **400**: local checks
+  (`jpegBase64 is not base64`, `frame is not a JPEG`, `frame is larger than 64 KB`) or the Worker's (`capturedAt`
+  ±120 s). **401**: wrong chip. **502**: the Worker or R2 did not answer (chip timeout 10 s).
+- A JPEG of at most 64 KB. 640×360 at quality 50–60 is right for the chat, which shows it 256 px wide at its own aspect.
+- Extra keys (such as `keep`) are ignored. No keyframes are kept today.
+- `/frame` never gates `/scan`, and nothing in pairing, polling or `/scan` changed.
+- Only the latest frame per robot exists: R2 `live/<robotId>.jpg` is overwritten each time. Only the owner can read it
+  (`GET $APP/api/robots/<id>/live` and `/live/frame`, `private, no-store`). The chat stops showing a frame older than
+  30 s. Live frames never reach 0G, neither the decision nor storage.
+
 ## 6. Counter screen: the till puts the bill up, the ESP32 pulls it
 
 The ESP32 cannot be reached from outside (it sits behind the Mac's NAT), so it pulls what to show. The café owner taps

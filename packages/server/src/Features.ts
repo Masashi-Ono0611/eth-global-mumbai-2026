@@ -13,6 +13,9 @@ const longer = (length: number) => (value: unknown) => set(value) && value.lengt
 /** Scan-initiated errands (`SCANS_ENABLED`): on only for the exact string `true`; `pending` or anything else is off. */
 export const scansEnabled = (env: Bindings) => env.SCANS_ENABLED === 'true'
 
+/** The robot's live camera view (`LIVE_ENABLED`): on only for the exact string `true`, like scans. */
+export const liveEnabled = (env: Bindings) => env.LIVE_ENABLED === 'true'
+
 export const features = (env: Bindings) => ({
   arc: https(env.ARC_RPC_URL),
   relayer: key(env.RELAYER_PRIVATE_KEY),
@@ -24,6 +27,7 @@ export const features = (env: Bindings) => ({
   gate: shaped(/^(0x)?[0-9a-fA-F]{64}$/)(env.GATE_ED25519_SEED),
   evidence: longer(16)(env.EVIDENCE_TOKEN),
   scans: scansEnabled(env),
+  live: liveEnabled(env),
   telegram:
     shaped(/^\d{5,}:[A-Za-z0-9_-]{30,}$/)(env.TELEGRAM_BOT_TOKEN) &&
     shaped(/^[A-Za-z0-9_-]{16,256}$/)(env.TELEGRAM_WEBHOOK_SECRET),

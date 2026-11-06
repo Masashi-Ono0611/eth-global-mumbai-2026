@@ -244,7 +244,9 @@
     "waitingScan": "Waiting for {name} to scan the QR code at the counter.",
     "askRowHint": "Send {name} to fetch it (it scans the counter's QR code):",
     "askChip": "Get me a {item}",
-    "buyRowHint": "Or pay the counter's open invoice right now:"
+    "buyRowHint": "Or pay the counter's open invoice right now:",
+    "liveAlt": "What {name} sees right now",
+    "liveSeen": "Live from {name}'s camera · {seconds, plural, =0 {just now} one {# second ago} other {# seconds ago}}"
   },
   "allowance": {
     "title": "{name}'s allowance",

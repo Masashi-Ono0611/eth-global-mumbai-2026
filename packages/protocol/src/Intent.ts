@@ -2,6 +2,7 @@ import { Schema } from 'effect'
 import { Id } from './Base32.ts'
 import { EpisodeState, TeeProof } from './Errand.ts'
 import { UnixMs } from './Hex.ts'
+import { LiveFrame } from './Frame.ts'
 
 // The owner's errand intent: one instruction ("get me a chai") for one robot, created the same way from a Buy chip,
 // typed text or voice. A scan by that robot claims the open intent, so the 0G `decide` sees what the owner asked for.
@@ -91,5 +92,7 @@ export const IntentView = Schema.Struct({
   reason: Schema.NullOr(Schema.String),
   turns: Schema.Array(NavTurnView),
   createdAt: UnixMs,
+  /** The robot's latest live camera frame while it is out (owner reads only; absent elsewhere or with no frame). */
+  live: Schema.optionalKey(Schema.NullOr(LiveFrame)),
 })
 export type IntentView = typeof IntentView.Type

@@ -246,6 +246,9 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.askRowHint': "Send {name} to fetch it (it scans the counter's QR code):",
   'thread.askChip': 'Get me a {item}',
   'thread.buyRowHint': "Or pay the counter's open invoice right now:",
+  'thread.liveAlt': 'What {name} sees right now',
+  'thread.liveSeen':
+    "Live from {name}'s camera · {seconds, plural, =0 {just now} one {# second ago} other {# seconds ago}}",
   'allowance.title': "{name}'s allowance",
   'allowance.give': 'Give {name} an allowance',
   'allowance.perDay': 'Per day (USDC)',
