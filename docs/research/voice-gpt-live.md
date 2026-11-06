@@ -46,7 +46,7 @@ catchphrases stand out:
 3. **Closer**: "Budget first, snacks second, QUACK!", or "That's a boss decision, QUACK!" for restricted or over-budget
    items.
 
-It knows the product: chai and snacks fit the budget, cigarettes need the owner's World approval, 0G decides every
+It knows the product: chai and samosa fit the limits, a thali (over the 1.00 per-payment limit) needs the owner's World approval, 0G decides every
 purchase, the limits live on Arc. It always answers in English and never claims to have paid. In A the server enforces the
 opener and closer and drops a stray mid-sentence "QUACK" if the model drifts; on screen the catchphrases light up in duck
 yellow and the duck hops on the closer.
@@ -55,8 +55,8 @@ Example replies (A, omni-plus):
 
 - "Can you buy me a chai?" → "Waddle waddle! That expense is egg-cellent for my feather-weight budget. Budget first, snacks
   second, QUACK!"
-- "Get me a pack of cigarettes" → "What the duck?! That restricted item is quack-tually a no-go without boss approval.
-  That's a boss decision, QUACK!"
+- "Get me a thali" → "Quaaack! That thali needs owner approval, which is un-beak-lievable! That's a boss decision,
+  QUACK!"
 
 ### What else the 0G Router offers for voice
 
@@ -71,7 +71,7 @@ Example replies (A, omni-plus):
 | Piece | What it does | New authority? |
 |---|---|---|
 | Voice route (A: `POST /api/voice/turn` calling the 0G Router; B: `POST /api/live/session`) | A turns one clip into a reply; B creates the GPT-Live session with a **server-fixed** config (model, persona, tools, delegation). Session cookie + Origin check, per-IP and daily limits, max session length. The key stays on the server; B refuses any reply that contains it. | No: it only gives a voice to an already signed-in owner. |
-| Tool `run_errand { item: "chai" \| "samosa" \| "cigarettes" }` | Strict function tool; `item` is an enum of catalogue ids, so injected text cannot reach the API. The browser calls the existing errand route with the owner's cookie. | No: the voice can start only what the console can start. |
+| Tool `run_errand { item: "chai" \| "samosa" \| "thali" }` | Strict function tool; `item` is an enum of catalogue ids, so injected text cannot reach the API. The browser calls the existing errand route with the owner's cookie. | No: the voice can start only what the console can start. |
 | Tool `errand_status { episodeId }` | Reads `GET /api/robots/:robotId/errands/:id`. Read-only. | No. |
 | Tool result | Built by code from the response: `state`, `decision.action`, `decision.requestId`, "approval needed in World App" when `approvalUrl` is set. **Never the model's `reason` text**, so the voice repeats facts, not a story. | — |
 | Browser (B) | May send only `response.item.create`, `response.create`, `session.close` to GPT-Live (`allowed_client_events`). | — |
@@ -107,7 +107,7 @@ voice ──▶ A: 0G omni + 0G TTS  /  B: GPT-Live ──tool: run_errand {item
 |---|---|---|
 | Worker route (port of `vita-voice/server.mjs.txt` or `gpt-live-session.mjs.txt`, Effect, tests on a stand-in upstream) | 1 to 2 h | 2 to 3 h |
 | Console: recorder or WebRTC, tool calls → existing API, transcript view | 2 to 3 h | 3 to 4 h |
-| QA on the deployed app (real mic, chai paid, cigarettes → World approval) | 1 h | 1 h |
+| QA on the deployed app (real mic, chai paid, thali → World approval) | 1 h | 1 h |
 
 Risks: for B, another vendor, a live connection in the demo, raw audio leaving for OpenAI (privacy note needed) and a new
 secret; for A, a 5 to 9 s wait per turn and no TEE claim for the speech step. For both, `docs/video-script.md` says "Kris's

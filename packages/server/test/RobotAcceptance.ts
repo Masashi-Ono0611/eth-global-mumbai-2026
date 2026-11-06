@@ -9,6 +9,7 @@ import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { type Caps, freshConnections, grantRow, randomId, sampleGrant, SPEC_CAPS } from './AgentSamples.ts'
 import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
+import { VOICE_MODEL } from '../src/robot/Voice.ts'
 
 type Urls = { readonly appUrl: string; readonly url: string; readonly apiUrl: string }
 type StubMode = 'pay' | 'ask' | 'table' | 'timeout' | 'garbage'
@@ -62,11 +63,38 @@ const decisionFor = (mode: StubMode, body: unknown) =>
  * A stand-in for the 0G router on 127.0.0.1: answers the `decide` tool call with `pay`, `ask_human` or by the
  * prompt's decision table, hangs past the 10 s timeout, or returns something that is not a tool call. It records what it was sent so the test can check the request shape.
  */
+/** What the stub's omni model "hears" in the next clip (the voice route's JSON), or a failure. */
+export type StubHearing =
+  | { readonly heard: string; readonly intent: string; readonly item: string | null; readonly topic?: string | null }
+  | 'down'
+
+/** A few bytes that start like an MP3 (ID3): the speech stand-in's answer. */
+export const STUB_SPEECH = new Uint8Array([0x49, 0x44, 0x33, 0x04, 0x00, 0x00])
+
+const isVoiceChat = Schema.is(Schema.Struct({ model: Schema.Literal(VOICE_MODEL) }))
+
 export const startZeroGStub = () => {
   let mode: StubMode = 'pay'
   let signatures = true
   let calls = 0
+  let hearing: StubHearing = 'down'
+  let speech = true
   const seen: Array<{ readonly authorization: string | null; readonly body: unknown }> = []
+  /** The voice route's calls (omni and speech), apart from `decide`'s, so decision counts stay exact. */
+  const voiceSeen: Array<{ readonly path: string; readonly authorization: string | null; readonly body: unknown }> = []
+  /** The omni model's JSON for the current hearing, or the speech bytes; 'down' and speech off are provider errors. */
+  const voiceReply = (path: string, count: number) => {
+    if (path === '/v1/audio/speech')
+      return speech
+        ? new Response(STUB_SPEECH, { headers: { 'content-type': 'audio/mpeg' } })
+        : Response.json({ error: 'speech provider down' }, { status: 503 })
+    if (hearing === 'down') return Response.json({ error: 'provider_error' }, { status: 502 })
+    return Response.json({
+      id: `stub-voice-${count}`,
+      choices: [{ message: { role: 'assistant', content: JSON.stringify(hearing) } }],
+      x_0g_trace: { request_id: `stub-voice-request-${count}` },
+    })
+  }
   const server = Bun.serve({
     hostname: '127.0.0.1',
     port: 0,
@@ -74,9 +102,15 @@ export const startZeroGStub = () => {
       const path = new URL(request.url).pathname
       if (path.startsWith('/v1/proxy/signature/'))
         return signatures ? Response.json(await teeSignature(path.slice('/v1/proxy/signature/'.length))) : notFound()
-      if (path !== '/v1/chat/completions') return notFound()
+      const authorization = request.headers.get('authorization')
+      if (path !== '/v1/audio/speech' && path !== '/v1/chat/completions') return notFound()
+      const body: unknown = await request.json()
+      if (path === '/v1/audio/speech' || isVoiceChat(body)) {
+        voiceSeen.push({ path, authorization, body })
+        return voiceReply(path, voiceSeen.length)
+      }
       calls += 1
-      seen.push({ authorization: request.headers.get('authorization'), body: await request.json() })
+      seen.push({ authorization, body })
       if (mode === 'timeout') await Bun.sleep(12_000)
       if (mode === 'garbage') return Response.json({ choices: [{ message: { content: 'I would buy it' } }] })
       const decision = decisionFor(mode, seen.at(-1)?.body)
@@ -104,7 +138,14 @@ export const startZeroGStub = () => {
     setSignatures: (on: boolean) => {
       signatures = on
     },
+    setHearing: (next: StubHearing) => {
+      hearing = next
+    },
+    setSpeech: (on: boolean) => {
+      speech = on
+    },
     seen,
+    voiceSeen,
   }
 }
 export type ZeroGStub = ReturnType<typeof startZeroGStub>

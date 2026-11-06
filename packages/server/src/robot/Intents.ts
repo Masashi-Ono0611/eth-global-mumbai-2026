@@ -173,7 +173,7 @@ export const createIntent = Effect.fn('EthMumbai.Robot.createIntent')(function* 
 })
 
 /** The signed-in owner's own robot (another account's robot is indistinguishable from a missing one). */
-const ownRobot = Effect.fnUntraced(function* (deps: ErrandDeps) {
+export const ownRobot = Effect.fnUntraced(function* (deps: ErrandDeps) {
   const session = yield* CurrentSession
   const robot = yield* readRobot(deps.database, (yield* HttpRouter.params).robotId ?? '')
   return yield* need(

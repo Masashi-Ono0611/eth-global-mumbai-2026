@@ -3,7 +3,7 @@ import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWrite
 import { Address } from '@ethmumbai/protocol/Hex'
 import { Effect, Layer, Option, Redacted, Schema } from 'effect'
 import { chipRoutes } from './chip/Routes.ts'
-import { scansEnabled } from './Features.ts'
+import { scansEnabled, voiceEnabled } from './Features.ts'
 import { merchantPayees, merchantRoutes } from './merchant/Routes.ts'
 import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
@@ -15,6 +15,7 @@ import { navRoutes } from './robot/Nav.ts'
 import { ZG_COMPUTE_RPC_DEFAULT, ZG_INFERENCE_CONTRACT_DEFAULT } from './robot/TeeProof.ts'
 import { robotRoutes } from './robot/routes.ts'
 import { scanRoutes } from './robot/Scans.ts'
+import { voiceRoutes } from './robot/Voice.ts'
 import { ZeroGBindings, ZeroGExtraBody } from './robot/ZeroGClient.ts'
 import { type Bindings, optionalBinding } from './Respond.ts'
 
@@ -93,6 +94,8 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     scansEnabled(env)
       ? Layer.mergeAll(scanRoutes(errands, media), intentRoutes(errands), navRoutes(errands))
       : Layer.empty,
+    // Vita's voice exists only while VOICE_ENABLED is `true` (otherwise 404); its `buy` turns create intents.
+    voiceEnabled(env) ? voiceRoutes(errands) : Layer.empty,
   )
   return { layer, errands }
 })

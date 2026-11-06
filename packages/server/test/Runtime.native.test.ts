@@ -44,6 +44,7 @@ import {
   TEST_TELEGRAM_SECRET,
   TEST_TELEGRAM_TOKEN,
 } from './TelegramAcceptance.ts'
+import { registerVoiceAcceptance, registerVoiceOffAcceptance, registerVoiceStopAcceptance } from './VoiceAcceptance.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
 import { registerWorldStubAcceptance, TEST_ENFORCER_ADDRESS, TEST_WORLD_STUB_JWK } from './WorldStubAcceptance.ts'
@@ -109,6 +110,8 @@ const makeStack = (generation: string) =>
           ZG_INFERENCE_CONTRACT: TEST_INFERENCE,
           // Off in the first generation (the flag-off 404 runs there), on after the restart test (ScanAcceptance.ts).
           SCANS_ENABLED: generation === 'after' ? 'true' : 'pending',
+          // Vita's voice: off before the restart (its flag-off 404 runs there), on after (VoiceAcceptance.ts).
+          VOICE_ENABLED: generation === 'after' ? 'true' : 'pending',
           TELEGRAM_BOT_TOKEN: Redacted.make(TEST_TELEGRAM_TOKEN),
           TELEGRAM_WEBHOOK_SECRET: Redacted.make(TEST_TELEGRAM_SECRET),
           TELEGRAM_API_BASE_URL: telegram.baseUrl,
@@ -329,6 +332,7 @@ test(
 )
 
 registerScansOffAcceptance(test, stack)
+registerVoiceOffAcceptance(test, stack)
 
 test(
   'recovers auth sessions and R2 bytes after a Worker restart',
@@ -380,6 +384,8 @@ registerAuditAcceptance(test, stack, zeroG, chainStub)
 registerScanAcceptance(test, stack, zeroG, storageStub)
 registerCounterAcceptance(test, stack)
 registerChipIntentAcceptance(test, stack, zeroG)
+registerVoiceAcceptance(test, stack, zeroG)
+registerVoiceStopAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
