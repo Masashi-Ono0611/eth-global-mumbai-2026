@@ -5,13 +5,25 @@
       "repository": "alchemy-run/alchemy",
       "commit": "c78e72bc1c172ede20747ac0b8a2175ef1de31a1",
       "path": "packages/domain/skills/alchemy-domain",
+      "license": "Apache-2.0",
       "licenses": [
         "LICENSE",
         "NOTICE"
       ],
-      "license": "Apache-2.0",
       "treeSha256": "08e2c872e7b909212608d97cdd12169b22724d3a45d9602e87024318e8d6e513",
       "localTreeSha256": "08e2c872e7b909212608d97cdd12169b22724d3a45d9602e87024318e8d6e513",
+      "unchanged": true
+    },
+    "animate": {
+      "repository": "emilkowalski/skills",
+      "commit": "c8a79627b59d72d764d6ab6f2c87c09a48169833",
+      "path": "skills/animate",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "86d1b38541d543228d2c51d22f5873497ea01676496d64c6aa304c2d27600782",
+      "localTreeSha256": "86d1b38541d543228d2c51d22f5873497ea01676496d64c6aa304c2d27600782",
       "unchanged": true
     },
     "apple-web-app": {
@@ -50,6 +62,30 @@
       "localTreeSha256": "c1c67d8e5bf7431ea78226e4c2558908a0aea7bbfa558736063227bb37d91690",
       "unchanged": true
     },
+    "choreograph": {
+      "repository": "emilkowalski/skills",
+      "commit": "c8a79627b59d72d764d6ab6f2c87c09a48169833",
+      "path": "skills/choreograph",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "2447f94dac19bd86bb36b54db17eea0ef2c6000ff27643d8ea89af238609d3aa",
+      "localTreeSha256": "2447f94dac19bd86bb36b54db17eea0ef2c6000ff27643d8ea89af238609d3aa",
+      "unchanged": true
+    },
+    "create-design-md": {
+      "repository": "ibelick/ui-skills",
+      "commit": "00db7d656719c399c091f3ea138c6f42a7fa4d98",
+      "path": "skills/create-design-md",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "5d58f0f3ec4262fe2ee7b2239476c72eb56be839186ffc051600e57b6232c890",
+      "localTreeSha256": "5d58f0f3ec4262fe2ee7b2239476c72eb56be839186ffc051600e57b6232c890",
+      "unchanged": true
+    },
     "durable-objects": {
       "repository": "cloudflare/skills",
       "commit": "0871daceb347e3c51693fbe9c77555468df7e410",
@@ -63,6 +99,42 @@
       "unchanged": false,
       "adaptation": "Removed trailing spaces from two blank lines in references/workers.md; the guidance is unchanged.",
       "baseCommit": "0871daceb347e3c51693fbe9c77555468df7e410"
+    },
+    "emil-design-eng": {
+      "repository": "emilkowalski/skills",
+      "commit": "c8a79627b59d72d764d6ab6f2c87c09a48169833",
+      "path": "skills/emil-design-eng",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "49e6d9db1abf3233554591ee3718023df0aa0b1d93e79962e6169c0e60861f29",
+      "localTreeSha256": "49e6d9db1abf3233554591ee3718023df0aa0b1d93e79962e6169c0e60861f29",
+      "unchanged": true
+    },
+    "find-animation-opportunities": {
+      "repository": "emilkowalski/skills",
+      "commit": "c8a79627b59d72d764d6ab6f2c87c09a48169833",
+      "path": "skills/find-animation-opportunities",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "d9225e049ebfc4dab5eac71fc2c6994eb1d340475b105808cdbc9ef3a3cec426",
+      "localTreeSha256": "d9225e049ebfc4dab5eac71fc2c6994eb1d340475b105808cdbc9ef3a3cec426",
+      "unchanged": true
+    },
+    "fixing-accessibility": {
+      "repository": "ibelick/ui-skills",
+      "commit": "00db7d656719c399c091f3ea138c6f42a7fa4d98",
+      "path": "skills/fixing-accessibility",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "2583ac08ec08869b7282be625247c4cd066fcc75c9cbcd01ef7e2402f9a89aa8",
+      "localTreeSha256": "2583ac08ec08869b7282be625247c4cd066fcc75c9cbcd01ef7e2402f9a89aa8",
+      "unchanged": true
     },
     "foldkit": {
       "repository": "foldkit/foldkit",
@@ -124,6 +196,18 @@
       "localTreeSha256": "d31a58b43c7c30e35773e35c2636fd84ab2fa475be2a7eaed6fc35afb1a3eb0a",
       "unchanged": true
     },
+    "improve-ui": {
+      "repository": "ibelick/ui-skills",
+      "commit": "00db7d656719c399c091f3ea138c6f42a7fa4d98",
+      "path": "skills/improve-ui",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "c2c156610aed793056de96e056f74732ceb93dacafb848b554a05c4447720283",
+      "localTreeSha256": "c2c156610aed793056de96e056f74732ceb93dacafb848b554a05c4447720283",
+      "unchanged": true
+    },
     "make-interfaces-feel-better": {
       "repository": "jakubkrehel/make-interfaces-feel-better",
       "commit": "35545ea1512ad59fa463e6b1f95ca9c052981fe6",
@@ -146,6 +230,18 @@
       ],
       "treeSha256": "e09d6a584beac50f1f52be3c80164e1935ca0694f9e93fcb6893b564c7ce1d44",
       "localTreeSha256": "e09d6a584beac50f1f52be3c80164e1935ca0694f9e93fcb6893b564c7ce1d44",
+      "unchanged": true
+    },
+    "review-animations": {
+      "repository": "emilkowalski/skills",
+      "commit": "c8a79627b59d72d764d6ab6f2c87c09a48169833",
+      "path": "skills/review-animations",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "e704af1d3855858200fef89564eff78c070225be71c429ce5c069e0f2c298ec4",
+      "localTreeSha256": "e704af1d3855858200fef89564eff78c070225be71c429ce5c069e0f2c298ec4",
       "unchanged": true
     },
     "thermo-nuclear-code-quality-review": {
