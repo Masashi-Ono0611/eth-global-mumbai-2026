@@ -55,13 +55,12 @@ export default Alchemy.Stack(
       assets: { directory: 'apps/web/dist/client', runWorkerFirst: ['/media/*', '/landing', '/landing/*'] },
       compatibility: { date: '2026-10-19' },
       // Stage `main` is https://vitaquack.com (Kris, 6 Nov): the apex is a custom domain of this Worker, so edge.url,
-      // and with it AUTH_ORIGIN and the passkey rp id, is https://vitaquack.com; www 301s to it in a zone redirect
-      // rule that runs before any Worker. vitaquack.com/plan* is the scratch site's zone route, which takes precedence
-      // over this custom domain. The workers.dev URL keeps serving, but passkeys and same-origin POSTs belong to the
-      // apex. Previews keep their workers.dev origin. docs/DEPLOYMENT.md has the cutover.
-      ...(stage === 'main'
-        ? { domain: { name: 'vitaquack.com', zoneId: VITAQUACK_ZONE, redirects: ['www.vitaquack.com'] } }
-        : {}),
+      // and with it AUTH_ORIGIN and the passkey rp id, is https://vitaquack.com. vitaquack.com/plan* is the scratch
+      // site's zone route, which takes precedence over this custom domain. The workers.dev URL keeps serving, but
+      // passkeys and same-origin POSTs belong to the apex. Previews keep their workers.dev origin. No www redirect
+      // for the event: `redirects` writes the zone's dynamic-redirect ruleset, which the deploy token is not allowed
+      // to read (docs/DEPLOYMENT.md, cutover).
+      ...(stage === 'main' ? { domain: { name: 'vitaquack.com', zoneId: VITAQUACK_ZONE } } : {}),
       workersDev: true,
       observability: {
         enabled: true,
