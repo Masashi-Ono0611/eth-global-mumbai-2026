@@ -241,7 +241,7 @@ describe('/robot/:id voice', () => {
       { update: RobotConsole.update, view: consoleView },
       Scene.given(loadedConsole()),
       Scene.expect(mic).not.toExist(),
-      Scene.expect(Scene.text('Hold to talk · or tap an item')).not.toExist(),
+      Scene.expect(Scene.text('Hold to talk')).not.toExist(),
     )
   })
 
@@ -250,7 +250,7 @@ describe('/robot/:id voice', () => {
       { update: RobotConsole.update, view: consoleView },
       Scene.given(voiceOn()),
       Scene.expect(mic).toHaveAttr('aria-pressed', 'false'),
-      Scene.expect(Scene.text('Hold to talk · or tap an item')).toExist(),
+      Scene.expect(Scene.text('Hold to talk')).toExist(),
     )
     Scene.scene(
       { update: RobotConsole.update, view: consoleView },
