@@ -40,8 +40,11 @@ payment, only delay it.
   `RobotPaymentPolicyEnforcer` deployed on Arc (`docs/evidence/contracts.md`), simulated grant chains and approvals
   against live Arc state (`packages/chain/test`), a World token verifier prototype
   (`docs/research/spike-s5b-jwt-onchain.md`), and the real Radxa signing the payment voucher
-  (`docs/spikes/hardware-results.md`). Not yet proven: a passkey-signed grant broadcast, a real 0G decision, the
-  uploader against 0G Storage, World approve/deny.
+  (`docs/spikes/hardware-results.md`), and **passkey-signed grants on the deployed app** (the relayer deploys the owner's
+  account and Arc's ERC-1271 check accepts the passkey signature: `docs/evidence/2026-11-06-deployed-e2e.md`; the same
+  through the real pages in Chromium with a virtual passkey: `docs/evidence/2026-11-06-deployed-browser.md`). Not yet
+  proven: a real 0G decision, the uploader against 0G Storage, World approve/deny (the World verifier and approval flow
+  are built and unit-tested; `docs/demo.md` is the click-by-click walkthrough).
 - **Code:** built from `docs/spec.md` during the event (see the commit history); the passkey wallet, merchant, chip
   protocol, Robot Agent and facilitator are deployed by CI from `main`.
 
