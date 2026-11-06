@@ -7,7 +7,7 @@ import { duck } from '../Duck.ts'
 import { walletRouter } from '../route.ts'
 import { Message, type Model, Stage } from './AddRobot.ts'
 import { allowanceView } from './AllowanceView.ts'
-import { failedView, signedOutView } from './Shared.ts'
+import { failedView, signedOutView, typingBubble } from './Shared.ts'
 
 // STYLES
 
@@ -148,7 +148,7 @@ const askName = (locale: Locale, h: HtmlBuilder<Message>): Html =>
 
 const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   Stage.match(model.stage, {
-    Loading: () => [h.p([h.Role('status'), h.Class(systemClassName)], [format(locale, 'common.loading', {})])],
+    Loading: () => [typingBubble(locale, h)],
     SignedOut: () => [signedOutView(locale, h)],
     Failed: ({ error }) => [failedView(error, Message.ClickedStartOver(), locale, h)],
     Naming: () => [askName(locale, h), kindChoice(model, false, locale, h), nameForm(model, false, locale, h)],

@@ -329,5 +329,24 @@
     "seenBySim": "Seen by the simulator's camera",
     "frameOnZeroG": "Frame on 0G Storage",
     "frameSaving": "Saving the frame to 0G..."
+  },
+  "voice": {
+    "hold": "Hold to talk to {name}",
+    "listeningLabel": "Listening, let go to send",
+    "hint": "Hold to talk · or tap an item",
+    "hintKeyboard": "Hold the button (or Space) to talk",
+    "listening": "Listening",
+    "letGo": "let go to send",
+    "thinking": "{name} is listening to you…",
+    "speaking": "{name} is speaking…",
+    "youSaid": "you said",
+    "vitaSaid": "{name} said",
+    "reason": "0G's reason",
+    "micOnlyWhileHeld": "The mic is on only while you hold",
+    "failed": "{reason, select, blocked {Microphone blocked. Allow it in the address bar, or tap an item.} unsupported {This browser has no microphone access. Tap an item instead.} tooShort {Hold the button while you speak.} other {{detail}. Try again, or tap an item.}}",
+    "headerListening": "Listening…",
+    "headerSpeaking": "Speaking…",
+    "pending": "listening",
+    "empty": "Nothing yet. Tap something below, or hold the mic and ask {name}."
   }
 }

@@ -66,8 +66,9 @@ Light only, phone first.
 ## Colors
 
 Paper is the page; white surfaces carry content. Ink is the owner's voice (their bubbles, primary buttons) and the
-default text. Duck yellow means one thing: the robot needs the owner (an approval, the "needs you" card, a badge). It
-is never used for decoration. Paid green marks money that moved; error red marks a refusal, a failure or Stop.
+default text. Duck yellow means the robot needs the owner (an approval, the "needs you" card, a badge) or that Vita's
+voice is live: the mic while it is open, the ring of Vita's spoken bubble and its catchphrases. It is never used for
+decoration. Paid green marks money that moved; error red marks a refusal, a failure or Stop.
 Approve with World ID is black, matching World's own sign-in button.
 
 ## Typography
@@ -95,8 +96,18 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   is waiting.
 - Receipt: inside a robot bubble. Paid amount in the amount face, a paid check, and "Show proof".
 - System pill: centred and muted, for events that are not anyone's words ("Duck connected at 15:56").
-- Buy chips: the dock's buttons, one per catalogue item with its price. They are dimmed while an errand is live or
-  while the robot has no allowance.
+- Buy chips: the dock's buttons, one per catalogue item with its price. They are dimmed while an errand is live, while
+  the robot has no allowance, or while the owner is talking.
+- Mic (when the Worker has voice on): a round ink button beside the row a spoken request stands for ("Get me" for a
+  real robot, the buy chips for a simulator). Hold it (or Space while it is focused): it turns duck yellow with a soft
+  halo, the header says "Listening…" and a faint owner bubble waits in the thread. The mic is open only while held.
+  The line under the row says what the voice is doing: the hint, "listening to you…", "speaking…", or a failure in
+  error red.
+- Spoken bubbles: what Vita heard is an owner bubble with a small "you said"; Vita's line is a white bubble with a duck
+  ring, its opener and closer in duck yellow, and "Vita said" under it. Vita's lines come from the Worker, built from
+  the errand's real state; 0G's own reason sits under them as a quote, never spoken.
+- Loading: the duck bobbing in its ink circle with "Loading…" (fades in after a moment, still under reduced motion);
+  inside a thread, a robot bubble with three dots.
 - Sheets: bottom sheets (Foldkit UI Dialog) for Receive and the allowance. Stop sits in the allowance sheet in
   error red on error-soft.
 
@@ -105,5 +116,6 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
 - Do write "allowance", "Stop", "Connected" and "Show proof"; keep grant, revoke, lease, delegation and hashes out
   of the first layer.
 - Do say "restricted item" and "needs your OK". Never call it an age check.
-- Don't write a robot message that the errand's state does not support, and never invent a 0G decision.
+- Don't write a robot message that the errand's state does not support, and never invent a 0G decision. That holds
+  for Vita's voice too: no model text is spoken.
 - Don't show camera frames; show what the robot reads.

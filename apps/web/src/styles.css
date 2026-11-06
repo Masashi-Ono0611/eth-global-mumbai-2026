@@ -77,6 +77,50 @@
   --radius-bubble: 20px;
   --radius-card: 22px;
   --radius-sheet: 30px;
+
+  /* Vita's voice: the listening wave's bars (RobotVoiceView.ts); off under reduced motion. */
+  /* Loading: the duck bobs (state indication) and the whole loader fades in after 150 ms, so a fast load never flashes. */
+  --animate-duck-bob: duck-bob 1.2s ease-in-out infinite;
+  --animate-loader-in: loader-in 200ms ease-out 150ms both;
+  /* Typing dots while the robot works out an answer. */
+  --animate-typing-dot: typing-dot 1.2s ease-in-out infinite;
+  @keyframes duck-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+  @keyframes loader-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes typing-dot {
+    0%,
+    60%,
+    100% {
+      opacity: 0.35;
+    }
+    30% {
+      opacity: 1;
+    }
+  }
+  --animate-voice-wave: voice-wave 0.9s ease-in-out infinite;
+  @keyframes voice-wave {
+    0%,
+    100% {
+      transform: scaleY(0.45);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
 }
 
 /* Document defaults, on top of Tailwind's preflight. */

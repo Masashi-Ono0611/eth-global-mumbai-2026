@@ -5,6 +5,8 @@ import { type ConsoleRobot, invoiceIdFrom } from '../api/Robot.ts'
 import { type Catalogue, usdc } from '../api/Wallet.ts'
 import { isIntentOpen, isLive, Message, type Model } from './RobotConsole.ts'
 import { instructionForm } from './RobotIntentView.ts'
+import * as RobotVoice from './RobotVoice.ts'
+import { micView, statusView } from './RobotVoiceView.ts'
 
 // STYLES
 
@@ -12,6 +14,7 @@ const dockClassName =
   'sticky bottom-0 grid gap-2 bg-gradient-to-b from-paper/0 via-paper to-paper px-1 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
 const dockHintClassName = 'pl-1.5 text-[0.85rem] text-muted'
 const chipsClassName = 'grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-1.5'
+const withMicClassName = 'grid grid-cols-[1fr_auto] items-end gap-2'
 const chipClassName =
   'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-transform active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
 const chipPriceClassName = 'text-[0.8rem] font-medium text-muted'
@@ -55,6 +58,7 @@ const askChips = (
   view: ConsoleRobot,
   catalogue: Catalogue,
   disabled: boolean,
+  withMic: (chips: Html) => Html,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html =>
@@ -62,18 +66,20 @@ const askChips = (
     [h.Class('grid gap-1')],
     [
       h.p([h.Class(dockHintClassName)], [format(locale, 'thread.askRowHint', { name: view.robot.name })]),
-      h.div(
-        [h.Class(chipsClassName)],
-        catalogue.items.map((item) =>
-          h.keyed('button')(
-            `ask-${item.itemId}`,
-            [
-              h.Type('button'),
-              h.Class(chipClassName),
-              h.Disabled(disabled),
-              h.OnClick(Message.ClickedAskFor({ item: item.itemId })),
-            ],
-            [format(locale, 'thread.askChip', { item: item.name.toLowerCase() })],
+      withMic(
+        h.div(
+          [h.Class(chipsClassName)],
+          catalogue.items.map((item) =>
+            h.keyed('button')(
+              `ask-${item.itemId}`,
+              [
+                h.Type('button'),
+                h.Class(chipClassName),
+                h.Disabled(disabled),
+                h.OnClick(Message.ClickedAskFor({ item: item.itemId })),
+              ],
+              [format(locale, 'thread.askChip', { item: item.name.toLowerCase() })],
+            ),
           ),
         ),
       ),
@@ -94,8 +100,51 @@ export const dock = (
   // which is the proof the revoke worked (spec §0 "done").
   const noAllowance = view.grant === null
   const stopped = view.grant !== null && view.grant.status !== 'active'
-  const busy = isLive(model.errand) || isIntentOpen(model.intent)
+  const voiceBusy =
+    RobotVoice.Status.guards.Starting(model.voice.status) ||
+    RobotVoice.Status.guards.Listening(model.voice.status) ||
+    RobotVoice.Status.guards.Thinking(model.voice.status)
+  // While the owner talks the chips rest (dimmed), so a tap cannot race the spoken request.
+  const busy = isLive(model.errand) || isIntentOpen(model.intent) || voiceBusy
   const sim = view.robot.kind === 'sim'
+  const voiceSlot = (slot: string, voiceView: typeof micView): Html =>
+    h.submodel({
+      slotId: `voice-${slot}-${view.robot.id}`,
+      model: model.voice,
+      view: voiceView,
+      viewInputs: { name: view.robot.name, locale },
+      toParentMessage: (message) => Message.GotVoiceMessage({ message }),
+    })
+  // Vita's voice sits beside the row a spoken request stands for: "Get me" for a real robot, Buy for a simulator.
+  const withMic = (row: Html): Html =>
+    RobotVoice.Status.guards.Unavailable(model.voice.status)
+      ? row
+      : h.div(
+          [h.Class('grid gap-1')],
+          [h.div([h.Class(withMicClassName)], [row, voiceSlot('mic', micView)]), voiceSlot('status', statusView)],
+        )
+  const buyChips = h.div(
+    [h.Class(chipsClassName)],
+    catalogue.items.map((item) =>
+      h.keyed('button')(
+        item.itemId,
+        [
+          h.Type('button'),
+          h.Class(chipClassName),
+          h.Disabled(busy || noAllowance),
+          h.AriaDescribedBy('dock-hint'),
+          h.AriaLabel(format(locale, 'thread.buyChip', { item: item.name, amount: usdc(item.amount) })),
+          h.OnClick(Message.ClickedStartErrand({ item: item.itemId })),
+        ],
+        [
+          item.name,
+          item.restricted
+            ? h.span([h.Class(askChipClassName)], [format(locale, 'thread.asksYou', {})])
+            : h.span([h.Class(chipPriceClassName)], [usdc(item.amount)]),
+        ],
+      ),
+    ),
+  )
   return h.div(
     [h.Class(dockClassName)],
     [
@@ -118,29 +167,8 @@ export const dock = (
         ],
       ),
       instructionForm(model, view.robot.name, busy || noAllowance, locale, h),
-      sim ? h.empty : askChips(view, catalogue, busy || noAllowance, locale, h),
-      h.div(
-        [h.Class(chipsClassName)],
-        catalogue.items.map((item) =>
-          h.keyed('button')(
-            item.itemId,
-            [
-              h.Type('button'),
-              h.Class(chipClassName),
-              h.Disabled(busy || noAllowance),
-              h.AriaDescribedBy('dock-hint'),
-              h.AriaLabel(format(locale, 'thread.buyChip', { item: item.name, amount: usdc(item.amount) })),
-              h.OnClick(Message.ClickedStartErrand({ item: item.itemId })),
-            ],
-            [
-              item.name,
-              item.restricted
-                ? h.span([h.Class(askChipClassName)], [format(locale, 'thread.asksYou', {})])
-                : h.span([h.Class(chipPriceClassName)], [usdc(item.amount)]),
-            ],
-          ),
-        ),
-      ),
+      sim ? h.empty : askChips(view, catalogue, busy || noAllowance, withMic, locale, h),
+      sim ? withMic(buyChips) : buyChips,
       invoiceDetails(model, locale, h),
     ],
   )

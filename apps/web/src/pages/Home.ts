@@ -4,6 +4,7 @@ import { Message } from '../message.ts'
 import { type AuthFailure, AuthState, type Model } from '../model.ts'
 import { duck } from '../Duck.ts'
 import { walletRouter } from '../route.ts'
+import { loadingView } from './Shared.ts'
 
 // STYLES
 
@@ -89,7 +90,7 @@ const openingView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
 const authView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const { locale } = model.context
   return AuthState.match(model.auth, {
-    Checking: () => h.p([h.Role('status')], [format(locale, 'common.loading', {})]),
+    Checking: () => loadingView(locale, h),
     SignedOut: () => signUpView(model, 'idle', h.empty, h),
     Refused: ({ failure }) => signUpView(model, 'idle', failureAlert(failure, locale, h), h),
     CreatingWallet: () => signUpView(model, 'creating', h.empty, h),

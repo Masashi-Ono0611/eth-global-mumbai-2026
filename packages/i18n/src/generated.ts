@@ -307,10 +307,27 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.walkedAway': Readonly<Record<string, never>>
   'thread.walking': { readonly name: string | number }
   'thread.zeroGDecided': { readonly action: string | number }
+  'voice.empty': { readonly name: string | number }
+  'voice.failed': { readonly reason: string | number; readonly detail: string | number }
+  'voice.headerListening': Readonly<Record<string, never>>
+  'voice.headerSpeaking': Readonly<Record<string, never>>
+  'voice.hint': Readonly<Record<string, never>>
+  'voice.hintKeyboard': Readonly<Record<string, never>>
+  'voice.hold': { readonly name: string | number }
+  'voice.letGo': Readonly<Record<string, never>>
+  'voice.listening': Readonly<Record<string, never>>
+  'voice.listeningLabel': Readonly<Record<string, never>>
+  'voice.micOnlyWhileHeld': Readonly<Record<string, never>>
+  'voice.pending': Readonly<Record<string, never>>
+  'voice.reason': Readonly<Record<string, never>>
+  'voice.speaking': { readonly name: string | number }
+  'voice.thinking': { readonly name: string | number }
+  'voice.vitaSaid': { readonly name: string | number }
+  'voice.youSaid': Readonly<Record<string, never>>
   'wallet.open': Readonly<Record<string, never>>
   'wallet.signInFirst': Readonly<Record<string, never>>
   'wallet.title': Readonly<Record<string, never>>
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '7127fdebe433f21c9c45d3582ea09e3cd2f8b1e9c172f793adb90bcb4d0bc921'
+export const catalogVersion = '59358f3e65bbb2116b7ccd62364bb5421b6fddb438111f019a3f0af2a33a7bd7'

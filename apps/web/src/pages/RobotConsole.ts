@@ -25,6 +25,7 @@ import { format } from '@ethmumbai/i18n'
 import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
+import * as RobotVoice from './RobotVoice.ts'
 import { sheetFolds } from '../Sheet.ts'
 
 // MODEL
@@ -72,6 +73,7 @@ export const Model = Schema.Struct({
   allowanceSheet: Dialog.Model,
   intent: Intent,
   instruction: Schema.String,
+  voice: RobotVoice.Model,
 })
 export type Model = typeof Model.Type
 
@@ -111,6 +113,7 @@ export const Message = defineMessageUnion({
   FailedStopIntent: { error: Schema.String },
   GotAllowanceSheetMessage: { message: Dialog.Message },
   GotAllowanceMessage: { message: Allowance.Message },
+  GotVoiceMessage: { message: RobotVoice.Message },
 })
 export type Message = typeof Message.Type
 
@@ -263,8 +266,9 @@ export const init = (robotId: string): UpdateReturn => ({
     allowanceSheet: Dialog.init({ id: 'allowance', isAnimated: true }),
     intent: Intent.Idle(),
     instruction: '',
+    voice: RobotVoice.init(robotId),
   },
-  commands: [LoadConsole({ robotId })],
+  commands: [LoadConsole({ robotId }), ...Command.mapMessages([RobotVoice.CheckVoice()], toVoice)],
 })
 
 // UPDATE
@@ -301,7 +305,7 @@ const sendIntent = (model: Model, instruction: string, item: string | null): Upd
       }
 
 /** A fresh read of the intent: once the duck's scan made an errand, the errand's own messages take over. */
-const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
+const intentStep = (model: Model, intent: IntentView): UpdateReturn => {
   const stopping = Intent.guards.Open(model.intent) && model.intent.stopping && isOpenIntent(intent.state)
   const next = modifyFields(model, { intent: () => Intent.Open({ intent, stopping }) })
   const poll = isOpenIntent(intent.state)
@@ -314,6 +318,28 @@ const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
     model: modifyFields(next, { errand: () => running(episodeId, Option.none()) }),
     commands: [...poll, PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
   }
+}
+
+const toVoice = (message: RobotVoice.Message) => Message.GotVoiceMessage({ message })
+
+/** Vita's voice: a spoken buy's intent joins the conversation like a "Get me" chip's; Vita speaks its new states. */
+const voiceChild = {
+  read: (model: Model) => Option.some(model.voice),
+  write: (model: Model, next: RobotVoice.Model) => modifyFields(model, { voice: () => next }),
+  toParentMessage: toVoice,
+  foldOutMessage: RobotVoice.OutMessage.match<Update.Step<Model, Message, Services>>({
+    StartedIntent:
+      ({ intent }) =>
+      (model) =>
+        intentRead(model, intent),
+  }),
+}
+const foldVoice = Update.foldChild({ update: RobotVoice.update, ...voiceChild })
+
+const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
+  const followed = Update.foldChildStep({ update: RobotVoice.followIntent(intent), ...voiceChild })(model)
+  const read = intentStep(followed.model, intent)
+  return { model: read.model, commands: [...(followed.commands ?? []), ...(read.commands ?? [])] }
 }
 
 /** Stop the duck once; its next turn sees the stopped intent and halts. */
@@ -502,4 +528,5 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     ...intentHandlers(model),
     GotAllowanceSheetMessage: ({ message: sheetMessage }) => allowanceSheet.fold(model, sheetMessage),
     GotAllowanceMessage: ({ message: allowanceMessage }) => foldAllowance(model, allowanceMessage),
+    GotVoiceMessage: ({ message: voiceMessage }) => foldVoice(model, voiceMessage),
   })

@@ -3,7 +3,6 @@ import { IntentView } from '@ethmumbai/protocol/Intent'
 import { VoiceSay, VoiceTurn } from '@ethmumbai/protocol/Voice'
 import type { TestApi } from 'alchemy/Test/Bun'
 import { Effect, Schema } from 'effect'
-import * as Base64 from 'effect/encoding/Base64'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { DEMO_CAPS, freshConnections, randomId } from './AgentSamples.ts'
@@ -57,7 +56,18 @@ const owner = (urls: Urls, name: string) =>
         Effect.tap(({ status }) => Effect.sync(() => expect(status).toBe(200))),
         Effect.flatMap(({ json }) => Schema.decodeUnknownEffect(VoiceSay)(json)),
       )
-    return { accountId, cookie, call, talk, say }
+    /** GET a speech URL as the page's audio element does: same origin, the session cookie, no Origin header. */
+    const play = (path: string) =>
+      HttpClient.get(`${urls.appUrl}${path}`, { headers: { cookie } }).pipe(
+        Effect.flatMap((answer) =>
+          Effect.map(answer.arrayBuffer, (buffer) => ({
+            status: answer.status,
+            type: answer.headers['content-type'] ?? '',
+            bytes: [...new Uint8Array(buffer)],
+          })),
+        ),
+      )
+    return { accountId, cookie, call, talk, say, play }
   })
 
 type Owner = Effect.Success<ReturnType<typeof owner>>
@@ -81,12 +91,13 @@ const approvalBeat = (urls: Urls, me: Owner, robot: ScanningRobot, stub: ZeroGSt
     expect(asking.line.closer).toBe(BOSS)
     stub.setMode('pay')
 
-    // Speech down: the line still comes back, without audio.
+    // The line's speech is made on first play. With 0G's speech down that play is a visible 502 and nothing is kept;
+    // once it answers, the same URL plays.
+    const url = asking.speech?.url ?? ''
     stub.setSpeech(false)
-    const mute = yield* me.say(robot.robotId, errandId)
-    expect(mute.speech).toBeNull()
-    expect(mute.speechError).toBe('0G speech did not answer; showing the line as text')
-    expect(mute.line.text).toContain('needs your approval in World App')
+    expect((yield* me.play(url)).status).toBe(502)
+    stub.setSpeech(true)
+    expect(yield* me.play(url)).toMatchObject({ status: 200, type: 'audio/mpeg' })
     // A spoken stop while 0G's ask_human waits for the owner: the intent ends, and Vita does not promise nothing pays.
     stub.setHearing({ heard: 'Stop.', intent: 'stop', item: null })
     const stopped = yield* me.talk(robot.robotId)
@@ -154,9 +165,16 @@ export const registerVoiceAcceptance = (test: TestApi['test'], stack: Effect.Eff
         errand: { state: 'running', item: 'thali', instruction: 'Get me a thali', episodeId: null },
       })
       expect(thali.line.closer).toBe(SNACKS)
-      expect(thali.speech?.audio).toBe(`data:audio/mpeg;base64,${Base64.encode(STUB_SPEECH)}`)
-      // The Worker sent the clip and the line to 0G with its own key; nothing reached the browser but the answer.
-      const [heardCall, spokenCall] = stub.voiceSeen.slice(before)
+      // The text answers at once; the speech is a URL the page plays, made by 0G on first play and kept in R2.
+      const speechUrl = thali.speech?.url ?? ''
+      expect(speechUrl).toMatch(new RegExp(`^/api/robots/${robot.robotId}/voice/speech/[0-9a-f]{64}$`))
+      expect(stub.voiceSeen.slice(before).map((call) => call.path)).toEqual(['/v1/chat/completions'])
+      expect(yield* me.play(speechUrl)).toEqual({ status: 200, type: 'audio/mpeg', bytes: [...STUB_SPEECH] })
+      expect(yield* me.play(speechUrl)).toEqual({ status: 200, type: 'audio/mpeg', bytes: [...STUB_SPEECH] })
+      expect((yield* me.play(`/api/robots/${robot.robotId}/voice/speech/${'0'.repeat(64)}`)).status).toBe(404)
+      // The Worker sent the clip and the line to 0G with its own key, and made the speech once.
+      const [heardCall, spokenCall, ...again] = stub.voiceSeen.slice(before)
+      expect(again).toEqual([])
       expect(heardCall?.authorization).toBe(`Bearer ${TEST_ZG_API_KEY}`)
       const sent = yield* Schema.decodeUnknownEffect(UserAudio)(heardCall?.body)
       expect(sent.messages[1].content[0].input_audio.data).toBe(CLIP)
@@ -195,6 +213,7 @@ export const registerVoiceAcceptance = (test: TestApi['test'], stack: Effect.Eff
       const calls = stub.voiceSeen.length
       expect((yield* other.call(`/api/robots/${robot.robotId}/voice`, { audio: CLIP })).status).toBe(404)
       expect((yield* other.call(`/api/robots/${robot.robotId}/voice/say`, { intentId: errand.id })).status).toBe(404)
+      expect((yield* other.play(speechUrl)).status).toBe(404)
       expect(stub.voiceSeen.length).toBe(calls)
 
       // Not a WAV data URI: 400 before any 0G call; no Origin: refused before the route.

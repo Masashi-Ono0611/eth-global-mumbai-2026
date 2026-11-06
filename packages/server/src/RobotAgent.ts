@@ -95,7 +95,7 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
       ? Layer.mergeAll(scanRoutes(errands, media), intentRoutes(errands), navRoutes(errands))
       : Layer.empty,
     // Vita's voice exists only while VOICE_ENABLED is `true` (otherwise 404); its `buy` turns create intents.
-    voiceEnabled(env) ? voiceRoutes(errands) : Layer.empty,
+    voiceEnabled(env) ? voiceRoutes({ ...errands, media }) : Layer.empty,
   )
   return { layer, errands }
 })

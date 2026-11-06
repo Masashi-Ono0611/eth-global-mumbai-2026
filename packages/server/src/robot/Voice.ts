@@ -8,12 +8,13 @@ import {
   VoiceTurnRequest,
 } from '@ethmumbai/protocol/Voice'
 import { Clock, type Duration, Effect, Option, Redacted, Result, Schema } from 'effect'
-import * as Base64 from 'effect/encoding/Base64'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
+import * as HttpServerResponse from 'effect/http/HttpServerResponse'
+import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWriteBucket'
 import { latestSignedGrant, spentInPeriod } from './Budget.ts'
 import { decisionsOf } from './Decide.ts'
 import { type ErrandDeps, LIVE_STATES } from './Errands.ts'
@@ -37,7 +38,7 @@ import type { ZeroGConfig } from './ZeroGClient.ts'
 import { requireSession } from '../auth/Session.ts'
 import type { RobotRow } from '../chip/Lease.ts'
 import { findItem, findMerchant, type Merchant } from '../merchant/Catalogue.ts'
-import { json, jsonError, nowSeconds } from '../Respond.ts'
+import { json, jsonError, nowSeconds, sha256Hex } from '../Respond.ts'
 import { firstRow } from '../Sql.ts'
 
 const LIVE = LIVE_STATES.map((state) => `'${state}'`).join(', ')
@@ -56,7 +57,7 @@ const SPEECH_VOICE = 'English_PlayfulGirl'
 /** The demo kit's tempo (0.95) over its browser pitch-up (1.16), so the heard pace stays normal. */
 const SPEECH_SPEED = 0.82
 /** Shown when only the speech failed: the turn (and any intent it created) stands, Vita's line is shown as text. */
-const SPEECH_FAILED = '0G speech did not answer; showing the line as text'
+const SPEECH_FAILED = 'Vita could not speak this line; showing it as text'
 const HEAR_TIMEOUT = '15 seconds'
 const SPEECH_TIMEOUT = '15 seconds'
 
@@ -102,10 +103,10 @@ const hear = Effect.fnUntraced(function* (zeroG: ZeroGConfig, audio: string, ite
 })
 
 /**
- * `POST {ZG_BASE_URL}/audio/speech`: the line as MP3, as a data URI. A failure is `null` (the text still shows) and one
- * warning with the status only.
+ * `POST {ZG_BASE_URL}/audio/speech`: the line as MP3 bytes. A failure is `null` (the text still shows) and one warning
+ * with the status only.
  */
-const speak = Effect.fnUntraced(function* (zeroG: ZeroGConfig, line: VoiceLine, timeout: Duration.Input) {
+const speak = Effect.fnUntraced(function* (zeroG: ZeroGConfig, text: string, timeout: Duration.Input) {
   const started = yield* Clock.currentTimeMillis
   const reply = yield* Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
@@ -113,7 +114,7 @@ const speak = Effect.fnUntraced(function* (zeroG: ZeroGConfig, line: VoiceLine, 
       HttpClientRequest.post(`${zeroG.baseUrl.replace(/\/+$/, '')}/audio/speech`).pipe(
         HttpClientRequest.bearerToken(Redacted.value(zeroG.apiKey)),
         HttpClientRequest.bodyText(
-          JSON.stringify({ model: SPEECH_MODEL, input: line.text, voice: SPEECH_VOICE, speed: SPEECH_SPEED }),
+          JSON.stringify({ model: SPEECH_MODEL, input: text, voice: SPEECH_VOICE, speed: SPEECH_SPEED }),
           'application/json',
         ),
       ),
@@ -128,7 +129,28 @@ const speak = Effect.fnUntraced(function* (zeroG: ZeroGConfig, line: VoiceLine, 
     return null
   }
   yield* Effect.logInfo('voice speech').pipe(Effect.annotateLogs({ latencyMs, bytes: reply.success.bytes.length }))
-  return { audio: `data:audio/mpeg;base64,${Base64.encode(reply.success.bytes)}` }
+  return reply.success.bytes
+})
+
+/** Where a line's text and its speech live in the private bucket, by the hash of everything that shapes the audio. */
+const speechKey = (text: string) => sha256Hex(`${SPEECH_MODEL}|${SPEECH_VOICE}|${SPEECH_SPEED}|${text}`)
+const linePath = (key: string) => `voice/lines/${key}.txt`
+const audioPath = (key: string) => `voice/speech/${key}.mp3`
+
+/**
+ * The line's speech, without waiting for it: the text is saved under its hash and the browser fetches the audio from
+ * `GET …/voice/speech/:key`, so Vita's words show while the voice is made. A save failure leaves the line as text.
+ */
+const speechFor = Effect.fnUntraced(function* (media: ReadWriteBucketClient, robotId: string, line: VoiceLine) {
+  const key = yield* speechKey(line.text)
+  const saved = yield* media
+    .put(linePath(key), line.text, { httpMetadata: { contentType: 'text/plain; charset=utf-8' } })
+    .pipe(Effect.result)
+  if (Result.isFailure(saved)) {
+    yield* Effect.logWarning('voice: the line could not be saved for speech')
+    return { speech: null, speechError: SPEECH_FAILED }
+  }
+  return { speech: { url: `/api/robots/${robotId}/voice/speech/${key}` }, speechError: null }
 })
 
 /** 0G's latest recorded reason for the intent's episode: the `decide` call's own words, shown as a quote, never spoken. */
@@ -176,7 +198,7 @@ const stop = Effect.fnUntraced(function* (deps: ErrandDeps, robot: RobotRow) {
   return { errand: yield* intentView(deps.database, stopped), line: stoppedLine(true, paying) }
 })
 
-const turn = (deps: ErrandDeps) =>
+const turn = (deps: VoiceDeps) =>
   Effect.gen(function* () {
     const robot = yield* ownRobot(deps)
     const body = yield* need(
@@ -193,7 +215,7 @@ const turn = (deps: ErrandDeps) =>
         : hearing.intent === 'stop'
           ? yield* stop(deps, robot)
           : { errand: null, line: answerLine(hearing.topic, yield* factsOf(deps, robot, merchant)) }
-    const speech = yield* speak(zeroG, answer.line, SPEECH_TIMEOUT)
+    const spoken = yield* speechFor(deps.media, robot.id, answer.line)
     yield* Effect.logInfo('voice turn').pipe(
       Effect.annotateLogs({
         robotId: robot.id,
@@ -201,7 +223,7 @@ const turn = (deps: ErrandDeps) =>
         errandId: answer.errand?.id ?? null,
         requestId: hearing.requestId,
         hearMs: hearing.latencyMs,
-        spoken: speech !== null,
+        spoken: spoken.speech !== null,
       }),
     )
     return yield* json({
@@ -210,12 +232,11 @@ const turn = (deps: ErrandDeps) =>
       item: hearing.intent === 'buy' ? hearing.item : null,
       errand: answer.errand,
       line: answer.line,
-      speech,
-      speechError: speech === null ? SPEECH_FAILED : null,
+      ...spoken,
     } satisfies VoiceTurn)
   }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
 
-const say = (deps: ErrandDeps) =>
+const say = (deps: VoiceDeps) =>
   Effect.gen(function* () {
     const robot = yield* ownRobot(deps)
     const body = yield* need(
@@ -223,7 +244,6 @@ const say = (deps: ErrandDeps) =>
       400,
       'expected {"intentId": string}',
     )
-    const zeroG = yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY')
     const merchant = yield* need(findMerchant(MERCHANT_ID), 500, 'merchant catalogue is missing')
     yield* settleIntents(deps.database, robot.id)
     const intent = yield* need(
@@ -235,28 +255,54 @@ const say = (deps: ErrandDeps) =>
     const item = errand.item === null ? Option.none() : findItem(merchant, errand.item)
     const line = intentLine(errand, item)
     const decisionReason = yield* reasonOf(deps, errand.episodeId)
-    const speech = yield* speak(zeroG, line, SPEECH_TIMEOUT)
+    const spoken = yield* speechFor(deps.media, robot.id, line)
     yield* Effect.logInfo('voice say').pipe(
       Effect.annotateLogs({
         robotId: robot.id,
         intentId: intent.id,
         state: errand.episodeState ?? errand.state,
         open: isOpenIntent(errand.state),
-        spoken: speech !== null,
+        spoken: spoken.speech !== null,
       }),
     )
-    return yield* json({
-      errand,
-      line,
-      decisionReason,
-      speech,
-      speechError: speech === null ? SPEECH_FAILED : null,
-    } satisfies VoiceSay)
+    return yield* json({ errand, line, decisionReason, ...spoken } satisfies VoiceSay)
   }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
 
+const SpeechPath = Schema.Struct({ key: Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/)) })
+
+/**
+ * `GET …/voice/speech/:key` (owner): the line's MP3. Made once by `minimax-speech` on the 0G Router and kept in the
+ * private bucket, so a line Vita said before plays at once. Only lines the voice routes saved can be spoken.
+ */
+const speech = (deps: VoiceDeps) =>
+  Effect.gen(function* () {
+    yield* ownRobot(deps)
+    const path = yield* need(yield* HttpRouter.schemaPathParams(SpeechPath).pipe(Effect.option), 404, 'unknown line')
+    const { key } = path
+    const audioHeaders = { 'cache-control': 'private, max-age=86400' }
+    const saved = yield* deps.media.get(audioPath(key)).pipe(Effect.option)
+    if (Option.isSome(saved) && saved.value !== null)
+      return HttpServerResponse.stream(saved.value.body, { contentType: 'audio/mpeg', headers: audioHeaders })
+    const zeroG = yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY')
+    const lineObject = yield* deps.media.get(linePath(key)).pipe(Effect.option)
+    if (Option.isNone(lineObject) || lineObject.value === null) return yield* jsonError(404, 'unknown line')
+    const text = yield* lineObject.value.text().pipe(Effect.option)
+    if (Option.isNone(text)) return yield* jsonError(502, 'R2 did not answer')
+    const bytes = yield* speak(zeroG, text.value, SPEECH_TIMEOUT)
+    if (bytes === null) return yield* jsonError(502, SPEECH_FAILED)
+    yield* deps.media.put(audioPath(key), bytes, { httpMetadata: { contentType: 'audio/mpeg' } }).pipe(Effect.ignore)
+    return HttpServerResponse.uint8Array(bytes, { contentType: 'audio/mpeg', headers: audioHeaders })
+  }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
+
+/** The voice routes need the private bucket too: a line's text and its speech live there. */
+export interface VoiceDeps extends ErrandDeps {
+  readonly media: ReadWriteBucketClient
+}
+
 /** The owner's voice routes (session + Origin); `RobotAgent` mounts them only while `VOICE_ENABLED` is `true`. */
-export const voiceRoutes = (deps: ErrandDeps) =>
+export const voiceRoutes = (deps: VoiceDeps) =>
   HttpRouter.addAll([
     HttpRouter.route('POST', '/api/robots/:robotId/voice', requireSession(turn(deps))),
     HttpRouter.route('POST', '/api/robots/:robotId/voice/say', requireSession(say(deps))),
+    HttpRouter.route('GET', '/api/robots/:robotId/voice/speech/:key', requireSession(speech(deps))),
   ])

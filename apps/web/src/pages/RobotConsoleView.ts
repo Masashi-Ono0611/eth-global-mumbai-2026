@@ -20,7 +20,9 @@ import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './Ro
 import { dock } from './RobotDockView.ts'
 import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
-import { failedView, signedOutView } from './Shared.ts'
+import { failedView, loadingView, signedOutView, typingBubble } from './Shared.ts'
+import { bubblesView } from './RobotVoiceView.ts'
+import * as RobotVoice from './RobotVoice.ts'
 
 // STYLES
 
@@ -77,7 +79,15 @@ const allowancePillLabel = (grant: GrantView, locale: Locale): string => {
     : format(locale, 'allowance.openLeft', { left: usdc(left), daily: usdc(grant.dailyCap) })
 }
 
-const header = (view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Html => {
+/** The status under the name: what Vita's voice is doing while she listens or speaks, else Connected or Offline. */
+const headerStatus = (model: Model, online: boolean, locale: Locale): string =>
+  RobotVoice.Status.guards.Listening(model.voice.status)
+    ? format(locale, 'voice.headerListening', {})
+    : RobotVoice.Status.guards.Speaking(model.voice.status)
+      ? format(locale, 'voice.headerSpeaking', {})
+      : format(locale, online ? 'home.connected' : 'thread.offline', {})
+
+const header = (model: Model, view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const online = view.lease.online
   return h.header(
     [h.Class(headerClassName)],
@@ -91,10 +101,7 @@ const header = (view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Ht
         [h.Class('min-w-0')],
         [
           h.h1([h.Class(nameClassName), h.Title(view.robot.name)], [view.robot.name]),
-          h.span(
-            [h.Class(statusClassName), h.Role('status')],
-            [format(locale, online ? 'home.connected' : 'thread.offline', {})],
-          ),
+          h.span([h.Class(statusClassName), h.Role('status')], [headerStatus(model, online, locale)]),
         ],
       ),
       view.grant === null || view.grant.status !== 'active'
@@ -419,13 +426,7 @@ const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): 
     Running: ({ episodeId, maybeDetail, maybeApprovalUrl }) =>
       Option.match(maybeDetail, {
         onNone: () =>
-          untimed([
-            h.keyed('p')(
-              `${episodeId}-loading`,
-              [h.Class(systemClassName), h.Role('status')],
-              [format(locale, 'common.loading', {})],
-            ),
-          ]),
+          untimed([h.keyed('div')(`${episodeId}-loading`, [h.Class('contents')], [typingBubble(locale, h)])]),
         onSome: (detail) => liveMessages(model, episodeId, detail, maybeApprovalUrl, locale, h),
       }),
   })
@@ -445,7 +446,7 @@ const loadedView = (
   return h.div(
     [h.Class(pageClassName)],
     [
-      header(view, locale, h),
+      header(model, view, locale, h),
       h.section(
         [
           h.Class(threadClassName),
@@ -455,7 +456,16 @@ const loadedView = (
         [
           view.robot.kind === 'sim' ? simulatorLink(view.robot.id, locale, h) : h.empty,
           past.length === 0 && Errand.guards.Idle(model.errand) && Intent.guards.Idle(model.intent)
-            ? h.p([h.Class(systemClassName)], [format(locale, 'thread.empty', { name: view.robot.name })])
+            ? h.p(
+                [h.Class(systemClassName)],
+                [
+                  format(
+                    locale,
+                    RobotVoice.Status.guards.Unavailable(model.voice.status) ? 'thread.empty' : 'voice.empty',
+                    { name: view.robot.name },
+                  ),
+                ],
+              )
             : h.a(
                 [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
                 [format(locale, 'thread.records', { name: view.robot.name })],
@@ -469,6 +479,13 @@ const loadedView = (
             locale,
             h,
           ),
+          h.submodel({
+            slotId: `voice-bubbles-${view.robot.id}`,
+            model: model.voice,
+            view: bubblesView,
+            viewInputs: { name: view.robot.name, locale },
+            toParentMessage: (message) => Message.GotVoiceMessage({ message }),
+          }),
         ],
       ),
       dock(model, view, catalogue, locale, h),
@@ -488,7 +505,7 @@ export const robotConsoleView = Submodel.defineView<
     [h.Id('main')],
     [
       ConsoleState.match(model.state, {
-        Loading: () => h.p([h.Role('status'), h.Class('p-4')], [format(locale, 'common.loading', {})]),
+        Loading: () => loadingView(locale, h),
         SignedOut: () => signedOutView(locale, h),
         Failed: ({ error }) => failedView(error, Message.ClickedRefresh(), locale, h),
         Loaded: ({ robot, catalogue, history, amounts }) =>

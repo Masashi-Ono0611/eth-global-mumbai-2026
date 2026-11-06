@@ -31,13 +31,12 @@ export const VoiceLine = Schema.Struct({
 })
 export type VoiceLine = typeof VoiceLine.Type
 
-/** Speech for a line from `minimax-speech` on the 0G Router; null when only the speech call failed (the text stands). */
-const VoiceSpeech = Schema.NullOr(
-  Schema.Struct({
-    /** `data:audio/mpeg;base64,…` */
-    audio: Schema.String,
-  }),
-)
+/**
+ * Where the line's speech plays from: `GET /api/robots/:robotId/voice/speech/:key` (owner), made by `minimax-speech` on
+ * the 0G Router on first play and kept, so the text shows at once and a repeated line plays at once. Null when the line
+ * could not be saved for speech (the text stands, with `speechError`).
+ */
+const VoiceSpeech = Schema.NullOr(Schema.Struct({ url: Schema.String }))
 
 /** The answer to one clip. */
 export const VoiceTurn = Schema.Struct({
@@ -50,7 +49,7 @@ export const VoiceTurn = Schema.Struct({
   errand: Schema.NullOr(IntentView),
   line: VoiceLine,
   speech: VoiceSpeech,
-  /** Set when only the speech call failed: the page shows it (the turn and its intent stand). */
+  /** Set when the line cannot be spoken: the page shows it (the turn and its intent stand). */
   speechError: Schema.NullOr(Schema.String),
 })
 export type VoiceTurn = typeof VoiceTurn.Type
