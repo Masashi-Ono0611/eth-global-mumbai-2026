@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { format, type Locale } from '@ethmumbai/i18n'
 import { Dialog } from '@foldkit/ui'
 import { clsx } from 'clsx'
@@ -7,7 +8,7 @@ import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { type EpisodeActivity, leftToday, type RobotView, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
 import { receiveBody } from '../Receive.ts'
-import { robotConsoleRouter, robotsRouter } from '../route.ts'
+import { robotConsoleRouter, robotsRouter, welcomeRouter } from '../route.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
 import { walletSkeleton } from '../Skeleton.ts'
 import { failedView, signedOutView } from './Shared.ts'
@@ -56,6 +57,10 @@ const onZeroGClassName = 'ml-1.5 rounded-full bg-paid/10 px-1.5 text-[0.75rem] f
 const paymentAmountClassName = 'shrink-0 text-right font-semibold whitespace-nowrap'
 const paidClassName = 'block text-[0.92rem] text-paid'
 const emptyClassName = 'px-2 text-muted'
+const stepsCardClassName = 'mx-1 mt-3 grid gap-2 rounded-card bg-surface p-4'
+const stepRowClassName = 'grid min-h-11 grid-cols-[1.25rem_1fr_auto] items-center gap-2'
+const stepActionClassName =
+  'inline-flex min-h-10 cursor-pointer items-center rounded-control bg-ink px-3.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
@@ -306,12 +311,93 @@ const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<M
   })
 }
 
+type FirstStep = { readonly done: boolean; readonly label: string; readonly action: Html }
+
+/** What a new owner still has to do, in order; the card goes once everything is done. */
+const firstSteps = (home: Home, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<FirstStep> => {
+  const paired = home.robots.find((robot) => robot.status === 'paired')
+  const granted = home.robots.find((robot) => robot.grant !== null && robot.grant.status === 'active')
+  const link = (href: string, label: string) => h.a([h.Href(href), h.Class(stepActionClassName)], [label])
+  const telegram = Option.match(home.maybeTelegramLinked, {
+    onNone: () => [],
+    onSome: (linked) => [
+      {
+        done: linked,
+        label: format(locale, 'home.stepTelegram', {}),
+        action: link(welcomeRouter(), format(locale, 'home.stepConnect', {})),
+      },
+    ],
+  })
+  return [
+    ...telegram,
+    {
+      done: home.wallet.balance !== null && BigInt(home.wallet.balance.units) > 0n,
+      label: format(locale, 'home.stepFund', {}),
+      action: h.button(
+        [h.Type('button'), h.Class(stepActionClassName), h.OnClick(Message.ClickedReceive())],
+        [format(locale, 'home.receive', {})],
+      ),
+    },
+    {
+      done: paired !== undefined,
+      label: format(locale, 'home.stepRobot', {}),
+      action: link(robotsRouter(), format(locale, 'home.stepAdd', {})),
+    },
+    {
+      done: granted !== undefined,
+      label: format(locale, 'home.stepAllowance', {}),
+      action: link(robotConsoleRouter({ robotId: paired?.id ?? '' }), format(locale, 'home.stepGive', {})),
+    },
+    {
+      done: home.episodes.some((episode) => episode.state === 'paid'),
+      label: format(locale, 'home.stepErrand', {}),
+      action: link(
+        robotConsoleRouter({ robotId: granted?.id ?? paired?.id ?? '' }),
+        format(locale, 'home.stepSend', {}),
+      ),
+    },
+  ]
+}
+
+/** The first-steps card: each open step one tap from where it is done (the next one only, so the order is clear). */
+const firstStepsCard = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Html => {
+  const steps = firstSteps(home, locale, h)
+  const next = steps.findIndex((step) => !step.done)
+  if (next < 0) return h.empty
+  return h.section(
+    [h.Class(stepsCardClassName), h.AriaLabelledBy('first-steps')],
+    [
+      h.h2([h.Id('first-steps'), h.Class('font-semibold')], [format(locale, 'home.firstSteps', {})]),
+      h.ol(
+        [h.Class('grid gap-1.5')],
+        steps.map((step, index) =>
+          h.li(
+            [h.Class(stepRowClassName)],
+            [
+              h.span(
+                [h.Class(step.done ? 'text-paid' : 'text-muted'), h.AriaHidden(true)],
+                [step.done ? '✓' : `${index + 1}`],
+              ),
+              h.span(
+                [h.Class(step.done ? 'text-muted line-through' : '')],
+                [step.label, step.done ? h.span([h.Class('sr-only')], [format(locale, 'home.stepDone', {})]) : h.empty],
+              ),
+              index === next ? step.action : h.span([]),
+            ],
+          ),
+        ),
+      ),
+    ],
+  )
+}
+
 const loadedView = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class(pageClassName)],
     [
       balanceView(home, locale, h),
       pills(locale, h),
+      firstStepsCard(home, locale, h),
       home.needsYou.length === 0
         ? h.empty
         : h.section(

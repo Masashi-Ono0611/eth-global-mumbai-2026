@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { Command, Mount, click, expect, given, role, scene, text, withViewInputs } from 'foldkit/scene'
 import { describe, expect as vitestExpect, test } from 'vitest'
 import { Animation, Dialog } from '@foldkit/ui'
@@ -26,6 +27,7 @@ const home = (overrides: Partial<Wallet.Home> = {}): Wallet.Home => ({
   episodes: [summary('e1', 'chai', 'paid', 'within budget')],
   needsYou: [],
   spentLastDay: '100000',
+  maybeTelegramLinked: Option.none(),
   ...overrides,
 })
 describe('/wallet', () => {
@@ -56,6 +58,39 @@ describe('/wallet', () => {
       expect(text('−0.10')).toExist(),
       expect(text('Paid')).toExist(),
     )
+  })
+
+  test('a new owner gets a Getting started card: the next step is one tap away; it goes once all are done', () => {
+    const fresh = home({
+      wallet: { ...home().wallet, balance: { units: '0', usdc: '0.00' } },
+      activity: { episodes: [], grants: [] },
+      robots: [],
+      episodes: [],
+      spentLastDay: '0',
+      maybeTelegramLinked: Option.some(false),
+    })
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(fresh)),
+      expect(role('heading', { name: 'Getting started' })).toExist(),
+      expect(role('link', { name: 'Connect' })).toHaveAttr('href', '/app/welcome'),
+      expect(role('link', { name: 'Add' })).not.toExist(),
+    )
+    // Telegram linked: money is next, through the Receive sheet.
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome({ ...fresh, maybeTelegramLinked: Option.some(true) })),
+      expect(text("Get your robot's messages on Telegram, done")).toExist(),
+      expect(text('Add money to the wallet')).toExist(),
+      expect(role('link', { name: 'Connect' })).not.toExist(),
+    )
+    // Funded, no robot yet (no bot on the server: no Telegram step).
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome({ ...fresh, wallet: home().wallet, maybeTelegramLinked: Option.none() })),
+      expect(role('link', { name: 'Add' })).toHaveAttr('href', '/app/wallet/robots'),
+    )
+    scene({ update: Wallet.update, view }, given(loadedHome(home())), expect(text('Getting started')).not.toExist())
   })
 
   test('Receive opens a sheet with the address as a QR code, in groups, and a copy button', () => {

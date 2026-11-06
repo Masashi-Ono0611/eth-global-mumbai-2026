@@ -179,6 +179,7 @@ export interface MessageArgumentsByKey<T = string> {
   'home.decline': Readonly<Record<string, never>>
   'home.declineFailed': { readonly message: string | number }
   'home.declining': Readonly<Record<string, never>>
+  'home.firstSteps': Readonly<Record<string, never>>
   'home.lineBusy': { readonly item: string | number }
   'home.lineCodeExpired': Readonly<Record<string, never>>
   'home.lineDenied': { readonly item: string | number }
@@ -205,6 +206,16 @@ export interface MessageArgumentsByKey<T = string> {
   'home.soon': Readonly<Record<string, never>>
   'home.spent': { readonly amount: string | number }
   'home.spentNone': Readonly<Record<string, never>>
+  'home.stepAdd': Readonly<Record<string, never>>
+  'home.stepAllowance': Readonly<Record<string, never>>
+  'home.stepConnect': Readonly<Record<string, never>>
+  'home.stepDone': Readonly<Record<string, never>>
+  'home.stepErrand': Readonly<Record<string, never>>
+  'home.stepFund': Readonly<Record<string, never>>
+  'home.stepGive': Readonly<Record<string, never>>
+  'home.stepRobot': Readonly<Record<string, never>>
+  'home.stepSend': Readonly<Record<string, never>>
+  'home.stepTelegram': Readonly<Record<string, never>>
   'home.waitingCount': { readonly count: number }
   'home.zeroGReason': { readonly reason: string | number }
   'landing.browse': Readonly<Record<string, never>>
@@ -331,4 +342,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '6bd8bb398b753d949c73df09d92892dc5ef233e2955d685b2e3e68578d374f49'
+export const catalogVersion = '0c97f0a5efe8bed06c1ec2a9b21927db2bb65402eeb02b2d59a51a04183609ca'

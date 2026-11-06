@@ -21,6 +21,7 @@ import {
 import { Clipboard } from '../Clipboard.ts'
 import { sheetFolds } from '../Sheet.ts'
 import { Copy } from '../Receive.ts'
+import * as Telegram from '../Telegram.ts'
 
 // MODEL
 
@@ -44,6 +45,8 @@ export const Home = Schema.Struct({
   needsYou: Schema.Array(NeedsYou),
   /** USDC base units paid by robots in the 24 hours before the load. */
   spentLastDay: Schema.String,
+  /** Whether Telegram is linked, for the first-steps card; none without a bot (or when the read failed). */
+  maybeTelegramLinked: Schema.Option(Schema.Boolean),
 })
 export type Home = typeof Home.Type
 
@@ -106,9 +109,15 @@ export const LoadWallet = Command.define('LoadWallet', {
   execute: ({ delayMillis }) =>
     Effect.gen(function* () {
       yield* Effect.sleep(delayMillis)
-      const [wallet, activity, { robots }, { episodes }] = yield* Effect.all(
-        [loadWallet, loadActivity, listRobots, listEpisodes(null)],
-        { concurrency: 4 },
+      const [wallet, activity, { robots }, { episodes }, maybeTelegramLinked] = yield* Effect.all(
+        [
+          loadWallet,
+          loadActivity,
+          listRobots,
+          listEpisodes(null),
+          Telegram.loadLinked.pipe(Effect.orElseSucceed(Option.none)),
+        ],
+        { concurrency: 5 },
       )
       const waiting = episodes.filter((episode) => episode.state === 'awaiting_approval')
       const approvals = yield* Effect.all(
@@ -133,7 +142,9 @@ export const LoadWallet = Command.define('LoadWallet', {
       )
       const now = yield* Clock.currentTimeMillis
       const spentLastDay = spentSince(activity.episodes, now - DAY_MILLIS)
-      return Message.SucceededLoadWallet({ home: { wallet, activity, robots, episodes, needsYou, spentLastDay } })
+      return Message.SucceededLoadWallet({
+        home: { wallet, activity, robots, episodes, needsYou, spentLastDay, maybeTelegramLinked },
+      })
     }).pipe(
       Effect.catch((failure) =>
         Effect.succeed(Message.FailedLoadWallet({ error: failure.error, signedOut: isSignedOut(failure) })),

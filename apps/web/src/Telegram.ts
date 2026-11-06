@@ -1,5 +1,5 @@
 import { format, type Locale } from '@ethmumbai/i18n'
-import { Effect, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import type * as HttpClient from 'effect/http/HttpClient'
 import { Command, Submodel, type Update } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -66,6 +66,11 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type
 
 // COMMAND
+
+/** Whether the owner's chat is linked; none when the server has no bot. For pages that only need the answer. */
+export const loadLinked = getJson('/api/telegram', LinkStatus).pipe(
+  Effect.map(({ configured, linked }) => (configured ? Option.some(linked) : Option.none())),
+)
 
 /** @internal Exported for scene tests. */
 export const LoadTelegram = Command.define('LoadTelegram', {

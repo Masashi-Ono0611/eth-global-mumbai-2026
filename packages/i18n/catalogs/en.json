@@ -181,7 +181,18 @@
     "notPaid": "Not paid",
     "pending": "Pending",
     "sendSoon": "Send, coming soon",
-    "lineLeft": "{amount} USDC left today"
+    "lineLeft": "{amount} USDC left today",
+    "firstSteps": "Getting started",
+    "stepTelegram": "Get your robot's messages on Telegram",
+    "stepConnect": "Connect",
+    "stepFund": "Add money to the wallet",
+    "stepRobot": "Add a robot",
+    "stepAdd": "Add",
+    "stepAllowance": "Give it an allowance",
+    "stepGive": "Give",
+    "stepErrand": "Send it on its first errand",
+    "stepSend": "Send",
+    "stepDone": ", done"
   },
   "receive": {
     "title": "Receive USDC",
