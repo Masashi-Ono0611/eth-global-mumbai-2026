@@ -14,6 +14,8 @@ import golden from './fixtures/golden.json' with { type: 'json' }
 const { scan } = golden
 const accepts = <A>(schema: Schema.Schema<A>, value: unknown) => Schema.is(schema)(value)
 const body = { invoiceId: scan.invoiceId, capturedAt: scan.capturedAt, frame: scan.frame, sig: scan.sig }
+const encode = (value: unknown) =>
+  JSON.stringify(Schema.encodeSync(EpisodeEvidence)(Schema.decodeUnknownSync(EpisodeEvidence)(value)))
 
 describe('scan message', () => {
   test('matches the viem-signed golden message, and its EIP-191 digest matches viem hashMessage', () => {
@@ -60,8 +62,6 @@ describe('episode evidence observations', () => {
     outcome: { state: 'paid' },
     requestIds: ['req-1', 'req-2'],
   }
-  const encode = (value: unknown) =>
-    JSON.stringify(Schema.encodeSync(EpisodeEvidence)(Schema.decodeUnknownSync(EpisodeEvidence)(value)))
 
   test('evidence without a scan has no observations key and encodes byte-identically', () => {
     expect(encode(evidence)).toBe(JSON.stringify(evidence))
