@@ -2,9 +2,7 @@
 pragma solidity 0.8.23;
 
 import { Test } from "forge-std/Test.sol";
-import { ModeLib } from "@erc7579/lib/ModeLib.sol";
-
-import { RobotPaymentPolicyEnforcer } from "../src/RobotPaymentPolicyEnforcer.sol";
+import { ModeLib, RobotPaymentPolicyEnforcer } from "../studio/contracts/RobotPaymentPolicyEnforcer.sol";
 
 /// @dev Byte-for-byte parity with the app's TypeScript encoders. test/fixtures/golden.json comes from
 /// test/fixtures/golden.ts, which calls `policyTerms`, `approvalArgs`, `singleExecution` and `transferCall`

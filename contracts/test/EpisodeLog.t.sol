@@ -3,7 +3,7 @@ pragma solidity 0.8.23;
 
 import { Test } from "forge-std/Test.sol";
 
-import { EpisodeLog } from "../src/EpisodeLog.sol";
+import { EpisodeLog } from "../studio/contracts/EpisodeLog.sol";
 
 contract EpisodeLogTest is Test {
     string internal constant EPISODE_ID = "aaaqeayeaudaocajbifqydiob4";

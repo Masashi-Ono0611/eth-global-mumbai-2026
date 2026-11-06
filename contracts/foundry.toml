@@ -1,8 +1,9 @@
-# Vitaquack contracts (spec M1). solc 0.8.23 is the Delegation Framework v1.3.0 pin (its sources say
-# `pragma solidity 0.8.23`); `paris` is what Arc Studio's foundry.toml uses, and it runs on Arc mainnet (Osaka) and on
-# 0G Galileo (Cancun). Dependencies are vendored under lib/ (no submodules); pins are in README.md.
+# Vitaquack contracts (spec M1). The Arc Studio project is the single source of both contracts: studio/ is a pinned,
+# read-only pull (studio/PULL.md) and this project builds, tests and deploys exactly those files. test/ (regression
+# suite, golden vectors) and script/ (DeployArc, DeployZg) are the repo's own. Compiler settings equal Studio's
+# foundry.toml: solc 0.8.23 (the Delegation Framework v1.3.0 pin), `paris`, optimizer 200 runs.
 [profile.default]
-src = "src"
+src = "studio/contracts"
 test = "test"
 script = "script"
 out = "out"
@@ -12,14 +13,10 @@ auto_detect_solc = false
 evm_version = "paris"
 optimizer = true
 optimizer_runs = 200
-fs_permissions = [{ access = "read", path = "./test/fixtures" }]
-remappings = [
-  "forge-std/=lib/forge-std/src/",
-  "@delegation-framework/=lib/delegation-framework/src/",
-  "@erc7579/=lib/erc7579-implementation/src/",
-  "@account-abstraction/=lib/account-abstraction/contracts/",
-  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-]
+# Studio's CREATE2 helper for its own testnet deploys imports OpenZeppelin from Studio's node_modules; not used here.
+skip = ["studio/contracts/script/**"]
+fs_permissions = [{ access = "read", path = "./test/fixtures" }, { access = "read", path = "./out/studio" }]
+remappings = ["forge-std/=lib/forge-std/src/"]
 
 [fmt]
 line_length = 120
@@ -28,4 +25,8 @@ bracket_spacing = true
 int_types = "long"
 quote_style = "double"
 number_underscore = "preserve"
-ignore = ["lib/**"]
+# The pulled Studio files are never rewritten here; change them in Studio and pull.
+ignore = ["lib/**", "studio/**"]
+
+[lint]
+ignore = ["studio/**"]

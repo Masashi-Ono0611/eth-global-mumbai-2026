@@ -1,13 +1,29 @@
 # Vitaquack contracts (spec M1)
 
-Two contracts, built and tested with Foundry (`forge` 1.8.3, solc 0.8.23, EVM `paris`):
+**Arc Studio is the source of all on-chain logic.** Both contracts live in the Studio project
+https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (decision of 6 Nov, 16:00 IST). This directory keeps:
 
-| Contract                         | Chain                                           | What it does                                                                                                                                                             |
-| -------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/RobotPaymentPolicyEnforcer` | Arc mainnet (5042)                              | A MetaMask Delegation Framework v1.3.0 caveat on the owner → chip grant: per-payment cap + payee allowlist; anything else needs the approver's one-time EIP-712 approval |
-| `src/EpisodeLog`                 | 0G Galileo (16602); 0G mainnet (16661) accepted | Write-once anchor of an errand's 0G Storage root hash and the hash of its 0G request ids                                                                                 |
+- `studio/`: a pinned, read-only pull of that project (provenance and sha256 of every file in `studio/PULL.md`);
+- the Foundry project that builds, tests and deploys exactly those files (`foundry.toml`: `src = "studio/contracts"`);
+- the repo's regression suite (`test/`, with golden vectors from the app's TypeScript encoders) and deploy scripts
+  (`script/`).
 
-Arc Studio project: https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (created 6 Nov 11:40 IST from the CLI with both flattened contracts; Studio compiled them on solc 0.8.23 / paris, wrote 42 Foundry tests (33 enforcer incl. 2 fuzz, 9 EpisodeLog), deployed both to Arc testnet with its shared deployer — enforcer `0xf334227646b3372f46b4d9d6b562189b7e35d711`, EpisodeLog `0xe7019b50c2a519b1e61b0a46df695bc9b5333579` — and added a page that reads `USDC()`/`domainSeparator()`, cross-checks `approvalDigest` in the browser and calls `record()`). Mainnet enforcer: `0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3`, deployed by us.
+The policy:
+
+- **Change contracts in Studio, then pull here.** Never edit `studio/`. `forge fmt` and `forge lint` skip it.
+- **Mainnet and 0G deploys come from the pull.** `DeployArc` and `DeployZg` deploy the pull built exactly as Studio builds
+  it, so the deployed bytes equal Studio's own testnet deployment (Studio deploys only to Arc testnet).
+- **EpisodeLog is the recorded exception.** It is Studio-authored, but Studio cannot deploy to 0G, so we deploy it to
+  0G Galileo from the same pull.
+
+| Contract                                          | Chain                                                            | What it does                                                                                                                                                             |
+| ------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `studio/contracts/RobotPaymentPolicyEnforcer.sol` | Arc mainnet (5042): `0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3` | A MetaMask Delegation Framework v1.3.0 caveat on the owner → chip grant: per-payment cap + payee allowlist; anything else needs the approver's one-time EIP-712 approval |
+| `studio/contracts/EpisodeLog.sol`                 | 0G Galileo (16602): `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` | Write-once anchor of an errand's 0G Storage root hash and the hash of its 0G request ids                                                                                 |
+
+Studio's own Arc testnet deployments are listed in `studio/PULL.md`. The bytecode comparison of the pull with every
+deployment is in `docs/evidence/contracts.md`. Both files are single flattened sources: the Delegation Framework,
+erc7579 and OpenZeppelin `ECDSA` code they need is inlined.
 
 ## RobotPaymentPolicyEnforcer
 
@@ -56,6 +72,21 @@ Getters: `records(bytes32) → (rootHash, requestIdsHash, recorder, recordedAt)`
 record; the stored recorder is the evidence of who wrote it. `requestIdsHash` is protocol's `requestIdsHash`
 (`keccak256(utf8(requestIds.join(",")))`); the root hash is the 0G Storage locator, so no URI is stored.
 
+## Pull from Studio
+
+From `contracts/` (the token stays in `.env.main.local` and is never printed):
+
+```sh
+ARC_STUDIO_TOKEN=$(grep '^ARC_STUDIO_TOKEN=' ../.env.main.local | cut -d= -f2-) \
+  bunx @circle-fin/arc-studio-cli@1.2.2 pull --app 63241623-a488-4452-ae23-ab151e4f2d75 --out studio \
+  --paths 'contracts/*.sol' 'contracts/test/*.sol' 'contracts/script/*.sol' 'contracts/contract-metadata/*.json' \
+  foundry.toml remappings.txt .foundry-version
+```
+
+Add `--dry-run --diff` first to see what changed. Then update `studio/PULL.md` (time, sha256 list, testnet
+deployments), run the tests and the equivalence check below, and commit `studio/` with the deploy that uses it.
+`studio/PULL.md` says why the frontend, Studio's build outputs and its agent files are not pulled.
+
 ## Test
 
 ```sh
@@ -64,26 +95,35 @@ forge build
 forge test -vv
 ```
 
-Offline; forge downloads solc 0.8.23 on first use. `test/Golden.t.sol` reads `test/fixtures/golden.json`, generated by
-the app's TypeScript encoders. After a change to `Grant.ts` or `Approval.ts`, regenerate it from the repo root and
-commit it:
+This needs no network once forge has solc 0.8.23. It runs Studio's own tests (`studio/contracts/test`, 42) and the
+repo's (`test/`, 50: unit cases, fuzz and golden vectors) against the pulled sources. Studio's CREATE2 helper
+(`studio/contracts/script`) is skipped: it imports OpenZeppelin from Studio's `node_modules`. `test/Golden.t.sol`
+reads `test/fixtures/golden.json`, generated by the app's TypeScript encoders. After a change to `Grant.ts` or
+`Approval.ts`, regenerate it from the repo root and commit it:
 
 ```sh
 bun contracts/test/fixtures/golden.ts && bunx oxfmt -c oxfmt.config.ts contracts/test/fixtures/golden.json
 ```
 
-## Deploy (not broadcast yet)
+## Deploy (from the pull)
 
 Keys and RPC URLs come from the environment only; the scripts print addresses, never keys. `DEPLOYER_PRIVATE_KEY` is
 the relayer/deployer key (`APP_RELAYER_PRIVATE_KEY`), `ARC_RPC_URL` the keyed Arc RPC (`APP_ARC_RPC_URL`), `ZG_RPC_URL`
 the 0G RPC (`https://evmrpc-testnet.0g.ai` for Galileo). Each script refuses any other chain.
 
-Arc mainnet. Arc drops transactions under 20 gwei. A dry run against live state (simulated on 6 Nov) estimates 1.30M
-gas, at most 0.052 USDC at 40 gwei:
+First build the pull exactly as Studio does, into `out/studio`. The scripts deploy those artifacts. Before
+broadcasting, they check that the artifact's code equals this project's compile of `studio/` with the metadata
+removed, and after deploying, that the deployed code equals the artifact's:
 
 ```sh
 cd contracts
-forge test
+forge build && forge test && script/studio-build.sh
+```
+
+Arc mainnet. Arc drops transactions under 20 gwei. A dry run against live state estimates 1.30M gas, at most
+0.052 USDC at 40 gwei:
+
+```sh
 # Dry run: simulates against live Arc state, sends nothing.
 DEPLOYER_PRIVATE_KEY="$APP_RELAYER_PRIVATE_KEY" forge script script/DeployArc.s.sol --rpc-url "$ARC_RPC_URL"
 # Broadcast; prints ENFORCER_ADDRESS=0x…
@@ -99,64 +139,36 @@ DEPLOYER_PRIVATE_KEY="$APP_ZG_STORAGE_PRIVATE_KEY" forge script script/DeployZg.
 ```
 
 Any funded Galileo key can deploy EpisodeLog; the deployer has no special role. The transactions land in
-`broadcast/<script>/<chain>/run-latest.json`, which Git ignores.
+`broadcast/<script>/<chain>/run-latest.json`, which Git ignores, as are `out/` and `cache/`. The live deployments
+above predate the Studio decision. They were deployed from the former `contracts/src` (`a0d25c2`, `39ecb5e`), whose
+code equals the pull's except for the metadata hash. They stay, because the app's approvals are bound to the enforcer's
+address.
 
-### Verify after deploying
+### Verify a deployment
 
 ```sh
-# Runtime code equals this build (same sources and settings, metadata included).
-[ "$(cast code "$ENFORCER_ADDRESS" --rpc-url "$ARC_RPC_URL")" = \
-  "$(jq -r .deployedBytecode.object out/RobotPaymentPolicyEnforcer.sol/RobotPaymentPolicyEnforcer.json)" ] && echo same
+# Executed code = the pull (with and without metadata), for any number of addresses; exit 1 on a difference:
+script/runtime-equivalence.sh out/studio/RobotPaymentPolicyEnforcer.sol/RobotPaymentPolicyEnforcer.json \
+  "Arc mainnet" "$ARC_RPC_URL" "$ENFORCER_ADDRESS" \
+  "Arc testnet (Studio)" https://rpc.testnet.arc.io 0xf334227646b3372f46b4d9d6b562189b7e35d711
+script/runtime-equivalence.sh out/studio/EpisodeLog.sol/EpisodeLog.json \
+  "0G Galileo" "$ZG_RPC_URL" "$EPISODE_LOG_ADDRESS"
 cast call "$ENFORCER_ADDRESS" "USDC()(address)" --rpc-url "$ARC_RPC_URL"   # 0x3600…0000
-# The on-chain digest equals the app's approvalDigest for the deployed address (run from the repo root):
+# The on-chain digest equals the app's approvalDigest for the deployed address (the bun line runs from the repo root):
 cast call "$ENFORCER_ADDRESS" "approvalDigest((bytes32,address,uint256,uint64,bytes32))(bytes32)" \
   "(0x1111111111111111111111111111111111111111111111111111111111111111,0x000000000000000000000000000000000000c0de,500000,1794000300,0x2222222222222222222222222222222222222222222222222222222222222222)" \
   --rpc-url "$ARC_RPC_URL"
 bun -e "import { approvalDigest } from './packages/protocol/src/Approval.ts'; console.log(approvalDigest(
   process.env.ENFORCER_ADDRESS, { invoiceHash: '0x' + '11'.repeat(32), payee: '0x000000000000000000000000000000000000c0de',
   amount: '500000', expiry: 1794000300, nonce: '0x' + '22'.repeat(32) }))"
-# EpisodeLog answers on Galileo:
-cast call "$EPISODE_LOG_ADDRESS" "episodeKey(string)(bytes32)" aaaqeayeaudaocajbifqydiob4 --rpc-url "$ZG_RPC_URL"
 ```
 
 Then set `APP_ENFORCER_ADDRESS` (app config, spec §10) and `EPISODE_LOG_ADDRESS` (netcup `~/.config/secrets.env`),
-and record both addresses and the deploy transactions in `docs/evidence/`. Source verification on the explorers has
-not been tried: Arc's explorer is Blockscout (`forge verify-contract <addr> src/RobotPaymentPolicyEnforcer.sol:RobotPaymentPolicyEnforcer
---chain-id 5042 --verifier blockscout --verifier-url https://explorer.arc.io/api/`), and 0G's skill documents
-`--chain-id 16602 --verifier-url https://chainscan-galileo.0g.ai/api`.
+and record the addresses, the deploy transactions and the comparison in `docs/evidence/contracts.md`. Explorer source
+verification on Arc failed: the Blockscout API answers a Cloudflare browser challenge (see the evidence file). For 0G,
+the documented verifier is `--chain-id 16602 --verifier-url https://chainscan-galileo.0g.ai/api`.
 
-## Arc Studio
+## Dependencies
 
-Studio needs one file per contract. Flatten:
-
-```sh
-forge flatten src/RobotPaymentPolicyEnforcer.sol -o out/flat/RobotPaymentPolicyEnforcer.flat.sol   # ≈ 39 KB
-forge flatten src/EpisodeLog.sol -o out/flat/EpisodeLog.flat.sol                                   # ≈ 2.5 KB
-```
-
-Checked on 6 Nov: each flattened file compiles on its own with solc 0.8.23 and `paris`, and its runtime bytecode
-equals the project build's (compared with `bytecode_hash = "none"`). Constraints found:
-
-- The flattened enforcer has one pragma, `=0.8.23 ^0.8.20 ^0.8.21 ^0.8.23`: Studio's Foundry must compile it with solc
-  0.8.23 (the Delegation Framework pin). Its `evm_version = "paris"` matches ours.
-- It is larger than Studio's 10,000-character prompt cap, so upload it as a file
-  (`--file out/flat/RobotPaymentPolicyEnforcer.flat.sol:contracts/RobotPaymentPolicyEnforcer.sol`), not in a prompt.
-- Studio deploys to Arc testnet (5042002) only. Approvals for a testnet deployment use chain id 5042002 and that address,
-  so the app's digests (chain 5042) do not verify there. The Studio deployment is for the demo; the app uses ours
-  on mainnet.
-- `out/` is ignored by Git: regenerate the flattened files rather than committing them.
-
-## Vendored dependencies (no submodules)
-
-`lib/` holds verbatim copies of the few files these contracts import, at the commits the Delegation Framework v1.3.0
-tag pins, with the upstream licences:
-
-| Path                         | Upstream                                       | Commit                                     | Files                                                                                                       |
-| ---------------------------- | ---------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `lib/delegation-framework`   | github.com/MetaMask/delegation-framework       | tag `v1.3.0`                               | `src/enforcers/CaveatEnforcer.sol`, `src/interfaces/ICaveatEnforcer.sol`, `src/utils/{Types,Constants}.sol` |
-| `lib/erc7579-implementation` | github.com/erc7579/erc7579-implementation      | `16138d1afd4e9711f6c1425133538837bd7787b5` | `src/lib/{ModeLib,ExecutionLib}.sol`, `src/interfaces/IERC7579Account.sol`                                  |
-| `lib/account-abstraction`    | github.com/eth-infinitism/account-abstraction  | `7af70c8993a6f42973f520ae0752386a5032abe7` | `contracts/interfaces/PackedUserOperation.sol`                                                              |
-| `lib/openzeppelin-contracts` | github.com/OpenZeppelin/openzeppelin-contracts | `105fa4e1b0832a6a40cb7ba6e545bb844f02a711` | `contracts/utils/cryptography/ECDSA.sol` (v5.0.0)                                                           |
-| `lib/forge-std`              | github.com/foundry-rs/forge-std                | tag `v1.17.0`                              | `src/` (tests and scripts only)                                                                             |
-
-The DF files are identical to `references/MetaMask_delegation-framework`. Remappings are in `foundry.toml`.
+`lib/forge-std` is a verbatim copy of forge-std `v1.17.0` `src/` (github.com/foundry-rs/forge-std), with its
+licences, used by the tests and scripts; no submodules. The contracts themselves have no imports.

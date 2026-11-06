@@ -10,10 +10,9 @@ import {
     CALLTYPE_SINGLE,
     EXECTYPE_DEFAULT,
     EXECTYPE_TRY,
-    MODE_DEFAULT
-} from "@erc7579/lib/ModeLib.sol";
-
-import { RobotPaymentPolicyEnforcer } from "../src/RobotPaymentPolicyEnforcer.sol";
+    MODE_DEFAULT,
+    RobotPaymentPolicyEnforcer
+} from "../studio/contracts/RobotPaymentPolicyEnforcer.sol";
 
 /// @dev The grant's policy in every test: cap 0.30 USDC per payment, allowlist [cafe, bakery], one approver key. The
 /// test contract plays no role; `delegationManager` is the hook's caller, as the DelegationManager is on Arc.
