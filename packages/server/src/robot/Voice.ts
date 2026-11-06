@@ -134,7 +134,8 @@ const speak = Effect.fnUntraced(function* (zeroG: ZeroGConfig, text: string, tim
 
 /** Where a line's text and its speech live in the private bucket, by the hash of everything that shapes the audio. */
 const speechKey = (text: string) => sha256Hex(`${SPEECH_MODEL}|${SPEECH_VOICE}|${SPEECH_SPEED}|${text}`)
-const linePath = (key: string) => `voice/lines/${key}.txt`
+/** A line is saved per robot: a speech key plays only for the robot whose conversation produced that line. */
+const linePath = (robotId: string, key: string) => `voice/${robotId}/lines/${key}.txt`
 const audioPath = (key: string) => `voice/speech/${key}.mp3`
 
 /**
@@ -144,7 +145,7 @@ const audioPath = (key: string) => `voice/speech/${key}.mp3`
 const speechFor = Effect.fnUntraced(function* (media: ReadWriteBucketClient, robotId: string, line: VoiceLine) {
   const key = yield* speechKey(line.text)
   const saved = yield* media
-    .put(linePath(key), line.text, { httpMetadata: { contentType: 'text/plain; charset=utf-8' } })
+    .put(linePath(robotId, key), line.text, { httpMetadata: { contentType: 'text/plain; charset=utf-8' } })
     .pipe(Effect.result)
   if (Result.isFailure(saved)) {
     yield* Effect.logWarning('voice: the line could not be saved for speech')
@@ -276,16 +277,18 @@ const SpeechPath = Schema.Struct({ key: Schema.String.check(Schema.isPattern(/^[
  */
 const speech = (deps: VoiceDeps) =>
   Effect.gen(function* () {
-    yield* ownRobot(deps)
+    const robot = yield* ownRobot(deps)
     const path = yield* need(yield* HttpRouter.schemaPathParams(SpeechPath).pipe(Effect.option), 404, 'unknown line')
     const { key } = path
     const audioHeaders = { 'cache-control': 'private, max-age=86400' }
+    // This robot's conversation must have produced the line before any audio, cached or new, is served.
+    const lineObject = yield* deps.media.get(linePath(robot.id, key)).pipe(Effect.option)
+    if (Option.isNone(lineObject)) return yield* jsonError(502, 'R2 did not answer')
+    if (lineObject.value === null) return yield* jsonError(404, 'unknown line')
     const saved = yield* deps.media.get(audioPath(key)).pipe(Effect.option)
     if (Option.isSome(saved) && saved.value !== null)
       return HttpServerResponse.stream(saved.value.body, { contentType: 'audio/mpeg', headers: audioHeaders })
     const zeroG = yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY')
-    const lineObject = yield* deps.media.get(linePath(key)).pipe(Effect.option)
-    if (Option.isNone(lineObject) || lineObject.value === null) return yield* jsonError(404, 'unknown line')
     const text = yield* lineObject.value.text().pipe(Effect.option)
     if (Option.isNone(text)) return yield* jsonError(502, 'R2 did not answer')
     const bytes = yield* speak(zeroG, text.value, SPEECH_TIMEOUT)

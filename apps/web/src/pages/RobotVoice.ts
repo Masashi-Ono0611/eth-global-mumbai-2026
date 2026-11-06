@@ -16,7 +16,7 @@ import { playSpeech, startListening, stopListening } from '../Microphone.ts'
 
 // MODEL
 
-const FailReason = Schema.Literals(['blocked', 'unsupported', 'zeroG', 'tooShort'])
+const FailReason = Schema.Literals(['blocked', 'unsupported', 'zeroG', 'tooShort', 'speech'])
 type FailReason = typeof FailReason.Type
 
 export const Status = defineTaggedUnion({
@@ -24,9 +24,9 @@ export const Status = defineTaggedUnion({
   Unavailable: {},
   Idle: {},
   /** The button is held and the mic permission or the stream is starting. */
-  Starting: { pressedAt: Schema.Number },
+  Starting: { holdId: Schema.Number },
   /** The mic is open while the button is held, at most LISTEN_LIMIT_MILLIS. */
-  Listening: { pressedAt: Schema.Number },
+  Listening: { holdId: Schema.Number },
   /** The clip is with the Worker and 0G. */
   Thinking: {},
   Speaking: {},
@@ -51,6 +51,8 @@ export const Model = Schema.Struct({
   entries: Schema.Array(Entry),
   /** The intent a spoken buy started, and the state Vita last spoke for it (`state/episodeState`). */
   maybeFollowing: Schema.Option(Schema.Struct({ intentId: Schema.String, spokenState: Schema.String })),
+  /** Counts accepted presses: each hold's id, so its mic, its stop and its time limit never touch another hold. */
+  holds: Schema.Number,
 })
 export type Model = typeof Model.Type
 
@@ -58,18 +60,22 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   CompletedCheckVoice: { available: Schema.Boolean },
-  /** `at`: the event's timeStamp (ms), which tells this hold's time limit from an earlier one's. */
-  PressedTalk: { at: Schema.Number },
+  PressedTalk: {},
   ReleasedTalk: {},
-  CompletedLimitListening: { pressedAt: Schema.Number },
-  CompletedStartListening: {},
-  FailedStartListening: { reason: Schema.Literals(['blocked', 'unsupported']) },
-  CompletedStopListening: { maybeAudio: Schema.Option(Schema.String) },
+  CompletedLimitListening: { holdId: Schema.Number },
+  /** `holdId` names the hold the mic opened for: a late answer for an earlier hold never touches a newer one. */
+  CompletedStartListening: { holdId: Schema.Number },
+  FailedStartListening: {
+    holdId: Schema.Number,
+    reason: Schema.Literals(['blocked', 'unsupported', 'superseded', 'hidden']),
+  },
+  /** `closed`: a guard had closed the mic already (page hidden, past its time): nothing to send, no error. */
+  CompletedStopListening: { maybeAudio: Schema.Option(Schema.String), closed: Schema.Boolean },
   SucceededVoiceTurn: { turn: VoiceTurn },
   FailedVoiceTurn: { error: Schema.String },
   SucceededSayIntent: { say: VoiceSay },
   FailedSayIntent: { error: Schema.String },
-  CompletedPlaySpeech: {},
+  CompletedPlaySpeech: { played: Schema.Boolean },
 })
 export type Message = typeof Message.Type
 
@@ -88,30 +94,34 @@ export const CheckVoice = Command.define('CheckVoice', {
 
 /** @internal Exported for the voice tests; this page's update is its only production caller. */
 export const StartListening = Command.define('StartListening', {
+  args: { holdId: Schema.Number },
   messages: [Message.CompletedStartListening, Message.FailedStartListening],
-  execute: startListening.pipe(
-    Effect.as(Message.CompletedStartListening()),
-    Effect.catch((failure) => Effect.succeed(Message.FailedStartListening({ reason: failure.reason }))),
-  ),
+  execute: ({ holdId }) =>
+    startListening(holdId).pipe(
+      Effect.as(Message.CompletedStartListening({ holdId })),
+      Effect.catch((failure) => Effect.succeed(Message.FailedStartListening({ holdId, reason: failure.reason }))),
+    ),
 })
 
 /** @internal Exported for the voice tests; this page's update is its only production caller. */
 export const StopListening = Command.define('StopListening', {
   messages: [Message.CompletedStopListening],
-  execute: stopListening.pipe(Effect.map((maybeAudio) => Message.CompletedStopListening({ maybeAudio }))),
+  execute: stopListening.pipe(
+    Effect.map(({ maybeAudio, closed }) => Message.CompletedStopListening({ maybeAudio, closed })),
+  ),
 })
 
 /** The longest the mic stays open, even while held (the Worker takes about 15 s of audio). */
 const LISTEN_LIMIT_MILLIS = 14_000
 
-/** Sends a hold that goes past LISTEN_LIMIT_MILLIS; a later press makes this one stale.
+/** Sends a hold that goes past LISTEN_LIMIT_MILLIS after the mic opened; a later hold makes this one stale.
  * @internal Exported for the voice tests; this page's update is its only production caller.
  */
 export const LimitListening = Command.define('LimitListening', {
-  args: { pressedAt: Schema.Number },
+  args: { holdId: Schema.Number },
   messages: [Message.CompletedLimitListening],
-  execute: ({ pressedAt }) =>
-    Effect.sleep(LISTEN_LIMIT_MILLIS).pipe(Effect.as(Message.CompletedLimitListening({ pressedAt }))),
+  execute: ({ holdId }) =>
+    Effect.sleep(LISTEN_LIMIT_MILLIS).pipe(Effect.as(Message.CompletedLimitListening({ holdId }))),
 })
 
 /** @internal Exported for the voice tests; this page's update is its only production caller. */
@@ -140,7 +150,7 @@ export const SayIntent = Command.define('SayIntent', {
 export const PlaySpeech = Command.define('PlaySpeech', {
   args: { url: Schema.String },
   messages: [Message.CompletedPlaySpeech],
-  execute: ({ url }) => playSpeech(url).pipe(Effect.as(Message.CompletedPlaySpeech())),
+  execute: ({ url }) => playSpeech(url).pipe(Effect.map((played) => Message.CompletedPlaySpeech({ played }))),
 })
 
 // INIT
@@ -150,6 +160,7 @@ export const init = (robotId: string): Model => ({
   status: Status.Unavailable(),
   entries: [],
   maybeFollowing: Option.none(),
+  holds: 0,
 })
 
 // UPDATE
@@ -160,21 +171,34 @@ const stateKey = (intent: IntentView) => `${intent.state}/${intent.episodeState 
 
 const nextId = (model: Model) => (model.entries.at(-1)?.id ?? 0) + 1
 
-/** Vita's line joins the conversation; with speech it plays, otherwise the line stands as text. */
+/** The owner is mid-turn (holding the mic, or the clip is with 0G): state lines then join the thread silently. */
+const inTurn = (status: Status) =>
+  Status.guards.Starting(status) || Status.guards.Listening(status) || Status.guards.Thinking(status)
+
+/** Vita's line joins the conversation; with speech it plays, otherwise the line stands as text (and says why). */
 const vitaSays = (
   model: Model,
   line: VoiceLine,
-  speech: { readonly url: string } | null,
+  spoken: { readonly speech: { readonly url: string } | null; readonly speechError: string | null },
   maybeReason: Option.Option<string>,
 ): UpdateReturn => {
   const entry: Entry = { id: nextId(model), speaker: 'vita', text: line.text, line: Option.some(line), maybeReason }
   const entries = [...model.entries, entry]
-  return speech === null
-    ? { model: modifyFields(model, { entries: () => entries, status: () => Status.Idle() }) }
-    : {
-        model: modifyFields(model, { entries: () => entries, status: () => Status.Speaking() }),
-        commands: [PlaySpeech({ url: speech.url })],
-      }
+  // Mid-turn, or while Vita still speaks a line: the new line joins the thread silently (never two voices at once).
+  if (inTurn(model.status) || Status.guards.Speaking(model.status))
+    return { model: modifyFields(model, { entries: () => entries }) }
+  if (spoken.speech === null)
+    return {
+      model: modifyFields(model, {
+        entries: () => entries,
+        status: () =>
+          spoken.speechError === null ? Status.Idle() : Status.Failed({ reason: 'speech', detail: spoken.speechError }),
+      }),
+    }
+  return {
+    model: modifyFields(model, { entries: () => entries, status: () => Status.Speaking() }),
+    commands: [PlaySpeech({ url: spoken.speech.url })],
+  }
 }
 
 const heardTurn = (model: Model, turn: VoiceTurn): UpdateReturn => {
@@ -192,9 +216,9 @@ const heardTurn = (model: Model, turn: VoiceTurn): UpdateReturn => {
       ? Option.some({ intentId: errand.id, spokenState: stateKey(errand) })
       : withOwner.maybeFollowing
   const said = vitaSays(
-    modifyFields(withOwner, { maybeFollowing: () => following }),
+    modifyFields(withOwner, { maybeFollowing: () => following, status: () => Status.Idle() }),
     turn.line,
-    turn.speech,
+    turn,
     Option.none(),
   )
   return errand === null ? said : { ...said, outMessage: OutMessage.StartedIntent({ intent: errand }) }
@@ -233,13 +257,14 @@ const send = (model: Model): UpdateReturn => ({
 const idle = (model: Model): UpdateReturn => ({ model: modifyFields(model, { status: () => Status.Idle() }) })
 
 /** Press: the mic opens for as long as the button is held. */
-const pressed = (model: Model, at: number): UpdateReturn =>
-  canTalk(model.status)
-    ? {
-        model: modifyFields(model, { status: () => Status.Starting({ pressedAt: at }) }),
-        commands: [StartListening(), LimitListening({ pressedAt: at })],
-      }
-    : { model }
+const pressed = (model: Model): UpdateReturn => {
+  if (!canTalk(model.status)) return { model }
+  const holdId = model.holds + 1
+  return {
+    model: modifyFields(model, { holds: () => holdId, status: () => Status.Starting({ holdId }) }),
+    commands: [StartListening({ holdId })],
+  }
+}
 
 /** Release: send what was said; a release before the mic opened records nothing. */
 const released = (model: Model): UpdateReturn =>
@@ -250,35 +275,43 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     CompletedCheckVoice: ({ available }) => ({
       model: modifyFields(model, { status: () => (available ? Status.Idle() : Status.Unavailable()) }),
     }),
-    PressedTalk: ({ at }) => pressed(model, at),
-    CompletedStartListening: () => {
+    PressedTalk: () => pressed(model),
+    CompletedStartListening: ({ holdId }) => {
       const { status } = model
+      if ((Status.guards.Starting(status) || Status.guards.Listening(status)) && status.holdId !== holdId) {
+        return { model }
+      }
       return Status.guards.Starting(status)
         ? {
-            model: modifyFields(model, { status: () => Status.Listening({ pressedAt: status.pressedAt }) }),
+            model: modifyFields(model, { status: () => Status.Listening({ holdId: status.holdId }) }),
+            commands: [LimitListening({ holdId: status.holdId })],
           }
         : { model, commands: [StopListening()] }
     },
-    FailedStartListening: ({ reason }) => failed(model, reason, ''),
+    FailedStartListening: ({ holdId, reason }) =>
+      !Status.guards.Starting(model.status) || model.status.holdId !== holdId || reason === 'superseded'
+        ? { model }
+        : reason === 'hidden'
+          ? idle(model)
+          : failed(model, reason, ''),
     ReleasedTalk: () => released(model),
-    CompletedLimitListening: ({ pressedAt }) =>
-      Status.guards.Listening(model.status) && model.status.pressedAt === pressedAt ? send(model) : { model },
-    CompletedStopListening: ({ maybeAudio }) =>
+    CompletedLimitListening: ({ holdId }) =>
+      Status.guards.Listening(model.status) && model.status.holdId === holdId ? send(model) : { model },
+    CompletedStopListening: ({ maybeAudio, closed }) =>
       Status.guards.Thinking(model.status)
         ? Option.match(maybeAudio, {
-            onNone: () => failed(model, 'tooShort', ''),
+            onNone: () => (closed ? idle(model) : failed(model, 'tooShort', '')),
             onSome: (audio) => ({ model, commands: [SendVoiceTurn({ robotId: model.robotId, audio })] }),
           })
         : { model },
     SucceededVoiceTurn: ({ turn }) => heardTurn(model, turn),
     FailedVoiceTurn: ({ error }) => failed(model, 'zeroG', error),
-    SucceededSayIntent: ({ say }) =>
-      Status.guards.Listening(model.status) || Status.guards.Starting(model.status)
-        ? { model }
-        : vitaSays(model, say.line, say.speech, Option.fromNullishOr(say.decisionReason)),
-    FailedSayIntent: () => ({ model }),
-    CompletedPlaySpeech: () =>
+    SucceededSayIntent: ({ say }) => vitaSays(model, say.line, say, Option.fromNullishOr(say.decisionReason)),
+    FailedSayIntent: ({ error }) => (inTurn(model.status) ? { model } : failed(model, 'speech', error)),
+    CompletedPlaySpeech: ({ played }) =>
       Status.guards.Speaking(model.status)
-        ? { model: modifyFields(model, { status: () => Status.Idle() }) }
+        ? played
+          ? { model: modifyFields(model, { status: () => Status.Idle() }) }
+          : failed(model, 'speech', 'the speech did not play')
         : { model },
   })

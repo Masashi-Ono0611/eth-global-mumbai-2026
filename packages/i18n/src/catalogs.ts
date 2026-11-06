@@ -339,7 +339,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'voice.reason': "0G's reason",
   'voice.micOnlyWhileHeld': 'The mic is on only while you hold',
   'voice.failed':
-    '{reason, select, blocked {Microphone blocked. Allow it in the address bar, or tap an item.} unsupported {This browser has no microphone access. Tap an item instead.} tooShort {Hold the button while you speak.} other {{detail}. Try again, or tap an item.}}',
+    '{reason, select, blocked {Microphone blocked. Allow it in the address bar, or tap an item.} unsupported {This browser has no microphone access. Tap an item instead.} tooShort {Hold the button while you speak.} speech {Vita could not speak ({detail}); the line is shown as text.} other {{detail}. Try again, or tap an item.}}',
   'voice.headerListening': 'Listening…',
   'voice.headerSpeaking': 'Speaking…',
   'voice.pending': 'listening',

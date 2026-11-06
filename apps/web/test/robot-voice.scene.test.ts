@@ -54,8 +54,8 @@ const after = (...messages: ReadonlyArray<RobotVoice.Message>) =>
 const clip = 'data:audio/wav;base64,UklGRg=='
 /** A hold: press, the mic opens, release (the clip then goes to the Worker). */
 const spoken = [
-  RobotVoice.Message.PressedTalk({ at: 0 }),
-  RobotVoice.Message.CompletedStartListening(),
+  RobotVoice.Message.PressedTalk(),
+  RobotVoice.Message.CompletedStartListening({ holdId: 1 }),
   RobotVoice.Message.ReleasedTalk(),
 ]
 const asking = intent({ state: 'scanned', episodeId, episodeState: 'awaiting_approval' })
@@ -83,15 +83,16 @@ describe('/robot/:id voice', () => {
     Story.story(
       RobotConsole.update,
       Story.given(voiceOn()),
-      Story.message(voice(RobotVoice.Message.PressedTalk({ at: 0 }))),
-      Story.Command.expectHas(RobotVoice.StartListening(), RobotVoice.LimitListening({ pressedAt: 0 })),
-      Story.Command.resolve(RobotVoice.StartListening, RobotVoice.Message.CompletedStartListening()),
-      Story.Command.resolve(RobotVoice.LimitListening, RobotVoice.Message.CompletedLimitListening({ pressedAt: -1 })),
+      Story.message(voice(RobotVoice.Message.PressedTalk())),
+      Story.Command.expectExact(RobotVoice.StartListening({ holdId: 1 })),
+      Story.Command.resolve(RobotVoice.StartListening, RobotVoice.Message.CompletedStartListening({ holdId: 1 })),
+      Story.Command.expectExact(RobotVoice.LimitListening({ holdId: 1 })),
+      Story.Command.resolve(RobotVoice.LimitListening, RobotVoice.Message.CompletedLimitListening({ holdId: 0 })),
       Story.message(voice(RobotVoice.Message.ReleasedTalk())),
       Story.Command.expectExact(RobotVoice.StopListening()),
       Story.Command.resolve(
         RobotVoice.StopListening,
-        RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.some(clip) }),
+        RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.some(clip), closed: false }),
       ),
       Story.Command.expectExact(RobotVoice.SendVoiceTurn({ robotId, audio: clip })),
       Story.Command.resolve(RobotVoice.SendVoiceTurn, RobotVoice.Message.SucceededVoiceTurn({ turn: turn() })),
@@ -101,7 +102,7 @@ describe('/robot/:id voice', () => {
         expectValue(RobotVoice.Status.guards.Speaking(model.voice.status)).toBe(true)
         expectValue(RobotConsole.Intent.guards.Open(model.intent)).toBe(true)
       }),
-      Story.Command.resolve(RobotVoice.PlaySpeech, RobotVoice.Message.CompletedPlaySpeech()),
+      Story.Command.resolve(RobotVoice.PlaySpeech, RobotVoice.Message.CompletedPlaySpeech({ played: true })),
       Story.Command.resolve(
         RobotConsole.PollIntent,
         RobotConsole.Message.SucceededLoadIntent({
@@ -125,32 +126,109 @@ describe('/robot/:id voice', () => {
   test('a release before the mic opened records nothing, and the late mic is closed again', () => {
     const pressed = RobotVoice.update(
       RobotVoice.update(RobotVoice.init(robotId), RobotVoice.Message.CompletedCheckVoice({ available: true })).model,
-      RobotVoice.Message.PressedTalk({ at: 0 }),
+      RobotVoice.Message.PressedTalk(),
     )
     const released = RobotVoice.update(pressed.model, RobotVoice.Message.ReleasedTalk())
     expectValue(RobotVoice.Status.guards.Idle(released.model.status)).toBe(true)
-    const late = RobotVoice.update(released.model, RobotVoice.Message.CompletedStartListening())
+    const late = RobotVoice.update(released.model, RobotVoice.Message.CompletedStartListening({ holdId: 1 }))
     expectValue(late.commands).toEqual([RobotVoice.StopListening()])
     const closed = RobotVoice.update(
       late.model,
-      RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.some(clip) }),
+      RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.some(clip), closed: false }),
     )
     expectValue(closed.commands ?? []).toEqual([])
     expectValue(closed.model.entries).toEqual([])
   })
 
-  test('a hold past 14 s sends what was said; a limit from an earlier hold is ignored', () => {
+  test('a hold past 14 s after the mic opened sends what was said; a limit from another hold is ignored; a hidden page gets no mic', () => {
     const on = RobotVoice.update(
       RobotVoice.init(robotId),
       RobotVoice.Message.CompletedCheckVoice({ available: true }),
     ).model
-    const holding = steps(on, RobotVoice.Message.PressedTalk({ at: 100 }), RobotVoice.Message.CompletedStartListening())
-    expectValue(holding.model.status).toEqual(RobotVoice.Status.Listening({ pressedAt: 100 }))
-    expectValue(steps(holding.model, RobotVoice.Message.CompletedLimitListening({ pressedAt: 7 })).commands).toEqual([])
-    const limited = steps(holding.model, RobotVoice.Message.CompletedLimitListening({ pressedAt: 100 }))
+    const holding = steps(
+      on,
+      RobotVoice.Message.PressedTalk(),
+      RobotVoice.Message.CompletedStartListening({ holdId: 1 }),
+    )
+    expectValue(holding.model.status).toEqual(RobotVoice.Status.Listening({ holdId: 1 }))
+    expectValue(steps(holding.model, RobotVoice.Message.CompletedLimitListening({ holdId: 7 })).commands).toEqual([])
+    const limited = steps(holding.model, RobotVoice.Message.CompletedLimitListening({ holdId: 1 }))
     expectValue(RobotVoice.Status.guards.Thinking(limited.model.status)).toBe(true)
     expectValue(limited.commands).toEqual([RobotVoice.StopListening()])
     expectValue(steps(limited.model, RobotVoice.Message.ReleasedTalk()).model.status).toEqual(limited.model.status)
+    expectValue(steps(on, RobotVoice.Message.PressedTalk()).commands).toMatchObject([
+      { name: 'StartListening', args: { holdId: 1 } },
+    ])
+    const hidden = steps(
+      on,
+      RobotVoice.Message.PressedTalk(),
+      RobotVoice.Message.FailedStartListening({ holdId: 1, reason: 'hidden' }),
+    )
+    expectValue(RobotVoice.Status.guards.Idle(hidden.model.status)).toBe(true)
+    const guarded = steps(
+      on,
+      ...spoken,
+      RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.none(), closed: true }),
+    )
+    expectValue(RobotVoice.Status.guards.Idle(guarded.model.status)).toBe(true)
+  })
+
+  test('a late mic for an earlier press never touches the current hold; a stale failure is ignored', () => {
+    const on = RobotVoice.update(
+      RobotVoice.init(robotId),
+      RobotVoice.Message.CompletedCheckVoice({ available: true }),
+    ).model
+    const second = steps(
+      on,
+      RobotVoice.Message.PressedTalk(),
+      RobotVoice.Message.ReleasedTalk(),
+      RobotVoice.Message.PressedTalk(),
+    )
+    expectValue(second.model.status).toEqual(RobotVoice.Status.Starting({ holdId: 2 }))
+    const stale = steps(
+      second.model,
+      RobotVoice.Message.FailedStartListening({ holdId: 1, reason: 'superseded' }),
+      RobotVoice.Message.CompletedStartListening({ holdId: 1 }),
+    )
+    expectValue(stale.model.status).toEqual(second.model.status)
+    expectValue(stale.commands).toEqual([])
+    const opened = steps(stale.model, RobotVoice.Message.CompletedStartListening({ holdId: 2 }))
+    expectValue(opened.model.status).toEqual(RobotVoice.Status.Listening({ holdId: 2 }))
+  })
+
+  test('narration mid-turn joins the thread silently; a speech that does not play is said', () => {
+    const on = RobotVoice.update(
+      RobotVoice.init(robotId),
+      RobotVoice.Message.CompletedCheckVoice({ available: true }),
+    ).model
+    const thinking = steps(on, ...spoken)
+    const narrated = steps(
+      thinking.model,
+      RobotVoice.Message.SucceededSayIntent({
+        say: { errand: asking, line: askingLine, decisionReason: null, speech: { url: '/s' }, speechError: null },
+      }),
+    )
+    expectValue(RobotVoice.Status.guards.Thinking(narrated.model.status)).toBe(true)
+    expectValue(narrated.commands).toEqual([])
+    expectValue(narrated.model.entries).toHaveLength(1)
+    const sent = steps(
+      narrated.model,
+      RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.some(clip), closed: false }),
+    )
+    expectValue(sent.commands).toMatchObject([{ name: 'SendVoiceTurn', args: { robotId, audio: clip } }])
+    const answered = steps(sent.model, RobotVoice.Message.SucceededVoiceTurn({ turn: turn() }))
+    const overlapping = steps(
+      answered.model,
+      RobotVoice.Message.SucceededSayIntent({
+        say: { errand: asking, line: askingLine, decisionReason: null, speech: { url: '/s2' }, speechError: null },
+      }),
+    )
+    expectValue(overlapping.commands).toEqual([])
+    expectValue(RobotVoice.Status.guards.Speaking(overlapping.model.status)).toBe(true)
+    const unplayed = steps(answered.model, RobotVoice.Message.CompletedPlaySpeech({ played: false }))
+    expectValue(unplayed.model.status).toEqual(
+      RobotVoice.Status.Failed({ reason: 'speech', detail: 'the speech did not play' }),
+    )
   })
 
   test('without the voice routes there is no mic, and the dock is unchanged', () => {
@@ -171,7 +249,7 @@ describe('/robot/:id voice', () => {
     )
     Scene.scene(
       { update: RobotConsole.update, view: consoleView },
-      Scene.given(after(RobotVoice.Message.PressedTalk({ at: 0 }), RobotVoice.Message.CompletedStartListening())),
+      Scene.given(after(RobotVoice.Message.PressedTalk(), RobotVoice.Message.CompletedStartListening({ holdId: 1 }))),
       Scene.expect(listening).toHaveAttr('aria-pressed', 'true'),
       Scene.expect(Scene.text('let go to send')).toExist(),
       Scene.expect(Scene.text('Listening…')).toExist(),
@@ -215,13 +293,14 @@ describe('/robot/:id voice', () => {
   test('a blocked mic, a tap and a 0G failure are said plainly; nothing is guessed', () => {
     const scenes: ReadonlyArray<readonly [ReadonlyArray<RobotVoice.Message>, string]> = [
       [
-        [RobotVoice.Message.PressedTalk({ at: 0 }), RobotVoice.Message.FailedStartListening({ reason: 'blocked' })],
+        [RobotVoice.Message.PressedTalk(), RobotVoice.Message.FailedStartListening({ holdId: 1, reason: 'blocked' })],
         'Microphone blocked. Allow it in the address bar, or tap an item.',
       ],
       [
-        [...spoken, RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.none() })],
+        [...spoken, RobotVoice.Message.CompletedStopListening({ maybeAudio: Option.none(), closed: false })],
         'Hold the button while you speak.',
       ],
+
       [
         [...spoken, RobotVoice.Message.FailedVoiceTurn({ error: '0G did not answer: 0G answered 502' })],
         '0G did not answer: 0G answered 502. Try again, or tap an item.',
@@ -234,6 +313,21 @@ describe('/robot/:id voice', () => {
         Scene.expect(Scene.role('alert')).toHaveText(alert),
         Scene.expect(Scene.text('you said')).not.toExist(),
       ),
+    )
+    Scene.scene(
+      { update: RobotConsole.update, view: consoleView },
+      Scene.given(
+        after(
+          ...spoken,
+          RobotVoice.Message.SucceededVoiceTurn({
+            turn: turn({ speech: null, speechError: 'Vita could not speak this line; showing it as text' }),
+          }),
+        ),
+      ),
+      Scene.expect(Scene.role('alert')).toHaveText(
+        'Vita could not speak (Vita could not speak this line; showing it as text); the line is shown as text.',
+      ),
+      Scene.expect(Scene.text('Waddle waddle!')).toExist(),
     )
   })
 })

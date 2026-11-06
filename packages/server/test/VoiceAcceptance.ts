@@ -214,6 +214,9 @@ export const registerVoiceAcceptance = (test: TestApi['test'], stack: Effect.Eff
       expect((yield* other.call(`/api/robots/${robot.robotId}/voice`, { audio: CLIP })).status).toBe(404)
       expect((yield* other.call(`/api/robots/${robot.robotId}/voice/say`, { intentId: errand.id })).status).toBe(404)
       expect((yield* other.play(speechUrl)).status).toBe(404)
+      // Their own robot with this robot's line key: the line was never said in their conversation, so no audio.
+      const theirs = yield* seedScanningRobot(urls.url, other.accountId, DEMO_CAPS)
+      expect((yield* other.play(speechUrl.replace(robot.robotId, theirs.robotId))).status).toBe(404)
       expect(stub.voiceSeen.length).toBe(calls)
 
       // Not a WAV data URI: 400 before any 0G call; no Origin: refused before the route.
