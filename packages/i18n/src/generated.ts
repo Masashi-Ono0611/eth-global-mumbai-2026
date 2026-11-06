@@ -241,7 +241,6 @@ export interface MessageArgumentsByKey<T = string> {
   'receive.title': Readonly<Record<string, never>>
   'robot.state': { readonly state: string | number }
   'robots.openConsole': Readonly<Record<string, never>>
-  'telegram.check': Readonly<Record<string, never>>
   'telegram.checking': Readonly<Record<string, never>>
   'telegram.connect': Readonly<Record<string, never>>
   'telegram.connected': Readonly<Record<string, never>>
@@ -254,6 +253,7 @@ export interface MessageArgumentsByKey<T = string> {
   'telegram.pressStart': Readonly<Record<string, never>>
   'telegram.retry': Readonly<Record<string, never>>
   'telegram.title': Readonly<Record<string, never>>
+  'telegram.waiting': Readonly<Record<string, never>>
   'thread.askChip': { readonly item: string | number }
   'thread.askOk': { readonly item: string | number }
   'thread.askRowHint': { readonly name: string | number }
@@ -315,4 +315,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '5b73338ec4ec010a36f16ff324ff015c8a2b65b94f9bf184763371f6f25cb917'
+export const catalogVersion = 'dc016f980f8fd83ebafed76d246d2265601e8311401964029b9ce18af62b4cf6'
