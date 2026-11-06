@@ -21,10 +21,11 @@ import { dock } from './RobotDockView.ts'
 import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
+import { threadSkeleton } from '../Skeleton.ts'
 
 // STYLES
 
-const pageClassName = 'flex min-h-[calc(100svh-2rem)] flex-col'
+const pageClassName = 'flex min-h-[calc(100svh-2rem)] flex-col transition-opacity duration-150 starting:opacity-0'
 const headerClassName =
   'sticky top-0 z-10 grid grid-cols-[44px_44px_1fr_auto] items-center gap-2.5 border-b border-rule bg-paper/95 px-1 pt-1 pb-2.5 backdrop-blur'
 const backClassName =
@@ -488,7 +489,7 @@ export const robotConsoleView = Submodel.defineView<
     [h.Id('main')],
     [
       ConsoleState.match(model.state, {
-        Loading: () => h.p([h.Role('status'), h.Class('p-4')], [format(locale, 'common.loading', {})]),
+        Loading: () => threadSkeleton(locale, h),
         SignedOut: () => signedOutView(locale, h),
         Failed: ({ error }) => failedView(error, Message.ClickedRefresh(), locale, h),
         Loaded: ({ robot, catalogue, history, amounts }) =>

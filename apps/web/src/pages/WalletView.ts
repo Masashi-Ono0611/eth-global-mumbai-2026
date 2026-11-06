@@ -9,12 +9,13 @@ import { duck } from '../Duck.ts'
 import { qrDataUri } from '../Qr.ts'
 import { robotConsoleRouter, robotsRouter } from '../route.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
-import { failedView, loadingView, signedOutView } from './Shared.ts'
+import { walletSkeleton } from '../Skeleton.ts'
+import { failedView, signedOutView } from './Shared.ts'
 import { Copy, Decline, type Home, Message, type Model, type NeedsYou, WalletState } from './Wallet.ts'
 
 // STYLES
 
-const pageClassName = 'grid gap-0 pb-6'
+const pageClassName = 'grid gap-0 pb-6 transition-opacity duration-150 starting:opacity-0'
 const balanceClassName = 'grid min-w-0 gap-0.5 px-2 pt-3'
 const amountClassName =
   'font-display text-[clamp(2.75rem,16vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.02em] wrap-anywhere'
@@ -387,7 +388,7 @@ export const walletView = Submodel.defineView<Model, Message, { readonly locale:
     [
       h.h1([h.Class('sr-only')], [format(locale, 'wallet.title', {})]),
       WalletState.match(model.state, {
-        Loading: () => loadingView(locale, h),
+        Loading: () => walletSkeleton(locale, h),
         SignedOut: () => signedOutView(locale, h),
         Loaded: ({ home }) => loadedView(model, home, locale, h),
         Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),

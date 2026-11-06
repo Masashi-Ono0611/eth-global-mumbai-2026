@@ -1,6 +1,7 @@
 import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { homeRouter } from '../route.ts'
+import { cardsSkeleton } from '../Skeleton.ts'
 
 // STYLES
 
@@ -28,5 +29,5 @@ export const failedView = <M>(error: string, retry: M, locale: Locale, h: HtmlBu
     ],
   )
 
-export const loadingView = <M>(locale: Locale, h: HtmlBuilder<M>): Html =>
-  h.p([h.Role('status')], [format(locale, 'common.loading', {})])
+/** A page's data on its way: card-shaped skeletons under the page's own title. */
+export const loadingView = cardsSkeleton

@@ -4,6 +4,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { Dialog } from '@foldkit/ui'
 import type { SessionView } from '@ethmumbai/auth/config'
 import { sheetTitleClassName, sheetView } from './Sheet.ts'
+import { avatarSkeleton } from './Skeleton.ts'
 import { Message } from './message.ts'
 import { AuthState, type Model } from './model.ts'
 import { architectureUrl, homeView } from './pages/Home.ts'
@@ -103,7 +104,7 @@ const walletTopBar = (model: Model, h: HtmlBuilder<Message>): Html =>
   AuthState.match(model.auth, {
     SignedIn: ({ session }) => topBar(model, session, false, h),
     SigningOut: ({ session }) => topBar(model, session, true, h),
-    Checking: () => h.empty,
+    Checking: () => h.header([h.Class(topBarClassName)], [avatarSkeleton(h)]),
     SignedOut: () => h.empty,
     Refused: () => h.empty,
     CreatingWallet: () => h.empty,
