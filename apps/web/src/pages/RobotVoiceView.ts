@@ -28,7 +28,7 @@ const failedClassName = 'pr-1 text-right text-[0.85rem] text-error'
 const ownerClassName = 'max-w-[82%] self-end rounded-[20px_20px_6px_20px] bg-ink px-3.5 pt-2 pb-1.5 text-surface'
 const vitaClassName =
   'max-w-[86%] self-start rounded-[20px_20px_20px_6px] bg-surface px-3.5 pt-2 pb-2 shadow-[inset_0_0_0_2px_var(--color-duck)]'
-const catchClassName = 'rounded-md bg-duck px-1 font-semibold'
+const catchClassName = 'rounded-md bg-duck px-1 font-semibold box-decoration-clone'
 const saidClassName = 'mt-1 flex items-center gap-1.5 text-[0.78rem] text-muted'
 const ownerSaidClassName = 'mt-1 flex items-center justify-end gap-1.5 text-[0.78rem] text-surface/70'
 const quoteClassName = 'mt-1.5 block border-l-[2.5px] border-ink/25 pl-2.5 text-[0.9rem] text-ink/80'
