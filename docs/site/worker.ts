@@ -11,6 +11,7 @@
  *   PATCH  /api/comments/:id              { status, by } on a root, and/or { parentId: string | null } → 200 Comment
  *   DELETE /api/comments/:id              → 204, with every reply below it
  */
+import { prefixed, unprefixed } from './base.ts'
 import { asMarkdown } from './markdown.ts'
 import { commentStatuses, type CommentStatus } from './schema.ts'
 import { Refused, createComment, deleteThread, listComments, setParent, setStatus } from './threads.ts'
@@ -140,11 +141,22 @@ const media = async (request: Request, env: Env): Promise<Response> => {
   return new Response(request.method === 'HEAD' ? null : bytes.slice(start, end + 1), { status: 206, headers })
 }
 
+/** Comments, films, then the static assets (reached here for `runWorkerFirst` paths and under the `/plan` prefix). */
+const serve = (request: Request, env: Env): Promise<Response> => {
+  const { pathname } = new URL(request.url)
+  if (/^\/(story|pitch)\/media\//.test(pathname)) return media(request, env)
+  if (pathname.startsWith('/api/comments')) return route(request, env)
+  return env.ASSETS.fetch(request)
+}
+
 export default {
-  fetch: (request: Request, env: Env) =>
-    (/^\/(story|pitch)\/media\//.test(new URL(request.url).pathname) ? media(request, env) : route(request, env)).catch((error: unknown) => {
+  fetch: async (request: Request, env: Env) => {
+    // vitaquack.com/plan/…: serve the path without the prefix, then put the prefix back on the answer (base.ts).
+    const inner = unprefixed(request)
+    return (inner === null ? serve(request, env) : serve(inner, env).then(prefixed)).catch((error: unknown) => {
       if (error instanceof Refused) return problem(error.status, error.message)
       console.error('comments: request failed', error)
       return problem(500, 'internal error')
-    }),
+    })
+  },
 }

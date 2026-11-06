@@ -33,7 +33,9 @@ export default Alchemy.Stack(
       memo: false,
       workersDev: true,
       // The story and pitch films need byte ranges (Safari); worker.ts serves them from the ASSETS binding.
-      assets: { runWorkerFirst: ['/story/media/*', '/pitch/media/*'] },
+      assets: { runWorkerFirst: ['/story/media/*', '/pitch/media/*', '/plan', '/plan/*'] },
+      // vitaquack.com/plan/… is this site (Kris, 6 Nov); the app owns the rest of vitaquack.com. base.ts handles the prefix.
+      routes: [{ pattern: 'vitaquack.com/plan*', zoneName: 'vitaquack.com' }],
       compatibility: { date: '2026-10-19' },
     })
     return { url: site.url.as<string>() }

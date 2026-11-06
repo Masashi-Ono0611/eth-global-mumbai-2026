@@ -45,14 +45,16 @@ export interface State {
   showResolved: boolean
 }
 
-export const API = '/api/comments'
+/** The site's path prefix: '' on its own host, '/plan' under vitaquack.com (set by the Worker on <html data-base>). */
+const BASE = document.documentElement.dataset.base ?? ''
+export const API = `${BASE}/api/comments`
 export const SELECTOR =
   'main h1, main h2, main h3, main .card, main .rule, main tr, main li, main .diagram, main details > summary, main p.lead'
 /** Pele diagram parts that can be commented on (all carry a `data-id`). */
 export const PART = '.pele-node, .pele-cluster, .pele-edge, .pele-edge-label, .pele-message'
 export const QUOTE_MIN = 3
 export const QUOTE_MAX = 280
-export const page = location.pathname.replace(/^\/|\/$/g, '') || 'index'
+export const page = location.pathname.slice(BASE.length).replace(/^\/|\/$/g, '') || 'index'
 
 export const store = {
   get: (key: 'name'): string => localStorage.getItem(`comments.${key}`) ?? '',

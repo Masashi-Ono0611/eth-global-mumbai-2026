@@ -17,6 +17,8 @@ export default Alchemy.Stack(
     const till = yield* Cloudflare.Website.StaticSite('Till', {
       // Pinned, so a lost state adopts this Worker instead of minting a second one (docs/DEPLOYMENT.md, 6 Nov).
       name: 'eth-mumbai-merchant',
+      // The till's public address (Kris, 6 Nov): a custom domain on the vitaquack.com zone; workers.dev stays on too.
+      domain: 'cafe.vitaquack.com',
       command: 'vite build',
       outdir: 'dist',
       main: 'worker.ts',
