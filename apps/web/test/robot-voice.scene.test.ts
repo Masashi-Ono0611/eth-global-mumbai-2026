@@ -103,6 +103,7 @@ describe('/robot/:id voice', () => {
         expectValue(RobotConsole.Intent.guards.Open(model.intent)).toBe(true)
       }),
       Story.Command.resolve(RobotVoice.PlaySpeech, RobotVoice.Message.CompletedPlaySpeech({ played: true })),
+      Story.Command.resolve(RobotVoice.ShowNewest, RobotVoice.Message.CompletedShowNewest()),
       Story.Command.resolve(
         RobotConsole.PollIntent,
         RobotConsole.Message.SucceededLoadIntent({
@@ -116,8 +117,10 @@ describe('/robot/:id voice', () => {
           say: { errand: asking, line: askingLine, decisionReason: null, speech: null, speechError: null },
         }),
       ),
+      Story.Command.resolve(RobotVoice.ShowNewest, RobotVoice.Message.CompletedShowNewest()),
       Story.model((model) => {
         expectValue(model.voice.entries.map((entry) => entry.speaker)).toEqual(['owner', 'vita', 'vita'])
+        expectValue(model.voice.entries.map((entry) => entry.kind)).toEqual(['turn', 'turn', 'narration'])
         expectValue(Option.isNone(model.voice.maybeFollowing)).toBe(true)
       }),
     )
@@ -209,7 +212,7 @@ describe('/robot/:id voice', () => {
       }),
     )
     expectValue(RobotVoice.Status.guards.Thinking(narrated.model.status)).toBe(true)
-    expectValue(narrated.commands).toEqual([])
+    expectValue(narrated.commands).toMatchObject([{ name: 'ShowNewest' }])
     expectValue(narrated.model.entries).toHaveLength(1)
     const sent = steps(
       narrated.model,
@@ -223,7 +226,9 @@ describe('/robot/:id voice', () => {
         say: { errand: asking, line: askingLine, decisionReason: null, speech: { url: '/s2' }, speechError: null },
       }),
     )
-    expectValue(overlapping.commands).toEqual([])
+    expectValue(overlapping.commands).toMatchObject([{ name: 'ShowNewest' }])
+    const cutIn = steps(answered.model, RobotVoice.Message.PressedTalk())
+    expectValue(cutIn.model.status).toEqual(RobotVoice.Status.Starting({ holdId: 2 }))
     expectValue(RobotVoice.Status.guards.Speaking(overlapping.model.status)).toBe(true)
     const unplayed = steps(answered.model, RobotVoice.Message.CompletedPlaySpeech({ played: false }))
     expectValue(unplayed.model.status).toEqual(

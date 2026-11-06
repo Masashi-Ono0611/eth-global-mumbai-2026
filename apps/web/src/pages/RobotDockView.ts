@@ -16,7 +16,7 @@ const dockHintClassName = 'pl-1.5 text-[0.85rem] text-muted'
 const chipsClassName = 'grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-1.5'
 const withMicClassName = 'grid grid-cols-[1fr_auto] items-end gap-2'
 const chipClassName =
-  'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
+  'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface px-2 text-center leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
 const chipPriceClassName = 'text-[0.8rem] font-medium text-muted'
 const askChipClassName = 'text-[0.75rem] font-semibold text-duck-deep'
 const detailsClassName = 'px-1.5 text-sm text-muted [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-2.5'
@@ -87,6 +87,50 @@ const askChips = (
     ],
   )
 
+/** One of Vita's voice views mounted in the conversation (the mic, its status line, the spoken bubbles). */
+export const voiceIn = (
+  model: Model,
+  view: ConsoleRobot,
+  slot: string,
+  voiceView: typeof micView,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.submodel({
+    slotId: `voice-${slot}-${view.robot.id}`,
+    model: model.voice,
+    view: voiceView,
+    viewInputs: { name: view.robot.name, locale },
+    toParentMessage: (message) => Message.GotVoiceMessage({ message }),
+  })
+
+/** What the dock says: why it is resting (no allowance, an errand out, stopped) or what to do. Talking is not an
+ *  errand: the voice says its own state under the mic. */
+const dockHint = (
+  name: string,
+  noAllowance: boolean,
+  errandBusy: boolean,
+  stopped: boolean,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.p(
+    [h.Class(dockHintClassName), h.Id('dock-hint')],
+    [
+      format(
+        locale,
+        noAllowance
+          ? 'thread.dockNoAllowance'
+          : errandBusy
+            ? 'thread.dockBusy'
+            : stopped
+              ? 'thread.dockStopped'
+              : 'thread.dockReady',
+        { name },
+      ),
+    ],
+  )
+
 /** The conversation's keyboard: the buy chips (and, for a simulator, the owner's own words), disabled while the robot is
  *  out or without any allowance, with the reason. */
 export const dock = (
@@ -105,16 +149,10 @@ export const dock = (
     RobotVoice.Status.guards.Listening(model.voice.status) ||
     RobotVoice.Status.guards.Thinking(model.voice.status)
   // While the owner talks the chips rest (dimmed), so a tap cannot race the spoken request.
-  const busy = isLive(model.errand) || isIntentOpen(model.intent) || voiceBusy
+  const errandBusy = isLive(model.errand) || isIntentOpen(model.intent)
+  const busy = errandBusy || voiceBusy
   const sim = view.robot.kind === 'sim'
-  const voiceSlot = (slot: string, voiceView: typeof micView): Html =>
-    h.submodel({
-      slotId: `voice-${slot}-${view.robot.id}`,
-      model: model.voice,
-      view: voiceView,
-      viewInputs: { name: view.robot.name, locale },
-      toParentMessage: (message) => Message.GotVoiceMessage({ message }),
-    })
+  const voiceSlot = (slot: string, voiceView: typeof micView) => voiceIn(model, view, slot, voiceView, locale, h)
   // Vita's voice sits beside the row a spoken request stands for: "Get me" for a real robot, Buy for a simulator.
   const withMic = (row: Html): Html =>
     RobotVoice.Status.guards.Unavailable(model.voice.status)
@@ -148,24 +186,7 @@ export const dock = (
   return h.div(
     [h.Class(dockClassName)],
     [
-      h.p(
-        [h.Class(dockHintClassName), h.Id('dock-hint')],
-        [
-          format(
-            locale,
-            noAllowance
-              ? 'thread.dockNoAllowance'
-              : busy
-                ? 'thread.dockBusy'
-                : stopped
-                  ? 'thread.dockStopped'
-                  : 'thread.dockReady',
-            {
-              name: view.robot.name,
-            },
-          ),
-        ],
-      ),
+      dockHint(view.robot.name, noAllowance, errandBusy, stopped, locale, h),
       instructionForm(model, view.robot.name, busy || noAllowance, locale, h),
       sim ? h.empty : askChips(view, catalogue, busy || noAllowance, withMic, locale, h),
       sim ? withMic(buyChips) : buyChips,

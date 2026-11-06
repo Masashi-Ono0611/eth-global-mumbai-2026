@@ -12,8 +12,10 @@ import { workingDots } from '../Busy.ts'
 
 // STYLES
 
+// One colour set per state, never two at once (Tailwind cannot order two backgrounds on one element).
 const micClassName =
-  'grid size-16 cursor-pointer touch-none place-items-center rounded-full bg-ink text-surface shadow-[0_6px_16px_-6px_rgb(31_45_54/0.5)] transition-[transform,background-color,box-shadow] duration-150 select-none [-webkit-touch-callout:none] active:scale-[0.96] disabled:cursor-wait'
+  'grid size-16 shrink-0 cursor-pointer touch-none place-items-center rounded-full transition-[transform,background-color,box-shadow] duration-150 select-none [-webkit-touch-callout:none] active:scale-[0.96] disabled:cursor-wait'
+const micIdleClassName = 'bg-ink text-surface shadow-[0_6px_16px_-6px_rgb(31_45_54/0.5)]'
 const micListeningClassName =
   'bg-duck text-ink shadow-[0_0_0_8px_rgb(255_224_122/0.45),0_0_0_18px_rgb(255_224_122/0.2)] motion-reduce:shadow-[0_0_0_6px_rgb(255_224_122/0.6)]'
 const micBusyClassName = 'bg-surface text-muted shadow-[0_1px_2px_rgb(31_45_54/0.08)]'
@@ -99,7 +101,7 @@ const micButton = (voice: RobotVoice.Model, name: string, locale: Locale, h: Htm
   return h.button(
     [
       h.Type('button'),
-      h.Class(clsx(micClassName, { [micListeningClassName]: listening, [micBusyClassName]: busy })),
+      h.Class(clsx(micClassName, listening ? micListeningClassName : busy ? micBusyClassName : micIdleClassName)),
       h.Disabled(busy),
       h.AriaPressed(listening ? 'true' : 'false'),
       h.AriaLabel(format(locale, listening ? 'voice.listeningLabel' : 'voice.hold', { name })),
@@ -201,15 +203,24 @@ const pendingBubble = (locale: Locale, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-/** The spoken exchange, in the thread after the errand's own messages (a `contents` box: the thread lays them out). */
-export const bubblesView = Submodel.defineView<RobotVoice.Model, Message, ViewInputs>((voice, { name, locale }, h) =>
+/** Spoken requests and Vita's answers, before the live errand's messages (a `contents` box: the thread lays them
+ *  out); the pending bubble waits here while the owner talks. */
+export const turnsView = Submodel.defineView<RobotVoice.Model, Message, ViewInputs>((voice, { name, locale }, h) =>
   h.div(
     [h.Class('contents')],
     [
-      ...voice.entries.map((entry) => entryView(entry, name, locale, h)),
+      ...voice.entries.filter((entry) => entry.kind === 'turn').map((entry) => entryView(entry, name, locale, h)),
       RobotVoice.Status.guards.Listening(voice.status) || RobotVoice.Status.guards.Thinking(voice.status)
         ? pendingBubble(locale, h)
         : h.empty,
     ],
+  ),
+)
+
+/** Vita saying the errand's new states, after the live errand's messages. */
+export const narrationView = Submodel.defineView<RobotVoice.Model, Message, ViewInputs>((voice, { name, locale }, h) =>
+  h.div(
+    [h.Class('contents')],
+    voice.entries.filter((entry) => entry.kind === 'narration').map((entry) => entryView(entry, name, locale, h)),
   ),
 )

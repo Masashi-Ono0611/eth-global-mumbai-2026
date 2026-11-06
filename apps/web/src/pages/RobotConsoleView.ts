@@ -18,14 +18,14 @@ import { duck } from '../Duck.ts'
 import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
-import { dock } from './RobotDockView.ts'
+import { dock, voiceIn } from './RobotDockView.ts'
 import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 import { workingDots } from '../Busy.ts'
 import { threadSkeleton } from '../Skeleton.ts'
 import { busyLabel } from '../Busy.ts'
-import { bubblesView } from './RobotVoiceView.ts'
+import { narrationView, turnsView } from './RobotVoiceView.ts'
 import * as RobotVoice from './RobotVoice.ts'
 
 // STYLES
@@ -487,6 +487,7 @@ const loadedView = (
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
+          voiceIn(model, view, 'turns', turnsView, locale, h),
           // Keyed by the history's length: stable from Starting to Running, new when the next errand begins.
           h.keyed('div')(
             `live-${past.length}`,
@@ -500,13 +501,7 @@ const loadedView = (
               h,
             ),
           ),
-          h.submodel({
-            slotId: `voice-bubbles-${view.robot.id}`,
-            model: model.voice,
-            view: bubblesView,
-            viewInputs: { name: view.robot.name, locale },
-            toParentMessage: (message) => Message.GotVoiceMessage({ message }),
-          }),
+          voiceIn(model, view, 'narration', narrationView, locale, h),
         ],
       ),
       dock(model, view, catalogue, locale, h),

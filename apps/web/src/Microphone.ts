@@ -56,10 +56,14 @@ const closeIfCurrent = (recording: Recording) => {
   }
 }
 
+/** Vita's line playing now, and how to end it: a press cuts her off (the owner talks over her). */
+const speaking: { stop: Option.Option<() => void> } = { stop: Option.none() }
+
 /** Opens the mic for hold `holdId`; a newer hold while this one waits supersedes it, and a hidden page gets no mic. */
 export const startListening = Effect.fnUntraced(function* (holdId: number) {
   current.requested = holdId
   current.closedByGuard = false
+  Option.match(speaking.stop, { onNone: () => undefined, onSome: (stop) => stop() })
   // A new hold closes any mic still open from an earlier one first, whatever this request's outcome.
   yield* Option.match(current.recording, { onNone: () => Effect.void, onSome: release })
   current.recording = Option.none()
@@ -176,8 +180,14 @@ export const playSpeech = (url: string) =>
     const answer = (played: boolean) => {
       if (answered.done) return
       answered.done = true
+      speaking.stop = Option.none()
       resume(Effect.succeed(played))
     }
+    // Cut off by a press: not a failure, the owner chose to talk.
+    speaking.stop = Option.some(() => {
+      player.pause()
+      answer(true)
+    })
     player.addEventListener('ended', () => answer(true))
     player.addEventListener('error', () => answer(false))
     player.play().catch(() => answer(false))

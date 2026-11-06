@@ -97,7 +97,9 @@ const hear = Effect.fnUntraced(function* (zeroG: ZeroGConfig, audio: string, ite
   const hearing = parseHearing(outcome.message, items)
   if (!hearing.ok) {
     yield* Effect.logWarning(`voice: 0G hearing unusable: ${hearing.error}`)
-    return yield* new ErrandRefused({ status: 502, error: `0G did not understand the clip: ${hearing.error}` })
+    // The reason for the owner, in plain words; the log above keeps the technical one.
+    const said = hearing.error === 'heard nothing' ? 'Vita did not catch that' : 'Vita did not understand that'
+    return yield* new ErrandRefused({ status: 502, error: said })
   }
   return { ...hearing, requestId: outcome.call.requestId, latencyMs: outcome.call.latencyMs }
 })

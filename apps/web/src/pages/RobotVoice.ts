@@ -1,7 +1,7 @@
 import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import { VoiceLine, VoiceSay, VoiceTurn } from '@ethmumbai/protocol/Voice'
 import { Effect, Option, Schema } from 'effect'
-import { Command, type Update } from 'foldkit'
+import { Command, Dom, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -38,6 +38,9 @@ export type Status = typeof Status.Type
 export const Entry = Schema.Struct({
   id: Schema.Number,
   speaker: Schema.Literals(['owner', 'vita']),
+  /** `turn`: a spoken request and Vita's answer (shown before the live errand's messages); `narration`: Vita saying
+   *  the errand's new state (shown after them), so the thread reads in order. */
+  kind: Schema.Literals(['turn', 'narration']),
   text: Schema.String,
   line: Schema.Option(VoiceLine),
   /** 0G's own reason, shown as a quote under Vita's line, never spoken (VoiceSay.decisionReason). */
@@ -76,6 +79,7 @@ export const Message = defineMessageUnion({
   SucceededSayIntent: { say: VoiceSay },
   FailedSayIntent: { error: Schema.String },
   CompletedPlaySpeech: { played: Schema.Boolean },
+  CompletedShowNewest: {},
 })
 export type Message = typeof Message.Type
 
@@ -153,6 +157,12 @@ export const PlaySpeech = Command.define('PlaySpeech', {
   execute: ({ url }) => playSpeech(url).pipe(Effect.map((played) => Message.CompletedPlaySpeech({ played }))),
 })
 
+/** Scrolls to the end of the page, so the newest bubble shows above the dock. */
+export const ShowNewest = Command.define('ShowNewest', {
+  messages: [Message.CompletedShowNewest],
+  execute: Dom.scrollIntoView('#main', { block: 'end' }).pipe(Effect.ignore, Effect.as(Message.CompletedShowNewest())),
+})
+
 // INIT
 
 export const init = (robotId: string): Model => ({
@@ -178,15 +188,23 @@ const inTurn = (status: Status) =>
 /** Vita's line joins the conversation; with speech it plays, otherwise the line stands as text (and says why). */
 const vitaSays = (
   model: Model,
+  kind: Entry['kind'],
   line: VoiceLine,
   spoken: { readonly speech: { readonly url: string } | null; readonly speechError: string | null },
   maybeReason: Option.Option<string>,
 ): UpdateReturn => {
-  const entry: Entry = { id: nextId(model), speaker: 'vita', text: line.text, line: Option.some(line), maybeReason }
+  const entry: Entry = {
+    id: nextId(model),
+    speaker: 'vita',
+    kind,
+    text: line.text,
+    line: Option.some(line),
+    maybeReason,
+  }
   const entries = [...model.entries, entry]
   // Mid-turn, or while Vita still speaks a line: the new line joins the thread silently (never two voices at once).
   if (inTurn(model.status) || Status.guards.Speaking(model.status))
-    return { model: modifyFields(model, { entries: () => entries }) }
+    return { model: modifyFields(model, { entries: () => entries }), commands: [ShowNewest()] }
   if (spoken.speech === null)
     return {
       model: modifyFields(model, {
@@ -194,10 +212,11 @@ const vitaSays = (
         status: () =>
           spoken.speechError === null ? Status.Idle() : Status.Failed({ reason: 'speech', detail: spoken.speechError }),
       }),
+      commands: [ShowNewest()],
     }
   return {
     model: modifyFields(model, { entries: () => entries, status: () => Status.Speaking() }),
-    commands: [PlaySpeech({ url: spoken.speech.url })],
+    commands: [PlaySpeech({ url: spoken.speech.url }), ShowNewest()],
   }
 }
 
@@ -205,6 +224,7 @@ const heardTurn = (model: Model, turn: VoiceTurn): UpdateReturn => {
   const owner: Entry = {
     id: nextId(model),
     speaker: 'owner',
+    kind: 'turn',
     text: turn.heard,
     line: Option.none(),
     maybeReason: Option.none(),
@@ -217,6 +237,7 @@ const heardTurn = (model: Model, turn: VoiceTurn): UpdateReturn => {
       : withOwner.maybeFollowing
   const said = vitaSays(
     modifyFields(withOwner, { maybeFollowing: () => following, status: () => Status.Idle() }),
+    'turn',
     turn.line,
     turn,
     Option.none(),
@@ -248,7 +269,9 @@ const failed = (model: Model, reason: FailReason, detail: string): UpdateReturn 
   model: modifyFields(model, { status: () => Status.Failed({ reason, detail }) }),
 })
 
-const canTalk = (status: Status) => Status.guards.Idle(status) || Status.guards.Failed(status)
+/** The owner may talk when Vita is idle, after a failure, or over her speech (the press cuts her off). */
+const canTalk = (status: Status) =>
+  Status.guards.Idle(status) || Status.guards.Failed(status) || Status.guards.Speaking(status)
 
 const send = (model: Model): UpdateReturn => ({
   model: modifyFields(model, { status: () => Status.Thinking() }),
@@ -306,8 +329,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         : { model },
     SucceededVoiceTurn: ({ turn }) => heardTurn(model, turn),
     FailedVoiceTurn: ({ error }) => failed(model, 'zeroG', error),
-    SucceededSayIntent: ({ say }) => vitaSays(model, say.line, say, Option.fromNullishOr(say.decisionReason)),
+    SucceededSayIntent: ({ say }) =>
+      vitaSays(model, 'narration', say.line, say, Option.fromNullishOr(say.decisionReason)),
     FailedSayIntent: ({ error }) => (inTurn(model.status) ? { model } : failed(model, 'speech', error)),
+    CompletedShowNewest: () => ({ model }),
     CompletedPlaySpeech: ({ played }) =>
       Status.guards.Speaking(model.status)
         ? played
