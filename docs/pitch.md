@@ -24,6 +24,50 @@ episode). That is already the shape of `docs/video-script.md`.
 
 ## 2. Main presentation: the story
 
+### The opening: the vision first, then the proof (6 Nov, 17:00 IST)
+
+**Kris's idea, said plainly:**
+
+> Soon, everyone will have a robot of their own that runs errands for them. A robot that acts in the physical world
+> has to pay in it. Its wallet belongs on the robot, not in someone's cloud where it can be frozen, lost or shut down,
+> so the owner keeps full control. This weekend we built the first version, and here it is working.
+
+**Three ways to frame the opening.** Pick one as the spine; the other two become lines inside it.
+
+| Framing | Opening line | Lands with | Risk |
+| --- | --- | --- | --- |
+| A robot in every home | "Soon, everyone will have a robot of their own." | everyone, the stage | It sounds like science fiction unless the very next screen is concrete (paying for chai) |
+| Self-custody for robots | "Your robot's key belongs on your robot." | ETHGlobal and the sponsor judges | Too technical as the very first line |
+| Pocket money for machines | "Give your robot a budget, not your wallet." | everyone; it is our one-liner | On its own it's a small idea, without the vision in front of it |
+
+**Recommendation:** open with the robot in every home, turn with "the key belongs on the robot", and close on the
+budget line, since that is the one people remember. That is the shape of `/pitch/` on the scratch site
+(<https://eth-mumbai-site.kristjan-grm11775.workers.dev/pitch/>), about 4 minutes across 9 screens:
+
+- **Vision** (screens 1–2, films): everyone will have a robot; a robot that does things has to pay for them.
+- **The problem** (screen 3): today it has two bad ways to pay, your card or a wallet in someone's cloud.
+- **The principle** (screens 4–5): the key belongs on the robot. A table shows who holds what: your passkey on your
+  phone, the robot's key on its chip, the money and the rules on Arc, the decisions on 0G, the big yeses with World ID,
+  and our servers, which only pass messages along.
+- **The proof** (screens 6–7): what we built this weekend, six real screens of the deployed app, each with its Arc or
+  0G transaction.
+- **The demo** (screen 8): "Now, live."
+- **What's next** (screen 9): the agent moves onto the robot; several robots on one wallet; robots paying robots.
+
+`/story/` (the four cute-duck screens) stays as the short, sponsor-light version.
+
+**Which claims are safe:**
+- **Safe to say:** "no company holds your keys"; "our servers can't spend a cent"; "the robot's key never leaves its
+  chip".
+- **Don't say "it can't be blocked."** USDC on Arc has an issuer blocklist: payments from blocklisted addresses revert,
+  per Arc's docs. Today our servers also relay every payment, so if they are down the robot can't pay, even though
+  nobody can take the money.
+- **Don't say the duck pays by itself today.** In the demo, the chip software runs on a laptop beside the duck. Signing
+  on its Radxa board has only passed a bench test (`docs/spikes/hardware-results.md`, H3).
+- **The films are illustrations.** Only the real screens and their transaction links prove anything.
+
+### The proof, beat by beat
+
 Robots are starting to run errands. To pay, they would need your card or a funded wallet of their own. **Vitaquack is
 an experiment in how robots will pay:** with your money, by your rules, and with you in the loop when it matters.
 
