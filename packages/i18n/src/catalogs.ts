@@ -109,7 +109,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'gate.payToOpen': 'Pay this invoice to open the gate.',
   'gate.price': 'Price',
   'gate.restrictedNote':
-    "Restricted items such as cigarettes are not sold at this gate: they need the owner's approval in World App and are paid to a separate payee, so the gate stays closed for them.",
+    "A purchase over the robot's per-payment limit needs the owner's approval in World App before it is paid; the daily cap is never lifted.",
   'gate.title': 'Gate',
   'gate.verified': "Paid: the merchant's signed status verified (Ed25519).",
   'gate.waiting': 'Waiting for payment…',
