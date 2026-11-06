@@ -91,13 +91,16 @@ export type CreateErrandResponse = typeof CreateErrandResponse.Type
 
 /**
  * A 0G TeeML proof of one decision, as fetched from the provider after the call: the TEE signer's address, the exact
- * text it signed, its signature, when we fetched it (unix ms) and whether our check of signature against signer passed.
- * Stored as `decisions.tee_json`.
+ * text it signed, its signature, the `signing_address` the signature endpoint answered, the registry `url` of the
+ * service that served the proof, when we fetched it (unix ms) and whether our check of signature against signer
+ * passed. Stored as `decisions.tee_json`.
  */
 export const TeeProof = Schema.Struct({
   signer: Address,
   text: Schema.String,
   signature: HexBytes,
+  signingAddress: Address,
+  serviceUrl: Schema.String,
   fetchedAt: UnixMs,
   verified: Schema.Boolean,
 })

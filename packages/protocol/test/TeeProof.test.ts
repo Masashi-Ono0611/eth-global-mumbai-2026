@@ -26,6 +26,8 @@ const tee = {
   signer: '0x942d6ce7412251652811D216A48D29Ff3E7CD1d3',
   text: '{"id":"chat-1","request_hash":"…","response_hash":"…"}',
   signature: `0x${'ab'.repeat(65)}`,
+  signingAddress: '0x942d6ce7412251652811D216A48D29Ff3E7CD1d3',
+  serviceUrl: 'https://provider.example/v1/proxy',
   fetchedAt: 1794000123456,
   verified: true,
 }
@@ -38,7 +40,7 @@ describe('TEE proof in the evidence', () => {
     expect(roundTrip(evidence)).not.toContain('"tee"')
   })
 
-  test('a decision carries signer, signed text, signature, fetch time and the verdict, outside the request ids hash', () => {
+  test('a decision carries the signer, signed text, signature, signing address, service, fetch time and verdict, outside the request ids hash', () => {
     const proven = { ...evidence, decisions: [{ ...decision, tee }] }
     expect(roundTrip(proven)).toBe(JSON.stringify(proven))
     expect(requestIdsHash(proven.requestIds)).toBe(requestIdsHash(evidence.requestIds))
@@ -50,6 +52,9 @@ describe('TEE proof in the evidence', () => {
     expect(accepts({ ...tee, signer: '0x1234' })).toBe(false)
     expect(accepts({ ...tee, signature: 'ab' })).toBe(false)
     expect(accepts({ ...tee, fetchedAt: 1.5 })).toBe(false)
+    expect(accepts({ ...tee, signingAddress: 'not an address' })).toBe(false)
+    const { serviceUrl: _serviceUrl, ...unserved } = tee
+    expect(accepts(unserved)).toBe(false)
     const { verified: _verified, ...unverdicted } = tee
     expect(accepts(unverdicted)).toBe(false)
   })
