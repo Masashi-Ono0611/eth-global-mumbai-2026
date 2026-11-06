@@ -205,7 +205,7 @@ applies timeouts lazily on every read and every chip poll. No scheduler, no Dura
 
 | State | Leaves via |
 | --- | --- |
-| `queued` | same request (invoice created at the merchant) → `deciding` |
+| `queued` | same request → `deciding`. The invoice: the optional `invoiceId` in the request (must be pending, this merchant, ≥ 60 s from expiry, unclaimed, else 409); otherwise the **counter's open invoice** for the item (newest pending one with ≥ 60 s left that no episode references, or only episodes in a terminal unpaid state); otherwise one minted now. So the robot pays what the gate (or the ESP32's QR) is showing; restricted items are not on the counter and always mint (deviation 6 Nov 07:30, M+R) |
 | `deciding` | 0G tool result `pay` ∧ ¬approvalRequired → `signing`; `pay` ∧ approvalRequired, or `ask_human` → `awaiting_approval`; `walk_away` → `walked_away`; error / timeout (10 s) / invalid JSON → `safe_stop` |
 | `awaiting_approval` | `/api/world/callback` approved → `signing`; denied → `denied`; 300 s → `expired` |
 | `signing` | chip response `ok` → `settling`; refused → `refused`; 60 s silent → `expired` |
