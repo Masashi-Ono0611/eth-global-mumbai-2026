@@ -151,16 +151,31 @@ const stateText = (page: Page) => page.locator('.errand-detail [role=status]').f
  */
 const restricted = async (page: Page, choice: 'approve' | 'deny', step: number) => {
   const prefix = (n: number, name: string) => `${String(step + n).padStart(2, '0')}-restricted-${choice}-${name}`
-  await page.getByRole('button', { name: 'Buy Cigarettes (0.50 USDC)' }).click()
   const ask = page.getByRole('link', { name: 'Approve in World App' })
-  const asked = await ask
-    .waitFor({ timeout: 60_000 })
-    .then(() => true)
-    .catch(() => false)
-  if (!asked) {
-    say('no approval link: the brain did not ask, or ENFORCER/APPROVER are not configured on this deploy')
-    return shot(page, prefix(0, 'no-approval'))
+  // The brain may still walk away from a restricted item; that ends the errand with nothing paid, so ask again (≤ 3).
+  let asked = false
+  for (let attempt = 1; attempt <= 3 && !asked; attempt += 1) {
+    await page.getByRole('button', { name: 'Buy Cigarettes (0.50 USDC)' }).click()
+    // The previous attempt's ended state must be gone before its text can be read as this attempt's answer.
+    await page
+      .getByText(/^cigarettes: /)
+      .waitFor({ state: 'detached', timeout: 10_000 })
+      .catch(() => undefined)
+    asked = await Promise.race([
+      ask.waitFor({ timeout: 60_000 }).then(() => true),
+      page
+        .getByText(/^cigarettes: (walked away|safe stop|failed|expired)$/)
+        .waitFor({ timeout: 60_000 })
+        .then(() => false),
+    ]).catch(() => false)
+    if (!asked) {
+      say(`attempt ${attempt}: ${await stateText(page)} (the brain did not ask the owner)`)
+      await shot(page, prefix(0, `no-approval-${attempt}`))
+      await page.getByRole('button', { name: 'Buy Cigarettes (0.50 USDC)' }).waitFor()
+      await page.waitForTimeout(2000)
+    }
   }
+  if (!asked) return say('no approval after 3 attempts; skipping this restricted step')
   await shot(page, prefix(0, 'asks'))
   await ask.click()
   await page.getByRole('heading', { name: 'Approval for a restricted item' }).waitFor({ timeout: 30_000 })
