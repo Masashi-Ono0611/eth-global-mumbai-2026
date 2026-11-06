@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs'
 import { makeArcClient } from '@ethmumbai/chain/Arc'
 import { Address } from '@ethmumbai/protocol/Hex'
 import { Console, Effect, Option, Ref, Schema } from 'effect'
@@ -15,9 +14,12 @@ import { formatEther, keccak256 } from 'viem'
 const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
 const RELAYER = '0x404b09F43db64fB08f70b0b3e2b785bC312D6fDb'
 const ENFORCER = '0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3'
-/** keccak256 of the deployed runtime code (docs/evidence/contracts.md), used when contracts/out is not built. */
+/**
+ * keccak256 of the live enforcer's runtime code (docs/evidence/contracts.md). Compared to the recorded value, not to a
+ * fresh build: builds from the Studio pull differ from the live code by the metadata hash only, and the app's approvals
+ * are bound to the live address, so it is not redeployed.
+ */
 const ENFORCER_CODE_HASH = '0x8ae1c544a79174dbaae0c617c21fa0a3b4e795fc06a6273b917018271081b653'
-const ARTIFACT = 'contracts/out/RobotPaymentPolicyEnforcer.sol/RobotPaymentPolicyEnforcer.json'
 const flag = (name: string) => {
   const index = Bun.argv.indexOf(`--${name}`)
   return index < 0 ? undefined : Bun.argv[index + 1]
@@ -31,15 +33,7 @@ const zgBase = (process.env.APP_ZG_BASE_URL ?? '').startsWith('http') ? process.
 const worldIssuer = (process.env.APP_WORLD_ISSUER ?? '').startsWith('https://')
   ? process.env.APP_WORLD_ISSUER
   : 'https://auth.world.org'
-const buildCodeHash = existsSync(ARTIFACT)
-  ? keccak256(
-      Schema.decodeUnknownSync(
-        Schema.fromJsonString(
-          Schema.Struct({ deployedBytecode: Schema.Struct({ object: Schema.TemplateLiteral(['0x', Schema.String]) }) }),
-        ),
-      )(readFileSync(ARTIFACT, 'utf8')).deployedBytecode.object,
-    )
-  : ENFORCER_CODE_HASH
+const buildCodeHash = ENFORCER_CODE_HASH
 
 const Health = Schema.Struct({
   release: Schema.String,
@@ -80,7 +74,10 @@ const checkChain = Effect.fn('preflight.chain')(function* (report: Report) {
   const code = yield* Effect.promise(() => arc.getCode({ address: enforcer }))
   const codeHash = code === undefined || code === '0x' ? 'no code' : keccak256(code)
   const same = codeHash === buildCodeHash
-  yield* report(same, `enforcer ${enforcer}: on-chain code ${same ? '= build' : `${codeHash} differs from the build`}`)
+  yield* report(
+    same,
+    `enforcer ${enforcer}: on-chain code ${same ? '= the deployed release' : `${codeHash} differs from the recorded deploy`}`,
+  )
 })
 
 const checkProviders = Effect.fn('preflight.providers')(function* (report: Report) {

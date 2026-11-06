@@ -4,7 +4,7 @@ import { Address, Bytes32, EcdsaSignature, type Hex, UintString, UnixSeconds } f
 import { ARC_CHAIN_ID } from './Invoice.ts'
 
 // The approver's signature over one over-limit or restricted payment. Verified on Arc by RobotPaymentPolicyEnforcer
-// (`contracts/src/RobotPaymentPolicyEnforcer.sol`), whose address is the domain's verifyingContract.
+// (`contracts/studio/contracts/RobotPaymentPolicyEnforcer.sol`), whose address is the domain's verifyingContract.
 export const APPROVAL_TYPE: StructType = {
   name: 'Approval',
   fields: [
