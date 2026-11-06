@@ -9,30 +9,30 @@ daily cap is never lifted. The robot speaks to its owner on Telegram. The duck
 ([Vitaquack](https://github.com/apirrone/Open_Duck_Mini), our modified Open Duck Mini) is the first robot; a browser
 simulator duck runs the same chip protocol. Live at <https://vitaquack.com>.
 
-Built at ETHGlobal Mumbai, 5–7 Nov 2026. Prize tracks: Arc (Advanced Stablecoin Logic), 0G (Physical AI: Agents with a
-Body), World (Agent Pass).
+Built at ETHGlobal Mumbai, 5 to 7 Nov 2026. Prize tracks: Arc (Advanced Stablecoin Logic), 0G (Physical AI: Agents with
+a Body), World (Agent Pass).
 
 ## How it works
 
 1. **Wallet.** The owner signs up with a passkey. That passkey is the signer of a MetaMask `HybridDeleGator` smart account
    on Arc mainnet (verified on-chain with the P-256 precompile). The owner funds it with USDC.
 2. **Grant.** The owner grants a robot's chip a budget ("$10/day, max $2 per payment, these merchants, until Sunday") by
-   signing a MetaMask Delegation Framework delegation with the passkey. No transaction, no gas.
+   signing a MetaMask Delegation Framework delegation with the passkey, which needs no transaction and no gas.
 3. **Robot Agent.** One errand state machine per robot: it asks 0G (`pay / ask_human / walk_away`) over structured
    input, logs the request id, and sends the chip a sign request over HTTPS long-polling.
 4. **Chip.** The chip holds the only spending key, checks the invoice against its policy, builds the one-time payment
-   voucher itself and signs it. No lease from the agent for 35 s → it stops and refuses to sign.
+   voucher itself and signs it. If 35 s pass without a lease from the agent, the chip stops and refuses to sign.
 5. **Merchant.** An x402 checkout. Our facilitator verifies the voucher, simulates, and submits `redeemDelegations`; Arc
    checks the daily cap, the per-payment cap, the payee allowlist, the invoice replay guard, expiry and revocation.
-6. **World.** Over the per-payment cap: the owner approves in World App; the backend verifies the token and co-signs
-   that one payment. Deny (on the page, in the conversation or from Telegram) or expiry means nothing is paid; the daily
-   cap can't be lifted.
+6. **World.** When a payment is over the per-payment cap, the owner approves it in World App, and the backend verifies
+   the token and co-signs that one payment. Deny (on the page, in the conversation or from Telegram) or expiry means
+   nothing is paid; the daily cap can't be lifted.
 7. **Evidence.** Every decision is logged with its 0G request id and, for `glm-5.3`, its TEE proof; episodes and the
    chip-signed camera frames are uploaded to 0G Storage and anchored in an `EpisodeLog` contract. The café's ESP32
    screen shows the counter's invoice QR and opens only on an Ed25519-signed "paid".
 
-The one rule: **Arc is the authority.** Our servers coordinate and relay; they can never authorise, steal or redirect a
-payment, only delay it.
+Arc is the authority. Our servers coordinate and relay, so they can delay a payment but can never authorise, steal or
+redirect one.
 
 ## Status
 
