@@ -15,8 +15,9 @@ import { micView, statusView } from './RobotVoiceView.ts'
 const dockClassName =
   'sticky bottom-0 z-10 grid gap-2 bg-paper px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-6 before:bg-gradient-to-b before:from-paper/0 before:to-paper'
 const dockHintClassName = 'px-1.5 text-[0.85rem] leading-snug text-muted'
+// The right edge fades, so a pill cut off by the screen reads as "more this way", not as clipped.
 const pillsClassName =
-  '-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+  '-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [mask-image:linear-gradient(to_right,#000_calc(100%-1.75rem),transparent)] [&::-webkit-scrollbar]:hidden'
 const pillClassName =
   'grid min-h-11 shrink-0 cursor-pointer snap-start content-center justify-items-center rounded-[18px] bg-surface px-4 py-1.5 text-[0.95rem] leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
 const pillAsksClassName = 'text-[0.75rem] font-semibold text-duck-deep'

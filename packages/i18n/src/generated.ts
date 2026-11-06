@@ -317,7 +317,7 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.dockNoAllowance': { readonly name: string | number }
   'thread.dockStopped': { readonly name: string | number }
   'thread.empty': { readonly name: string | number }
-  'thread.expired': Readonly<Record<string, never>>
+  'thread.expired': { readonly why: string | number }
   'thread.failed': { readonly reason: string | number }
   'thread.instructionFor': { readonly item: string | number }
   'thread.instructionLabel': { readonly name: string | number }
@@ -349,9 +349,9 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.stop': { readonly name: string | number }
   'thread.stopping': Readonly<Record<string, never>>
   'thread.turnError': { readonly error: string | number }
-  'thread.waitingScan': { readonly name: string | number }
+  'thread.waitingScan': Readonly<Record<string, never>>
   'thread.walkedAway': Readonly<Record<string, never>>
-  'thread.walking': { readonly name: string | number }
+  'thread.walking': Readonly<Record<string, never>>
   'thread.zeroGDecided': { readonly action: string | number }
   'voice.empty': { readonly name: string | number }
   'voice.failed': { readonly reason: string | number; readonly detail: string | number }
@@ -388,4 +388,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'e656c7c034f11d26c459cd64875f10a444a23b7cb8b9b00c1948fdf5115f1558'
+export const catalogVersion = '404b6221027d5e5d000ed92b4a109fa7a1d7cbed0b3acf525bee97ebaa6f37d4'

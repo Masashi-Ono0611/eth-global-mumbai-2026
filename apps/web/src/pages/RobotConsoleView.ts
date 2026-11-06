@@ -55,6 +55,10 @@ const paidClassName = 'inline-flex items-center gap-1 font-semibold text-paid'
 const proofClassName = 'text-[0.92rem] font-semibold decoration-ink/30'
 const arcLinkClassName = 'text-[0.85rem] text-muted decoration-muted/40'
 const systemClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-center text-sm text-muted'
+const emptyClassName = 'my-auto grid justify-items-center gap-3 px-6 py-8 text-center'
+// The same face as the robot's row on home: ink while its chip is on, grey (and the duck asleep) while it is off.
+const emptyFaceClassName = 'grid size-24 place-items-center rounded-full'
+const emptyTextClassName = 'max-w-[15rem] text-[0.95rem] text-muted text-balance'
 const stepTextClassName = 'transition-opacity duration-150 starting:opacity-0'
 /** The live errand's messages enter (DESIGN.md "Motion"); the history above never moves. A contents box, so the
  *  bubbles stay items of the thread's column. */
@@ -229,7 +233,13 @@ const outcome = (
     case 'failed':
       return ended(format(locale, 'thread.failed', { reason }), true)
     case 'expired':
-      return ended(format(locale, 'thread.expired', {}), true)
+      // Two timeouts end an errand (Errands.ts): the owner's approval window, or a chip that never signed.
+      return ended(
+        format(locale, 'thread.expired', {
+          why: reason.includes('approval') ? 'approval' : reason.includes('chip') ? 'chip' : 'other',
+        }),
+        true,
+      )
     default:
       return h.empty
   }
@@ -466,21 +476,36 @@ const loadedView = (
         ],
         [
           view.robot.kind === 'sim' ? simulatorLink(view.robot.id, locale, h) : h.empty,
-          past.length === 0 && Errand.guards.Idle(model.errand) && Intent.guards.Idle(model.intent)
-            ? h.p(
-                [h.Class(systemClassName)],
+          // An empty conversation: the duck itself, waiting to be asked (asleep while its chip is off).
+          past.length === 0 &&
+          Errand.guards.Idle(model.errand) &&
+          Intent.guards.Idle(model.intent) &&
+          model.voice.entries.length === 0
+            ? h.div(
+                [h.Class(emptyClassName)],
                 [
-                  format(
-                    locale,
-                    RobotVoice.Status.guards.Unavailable(model.voice.status) ? 'thread.empty' : 'voice.empty',
-                    { name: view.robot.name },
+                  h.span(
+                    [h.Class(clsx(emptyFaceClassName, view.lease.online ? 'bg-ink' : 'bg-rule')), h.AriaHidden(true)],
+                    [duck('size-16 motion-safe:animate-bob', !view.lease.online, h)],
+                  ),
+                  h.p(
+                    [h.Class(emptyTextClassName)],
+                    [
+                      format(
+                        locale,
+                        RobotVoice.Status.guards.Unavailable(model.voice.status) ? 'thread.empty' : 'voice.empty',
+                        { name: view.robot.name },
+                      ),
+                    ],
                   ),
                 ],
               )
-            : h.a(
-                [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
-                [format(locale, 'thread.records', { name: view.robot.name })],
-              ),
+            : past.length === 0
+              ? h.empty
+              : h.a(
+                  [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
+                  [format(locale, 'thread.records', { name: view.robot.name })],
+                ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
           voiceIn(model, view, 'turns', turnsView, locale, h),
           // Keyed by the history's length: stable while an errand runs, new when the next errand begins.

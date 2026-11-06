@@ -167,7 +167,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'home.lineBusy': 'Buying {item}...',
   'home.linePaid': 'Bought {item}',
   'home.lineDenied': 'You said no to {item}',
-  'home.lineOffline': 'Offline. Start its chip.',
+  'home.lineOffline': 'Offline',
   'home.lineNoAllowance': 'No allowance yet',
   'home.lineReady': 'Ready for an errand',
   'home.payments': 'Payments',
@@ -203,7 +203,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.noAllowance': 'No allowance',
   'thread.perDay': 'a day',
   'thread.conversation': 'Conversation with {name}',
-  'thread.empty': 'Nothing yet. Ask {name} for something below.',
+  'thread.empty': 'Ask {name} for something below.',
   'thread.buy': 'Buy {item}',
   'thread.asksYou': 'asks you',
   'thread.zeroGDecided':
@@ -225,8 +225,9 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.safeStop': 'I stopped safely and paid nothing: {reason}',
   'thread.refused': 'My chip refused to sign: {reason}',
   'thread.failed': 'The payment failed: {reason}',
-  'thread.expired': 'It timed out. Nothing was paid.',
-  'thread.dockBusy': '{name} is on an errand. You can send the next one when it ends.',
+  'thread.expired':
+    "{why, select, approval {No answer to the approval in time. Nothing was paid.} chip {My chip didn't answer in time. Nothing was paid.} other {It timed out. Nothing was paid.}}",
+  'thread.dockBusy': '{name} is on an errand.',
   'thread.dockNoAllowance': "{name} has no allowance yet, so it can't buy anything.",
   'thread.records': "All of {name}'s errands, with their proof",
   'thread.dockStopped': "{name}'s allowance is stopped. Send it anyway and Arc refuses the payment on-chain.",
@@ -241,7 +242,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.brainNote':
     '{tee, select, yes {Sealed in a TEE: answers carry a TEE proof} other {Faster, without a TEE proof}}',
   'thread.send': 'Send',
-  'thread.walking': '{name} is on its way. 0G drives it in the simulator.',
+  'thread.walking': 'On my way. 0G steers me in the simulator.',
   'thread.stop': 'Stop {name}',
   'thread.stopping': 'Stopping...',
   'thread.intentStopped': 'I stopped: {reason}',
@@ -252,7 +253,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
     '{tool, select, go_to {{place, select, entrance {Walking to the entrance} chai_stall {Walking to the chai stall} samosa_stall {Walking to the samosa stall} thali_stall {Walking to the thali stall} gate {Walking to the gate} other {Walking}}} look {Looking around} scan_qr {Scanning the QR code} wait {Waiting} finish {Done} other {{tool}}}',
   'thread.turnError': "0G's turn failed: {error}",
   'thread.leftOf': 'of {daily} today',
-  'thread.waitingScan': 'Waiting for {name} to scan the QR code at the counter.',
+  'thread.waitingScan': 'On my way to scan the QR at the counter.',
   'thread.askChip': 'Get me a {item}',
   'thread.askChipLabel':
     '{restricted, select, yes {Get me a {item}, {amount} USDC, asks you first} other {Get me a {item}, {amount} USDC}}',
@@ -371,7 +372,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'voice.headerListening': 'Listening…',
   'voice.headerSpeaking': 'Speaking…',
   'voice.pending': 'listening',
-  'voice.empty': 'Nothing yet. Ask {name} below, or hold the mic.',
+  'voice.empty': 'Ask {name} below, or hold the mic to talk.',
   'voice.sent': 'sent',
   'proofs.title': 'Proofs on 0G',
   'proofs.explainer':

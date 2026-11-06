@@ -1,6 +1,7 @@
 import { format, type Locale } from '@ethmumbai/i18n'
 import { clsx } from 'clsx'
 import type { Html, HtmlBuilder } from 'foldkit/html'
+import { duck } from './Duck.ts'
 
 /** The shape of a page while its data loads (DESIGN.md "Motion"): grey blocks where the content will be, pulsing
  *  calmly, never duck yellow. The server renders them as the first paint. Screen readers hear "Loading..." from a
@@ -18,7 +19,11 @@ const pillClassName = 'h-11 w-24 rounded-full'
 const inputClassName = 'h-12 w-full rounded-control'
 const ownerBubbleClassName = 'h-10 w-36 self-end rounded-[20px_20px_6px_20px]'
 const robotBubbleClassName = 'h-16 w-60 max-w-[86%] self-start rounded-[20px_20px_20px_6px]'
-const chipClassName = 'h-[3.25rem] rounded-2xl'
+/** A robot's face while it loads: the duck, asleep (grey), in the pulsing block. */
+const faceClassName = 'grid place-items-center'
+/** The duck afloat in the middle of a loading page, so the wait has a face. */
+const floatingClassName = 'grid justify-items-center py-6'
+const floatingDuckClassName = 'size-14 opacity-60 motion-safe:animate-bob'
 
 const walletClassName = 'grid gap-0 pb-6'
 const balanceClassName = 'grid gap-2.5 px-2 pt-4'
@@ -33,11 +38,23 @@ const threadClassName = 'flex min-h-[calc(100svh-2rem)] flex-col'
 const threadHeaderClassName =
   'grid grid-cols-[44px_44px_1fr_auto] items-center gap-2.5 border-b border-rule px-1 pt-1 pb-2.5'
 const threadBodyClassName = 'flex flex-1 flex-col gap-2 px-1 pt-3 pb-4'
-const chipsClassName = 'grid grid-cols-3 gap-1.5 px-1 pt-4 pb-2'
+// The dock as it is now: a row of Get me pills over the composer, so nothing jumps when the thread arrives.
+const dockClassName = 'grid gap-2 px-1 pt-4 pb-2'
+const dockPillsClassName = 'flex gap-1.5 overflow-hidden'
+const dockPillClassName = 'h-12 w-32 shrink-0 rounded-[18px]'
+const composerClassName = 'h-[6.5rem] w-full rounded-card'
 
 // VIEW
 
 const bar = <M>(className: string, h: HtmlBuilder<M>): Html => h.span([h.Class(clsx(blockClassName, className))])
+
+/** A round block with a sleeping duck in it, where a robot's face will be. */
+const face = <M>(className: string, duckClassName: string, h: HtmlBuilder<M>): Html =>
+  h.span([h.Class(clsx(blockClassName, className, faceClassName))], [duck(duckClassName, true, h)])
+
+/** The duck bobbing on its own, above a page's loading blocks. */
+const floating = <M>(h: HtmlBuilder<M>): Html =>
+  h.div([h.Class(floatingClassName)], [duck(floatingDuckClassName, true, h)])
 
 /** The hidden status line and the decorative shape. Keyed, so the loaded page replaces it as a new node (and fades
  *  in) instead of being patched into it. */
@@ -55,7 +72,7 @@ const listRow = <M>(h: HtmlBuilder<M>): Html =>
   h.div(
     [h.Class(rowClassName)],
     [
-      bar(circleClassName, h),
+      face(circleClassName, 'size-[38px]', h),
       h.span([h.Class(rowTextClassName)], [bar('h-3.5 rounded-full w-28', h), bar('h-3.5 rounded-full w-44', h)]),
     ],
   )
@@ -86,7 +103,7 @@ export const walletSkeleton = <M>(locale: Locale, h: HtmlBuilder<M>): Html =>
 
 /** Cards, for pages whose title and back link already render (payment records, an errand's proof, an approval). */
 export const cardsSkeleton = <M>(locale: Locale, h: HtmlBuilder<M>): Html =>
-  skeleton(h.div([h.Class('grid gap-3')], [card(h), card(h)]), locale, h)
+  skeleton(h.div([h.Class('grid gap-3')], [floating(h), card(h), card(h)]), locale, h)
 
 /** The sign-in panel: the name field and the two passkey buttons, so the hero above does not jump. */
 export const panelSkeleton = <M>(locale: Locale, h: HtmlBuilder<M>): Html =>
@@ -113,16 +130,25 @@ export const threadSkeleton = <M>(locale: Locale, h: HtmlBuilder<M>): Html =>
           [h.Class(threadHeaderClassName)],
           [
             bar(smallCircleClassName, h),
-            bar(smallCircleClassName, h),
+            face(smallCircleClassName, 'size-8', h),
             h.span([h.Class('grid gap-1.5')], [bar('h-5 rounded-full w-28', h), bar(shortLineClassName, h)]),
             bar('h-11 w-20 rounded-[14px]', h),
           ],
         ),
         h.div(
           [h.Class(threadBodyClassName)],
-          [bar(ownerBubbleClassName, h), bar(robotBubbleClassName, h), bar(robotBubbleClassName, h)],
+          [floating(h), bar(ownerBubbleClassName, h), bar(robotBubbleClassName, h)],
         ),
-        h.div([h.Class(chipsClassName)], [bar(chipClassName, h), bar(chipClassName, h), bar(chipClassName, h)]),
+        h.div(
+          [h.Class(dockClassName)],
+          [
+            h.div(
+              [h.Class(dockPillsClassName)],
+              [bar(dockPillClassName, h), bar(dockPillClassName, h), bar(dockPillClassName, h)],
+            ),
+            bar(composerClassName, h),
+          ],
+        ),
       ],
     ),
     locale,
