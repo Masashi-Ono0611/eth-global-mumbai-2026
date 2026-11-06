@@ -8,9 +8,11 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'approval.errandEnded':
     '{state, select, refused {Refused by the chip: nothing is paid} failed {The payment failed: nothing is paid} expired {Expired: nothing is paid} safe_stop {Stopped safely: nothing is paid} walked_away {The robot walked away: nothing is paid} other {Ended ({state}): nothing is paid}}',
   'approval.explainer':
-    "This payment is over the robot's limits or for a restricted item, so it needs your fresh approval in World App. Nothing is paid without it.",
+    "{why, select, restricted {This is a restricted item, so it needs your fresh approval in World App. Nothing is paid without it.} overCap {This payment is over the robot's per-payment limit ({amount} > {cap} USDC), so it needs your fresh approval in World App. Nothing is paid without it.} offList {This payee is not on the robot's allowlist, so the payment needs your fresh approval in World App. Nothing is paid without it.} other {This payment needs your fresh approval in World App. Nothing is paid without it.}}",
   'approval.followStopped': 'No final state after 2 minutes; the console shows the latest.',
   'approval.following': "Following the robot's payment…",
+  'approval.heading':
+    '{why, select, restricted {Approval for a restricted item} overCap {Approval for a payment over the limit} offList {Approval for a new payee} other {Approval for this payment}}',
   'approval.invoice': 'Invoice',
   'approval.item': 'Item',
   'approval.notConfigured': 'World approval is not configured on this deployment yet.',
@@ -18,7 +20,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'approval.payee': 'Payee',
   'approval.status':
     '{status, select, requested {Waiting for your answer} opened {Waiting for World App} approved {Approved: the chip signs the payment now} denied {Denied: nothing is paid} expired {Expired: nothing is paid} consumed {Used for the payment} other {{status}}}',
-  'approval.title': 'Approval for a restricted item',
+  'approval.title': 'Approval needed',
   'approval.viewOnArc': 'view on Arc',
   'auth.createWallet': 'Create passkey wallet',
   'auth.creatingWallet': 'Creating your wallet...',
@@ -137,7 +139,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'robots.allowlist': 'Allowed payees: {payees}',
   'robots.allowlistLabel': 'Allowed payees (addresses)',
   'robots.consent':
-    'Vitaquack may spend up to {daily} USDC a day, at most {perPayment} USDC per payment, only at {payees}, {hours, plural, one {for the next hour} other {for the next # hours}}. You sign this with your passkey; Arc enforces it.',
+    'Vitaquack may spend up to {daily} USDC a day, at most {perPayment} USDC per payment, only at {payees}, {hours, plural, one {for the next hour} other {for the next # hours}}. Anything over {perPayment} USDC, and any restricted item, waits for your approval in World App. You sign this with your passkey; Arc enforces it.',
   'robots.dailyCap': 'Daily cap (USDC)',
   'robots.grantBudget': 'Grant a budget',
   'robots.grantTerms':

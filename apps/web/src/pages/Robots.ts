@@ -191,8 +191,10 @@ const WATCH_MILLIS = 3000
 
 const openGrantForm = (model: Model, robotId: string): GrantForm => ({
   robotId,
-  dailyCap: '1.00',
-  perPaymentCap: '0.30',
+  // Demo caps (6 Nov): an approved thali (2.00) + a chai (0.10) + an approved cigarettes (0.50) fit one day; anything
+  // over 1.00 needs the owner's World approval.
+  dailyCap: '5.00',
+  perPaymentCap: '1.00',
   allowlist: Option.match(model.maybeMerchant, { onNone: () => '', onSome: ({ payTo }) => payTo }),
   hours: '24',
   step: GrantStep.Editing(),

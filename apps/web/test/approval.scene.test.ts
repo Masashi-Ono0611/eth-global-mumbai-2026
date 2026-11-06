@@ -18,6 +18,7 @@ const approval = (status: string, error: string | null = null) => ({
   payee: '0x000000000000000000000000000000000000dead',
   amount: '500000',
   closesAt: 0,
+  reasons: { restricted: true, overCap: false, offList: true, perPaymentCap: '1000000' },
   worldConfigured: true,
 })
 
@@ -121,6 +122,31 @@ describe('/wallet/approvals/:id', () => {
       given(stopped.model),
       expect(text('No final state after 2 minutes; the console shows the latest.')).toExist(),
       expect(role('link', { name: 'Open console' })).toHaveAttr('href', `/robot/${robotId}`),
+    )
+  })
+
+  test('a payment over the per-payment limit to an allowlisted payee says so (2.00 > 1.00), same approve and deny', () => {
+    const thali = {
+      ...approval('requested'),
+      item: 'thali',
+      amount: '2000000',
+      reasons: { restricted: false, overCap: true, offList: false, perPaymentCap: '1000000' },
+    }
+    scene(
+      { update: Approval.update, view },
+      given(
+        Approval.update(Approval.init('ap1').model, Approval.Message.SucceededLoadApproval({ approval: thali })).model,
+      ),
+      expect(role('heading', { name: 'Approval for a payment over the limit' })).toExist(),
+      expect(
+        text(
+          "This payment is over the robot's per-payment limit (2.00 > 1.00 USDC), so it needs your fresh approval in World App. Nothing is paid without it.",
+        ),
+      ).toExist(),
+      expect(text('restricted', { exact: false })).toBeAbsent(),
+      expect(text('thali · Duck')).toExist(),
+      expect(role('link', { name: 'Approve with World' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
+      expect(role('button', { name: 'Deny' })).toExist(),
     )
   })
 })

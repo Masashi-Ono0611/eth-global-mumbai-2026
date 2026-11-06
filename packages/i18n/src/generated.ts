@@ -7,9 +7,14 @@ export interface MessageArgumentsByKey<T = string> {
   'approval.approveWithWorld': Readonly<Record<string, never>>
   'approval.deny': Readonly<Record<string, never>>
   'approval.errandEnded': { readonly state: string | number }
-  'approval.explainer': Readonly<Record<string, never>>
+  'approval.explainer': {
+    readonly why: string | number
+    readonly amount: string | number
+    readonly cap: string | number
+  }
   'approval.followStopped': Readonly<Record<string, never>>
   'approval.following': Readonly<Record<string, never>>
+  'approval.heading': { readonly why: string | number }
   'approval.invoice': Readonly<Record<string, never>>
   'approval.item': Readonly<Record<string, never>>
   'approval.notConfigured': Readonly<Record<string, never>>
@@ -224,4 +229,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'e86d120ae0698aa004d8d560d97d8e708190121c368abe9318b5f3719f8fdad2'
+export const catalogVersion = '7f0a24ff7c27b4e06ad4f7baba401d22142c410c425d2aa7515b811e46c53cdb'

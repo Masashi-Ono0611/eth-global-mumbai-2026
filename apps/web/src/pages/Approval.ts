@@ -26,9 +26,24 @@ const ApprovalView = Schema.Struct({
   payee: Schema.String,
   amount: Schema.String,
   closesAt: Schema.Number,
+  /** Why it needs the owner: a restricted item, over the per-payment cap (and the cap), or a payee off the allowlist. */
+  reasons: Schema.Struct({
+    restricted: Schema.Boolean,
+    overCap: Schema.Boolean,
+    offList: Schema.Boolean,
+    perPaymentCap: Schema.NullOr(Schema.String),
+  }),
   worldConfigured: Schema.Boolean,
 })
 type ApprovalView = typeof ApprovalView.Type
+
+type Why = 'restricted' | 'overCap' | 'offList' | 'other'
+/** The page names the strongest reason: a restricted item, then an amount over the limit, then an unknown payee. */
+const whyOf = ({ reasons }: ApprovalView): Why => {
+  if (reasons.restricted) return 'restricted'
+  if (reasons.overCap) return 'overCap'
+  return reasons.offList ? 'offList' : 'other'
+}
 
 const ApprovalState = defineTaggedUnion({
   Loading: {},
@@ -247,7 +262,16 @@ const approvalView = (model: Model, approval: ApprovalView, locale: Locale, h: H
   h.section(
     [h.Class('approval')],
     [
-      h.p([h.Class('lead')], [format(locale, 'approval.explainer', {})]),
+      h.p(
+        [h.Class('lead')],
+        [
+          format(locale, 'approval.explainer', {
+            why: whyOf(approval),
+            amount: usdc(approval.amount),
+            cap: approval.reasons.perPaymentCap === null ? '—' : usdc(approval.reasons.perPaymentCap),
+          }),
+        ],
+      ),
       h.dl(
         [],
         [
@@ -270,10 +294,13 @@ const approvalView = (model: Model, approval: ApprovalView, locale: Locale, h: H
     ],
   )
 
-/** `/wallet/approvals/:id`: approval for a restricted or over-limit item, answered once in World App (spec §9). */
+/** `/wallet/approvals/:id`: a restricted item, a payment over the per-payment limit or to an unknown payee, answered
+ * once in World App (spec §9). */
 export const view = Submodel.defineView<Model, Message, { readonly locale: Locale }>((model, { locale }, h) =>
   ownerMain(
-    format(locale, 'approval.title', {}),
+    ApprovalState.guards.Loaded(model.state)
+      ? format(locale, 'approval.heading', { why: whyOf(model.state.approval) })
+      : format(locale, 'approval.title', {}),
     ApprovalState.match(model.state, {
       Loading: () => loadingView(locale, h),
       SignedOut: () => signedOutView(locale, h),

@@ -8,6 +8,7 @@ import type { Address } from 'viem'
 import { BadRequest } from '../auth/Routes.ts'
 import { CurrentSession, type SessionAccount } from '../auth/Session.ts'
 import { json } from '../Respond.ts'
+import { latestSignedGrant } from '../robot/Budget.ts'
 import { denyErrand, type ErrandDeps } from '../robot/Errands.ts'
 import { firstRow } from '../Sql.ts'
 import { NotFound, required } from '../wallet/Errors.ts'
@@ -43,6 +44,35 @@ export const ownApproval = Effect.fn('EthMumbai.World.ownApproval')(function* (
 })
 
 const EpisodeFacts = Schema.Struct({ item: Schema.String, robot_name: Schema.String, state: Schema.String })
+const InvoiceFlags = Schema.Struct({ restricted: Schema.NullOr(Schema.Finite) })
+
+/**
+ * Why this payment needs the owner (the page says it in those words): a restricted item, an amount over the grant's
+ * per-payment cap (with the cap, so "2.00 > 1.00" can be shown), or a payee outside the grant's allowlist. More than
+ * one can hold; none of them decides anything, Arc's enforcer does.
+ */
+const approvalReasons = Effect.fn('EthMumbai.World.approvalReasons')(function* (
+  database: QueryDatabaseClient,
+  row: ApprovalRow,
+) {
+  const invoice = yield* firstRow(
+    database.prepare('SELECT restricted FROM invoices WHERE id = ?').bind(row.invoice_id),
+    InvoiceFlags,
+  )
+  const grant = yield* latestSignedGrant(database, row.robot_id)
+  return {
+    restricted: Option.match(invoice, { onNone: () => false, onSome: ({ restricted }) => restricted === 1 }),
+    overCap: Option.match(grant, {
+      onNone: () => false,
+      onSome: ({ perPaymentCap }) => BigInt(row.amount) > perPaymentCap,
+    }),
+    offList: Option.match(grant, {
+      onNone: () => false,
+      onSome: ({ allowlist }) => !allowlist.some((payee) => payee.toLowerCase() === row.payee.toLowerCase()),
+    }),
+    perPaymentCap: Option.match(grant, { onNone: () => null, onSome: ({ perPaymentCap }) => perPaymentCap.toString() }),
+  }
+})
 
 /** `GET /api/approvals/:id` → what the owner approves: item, amount, payee, invoice, window and outcome. */
 export const readApprovalView = (deps: WorldDeps) =>
@@ -72,6 +102,7 @@ export const readApprovalView = (deps: WorldDeps) =>
       payee: row.payee,
       amount: row.amount,
       closesAt: closesAt(row),
+      reasons: yield* approvalReasons(deps.database, row),
       worldConfigured: Option.isSome(deps.world) && Option.isSome(deps.approver) && Option.isSome(deps.enforcer),
     })
   })

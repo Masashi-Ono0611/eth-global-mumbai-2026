@@ -277,7 +277,7 @@ describe('/wallet/robots', () => {
       expect(label('Allowed payees (addresses)')).toHaveValue(payee),
       expect(
         text(
-          'Vitaquack may spend up to 1.00 USDC a day, at most 0.30 USDC per payment, only at Duck Café, for the next 24 hours. You sign this with your passkey; Arc enforces it.',
+          'Vitaquack may spend up to 5.00 USDC a day, at most 1.00 USDC per payment, only at Duck Café, for the next 24 hours. Anything over 1.00 USDC, and any restricted item, waits for your approval in World App. You sign this with your passkey; Arc enforces it.',
         ),
       ).toExist(),
       type(label('Per-payment cap (USDC)'), '0.25'),
@@ -286,7 +286,7 @@ describe('/wallet/robots', () => {
       Command.expectExact(
         Robots.GrantBudget({
           robotId: pairedRobot.id,
-          dailyCap: '1.00',
+          dailyCap: '5.00',
           perPaymentCap: '0.25',
           allowlist: [payee],
           hours: 24,
