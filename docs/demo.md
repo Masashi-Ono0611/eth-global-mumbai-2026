@@ -6,6 +6,14 @@ the final run: replace them with the recorded ones in `docs/evidence/demo-run.md
 
 `$APP` = <https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev>
 
+## Already proven on mainnet (do not re-prove on stage)
+
+| What | Evidence |
+| --- | --- |
+| Settle, replay refused, revoke, next payment refused (stock enforcers) | `docs/evidence/2026-11-06-smoke.md` |
+| Our `RobotPaymentPolicyEnforcer` on Arc | `docs/evidence/contracts.md` (`0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3`) |
+| A passkey-signed grant on the deployed app: the Worker's relayer deployed the Hybrid account and Arc's ERC-1271 check accepted the passkey signature | [0xddd15708…4a0b](https://explorer.arc.io/tx/0xddd15708400a776ba01c383aede146e83d737c6e6bf815269d3e77e59cbf4a0b) (`docs/evidence/2026-11-06-deployed-e2e.md`) |
+
 ## Before the slot (10 minutes)
 
 | Check | How | Expected |
