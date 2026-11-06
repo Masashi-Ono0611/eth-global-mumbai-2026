@@ -21,3 +21,10 @@ export const failedView = <M>(error: string, retry: M, locale: Locale, h: HtmlBu
       h.button([h.Type('button'), h.Class('primary-action'), h.OnClick(retry)], [format(locale, 'common.retry', {})]),
     ],
   )
+
+export const loadingView = <M>(locale: Locale, h: HtmlBuilder<M>): Html =>
+  h.p([h.Role('status')], [format(locale, 'common.loading', {})])
+
+/** The frame of every owner page: one `main` landmark with the page heading first. */
+export const ownerMain = <M>(title: string, content: Html, h: HtmlBuilder<M>): Html =>
+  h.main([h.Id('main'), h.Class('owner-page')], [h.h1([], [title]), content])

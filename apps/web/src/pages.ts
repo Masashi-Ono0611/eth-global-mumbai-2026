@@ -3,6 +3,7 @@ import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Message } from './message.ts'
 import type { Model } from './model.ts'
+import * as Approval from './pages/Approval.ts'
 import * as Gate from './pages/gate/Gate.ts'
 import * as Merchant from './pages/merchant/Merchant.ts'
 import * as RobotConsole from './pages/RobotConsole.ts'
@@ -11,11 +12,15 @@ import * as Wallet from './pages/Wallet.ts'
 import { AppRoute } from './route.ts'
 
 /** The owner pages' state lives beside the session in the root Model: only the current route's page is present. */
-type Pages = Pick<Model, 'maybeWallet' | 'maybeRobots' | 'maybeConsole' | 'maybeMerchant' | 'maybeGate'>
+type Pages = Pick<
+  Model,
+  'maybeWallet' | 'maybeRobots' | 'maybeConsole' | 'maybeApproval' | 'maybeMerchant' | 'maybeGate'
+>
 const noPages: Pages = {
   maybeWallet: Option.none(),
   maybeRobots: Option.none(),
   maybeConsole: Option.none(),
+  maybeApproval: Option.none(),
   maybeMerchant: Option.none(),
   maybeGate: Option.none(),
 }
@@ -23,6 +28,7 @@ const noPages: Pages = {
 const toWallet = (message: Wallet.Message) => Message.GotWalletMessage({ message })
 const toRobots = (message: Robots.Message) => Message.GotRobotsMessage({ message })
 const toConsole = (message: RobotConsole.Message) => Message.GotConsoleMessage({ message })
+const toApproval = (message: Approval.Message) => Message.GotApprovalMessage({ message })
 const toMerchant = (message: Merchant.Message) => Message.GotMerchantMessage({ message })
 const toGate = (message: Gate.Message) => Message.GotGateMessage({ message })
 
@@ -43,6 +49,13 @@ export const initPages = (route: AppRoute) =>
       return {
         pages: { ...noPages, maybeRobots: Option.some(robots.model) },
         commands: Command.mapMessages(robots.commands, toRobots),
+      }
+    },
+    Approval: ({ approvalId }) => {
+      const approval = Approval.init(approvalId)
+      return {
+        pages: { ...noPages, maybeApproval: Option.some(approval.model) },
+        commands: Command.mapMessages(approval.commands, toApproval),
       }
     },
     Merchant: () => {
@@ -105,4 +118,12 @@ export const foldGate = Update.foldChild({
   read: (model: Model) => model.maybeGate,
   write: (model: Model, nextGate: Gate.Model) => modifyFields(model, { maybeGate: () => Option.some(nextGate) }),
   toParentMessage: toGate,
+})
+
+export const foldApproval = Update.foldChild({
+  update: Approval.update,
+  read: (model: Model) => model.maybeApproval,
+  write: (model: Model, nextApproval: Approval.Model) =>
+    modifyFields(model, { maybeApproval: () => Option.some(nextApproval) }),
+  toParentMessage: toApproval,
 })

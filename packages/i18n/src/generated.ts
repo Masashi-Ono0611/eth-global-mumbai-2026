@@ -3,6 +3,16 @@
 import type { FormatXMLElementFn } from 'intl-messageformat'
 export type RichTextValue<T = string> = FormatXMLElementFn<T>
 export interface MessageArgumentsByKey<T = string> {
+  'approval.amount': Readonly<Record<string, never>>
+  'approval.approveWithWorld': Readonly<Record<string, never>>
+  'approval.deny': Readonly<Record<string, never>>
+  'approval.explainer': Readonly<Record<string, never>>
+  'approval.invoice': Readonly<Record<string, never>>
+  'approval.item': Readonly<Record<string, never>>
+  'approval.notConfigured': Readonly<Record<string, never>>
+  'approval.payee': Readonly<Record<string, never>>
+  'approval.status': { readonly status: string | number }
+  'approval.title': Readonly<Record<string, never>>
   'auth.createWallet': Readonly<Record<string, never>>
   'auth.creatingWallet': Readonly<Record<string, never>>
   'auth.displayName': Readonly<Record<string, never>>
@@ -109,4 +119,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'b69fd3c8c76b4997afd890048d3c93cacd202da9b3b953cf72913b878b4f5813'
+export const catalogVersion = 'dd41b42fab4483d1c4b24fbfa9c16c057aba2b273c9477f9068f63ce5232bdd0'

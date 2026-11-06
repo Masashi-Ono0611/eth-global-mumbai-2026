@@ -3,6 +3,7 @@ import { SessionView } from '@ethmumbai/auth/config'
 import { defineMessageUnion } from 'foldkit/message'
 import { Locale } from './Locale.ts'
 import { AuthFailure } from './model.ts'
+import * as Approval from './pages/Approval.ts'
 import * as Gate from './pages/gate/Gate.ts'
 import * as Merchant from './pages/merchant/Merchant.ts'
 import * as RobotConsole from './pages/RobotConsole.ts'
@@ -29,6 +30,7 @@ export const Message = defineMessageUnion({
   GotWalletMessage: { message: Wallet.Message },
   GotRobotsMessage: { message: Robots.Message },
   GotConsoleMessage: { message: RobotConsole.Message },
+  GotApprovalMessage: { message: Approval.Message },
   GotMerchantMessage: { message: Merchant.Message },
   GotGateMessage: { message: Gate.Message },
 })

@@ -8,7 +8,7 @@ import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { isSignedOut } from '../api/Http.ts'
 import { robotsRouter } from '../route.ts'
-import { failedView, signedOutView } from './Shared.ts'
+import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
 import {
   ActivityView,
   type EpisodeActivity,
@@ -144,16 +144,14 @@ const loadedView = (wallet: WalletView, activity: ActivityView, locale: Locale, 
 
 /** `/wallet`: balance, fund instructions and activity. */
 export const view = Submodel.defineView<Model, Message, { readonly locale: Locale }>((model, { locale }, h) =>
-  h.main(
-    [h.Id('main'), h.Class('owner-page')],
-    [
-      h.h1([], [format(locale, 'wallet.title', {})]),
-      WalletState.match(model.state, {
-        Loading: () => h.p([h.Role('status')], [format(locale, 'common.loading', {})]),
-        SignedOut: () => signedOutView(locale, h),
-        Loaded: ({ wallet, activity }) => loadedView(wallet, activity, locale, h),
-        Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
-      }),
-    ],
+  ownerMain(
+    format(locale, 'wallet.title', {}),
+    WalletState.match(model.state, {
+      Loading: () => loadingView(locale, h),
+      SignedOut: () => signedOutView(locale, h),
+      Loaded: ({ wallet, activity }) => loadedView(wallet, activity, locale, h),
+      Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
+    }),
+    h,
   ),
 )

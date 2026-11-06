@@ -12,9 +12,11 @@ import { DomainLive } from './DomainLive.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
 import { AppDatabase } from './Resources.ts'
-import { noApprovals } from './robot/Errands.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
 import { walletRoutes } from './wallet/Routes.ts'
+import { makeApprovalPort } from './world/Approve.ts'
+import { makeWorldClient } from './world/Config.ts'
+import { worldRoutes } from './world/Routes.ts'
 import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@ethmumbai/observability'
 
 const Runtime = Layer.mergeAll(
@@ -66,7 +68,7 @@ export default ApiWorker.make(
           env,
           origin: authOrigin,
           settlement: chain.settlement,
-          approvals: noApprovals,
+          approvals: makeApprovalPort({ database, enforcer: chain.enforcer, approver: chain.approver }),
         })
         const routes = Layer.mergeAll(
           authRoutes(database),
@@ -77,6 +79,14 @@ export default ApiWorker.make(
             relayer: chain.relayer,
             enforcer: chain.enforcer,
             approver: chain.approverAddress,
+          }),
+          worldRoutes({
+            database,
+            origin: authOrigin,
+            world: yield* makeWorldClient(env),
+            approver: chain.approver,
+            enforcer: chain.enforcer,
+            errands: robotAgent.errands,
           }),
           HttpRouter.add('GET', '/api/health', health(observabilityBase.release)),
         ).pipe(Layer.provide(AlchemyHttp.Platform))

@@ -1,4 +1,16 @@
 {
+  "approval": {
+    "amount": "Znesek",
+    "approveWithWorld": "Odobri z World",
+    "deny": "Zavrni",
+    "explainer": "To plačilo presega meje robota ali je za omejen izdelek, zato potrebuje vašo svežo odobritev v aplikaciji World. Brez nje se nič ne plača.",
+    "invoice": "Račun",
+    "item": "Izdelek",
+    "notConfigured": "Odobritev z World na tej namestitvi še ni nastavljena.",
+    "payee": "Prejemnik",
+    "status": "{status, select, requested {Čaka na vaš odgovor} opened {Čaka na aplikacijo World} approved {Odobreno: čip zdaj podpiše plačilo} denied {Zavrnjeno: nič ni plačano} expired {Poteklo: nič ni plačano} consumed {Porabljeno za plačilo} other {{status}}}",
+    "title": "Odobritev za omejen izdelek"
+  },
   "auth": {
     "createWallet": "Ustvari denarnico s ključem za dostop",
     "creatingWallet": "Ustvarjanje denarnice...",

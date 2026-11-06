@@ -6,7 +6,7 @@ import { ActionFailure } from '../api/OwnerAction.ts'
 import { explorerTx, type GrantView, type RobotView, usdc } from '../api/Wallet.ts'
 import { Adding, type GrantForm, GrantStep, Message, type Model, Revoking, RobotsState } from './Robots.ts'
 import { robotConsoleRouter, walletRouter } from '../route.ts'
-import { failedView, signedOutView } from './Shared.ts'
+import { failedView, loadingView, signedOutView } from './Shared.ts'
 
 // VIEW
 
@@ -178,7 +178,7 @@ export const robotsView = Submodel.defineView<Model, Message, { readonly locale:
     [
       h.h1([], [format(locale, 'robots.title', {})]),
       RobotsState.match(model.robots, {
-        Loading: () => h.p([h.Role('status')], [format(locale, 'common.loading', {})]),
+        Loading: () => loadingView(locale, h),
         SignedOut: () => signedOutView(locale, h),
         Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
         Loaded: ({ robots }) =>

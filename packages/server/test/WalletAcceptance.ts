@@ -83,6 +83,12 @@ export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Ef
       expect(yield* wallet.json).toMatchObject({
         account: { displayName: 'Wallet Owner', deployStatus: 'counterfactual' },
       })
+      expect((yield* HttpClient.get(`${appUrl}/api/approvals/nope`, { headers: { cookie } })).status).toBe(404)
+      // The native stack binds no WORLD_* client: approval sign-in answers 503 instead of redirecting to World.
+      const authorize = yield* HttpClient.get(`${appUrl}/api/world/authorize?approval=nope`, { headers: { cookie } })
+      expect(authorize.status).toBe(503)
+      expect((yield* HttpClient.get(`${appUrl}/api/world/callback?state=nope&code=x`)).status).toBe(404)
+      expect((yield* call('/api/approvals/nope/deny', {}, cookie)).status).toBe(404)
       const activity = yield* HttpClient.get(`${appUrl}/api/wallet/activity`, { headers: { cookie } })
       expect(yield* activity.json).toEqual({ episodes: [], grants: [] })
     }).pipe(Effect.provide(FetchHttpClient.layer)),

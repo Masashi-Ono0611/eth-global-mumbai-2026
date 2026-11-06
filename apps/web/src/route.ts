@@ -7,6 +7,7 @@ export const AppRoute = defineRouteUnion({
   Wallet: {},
   Robots: {},
   RobotConsole: { robotId: Schema.String },
+  Approval: { approvalId: Schema.String },
   Merchant: {},
   Gate: { merchantId: Schema.String },
   NotFound: { path: Schema.String },
@@ -18,10 +19,24 @@ export const walletRouter = pipe(literal('wallet'), mapTo(AppRoute.Wallet))
 export const robotsRouter = pipe(literal('wallet'), slash(literal('robots')), mapTo(AppRoute.Robots))
 export const robotConsoleRouter = pipe(literal('robot'), slash(string('robotId')), mapTo(AppRoute.RobotConsole))
 
+const approvalRouter = pipe(
+  literal('wallet'),
+  slash(literal('approvals')),
+  slash(string('approvalId')),
+  mapTo(AppRoute.Approval),
+)
 const merchantRouter = pipe(literal('merchant'), mapTo(AppRoute.Merchant))
 export const gateRouter = pipe(literal('gate'), slash(string('merchantId')), mapTo(AppRoute.Gate))
 
-const parser = oneOf(robotsRouter, walletRouter, robotConsoleRouter, merchantRouter, gateRouter, homeRouter)
+const parser = oneOf(
+  robotsRouter,
+  approvalRouter,
+  walletRouter,
+  robotConsoleRouter,
+  merchantRouter,
+  gateRouter,
+  homeRouter,
+)
 
 /** The page for a request path; unknown paths are NotFound (the server answers those with 404). */
 export const routeFromPathname = (pathname: string): AppRoute =>

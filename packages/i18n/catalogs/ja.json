@@ -1,4 +1,16 @@
 {
+  "approval": {
+    "amount": "金額",
+    "approveWithWorld": "World で承認",
+    "deny": "拒否",
+    "explainer": "この支払いはロボットの上限を超えているか制限付き商品のため、World App での新たな承認が必要です。承認がなければ支払いは行われません。",
+    "invoice": "請求書",
+    "item": "商品",
+    "notConfigured": "このデプロイではまだ World 承認が設定されていません。",
+    "payee": "支払先",
+    "status": "{status, select, requested {あなたの回答を待っています} opened {World App を待っています} approved {承認済み：チップが支払いに署名します} denied {拒否：支払いは行われません} expired {期限切れ：支払いは行われません} consumed {支払いに使用済み} other {{status}}}",
+    "title": "制限付き商品の承認"
+  },
   "auth": {
     "createWallet": "パスキーでウォレットを作成",
     "creatingWallet": "ウォレットを作成しています...",

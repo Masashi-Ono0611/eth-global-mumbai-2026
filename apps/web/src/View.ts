@@ -4,6 +4,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { Message } from './message.ts'
 import { AuthState, LocaleSave, type Model } from './model.ts'
 import { homeView } from './pages/Home.ts'
+import * as Approval from './pages/Approval.ts'
 import * as Gate from './pages/gate/Gate.ts'
 import * as Merchant from './pages/merchant/Merchant.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
@@ -130,6 +131,22 @@ const consolePage = (model: Model, h: HtmlBuilder<Message>): Page =>
     h,
   )
 
+const approvalPage = (model: Model, h: HtmlBuilder<Message>): Page =>
+  childPage(
+    model,
+    format(model.context.locale, 'approval.title', {}),
+    model.maybeApproval,
+    (approval) =>
+      h.submodel({
+        slotId: 'approval',
+        model: approval,
+        view: Approval.view,
+        viewInputs: { locale: model.context.locale },
+        toParentMessage: (message) => Message.GotApprovalMessage({ message }),
+      }),
+    h,
+  )
+
 const merchantPage = (model: Model, h: HtmlBuilder<Message>): Page =>
   childPage(
     model,
@@ -170,6 +187,7 @@ const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
     Wallet: () => walletPage(model, h),
     Robots: () => robotsPage(model, h),
     RobotConsole: () => consolePage(model, h),
+    Approval: () => approvalPage(model, h),
     Merchant: () => merchantPage(model, h),
     Gate: () => gatePage(model, h),
   })

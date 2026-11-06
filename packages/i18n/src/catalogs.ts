@@ -2,6 +2,18 @@
 
 import type { MessageKey } from './generated.ts'
 export const en: Readonly<Record<MessageKey, string>> = {
+  'approval.amount': 'Amount',
+  'approval.approveWithWorld': 'Approve with World',
+  'approval.deny': 'Deny',
+  'approval.explainer':
+    "This payment is over the robot's limits or for a restricted item, so it needs your fresh approval in World App. Nothing is paid without it.",
+  'approval.invoice': 'Invoice',
+  'approval.item': 'Item',
+  'approval.notConfigured': 'World approval is not configured on this deployment yet.',
+  'approval.payee': 'Payee',
+  'approval.status':
+    '{status, select, requested {Waiting for your answer} opened {Waiting for World App} approved {Approved: the chip signs the payment now} denied {Denied: nothing is paid} expired {Expired: nothing is paid} consumed {Used for the payment} other {{status}}}',
+  'approval.title': 'Approval for a restricted item',
   'auth.createWallet': 'Create passkey wallet',
   'auth.creatingWallet': 'Creating your wallet...',
   'auth.displayName': 'Your name',
@@ -106,6 +118,18 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'wallet.viewTx': 'View transaction',
 }
 export const sl: Readonly<Record<MessageKey, string>> = {
+  'approval.amount': 'Znesek',
+  'approval.approveWithWorld': 'Odobri z World',
+  'approval.deny': 'Zavrni',
+  'approval.explainer':
+    'To plačilo presega meje robota ali je za omejen izdelek, zato potrebuje vašo svežo odobritev v aplikaciji World. Brez nje se nič ne plača.',
+  'approval.invoice': 'Račun',
+  'approval.item': 'Izdelek',
+  'approval.notConfigured': 'Odobritev z World na tej namestitvi še ni nastavljena.',
+  'approval.payee': 'Prejemnik',
+  'approval.status':
+    '{status, select, requested {Čaka na vaš odgovor} opened {Čaka na aplikacijo World} approved {Odobreno: čip zdaj podpiše plačilo} denied {Zavrnjeno: nič ni plačano} expired {Poteklo: nič ni plačano} consumed {Porabljeno za plačilo} other {{status}}}',
+  'approval.title': 'Odobritev za omejen izdelek',
   'auth.createWallet': 'Ustvari denarnico s ključem za dostop',
   'auth.creatingWallet': 'Ustvarjanje denarnice...',
   'auth.displayName': 'Vaše ime',
@@ -210,6 +234,18 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'wallet.viewTx': 'Ogled transakcije',
 }
 export const ja: Readonly<Record<MessageKey, string>> = {
+  'approval.amount': '金額',
+  'approval.approveWithWorld': 'World で承認',
+  'approval.deny': '拒否',
+  'approval.explainer':
+    'この支払いはロボットの上限を超えているか制限付き商品のため、World App での新たな承認が必要です。承認がなければ支払いは行われません。',
+  'approval.invoice': '請求書',
+  'approval.item': '商品',
+  'approval.notConfigured': 'このデプロイではまだ World 承認が設定されていません。',
+  'approval.payee': '支払先',
+  'approval.status':
+    '{status, select, requested {あなたの回答を待っています} opened {World App を待っています} approved {承認済み：チップが支払いに署名します} denied {拒否：支払いは行われません} expired {期限切れ：支払いは行われません} consumed {支払いに使用済み} other {{status}}}',
+  'approval.title': '制限付き商品の承認',
   'auth.createWallet': 'パスキーでウォレットを作成',
   'auth.creatingWallet': 'ウォレットを作成しています...',
   'auth.displayName': 'お名前',
@@ -314,6 +350,18 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'wallet.viewTx': '取引を表示',
 }
 export const hi: Readonly<Record<MessageKey, string>> = {
+  'approval.amount': 'राशि',
+  'approval.approveWithWorld': 'World से मंज़ूरी दें',
+  'approval.deny': 'अस्वीकार करें',
+  'approval.explainer':
+    'यह भुगतान रोबोट की सीमा से ज़्यादा है या किसी प्रतिबंधित वस्तु के लिए है, इसलिए इसके लिए World App में आपकी ताज़ा मंज़ूरी चाहिए। इसके बिना कोई भुगतान नहीं होगा।',
+  'approval.invoice': 'इनवॉइस',
+  'approval.item': 'वस्तु',
+  'approval.notConfigured': 'इस डिप्लॉयमेंट पर World मंज़ूरी अभी सेट नहीं है।',
+  'approval.payee': 'प्राप्तकर्ता',
+  'approval.status':
+    '{status, select, requested {आपके जवाब की प्रतीक्षा} opened {World App की प्रतीक्षा} approved {मंज़ूर: चिप अब भुगतान पर हस्ताक्षर करेगी} denied {अस्वीकृत: कोई भुगतान नहीं} expired {समय समाप्त: कोई भुगतान नहीं} consumed {भुगतान में उपयोग हुआ} other {{status}}}',
+  'approval.title': 'प्रतिबंधित वस्तु के लिए मंज़ूरी',
   'auth.createWallet': 'पासकी वॉलेट बनाएँ',
   'auth.creatingWallet': 'आपका वॉलेट बन रहा है...',
   'auth.displayName': 'आपका नाम',
@@ -417,6 +465,18 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'wallet.viewTx': 'लेन-देन देखें',
 }
 export const mr: Readonly<Record<MessageKey, string>> = {
+  'approval.amount': 'रक्कम',
+  'approval.approveWithWorld': 'World ने मंजुरी द्या',
+  'approval.deny': 'नाकारा',
+  'approval.explainer':
+    'हे पेमेंट रोबोटच्या मर्यादेपेक्षा जास्त आहे किंवा प्रतिबंधित वस्तूसाठी आहे, म्हणून त्यासाठी World App मध्ये तुमची नवीन मंजुरी लागते. तिच्याशिवाय काहीही दिले जात नाही.',
+  'approval.invoice': 'बीजक',
+  'approval.item': 'वस्तू',
+  'approval.notConfigured': 'या डिप्लॉयमेंटवर World मंजुरी अजून सेट केलेली नाही.',
+  'approval.payee': 'प्राप्तकर्ता',
+  'approval.status':
+    '{status, select, requested {तुमच्या उत्तराची प्रतीक्षा} opened {World App ची प्रतीक्षा} approved {मंजूर: चिप आता पेमेंटवर स्वाक्षरी करेल} denied {नाकारले: काहीही दिले जात नाही} expired {मुदत संपली: काहीही दिले जात नाही} consumed {पेमेंटसाठी वापरले} other {{status}}}',
+  'approval.title': 'प्रतिबंधित वस्तूसाठी मंजुरी',
   'auth.createWallet': 'पासकी वॉलेट तयार करा',
   'auth.creatingWallet': 'तुमचे वॉलेट तयार होत आहे...',
   'auth.displayName': 'तुमचे नाव',

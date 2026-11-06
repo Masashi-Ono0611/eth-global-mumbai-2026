@@ -16,6 +16,7 @@ import {
 import { describe, test } from 'vitest'
 import { ActionFailure } from '../src/api/OwnerAction.ts'
 import type { RobotView } from '../src/api/Wallet.ts'
+import * as Approval from '../src/pages/Approval.ts'
 import * as RobotConsole from '../src/pages/RobotConsole.ts'
 import { robotConsoleView } from '../src/pages/RobotConsoleView.ts'
 import * as Robots from '../src/pages/Robots.ts'
@@ -284,6 +285,72 @@ describe('/robot/:id', () => {
         RobotConsole.LoadConsole,
         RobotConsole.Message.FailedLoadConsole({ error: 'offline', signedOut: false }),
       ),
+    )
+  })
+})
+
+const approval = (status: string, error: string | null = null) => ({
+  id: 'ap1',
+  status,
+  error,
+  item: 'cigarettes',
+  robotName: 'Duck',
+  robotId: pairedRobot.id,
+  invoiceId: 'inv1',
+  payee: '0x000000000000000000000000000000000000dead',
+  amount: '500000',
+  closesAt: 0,
+  worldConfigured: true,
+})
+
+describe('/wallet/approvals/:id', () => {
+  const view = withViewInputs(Approval.view, { locale: 'en' })()
+
+  test('a restricted item asks for World approval; the owner can deny it and nothing is paid', () => {
+    scene(
+      { update: Approval.update, view },
+      given(Approval.init('ap1').model),
+      expect(role('status')).toHaveText('Loading...'),
+    )
+    scene(
+      { update: Approval.update, view },
+      given(
+        Approval.update(
+          Approval.init('ap1').model,
+          Approval.Message.SucceededLoadApproval({ approval: approval('requested') }),
+        ).model,
+      ),
+      expect(role('heading', { name: 'Approval for a restricted item' })).toExist(),
+      expect(text('cigarettes · Duck')).toExist(),
+      expect(text('0.50 USDC')).toExist(),
+      expect(role('status')).toHaveText('Waiting for your answer'),
+      expect(role('link', { name: 'Approve with World' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
+      click(role('button', { name: 'Deny' })),
+      Command.expectExact(Approval.DenyApproval({ approvalId: 'ap1' })),
+      Command.resolve(Approval.DenyApproval, Approval.Message.SucceededDenyApproval()),
+      Command.expectExact(Approval.LoadApproval({ approvalId: 'ap1', delayMillis: 0 })),
+      Command.resolve(
+        Approval.LoadApproval,
+        Approval.Message.SucceededLoadApproval({ approval: approval('denied', 'denied by the owner') }),
+      ),
+      expect(role('status')).toHaveText('Denied: nothing is paid'),
+      expect(text('denied by the owner')).toExist(),
+      expect(role('link', { name: 'Approve with World' })).toBeAbsent(),
+    )
+  })
+
+  test('after World approves, the page says the chip signs now', () => {
+    scene(
+      { update: Approval.update, view },
+      given(
+        Approval.update(
+          Approval.init('ap1').model,
+          Approval.Message.SucceededLoadApproval({ approval: approval('approved') }),
+        ).model,
+      ),
+      expect(role('status')).toHaveText('Approved: the chip signs the payment now'),
+      expect(role('button', { name: 'Deny' })).toBeAbsent(),
+      expect(role('link', { name: 'Open console' })).toHaveAttr('href', `/robot/${pairedRobot.id}`),
     )
   })
 })
