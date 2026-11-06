@@ -13,7 +13,7 @@ import { features } from './Features.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
 import { PRODUCTION_NAMES, pinnedOnMain } from './ProductionNames.ts'
-import { AppDatabase } from './Resources.ts'
+import { AppDatabase, AppMedia } from './Resources.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
 import { walletRoutes } from './wallet/Routes.ts'
 import { makeApprovalPort } from './world/Approve.ts'
@@ -26,6 +26,7 @@ const Runtime = Layer.mergeAll(
   DomainLive,
   Cloudflare.Telemetry({ headSamplingRate: 1 }),
   Cloudflare.D1.QueryDatabaseBinding,
+  Cloudflare.R2.ReadWriteBucketBinding,
 )
 
 export class ApiWorker extends Cloudflare.Worker<ApiWorker, Cloudflare.WorkerShape>()('Api') {}
@@ -46,6 +47,8 @@ export default ApiWorker.make(
   })),
   Effect.gen(function* () {
     const database = yield* Cloudflare.D1.QueryDatabase(AppDatabase)
+    // The private media bucket: chip-signed scan crops (written by the chip's scan route, read by the owner and verify).
+    const media = yield* Cloudflare.R2.ReadWriteBucket(AppMedia)
     // Bindings configured by the stack (including the web origin and secrets) exist only in the deployed request
     // runtime, not while Alchemy evaluates the Worker declaration during planning. Build the application on the
     // first request and reuse it for every later request in this isolate (styldappv2 726c7e6d).
@@ -69,6 +72,7 @@ export default ApiWorker.make(
         const chain = yield* makeChainServices(database, env)
         const robotAgent = yield* robotAgentRoutes({
           database,
+          media,
           env,
           origin: authOrigin,
           settlement: chain.settlement,

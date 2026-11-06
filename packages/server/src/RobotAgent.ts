@@ -1,13 +1,16 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
+import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWriteBucket'
 import { Address } from '@ethmumbai/protocol/Hex'
 import { Effect, Layer, Option, Redacted, Schema } from 'effect'
 import { chipRoutes } from './chip/Routes.ts'
+import { scansEnabled } from './Features.ts'
 import { merchantPayees, merchantRoutes } from './merchant/Routes.ts'
 import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
 import { auditRoutes, ZG_CHAIN_RPC_DEFAULT } from './robot/Audit.ts'
 import { evidenceRoutes } from './robot/Evidence.ts'
 import { robotRoutes } from './robot/routes.ts'
+import { scanRoutes } from './robot/Scans.ts'
 import { ZeroGBindings, ZeroGExtraBody } from './robot/ZeroGClient.ts'
 import { type Bindings, optionalBinding } from './Respond.ts'
 
@@ -21,12 +24,14 @@ const isUnset = (value: unknown) => value === undefined || value === '' || value
  */
 export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(function* (input: {
   readonly database: QueryDatabaseClient
+  /** The private media bucket (`AppMedia`): scan crops, owner-only, never public. */
+  readonly media: ReadWriteBucketClient
   readonly env: Bindings
   readonly origin: string
   readonly settlement: Option.Option<Settlement>
   readonly approvals: ApprovalPort
 }) {
-  const { database, env, origin, settlement, approvals } = input
+  const { database, media, env, origin, settlement, approvals } = input
   const baseUrl = yield* optionalBinding(env, 'ZG_BASE_URL', ZeroGBindings.baseUrl)
   const apiKey = yield* optionalBinding(env, 'ZG_API_KEY', ZeroGBindings.apiKey)
   const model = yield* optionalBinding(env, 'ZG_MODEL', ZeroGBindings.model)
@@ -57,7 +62,9 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     chipRoutes(database, errandChipHooks(errands)),
     robotRoutes(errands),
     evidenceRoutes(database, Option.map(evidenceToken, Redacted.make)),
-    auditRoutes(errands, Option.all({ address: episodeLogAddress, rpcUrl: chainRpc })),
+    auditRoutes(errands, media, Option.all({ address: episodeLogAddress, rpcUrl: chainRpc })),
+    // Scan-initiated errands exist only while SCANS_ENABLED is `true`; otherwise the path is not mounted (404).
+    scansEnabled(env) ? scanRoutes(errands, media) : Layer.empty,
   )
   return { layer, errands }
 })

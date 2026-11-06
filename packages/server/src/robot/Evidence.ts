@@ -7,6 +7,7 @@ import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import type * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { decisionsOf } from './Decide.ts'
 import type { EpisodeRow } from './Errands.ts'
+import { evidenceObservation, observationsOf } from './Observations.ts'
 import { json, jsonError, notConfigured, nowSeconds, sha256Hex } from '../Respond.ts'
 import { allRows, changes, firstRow } from '../Sql.ts'
 
@@ -45,6 +46,8 @@ export const enqueueEvidence = Effect.fn('EthMumbai.Robot.enqueueEvidence')(func
     ApprovalRef,
   )
   const requestIds = decisions.flatMap((decision) => (decision.request_id === null ? [] : [decision.request_id]))
+  // A scan's hash and chip signature, never its image; absent when the errand had no scan (older evidence unchanged).
+  const observations = (yield* observationsOf(database, episode.id)).map(evidenceObservation)
   const txHash = Option.getOrUndefined(
     Schema.decodeUnknownOption(Bytes32)(episode.state === 'paid' ? episode.result : undefined),
   )
@@ -70,6 +73,7 @@ export const enqueueEvidence = Effect.fn('EthMumbai.Robot.enqueueEvidence')(func
       ...(Option.isSome(approval) ? { approvalId: approval.value.id } : {}),
     },
     requestIds,
+    ...(observations.length > 0 ? { observations } : {}),
   }).pipe(Effect.orDie)
   const hash = requestIdsHash(requestIds)
   const createdAt = yield* Clock.currentTimeMillis

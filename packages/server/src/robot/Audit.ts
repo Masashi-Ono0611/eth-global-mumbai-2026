@@ -1,5 +1,7 @@
+import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWriteBucket'
 import { DecideInput, requestIdsHash } from '@ethmumbai/protocol/Errand'
 import { keccak256Utf8 } from '@ethmumbai/protocol/Keccak'
+import { scanMessage } from '@ethmumbai/protocol/Scan'
 import { Effect, Option, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpRouter from 'effect/http/HttpRouter'
@@ -7,8 +9,10 @@ import { createPublicClient, http, parseAbi } from 'viem'
 import { decisionsOf } from './Decide.ts'
 import { type EpisodeRow, type ErrandDeps, readEpisode } from './Errands.ts'
 import { readEvidence } from './Evidence.ts'
+import { frameSha256, type ObservationRow, observationsOf, scanSignedBy } from './Observations.ts'
 import { decide } from './ZeroGClient.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
+import { readRobot } from '../chip/Lease.ts'
 import type { Hex } from '@ethmumbai/protocol/Hex'
 import { json, jsonError, notConfigured } from '../Respond.ts'
 
@@ -69,7 +73,34 @@ const storedFor = Effect.fnUntraced(function* (deps: ErrandDeps, episode: Episod
   }
 })
 
-const verify = (deps: ErrandDeps, config: Option.Option<EpisodeLogConfig>) =>
+/** One scan re-checked from R2: do the stored bytes still hash to the signed digest, and did the chip sign it? */
+const checkObservation = Effect.fnUntraced(function* (
+  media: ReadWriteBucketClient,
+  chipAddress: Hex | null,
+  row: ObservationRow,
+) {
+  const object = Option.getOrNull(yield* media.get(row.r2_key).pipe(Effect.option))
+  const bytes = object === null ? Option.none() : yield* object.bytes().pipe(Effect.option)
+  const message = scanMessage(row.invoice_id, row.frame_sha256, row.captured_at, row.robot_id)
+  return {
+    sha256: row.frame_sha256,
+    hashMatches: Option.exists(bytes, (frame) => frameSha256(frame) === row.frame_sha256),
+    signerMatches: yield* scanSignedBy(message, row.chip_sig, chipAddress),
+  }
+})
+
+const checkObservations = Effect.fnUntraced(function* (
+  deps: ErrandDeps,
+  media: ReadWriteBucketClient,
+  episode: EpisodeRow,
+) {
+  const robot = yield* readRobot(deps.database, episode.robot_id)
+  const chipAddress = Option.getOrNull(Option.flatMapNullishOr(robot, (row) => row.chip_address))
+  const rows = yield* observationsOf(deps.database, episode.id)
+  return yield* Effect.forEach(rows, (row) => checkObservation(media, chipAddress, row))
+})
+
+const verify = (deps: ErrandDeps, media: ReadWriteBucketClient, config: Option.Option<EpisodeLogConfig>) =>
   Effect.gen(function* () {
     const episode = yield* ownEpisode(deps)
     if (Option.isNone(episode)) return yield* jsonError(404, 'unknown episode')
@@ -94,6 +125,8 @@ const verify = (deps: ErrandDeps, config: Option.Option<EpisodeLogConfig>) =>
       },
       // The Worker cannot run the 0G Storage SDK (it needs Node); the uploader downloads and compares each root.
       downloadCheckedBy: 'uploader',
+      // Each scan's crop re-read from R2 and re-hashed, and its chip signature recovered (`[]` without scans).
+      observations: yield* checkObservations(deps, media, episode.value),
     })
   })
 
@@ -134,8 +167,12 @@ const replay = (deps: ErrandDeps) =>
   })
 
 /** `POST /api/wallet/episodes/:id/verify` and `/replay`, behind the session and the Origin check. */
-export const auditRoutes = (deps: ErrandDeps, episodeLog: Option.Option<EpisodeLogConfig>) =>
+export const auditRoutes = (
+  deps: ErrandDeps,
+  media: ReadWriteBucketClient,
+  episodeLog: Option.Option<EpisodeLogConfig>,
+) =>
   HttpRouter.addAll([
-    HttpRouter.route('POST', '/api/wallet/episodes/:episodeId/verify', requireSession(verify(deps, episodeLog))),
+    HttpRouter.route('POST', '/api/wallet/episodes/:episodeId/verify', requireSession(verify(deps, media, episodeLog))),
     HttpRouter.route('POST', '/api/wallet/episodes/:episodeId/replay', requireSession(replay(deps))),
   ])
