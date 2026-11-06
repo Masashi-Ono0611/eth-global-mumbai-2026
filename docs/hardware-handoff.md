@@ -31,21 +31,22 @@ fresh random nonce → verify → show PAID / open on the first verified `paid` 
 - **The first read that sees `paid` gets `paid`; every later read gets `used`.** Act on that one read: show PAID, move
   the servo, mint the next invoice. Treat `used` and `expired` as "mint a new one".
 - **Run one gate at a time.** A "buy chai" errand pays the counter's newest open chai invoice. With the web gate
-  (`$APP/gate/duck-cafe`) and the ESP32 both open, the robot pays whichever minted last. Close the browser tab when
+  (`$APP/app/gate/duck-cafe`) and the ESP32 both open, the robot pays whichever minted last. Close the browser tab when
   the ESP32 is the gate.
 
 **QR payload:** the invoice's `url`, byte for byte: `$APP/api/i/<id>` (with `/api/`; the H2 bench brief's
-`…/i/<id>` predates the spec). The chip refuses any other form (`bad_invoice_origin`). On today's workers.dev origin
-that is **107 bytes**, which the H2 settings (version ≤ 4, ECC M, 62 bytes) cannot hold:
+`…/i/<id>` predates the spec). The chip refuses any other form (`bad_invoice_origin`). On vitaquack.com that is **54
+bytes** (`https://vitaquack.com/api/i/` + 26), which the H2 settings hold (version 4, ECC M, 62 bytes, 3 px per module). The
+workers.dev origin was **107 bytes**, which they cannot. The options:
 
 | Option | Modules | Fits the 128 px side of the ST7735? |
 | --- | --- | --- |
 | version 7, ECC M (122 B), 2 px per module, 4-module quiet zone | 45 | 90 + 16 = 106 px: yes |
 | version 6, ECC L (134 B), 2 px, 4-module quiet zone | 41 | 82 + 16 = 98 px: yes |
 | version 6 or 7 at 3 px | 41–45 | 147–159 px: no |
-| a short custom domain (`https://<≤ 20 chars>/api/i/<26>` ≤ 62 B): version 4, ECC M, 3 px | 33 | 99 + 24 = 123 px: yes (the H2 setting) |
+| vitaquack.com (54 B): version 4, ECC M, 3 px | 33 | 99 + 24 = 123 px: yes (the H2 setting) |
 
-Whether the duck's camera reads 2 px modules is H2, not yet run. If it doesn't, the short domain is the fix (ask Kris).
+On vitaquack.com the 2 px question is moot; whether the duck's camera reads the 3 px version 4 code is H2, not yet run.
 
 ## 2. Radxa chip
 
@@ -79,7 +80,7 @@ Chip protocol (spec §8). Shapes, with values from the native tests:
    request (up to about a minute), then answers 200 `{"accepted":true,"payment":{"status":"settled","txHash":"0x…"}}` or
    `{"status":"failed","reason":"…"}`. A second answer to the same request gets 409.
 5. **Lease:** with no successful poll for 35 s the chip logs `STOP motors (lease expired)` and refuses everything
-   (`no_lease`). On the next good poll it logs `lease ok`. The robot's conversation (`/robot/<id>`) shows it Connected while
+   (`no_lease`). On the next good poll it logs `lease ok`. The robot's conversation (`/app/robot/<id>`) shows it Connected while
    `now < lease_until`.
 
 Not yet proven on the deployed edge: a 25 s long-poll through `$APP` (the local dev proxy reset such long responses;
@@ -110,7 +111,7 @@ workaround: invoice links carry the public origin, so such a chip refuses every 
    `./vitaquack-chip --server $APP --pair <CODE>`. Expect `chip 0x… (new key)`, `paired <robotId>`, `lease ok`.
    Check `stat -c %a ~/.vitaquack-chip/key.json` → `600`.
 4. When the page says the robot connected, keep the allowance presets (3.00 a day, 1.00 a purchase, Duck Café,
-   1 day) and **Confirm with passkey**. In the robot's conversation that opens (`$APP/robot/<id>`) tap **Chai 0.10**. Expect `signed <invoiceId>`, then `payment settled 0x<tx>` (on
+   1 day) and **Confirm with passkey**. In the robot's conversation that opens (`$APP/app/robot/<id>`) tap **Chai 0.10**. Expect `signed <invoiceId>`, then `payment settled 0x<tx>` (on
    <https://explorer.arc.io>).
 5. Network cut: switch the hotspot off. Within 35 s expect `STOP motors (lease expired)`; switch it on, expect
    `lease ok`. Restart the process. It must not pair again (`pairing.json`) and must not re-sign a used invoice
@@ -209,6 +210,6 @@ run above.
 On 201 the `state` is `signing` (the chip's poll gets the payment to sign), `awaiting_approval` (World approval
 needed), `walked_away` or `safe_stop`. On the demo allowance (3.00 a day, 1.00 a purchase) a scanned thali (2.00) is
 `awaiting_approval`; once less than its price is left today it is `walked_away`, because no approval lifts the daily
-allowance. Follow it on `$APP/robot/<robotId>`, or let the gate show PAID. The owner sees
+allowance. Follow it on `$APP/app/robot/<robotId>`, or let the gate show PAID. The owner sees
 the crop at `/app/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
 `observations: [{sha256, hashMatches, signerMatches}]`.
