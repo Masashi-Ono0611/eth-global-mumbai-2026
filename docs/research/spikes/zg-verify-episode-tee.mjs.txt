@@ -1,0 +1,27 @@
+// Vitaquack のエピソードの各判断を、Router を信用せずに TEE 署名で独立検証する(0G 公式 SDK の processResponse)。
+// 読むのは公開の GET /api/evidence/:id だけ。鍵も資金も要らない(使い捨てのウォレットで 0G mainnet の RPC を読む)。
+// 使い方: node scripts/verify-episode-tee.mjs <episodeId ...>
+// 判定: true = TEE の中で実行されたと独立に確認 / false = 署名が合わない / null = その提供元に検証可能な TEE が無い / error = 確認できない
+import { ethers } from 'ethers';
+import { createZGComputeNetworkBroker } from '@0gfoundation/0g-compute-ts-sdk';
+
+const APP = process.env.APP_ORIGIN || 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev';
+const broker = await createZGComputeNetworkBroker(ethers.Wallet.createRandom().connect(new ethers.JsonRpcProvider('https://evmrpc.0g.ai')));
+
+let verified = 0; let total = 0;
+for (const id of process.argv.slice(2)) {
+  const ev = await (await fetch(`${APP}/api/evidence/${id}`)).json();
+  for (const d of ev?.payload?.decisions ?? []) {
+    total++;
+    // provider は "router-api.0g.ai/<model>@<提供元アドレス>" の形
+    const m = /^router-api\.0g\.ai\/[^@]+@(0x[0-9a-fA-F]{40})$/.exec(String(d.provider));
+    let tee;
+    if (!m) tee = 'not a 0G router decision';
+    else if (!d.chatId) tee = 'no chatId';
+    else { try { tee = await broker.inference.processResponse(m[1], d.chatId); } catch (e) { tee = 'error: ' + String(e?.message ?? e).slice(0, 100); } }
+    if (tee === true) verified++;
+    console.log(JSON.stringify({ episode: id, step: d.step, model: d.model, action: d.action, requestId: d.requestId, chatId: d.chatId, tee }));
+  }
+}
+console.log(`TEE verified ${verified}/${total}`);
+process.exit(total > 0 && verified === total ? 0 : 1);
