@@ -6,6 +6,7 @@ export interface MessageArgumentsByKey<T = string> {
   'addRobot.askName': Readonly<Record<string, never>>
   'addRobot.cancelPairing': Readonly<Record<string, never>>
   'addRobot.close': Readonly<Record<string, never>>
+  'addRobot.codeLimits': Readonly<Record<string, never>>
   'addRobot.connected': { readonly name: string | number }
   'addRobot.expired': Readonly<Record<string, never>>
   'addRobot.giveCode': { readonly name: string | number }
@@ -16,6 +17,7 @@ export interface MessageArgumentsByKey<T = string> {
   'addRobot.nameLabel': Readonly<Record<string, never>>
   'addRobot.namePlaceholder': Readonly<Record<string, never>>
   'addRobot.next': Readonly<Record<string, never>>
+  'addRobot.onRobot': Readonly<Record<string, never>>
   'addRobot.openSimulator': Readonly<Record<string, never>>
   'addRobot.simCode': { readonly name: string | number }
   'addRobot.startOver': Readonly<Record<string, never>>
@@ -52,13 +54,6 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.spent': { readonly spent: string | number; readonly daily: string | number }
   'allowance.stop': { readonly name: string | number }
   'allowance.stopping': Readonly<Record<string, never>>
-  'allowance.summary': {
-    readonly name: string | number
-    readonly daily: string | number
-    readonly payee: string | number
-    readonly hours: number
-    readonly perPayment: string | number
-  }
   'allowance.title': { readonly name: string | number }
   'allowance.where': Readonly<Record<string, never>>
   'approval.back': { readonly robot: string | number }
@@ -110,7 +105,6 @@ export interface MessageArgumentsByKey<T = string> {
   }
   'console.episodeLog': Readonly<Record<string, never>>
   'console.paymentTx': Readonly<Record<string, never>>
-  'console.reason': { readonly reason: string | number }
   'console.storage': Readonly<Record<string, never>>
   'console.title': Readonly<Record<string, never>>
   'episode.action': { readonly action: string | number }
@@ -314,10 +308,12 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.deciding': Readonly<Record<string, never>>
   'thread.denied': Readonly<Record<string, never>>
   'thread.dockBusy': { readonly name: string | number }
+  'thread.dockEnded': { readonly name: string | number }
   'thread.dockNoAllowance': { readonly name: string | number }
   'thread.dockStopped': { readonly name: string | number }
   'thread.empty': { readonly name: string | number }
-  'thread.expired': Readonly<Record<string, never>>
+  'thread.emptyNoAllowance': { readonly name: string | number }
+  'thread.expired': { readonly why: string | number }
   'thread.failed': { readonly reason: string | number }
   'thread.instructionFor': { readonly item: string | number }
   'thread.instructionLabel': { readonly name: string | number }
@@ -331,7 +327,7 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.liveAlt': { readonly name: string | number }
   'thread.liveSeen': { readonly name: string | number; readonly seconds: number }
   'thread.needsOk': Readonly<Record<string, never>>
-  'thread.noAllowance': Readonly<Record<string, never>>
+  'thread.noAllowance': { readonly status: string | number }
   'thread.offline': Readonly<Record<string, never>>
   'thread.onArc': Readonly<Record<string, never>>
   'thread.openSimulator': Readonly<Record<string, never>>
@@ -349,9 +345,9 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.stop': { readonly name: string | number }
   'thread.stopping': Readonly<Record<string, never>>
   'thread.turnError': { readonly error: string | number }
-  'thread.waitingScan': { readonly name: string | number }
+  'thread.waitingScan': Readonly<Record<string, never>>
   'thread.walkedAway': Readonly<Record<string, never>>
-  'thread.walking': { readonly name: string | number }
+  'thread.walking': Readonly<Record<string, never>>
   'thread.zeroGDecided': { readonly action: string | number }
   'voice.empty': { readonly name: string | number }
   'voice.failed': { readonly reason: string | number; readonly detail: string | number }
@@ -388,4 +384,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'e656c7c034f11d26c459cd64875f10a444a23b7cb8b9b00c1948fdf5115f1558'
+export const catalogVersion = 'ba73660a88f2ee42b503f51b00542233c4ee7c026d7d2ad133438b07c2119cc6'

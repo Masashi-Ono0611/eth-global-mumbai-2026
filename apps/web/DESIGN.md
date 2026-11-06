@@ -101,6 +101,12 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
 - Proof pages (`/app/proofs`, public): the errand page's audit cards and buttons (`EpisodeParts.ts`), showing only
   what is already public on 0G.
 - System pill: centred and muted, for events that are not anyone's words ("Duck connected at 15:56").
+- Empty conversation: the duck itself in the middle, in the same face as its home row (ink while its chip is on, grey
+  and asleep while it is off), with one short line. Without an allowance the line says to give one first, with the
+  button that opens the allowance sheet.
+- Walking: "On my way to scan the QR at the counter" is the duck's own bubble, with Stop under it; it goes once the
+  robot has scanned. The thread opens at its newest message and scrolls there whenever the intent or errand moves.
+- A robot's photo that cannot be shown: a quiet camera in its box (`.photo-frame`), never the browser's alt text.
 - Get me pills: one fully round pill per catalogue item ("Get me a chai" and its price, quiet, "0.10 USDC") in a single
   row that scrolls sideways. A pill sends the same intent as typed words; the robot fetches it (a real duck waits for its own scan). There is no
   pay-now button (Kris, 7 Nov).
@@ -111,7 +117,8 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   opens a Foldkit UI Listbox above itself; each model has its name and one plain line, and a check marks the pick.
   Selection is ink, never duck yellow.
 - Dock line: shown only when the robot can't be sent or the owner should know something first (on an errand, no
-  allowance, allowance stopped); the pills and the field point to it with aria-describedby. A ready dock says nothing.
+  allowance, allowance stopped or ended); the pills and the field point to it with aria-describedby. A ready dock says
+  nothing. The header's allowance pill says which: No allowance, Stopping…, Stopped or Ended.
 - Mic (when the Worker has voice on): a round paper button inside the composer, left of Send and the same size, so
   Send stays the ink primary. Hold it (or Space while it is focused): it turns duck yellow with a small halo, the
   header says "Listening…" and a faint owner bubble waits in the thread. The mic is open only while held. A line under
@@ -135,7 +142,9 @@ Motion says the app heard the owner and that work is under way; it never decorat
 - Durations: a press is 150ms (`active:scale-[0.96]`), a message entering 220ms, a page crossfade 180ms, a sheet
   260ms up and 180ms down. UI motion stays under 300ms; leaving is faster than entering.
 - Waiting: a page that loads shows its skeleton (`Skeleton.ts`: rule-coloured blocks pulsing on a 1.5s cycle,
-  never duck yellow) with a visually hidden "Loading..." status. A busy button shows the 600ms spinner beside its
+  never duck yellow) with a visually hidden "Loading..." status. Robots' faces in it are sleeping ducks, and a grey
+  duck bobs above the conversation's and the cards' blocks (`--animate-bob`, 2.4s, still under reduced motion); the
+  conversation's skeleton ends in the dock's pills and composer, so nothing jumps. A busy button shows the 600ms spinner beside its
   label, and a line that says work is under way starts with the three working dots (`Busy.ts`).
 - What enters: only the live errand's messages (fade and 8px up from 98%). The history, lists on the wallet home,
   balances and amounts never animate.

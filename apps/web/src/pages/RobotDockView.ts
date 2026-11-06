@@ -15,8 +15,9 @@ import { micView, statusView } from './RobotVoiceView.ts'
 const dockClassName =
   'sticky bottom-0 z-10 grid gap-2 bg-paper px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-6 before:bg-gradient-to-b before:from-paper/0 before:to-paper'
 const dockHintClassName = 'px-1.5 text-[0.85rem] leading-snug text-muted'
+// The right edge fades, so a pill cut off by the screen reads as "more this way", not as clipped.
 const pillsClassName =
-  '-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+  '-mx-1 flex snap-x gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [mask-image:linear-gradient(to_right,#000_calc(100%-1.75rem),transparent)] [&::-webkit-scrollbar]:hidden'
 const pillClassName =
   'grid min-h-11 shrink-0 cursor-pointer snap-start content-center justify-items-center rounded-[18px] bg-surface px-4 py-1.5 text-[0.95rem] leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
 const pillAsksClassName = 'text-[0.75rem] font-semibold text-duck-deep'
@@ -221,8 +222,16 @@ const suggestions = (
   )
 
 /** Why the dock rests, when it does: no allowance, an errand out, or a stopped allowance (which still sends). */
-const hint = (noAllowance: boolean, busy: boolean, stopped: boolean) =>
-  noAllowance ? 'thread.dockNoAllowance' : busy ? 'thread.dockBusy' : stopped ? 'thread.dockStopped' : null
+const hint = (noAllowance: boolean, busy: boolean, stopped: string | null) =>
+  noAllowance
+    ? 'thread.dockNoAllowance'
+    : busy
+      ? 'thread.dockBusy'
+      : stopped === null
+        ? null
+        : stopped === 'expired'
+          ? 'thread.dockEnded'
+          : 'thread.dockStopped'
 
 /** One of Vita's voice views mounted in the conversation (the mic, its status line, the spoken bubbles). */
 export const voiceIn = (
@@ -252,7 +261,8 @@ export const dock = (
   // Never granted: nothing can be paid. Stopped (revoked, expired): the errand still runs and Arc refuses it on-chain,
   // which is the proof the revoke worked (spec §0 "done"), so the dock says so but stays open.
   const noAllowance = view.grant === null
-  const stopped = view.grant !== null && view.grant.status !== 'active'
+  // Stopped (revoked) or ended (past its window): the status, or null while the allowance is live.
+  const stopped = view.grant !== null && view.grant.status !== 'active' ? view.grant.status : null
   const busy = isLive(model.errand) || isIntentOpen(model.intent)
   // While the owner talks the pills and the composer rest, so a tap cannot race the spoken request; the voice says its
   // own state under the mic, so the dock line stays for the errand.

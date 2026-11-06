@@ -20,7 +20,7 @@ const observationRowClassName = 'flex w-full flex-wrap items-start gap-4'
 /** Inner radius 12 px inside the card's 22 px with its 16 px padding would be too tight, so the photo keeps the
  *  control radius; a pure-black 10 % outline keeps its edge clean. */
 const thumbnailClassName =
-  'size-28 shrink-0 rounded-control bg-paper object-contain outline outline-1 -outline-offset-1 outline-black/10'
+  'photo-frame block size-28 shrink-0 rounded-control bg-paper object-contain outline outline-1 -outline-offset-1 outline-black/10'
 
 type Check = 'verified' | 'hash' | 'signer' | 'unchecked'
 const checkClassName: Readonly<Record<Check, string>> = {

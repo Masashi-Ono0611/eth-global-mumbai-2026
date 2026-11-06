@@ -1,4 +1,5 @@
 import { format, type Locale } from '@ethmumbai/i18n'
+import { clsx } from 'clsx'
 import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -174,16 +175,14 @@ const form = (model: Model, inputs: ViewInputs, h: HtmlBuilder<Message>): Html =
         signing,
         h,
       ),
-      h.p(
-        [h.Class(summaryClassName)],
+      // What is about to be signed, as the same rules the live allowance shows (not a paragraph that repeats the picks).
+      h.ul(
+        [h.Class(clsx(rulesClassName, summaryClassName))],
         [
-          format(locale, 'allowance.summary', {
-            name: inputs.robotName,
-            daily: model.daily,
-            perPayment: model.perPayment,
-            payee: inputs.payeeName,
-            hours: Number(model.hours),
-          }),
+          h.li([], [receiptIcon(h), format(locale, 'allowance.rulePerPurchase', { amount: model.perPayment })]),
+          h.li([], [placeIcon(h), format(locale, 'allowance.ruleWhere', { payee: inputs.payeeName })]),
+          h.li([], [clockIcon(h), `${format(locale, 'allowance.for', {})} ${hoursLabel(model.hours, locale)}`]),
+          h.li([], [approvalIcon(h), format(locale, 'allowance.ruleAsks', { perPayment: model.perPayment })]),
         ],
       ),
       overBalance(model, inputs, h),
