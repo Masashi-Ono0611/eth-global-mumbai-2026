@@ -35,8 +35,8 @@ decided by 0G on 6 Nov pass that check.
 3. **`tee_verified` never appears in `x_0g_trace`**, even with `verify_tee: true` and `X-0G-Provider-Trust-Mode: private`.
    Independent verification does work (`broker.inference.processResponse(provider, ZG-Res-Key)` from
    `@0gfoundation/0g-compute-ts-sdk`, with a random unfunded wallet; `glm-5.3` replies returned `true`), but
-   **the signature does not last**: a reply still verified 5 minutes later, while one from about 25 minutes earlier
-   returned "getting signature error". Proof therefore has to be taken right after the decision and stored by us; a judge
+   **the signature does not last**: rechecking one `glm-5.3` reply every 5 minutes gave `true` at 5, 10 and 15 minutes and
+   "getting signature error" at 20 and 25 minutes. Proof therefore has to be taken right after the decision and stored by us; a judge
    cannot re-check it the next day.
 4. **Not every router provider can be verified at all.** For `qwen3-vl-plus` and the `qwen*-omni` models,
    `processResponse` answers "Service provider does not exist": the router routes them to a provider that is not in the
