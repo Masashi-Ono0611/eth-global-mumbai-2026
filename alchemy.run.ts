@@ -83,6 +83,8 @@ export default Alchemy.Stack(
         EVIDENCE_TOKEN: yield* secret('APP_EVIDENCE_TOKEN'),
         MERCHANT_PAY_TO: yield* plain('APP_MERCHANT_PAY_TO'),
         RESTRICTED_PAY_TO: yield* plain('APP_RESTRICTED_PAY_TO'),
+        // Scan-initiated errands: `true` turns them on; the `pending` default keeps them off (Features.scansEnabled).
+        SCANS_ENABLED: yield* plain('APP_SCANS_ENABLED'),
       },
     })
     return { url: edge.url.as<string>() }

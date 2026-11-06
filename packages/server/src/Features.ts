@@ -10,6 +10,9 @@ const address = shaped(/^0x[0-9a-fA-F]{40}$/)
 const https = shaped(/^https:\/\/\S+$/)
 const longer = (length: number) => (value: unknown) => set(value) && value.length >= length
 
+/** Scan-initiated errands (`SCANS_ENABLED`): on only for the exact string `true`; `pending` or anything else is off. */
+export const scansEnabled = (env: Bindings) => env.SCANS_ENABLED === 'true'
+
 export const features = (env: Bindings) => ({
   arc: https(env.ARC_RPC_URL),
   relayer: key(env.RELAYER_PRIVATE_KEY),
@@ -20,5 +23,6 @@ export const features = (env: Bindings) => ({
   merchant: address(env.MERCHANT_PAY_TO) && address(env.RESTRICTED_PAY_TO),
   gate: shaped(/^(0x)?[0-9a-fA-F]{64}$/)(env.GATE_ED25519_SEED),
   evidence: longer(16)(env.EVIDENCE_TOKEN),
+  scans: scansEnabled(env),
 })
 export type Features = ReturnType<typeof features>

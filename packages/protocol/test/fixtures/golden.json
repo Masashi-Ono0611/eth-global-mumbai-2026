@@ -1,5 +1,5 @@
 {
-  "note": "Golden vectors computed with viem 2.57.16 and @metamask/smart-accounts-kit 2.0.0 (independent of packages/protocol). Invoice = the S2 spike's (docs/research/spikes/s2-facilitator-spike.ts.txt lines 271-274) with a fixed invoice id and expiry.",
+  "note": "Golden vectors computed with viem 2.57.16 and @metamask/smart-accounts-kit 2.0.0 (independent of packages/protocol). Invoice = the S2 spike's (docs/research/spikes/s2-facilitator-spike.ts.txt lines 271-274) with a fixed invoice id and expiry. The scan vector's signer is a throwaway key generated for it and discarded; only its address and signature are kept.",
   "keccak": [
     {
       "char": "",
@@ -97,5 +97,20 @@
     "expiry": 1794000300,
     "nonce": "0x899cd7eda4f19caa1828936da6accd5b462bd4b028dca945ec9c7ee3f159449a",
     "digest": "0xcb4009824916dcd999385d00d4d245b8e5558a19882d713a52f64a95865236ff"
+  },
+  "scan": {
+    "invoiceId": "lsqaaaaaaaaaaaaaaaaaaaga3y",
+    "robotId": "bmdqaaaaaaaaaaaaaaaaadimaa",
+    "capturedAt": 1794000123456,
+    "frame": {
+      "mime": "image/jpeg",
+      "sha256": "0x0936618c04c6c867c2b88b42599f873be1586da262bb2afaf127849fd5f873fe",
+      "bytes": 14,
+      "b64": "/9j/4AAQSkZJRgAB/9k="
+    },
+    "message": "vitaquack-scan:v1|lsqaaaaaaaaaaaaaaaaaaaga3y|0x0936618c04c6c867c2b88b42599f873be1586da262bb2afaf127849fd5f873fe|1794000123456|bmdqaaaaaaaaaaaaaaaaadimaa",
+    "digest": "0x79a9d05f784615f16df3ccf8c0b4e8d282ebd7909876c0378ece6d30f9e4da5b",
+    "signer": "0xa7c317EFb8892F3da98Daf78Ac6653015be7a17B",
+    "sig": "0x94dab89df1029c90ecda8fbee30c479f7ffc0d928e6fabd0881394655ea2e72b400c444f384fac991970789bdf13212f36279147ec739fdbe0977c9caded1e581b"
   }
 }

@@ -67,5 +67,6 @@ jobs:
           APP_EVIDENCE_TOKEN: ${{ secrets.APP_EVIDENCE_TOKEN }}
           APP_MERCHANT_PAY_TO: ${{ secrets.APP_MERCHANT_PAY_TO }}
           APP_RESTRICTED_PAY_TO: ${{ secrets.APP_RESTRICTED_PAY_TO }}
+          APP_SCANS_ENABLED: ${{ secrets.APP_SCANS_ENABLED }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -300,6 +300,29 @@ export const usedNonces = sqliteTable('used_nonces', {
   createdAt: createdAt(),
 })
 
+// A chip-signed scan (packages/protocol Scan.ts): the JPEG crop of the invoice QR the robot read, kept in R2 under
+// `r2_key` (`observations/<robotId>/<episodeId>/<sha256>.jpg`). One scan per robot and invoice; `captured_at` is unix
+// milliseconds as the chip signed it; `frame_sha256` is 0x + 64 lowercase hex; `chip_sig` the 65-byte EIP-191 signature.
+export const observations = sqliteTable(
+  'observations',
+  {
+    id: text('id').primaryKey(),
+    robotId: text('robot_id').notNull(),
+    episodeId: text('episode_id').notNull(),
+    invoiceId: text('invoice_id').notNull(),
+    frameSha256: text('frame_sha256').notNull(),
+    bytes: integer('bytes').notNull(),
+    capturedAt: integer('captured_at').notNull(),
+    chipSig: text('chip_sig').notNull(),
+    r2Key: text('r2_key').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex('observations_robot_invoice').on(table.robotId, table.invoiceId),
+    index('observations_episode_id').on(table.episodeId),
+  ],
+)
+
 export const appSchema = {
   accounts,
   passkeys,
@@ -315,4 +338,5 @@ export const appSchema = {
   chipRequests,
   relayerTxs,
   usedNonces,
+  observations,
 }

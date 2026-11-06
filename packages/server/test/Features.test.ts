@@ -16,6 +16,7 @@ const configured = {
   RESTRICTED_PAY_TO: '0x0166cD2A4E81F381CA005A791e151ee7D3F88f52',
   GATE_ED25519_SEED: 'c'.repeat(64),
   EVIDENCE_TOKEN: 'evidence-token-0123456789',
+  SCANS_ENABLED: 'true',
 }
 
 test('every feature is true when its bindings are well-formed, and the report carries booleans only', () => {
@@ -39,5 +40,12 @@ test('a `pending` placeholder, a missing or a malformed binding turns only its o
     merchant: false,
     gate: false,
     evidence: false,
+    scans: false,
   })
+})
+
+test('scans are on only for the exact string `true`', () => {
+  expect(features({ ...configured, SCANS_ENABLED: 'pending' })).toMatchObject({ scans: false, gate: true })
+  expect(features({ ...configured, SCANS_ENABLED: 'TRUE' }).scans).toBe(false)
+  expect(features({ ...configured, SCANS_ENABLED: '1' }).scans).toBe(false)
 })

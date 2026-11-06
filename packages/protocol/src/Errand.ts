@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { Id } from './Base32.ts'
-import { Address, Bytes32, type Hex, UintString, UnixSeconds } from './Hex.ts'
+import { Address, Bytes32, EcdsaSignature, type Hex, Sha256Hex, UintString, UnixMs, UnixSeconds } from './Hex.ts'
 import { keccak256Utf8 } from './Keccak.ts'
 
 // The Robot Agent's errand (= episode) state machine and its 0G decision (§6).
@@ -92,7 +92,19 @@ export const EvidenceDecision = Schema.Struct({
   outcome: Schema.NullOr(DecisionOutcome),
 })
 
-/** The episode evidence uploaded to 0G Storage. */
+/** A chip-signed scan the episode carries: the crop's digest and size, when it was taken, the chip's signature. */
+export const EvidenceObservation = Schema.Struct({
+  sha256: Sha256Hex,
+  bytes: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
+  capturedAt: UnixMs,
+  chipSig: EcdsaSignature,
+})
+export type EvidenceObservation = typeof EvidenceObservation.Type
+
+/**
+ * The episode evidence uploaded to 0G Storage. `observations` is absent on episodes without a scan (read it as `[]`),
+ * so older evidence encodes byte-identically; it is not part of `requestIdsHash`.
+ */
 export const EpisodeEvidence = Schema.Struct({
   episodeId: Id,
   robotId: Id,
@@ -104,6 +116,7 @@ export const EpisodeEvidence = Schema.Struct({
     approvalId: Schema.optionalKey(Id),
   }),
   requestIds: Schema.Array(Schema.String),
+  observations: Schema.optionalKey(Schema.Array(EvidenceObservation)),
 })
 export type EpisodeEvidence = typeof EpisodeEvidence.Type
 

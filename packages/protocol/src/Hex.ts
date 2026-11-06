@@ -19,6 +19,12 @@ export const UintString = Schema.String.check(Schema.isPattern(/^(?:0|[1-9][0-9]
 })
 /** Unix seconds. */
 export const UnixSeconds = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))
+/** Unix milliseconds. */
+export const UnixMs = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0))
+/** A SHA-256 digest as `0x` + 64 lowercase hex: the one spelling that is signed and stored. */
+export const Sha256Hex = Schema.TemplateLiteral(['0x', Schema.String])
+  .check(Schema.isPattern(/^0x[0-9a-f]{64}$/))
+  .annotate({ identifier: 'Sha256Hex' })
 
 export const isHex = (value: string): value is Hex => /^0x(?:[0-9a-fA-F]{2})*$/.test(value)
 
