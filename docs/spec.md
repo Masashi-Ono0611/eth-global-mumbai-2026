@@ -429,7 +429,7 @@ in real life that the robot wants an approval, paid, was refused, or lost its al
 Telegram informs and **may deny, never approve** (Kris, 18:30 IST): a **Deny** button under the approval message
 denies that approval only when the chat is linked to the approval's account and the approval is still waiting (the
 same `denyApproval` path the approval page uses; fail-safe, nothing is signed); approving stays World ID gated on
-`/wallet/approvals/:id`, the Arc enforcer is unchanged, and the chip never sees the token. **One-time World link from Telegram (built 7 Nov 00:30 IST by the onboarding session, Kris's ask):** once the owner's
+`/wallet/approvals/:id`, the Arc enforcer is unchanged, and the chip never sees the token. **One-time World link from Telegram (built 6 Nov 23:15 IST by the onboarding session, Kris's ask):** once the owner's
 account has a bound `world_sub` (from an earlier approval), the `approval_needed` message also carries **Approve with
 World ID**. Each render mints a fresh single-use link `/api/world/link?approval=<id>&t=<24 random bytes, base64url>`;
 only the token's sha256 is stored (`auth_challenges` kind `world_link`, ref = the approval). The link works for that one
