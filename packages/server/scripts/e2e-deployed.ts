@@ -16,9 +16,9 @@ import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie 
 // new smart account, "Add robot", the mock chip pairs, the passkey signs a grant (with the enforcer), one errand,
 // polled to its end. Prints addresses, ids and explorer links only; never a key, a token, a cookie or a signature.
 // Usage: bun --env-file=.env.main.local packages/server/scripts/e2e-deployed.ts [--base-url URL] [--fund 0.15]
-//        [--item chai] [--no-chip] [--invoice <id> | --gate] [--restricted]
+//        [--item chai] [--no-chip] [--invoice <id> | --gate] [--restricted | --restricted-only]
 // --no-chip: pair your own chip (otherwise the mock chip runs as a child process with a fresh key).
-// --restricted: after a paid chai, a cigarettes errand approved on the World IdP page (paid through the enforcer's
+// --restricted-only: the same without the chai (cheaper reruns). --restricted: after a paid chai, a cigarettes errand approved on the World IdP page (paid through the enforcer's
 // approval path), then one denied (nothing paid). --invoice <id>: the errand pays that counter invoice. --gate: mint the gate's invoice first, pay it, then read the
 // signed gate status like /gate/duck-cafe does (pending before, paid on the first read after, used on the next).
 // Exit 0: paid, or the expected end while 0G is not configured (503 / safe_stop "not configured"). Otherwise 1.
@@ -33,11 +33,12 @@ const item = flag('item') ?? 'chai'
 const spawnChip = !Bun.argv.includes('--no-chip')
 const gate = Bun.argv.includes('--gate')
 const namedInvoice = flag('invoice')
-const restricted = Bun.argv.includes('--restricted')
+const restrictedOnly = Bun.argv.includes('--restricted-only')
+const restricted = restrictedOnly || Bun.argv.includes('--restricted')
 // Chai is 0.10; cigarettes 0.50 (over the 0.25 per-payment cap, to an unlisted payee: approval required). An approval
 // never lifts Arc's daily period cap, so the restricted run grants 1.00/day and funds chai + cigarettes.
 const dailyCap = restricted ? '1.00' : '0.50'
-const fundUnits = usdcToUnits(flag('fund') ?? (restricted ? '0.65' : '0.15'))
+const fundUnits = usdcToUnits(flag('fund') ?? (restrictedOnly ? '0.55' : restricted ? '0.65' : '0.15'))
 const relayerKey = process.env.APP_RELAYER_PRIVATE_KEY ?? ''
 if (!/^0x[0-9a-f]{64}$/.test(relayerKey)) throw new Error('APP_RELAYER_PRIVATE_KEY missing: run with --env-file')
 if (fundUnits > 1_000_000n) throw new Error('--fund is capped at 1.00 USDC')
@@ -277,6 +278,12 @@ const restrictedErrand = Effect.fn('e2e.restrictedErrand')(function* (
   return expected
 })
 
+const approveAndDeny = Effect.fn('e2e.approveAndDeny')(function* (robotId: string, cookie: string) {
+  const approved = yield* restrictedErrand(robotId, cookie, 'approve')
+  const denied = yield* restrictedErrand(robotId, cookie, 'deny')
+  return approved && denied
+})
+
 const MintedInvoice = Schema.Struct({ id: Schema.String, invoiceHash: Schema.String })
 const GateKey = Schema.Struct({ alg: Schema.Literal('ed25519'), publicKey: Schema.String })
 const GateStatus = Schema.Struct({
@@ -353,6 +360,7 @@ const program = Effect.gen(function* () {
   yield* waitForPairing(robot.robotId, session.cookie)
   yield* say('chip paired')
   yield* signGrant(session, robot.robotId, payTo)
+  if (restrictedOnly) return yield* approveAndDeny(robot.robotId, session.cookie)
   const readGate = gate ? yield* gateReader : undefined
   const invoiceId = readGate === undefined ? namedInvoice : yield* mintGateInvoice
   if (readGate !== undefined && invoiceId !== undefined && (yield* readGate(invoiceId)) !== 'pending')
@@ -360,9 +368,7 @@ const program = Effect.gen(function* () {
   const result = yield* errand(robot.robotId, session.cookie, invoiceId)
   if (result.paid && readGate !== undefined && invoiceId !== undefined) yield* gateOpens(readGate, invoiceId)
   if (!restricted || !result.paid) return result.expected
-  const approved = yield* restrictedErrand(robot.robotId, session.cookie, 'approve')
-  const denied = yield* restrictedErrand(robot.robotId, session.cookie, 'deny')
-  return approved && denied
+  return yield* approveAndDeny(robot.robotId, session.cookie)
 })
 
 const passed = await Effect.runPromise(
