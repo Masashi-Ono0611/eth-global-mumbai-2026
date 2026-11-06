@@ -492,15 +492,6 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       </section>
 
 
-      <section class="band" id="try" aria-labelledby="h-try">
-        <div class="media"><img src="media/rv5.webp" alt="" loading="lazy" /></div>
-        <div class="wrap">
-          <div class="words">
-            <h2 id="h-try">Give your robot a budget.</h2>
-            <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/">Try the app</a><a class="quiet" href="#get">Get your own duck</a></div>
-          </div>
-        </div>
-      </section>
     </main>
 
     <footer>
@@ -577,7 +568,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
 
       // The phone's bottom bar hides while the final call to action is on screen.
       const bar = document.getElementById('bar')
-      new IntersectionObserver((entries) => { for (const e of entries) bar.classList.toggle('away', e.isIntersecting) }, { threshold: 0.6 }).observe(document.querySelector('#try .cta'))
+      new IntersectionObserver((entries) => { for (const e of entries) bar.classList.toggle('away', e.isIntersecting) }, { threshold: 0.2 }).observe(document.querySelector('footer'))
 
       // How it works: three scenarios in plain words, a step per stop. 'off' = not needed this time, 'no' = refused.
       const live = document.querySelector('.live')
