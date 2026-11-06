@@ -1,12 +1,13 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as AlchemyHttp from 'alchemy/Http'
 import { decodeSessionKeyring, relyingPartyFromOrigin } from '@ethmumbai/auth'
-import { Context, Effect, Layer, Option } from 'effect'
+import { Context, Effect, Layer } from 'effect'
 import { HttpServerRequest } from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import { AuthOrigin } from './auth/Origin.ts'
 import { authRoutes } from './auth/Routes.ts'
 import { makeSessionAuth, SessionAuth } from './auth/Session.ts'
+import { makeChainServices } from './chain/Services.ts'
 import { DomainLive } from './DomainLive.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
@@ -57,11 +58,13 @@ export default ApiWorker.make(
         const services = Context.make(AuthOrigin, relyingPartyFromOrigin(authOrigin)).pipe(
           Context.add(SessionAuth, yield* makeSessionAuth(database, sessionKeys)),
         )
+        // One relayer (one nonce sequence), one approver and one Arc client per isolate, shared by every lane.
+        const chain = yield* makeChainServices(database, env)
         const robotAgent = yield* robotAgentRoutes({
           database,
           env,
           origin: authOrigin,
-          settlement: Option.none(),
+          settlement: chain.settlement,
           approvals: noApprovals,
         })
         const routes = Layer.mergeAll(
