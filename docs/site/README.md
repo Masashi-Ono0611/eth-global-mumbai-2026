@@ -14,6 +14,7 @@ Shareable pages for the team (architecture, brainstorms, spikes), not product co
 | Voice mock (for Masa): Vita's hold-to-talk inside the robot conversation, three phone screens in direction C (talk or tap, listening, over the limit → the real approval card); not built | `voice-mock/index.html`, `voice-mock/shot-*.png` (reuses `wallet-mocks/board.css` and `sprite.svg`) | https://eth-mumbai-site.kristjan-grm11775.workers.dev/voice-mock/ |
 | Script: the pitch script for the team to review and comment on (8 screens, on-screen text, spoken lines, what we don't say) | `script/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/script/ |
 | Flow mocks: four treatments of the Now-live screen's diagram (A step by step, B three layers, C the live receipt, D orbit) for Kris to pick from | `flow-mocks/` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/flow-mocks/ |
+| Landing mocks: the product landing page in three skins (A current look, B hybrid, C the app's identity) and two page models (flow, slides), switched live by the toolbar or `?skin=&model=`; generated from a template kept outside the repo | `landing-mocks/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/landing-mocks/ |
 | Template | `_template/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/_template/ |
 
 ## Add a page
