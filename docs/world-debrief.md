@@ -27,14 +27,17 @@ deny path in scene tests, PKCE and the routes' guards on the native Worker, and 
 deployed app through our in-Worker rehearsal issuer (`docs/evidence/2026-11-06-deployed-browser.md`, runs 5–7; it proves
 no human). 6 Nov rehearsal with the real client: authorize → World App → callback → token exchange all worked on the
 first try once PKCE was in; our verifier then refused the token (`mfa`, friction 1), fixed in 95a92bd. **Live approval
-with a real Orb ID: _fill in after the demo run_.**
+with a real Orb ID, 6 Nov 14:55 IST:** Kris (his own passkey wallet on a MacBook, World App on his phone) approved a
+0.50 USDC restricted payment; the token was accepted, the approver co-signed, and Arc settled it with our enforcer's
+`PaymentApproved` ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9); `docs/evidence/2026-11-06-live-world.md`). The live deny: _fill in_.
 
 ## Time to first success
 
 - Discovery and JWKS of `https://auth.world.org`: answered on the first request, no account needed.
 - First verified token in our tests: under an hour from reading the discovery document.
-- First live approval with an Orb-verified World ID: _fill in (time from client registration to the first approved
-  payment on Arc)_.
+- First live approval with an Orb-verified World ID: the same afternoon the client was registered (first approved
+  payment on Arc at 14:55 IST), after two fixes on our side: PKCE (friction 2) and the `amr` rule (friction 1). The
+  World round trip itself (authorize → World App → callback → token) worked on its first real try.
 
 ## Friction
 
@@ -43,7 +46,8 @@ with a real Orb ID: _fill in after the demo run_.**
    token for an **Orb-verified account signing in with World App** carried `mfa` too, so the rule refused a real human
    on the first live try ("World token rejected: mfa"). We now judge only `acr` (Orb / Orb + face) with a fresh
    `auth_time` (forced by `max_age=0` + `prompt=login`) and record `amr`; what the token carried:
-   `acr` _fill in_, `amr` _fill in_ (from the approval row's `amr_json`). A documented table of `amr` values per sign-in
+   `acr` `https://world.org/oidc/acr/orb`, `amr` `["pop","user","mfa"]` (from the approval row's `amr_json`), the
+   very `amr` our research attributed to a passkey-only sign-in, so `amr` cannot tell them apart. A documented table of `amr` values per sign-in
    method, and one claim that means "fresh Orb proof now", would have saved the round trip.
 2. **PKCE is mandatory, also for confidential clients.** The token endpoint answers `400 invalid_request "code_verifier
    must appear exactly once and be nonempty."` without it, although the client authenticates with

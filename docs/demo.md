@@ -16,6 +16,7 @@ the final run: replace them with the recorded ones in `docs/evidence/demo-run.md
 | Through the deployed pages (rehearsal brain = LiteLLM, not 0G): Buy Chai paid, a reload mid-errand restored, revoke, the next chai refused by Arc (`CannotUseADisabledDelegation`) | [0x782f8dfc…8875](https://explorer.arc.io/tx/0x782f8dfc25083a5b9328deb949aa037487eb1d2c688492db7fd4e9225a598875) paid, [0xaaa018d2…27c6](https://explorer.arc.io/tx/0xaaa018d2ee34ccd3647c22cb1ec532dd595f468451839e2b8b9b5696a7fe27c6) revoke (`docs/evidence/2026-11-06-deployed-browser.md`, run 4) |
 | Through the deployed pages with the **stub issuer** (rehearsal, not World; rehearsal brain, not 0G): Buy Cigarettes (0.50, restricted and over the 0.30 cap) → **Approve with World** → the stub page → Approve → **cigarettes: paid**; a second one → Deny → **cigarettes: denied**, nothing signed | [0xc0e507b6…5fa7](https://explorer.arc.io/tx/0xc0e507b6a5b9da03061f98afe4f64a9aeb6879e6d8927cfd43be1504937f5fa7) paid with the co-signed approval (`docs/evidence/2026-11-06-deployed-browser.md`, runs 5–6) |
 | **The whole stage journey through the deployed pages, decisions from 0G Compute** (router, `qwen3-vl-plus`; World = stub, rehearsal only): grant → 0G `pay` → chai paid → gate OPEN → cigarettes → 0G `ask_human` → approve (stub) → paid 0.50 → cigarettes → deny (stub) → denied → revoke → the next chai refused by Arc | [0xa18da6c6…814a](https://explorer.arc.io/tx/0xa18da6c6aa0b5963839d53133c72dc0e75616450779e534efedc6d687090814a) chai, [0xedeaf0e0…0548](https://explorer.arc.io/tx/0xedeaf0e06604c93a226f731a7499a9be7096813f209d6bac9ff96a8cb0790548) cigarettes, [0x4f1ba8e1…8e02](https://explorer.arc.io/tx/0x4f1ba8e1625008ec90242657948a8291c495f86aa12011e7a2c7b4bc4afc8e02) revoke (`docs/evidence/2026-11-06-deployed-browser.md`, run 7; screenshots in `docs/evidence/screens/`) |
+| **Live World (real Orb ID, World App), real 0G, a real passkey owner on a Mac:** Buy Cigarettes → 0G `ask_human` → **Approve with World** → World App → token accepted (`acr` orb, `amr` `["pop","user","mfa"]`) → co-signed → **paid 0.50**; the attempt before the `amr` fix was refused, nothing paid | [0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9) (`docs/evidence/2026-11-06-live-world.md`) |
 
 ## Before the slot (10 minutes)
 
@@ -66,8 +67,8 @@ Built Fri 6 Nov for M6 (`packages/server/src/world/`): browser OIDC code flow wi
 approval's EIP-712 digest as the OIDC `nonce`, RS256 verification against the JWKS, and a backend co-signer.
 
 - **Time to first success.** Discovery and JWKS answered on the first request; a verified token in our tests took
-  under an hour of work. The live round trip with Kris's Orb ID: *fill in from the demo run* (needs the production
-  client id/secret and the redirect URI registered).
+  under an hour of work. The live round trip with Kris's Orb ID: approved and paid on Arc at 14:55 IST on
+  the day the client was registered, after the PKCE and `amr` fixes (`docs/evidence/2026-11-06-live-world.md`).
 - **Friction.**
   1. The endpoints are not under the issuer root: discovery gives `/api/v1/authorize` and `/api/v1/token`, so code that
      assumes `${issuer}/authorize` breaks. We read discovery at runtime.

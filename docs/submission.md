@@ -111,7 +111,11 @@ Proven: the verifier and the approval flow in tests (`packages/server/test/World
 the deployed app through the real pages with the in-Worker **stub issuer** (rehearsal only, not World): 0G asked the
 owner, a 0.50 USDC restricted, over-cap payment was approved, co-signed and paid on Arc ([0xedeaf0e0…0548](https://explorer.arc.io/tx/0xedeaf0e06604c93a226f731a7499a9be7096813f209d6bac9ff96a8cb0790548)), and a second one
 was denied with nothing signed (`docs/evidence/2026-11-06-deployed-browser.md`, run 7; runs 5–6 with the rehearsal
-brain). _Fill in: the live approve and deny with an Orb ID on the deployed app._ Debrief: `docs/world-debrief.md`.
+brain). **Live with a real Orb ID (6 Nov 14:55 IST):** Kris, with his own passkey wallet on a MacBook and World App on
+his phone, approved a 0.50 USDC restricted payment that 0G had sent to him (`ask_human`); World's token (`acr`
+`https://world.org/oidc/acr/orb`, `amr` `["pop","user","mfa"]`) was accepted, the approver co-signed and Arc settled it
+with the enforcer's `PaymentApproved` ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9); `docs/evidence/2026-11-06-live-world.md`). His attempt before the `amr` fix was
+refused and nothing was paid (the top item of the debrief). _Fill in: the live deny._ Debrief: `docs/world-debrief.md`.
 
 ## Links
 
@@ -133,9 +137,9 @@ during the event too.
 
 ## What is not finished (keep honest at submission time)
 
-- A real 0G decision on the deployed app: done 6 Nov ≈ 12:36 IST (router `qwen3-vl-plus`, request ids in the 0G section; browser evidence run 7, e2e runs 9–10). An episode with a 0G decision on 0G Storage is _still to record_.
+- A real 0G decision on the deployed app: done 6 Nov ≈ 12:36 IST (router `qwen3-vl-plus`, request ids in the 0G section; browser evidence run 7, e2e runs 9–10). Episodes with 0G decisions on 0G Storage: done 12:55 IST (`docs/evidence/2026-11-06-evidence-upload.md`).
 - The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: done 6 Nov 12:06 IST for the first paid episode `hg2ouddwe2h5j6ekbrsn7grfja` (root `0x8db4ffc1…d5dd`, storage tx `0x87d1be1f…12dc`, `EpisodeLog.record` tx `0xd2fe9e75…aa21`; `docs/evidence/2026-11-06-evidence-upload.md`). The decision in that episode came from the rehearsal brain, not 0G.
-- A live World approve and deny: _pending the World IdP client_ (rehearsed on the deployed app with the stub issuer, not World: browser runs 5–7, e2e runs 9–10).
+- A live World approve: done 6 Nov 14:55 IST ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9), `docs/evidence/2026-11-06-live-world.md`). The live deny: _fill in_.
 - On-chain verification of the World token (the S5b prototype) is a stretch; the backend co-signer is what runs.
 - The physical duck walking to the till; the virtual loop (mock chip + web gate) is the demo.
 
@@ -149,4 +153,4 @@ during the event too.
 | Up to 3 partner prizes with integration + feedback | Arc, 0G, World above; World debrief in `docs/world-debrief.md` |
 | Arc: shareable Studio URL, Studio in the demo, working frontend + backend, architecture diagram, Arc/Circle tools named | Studio URL https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75; the rest above |
 | 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo); router request ids `5ca4a212…`, `d230ef16…`, `7dcb97bb…`, `1b6b2840…` (browser evidence run 7); a 0G-decided episode on Storage _fill in_ |
-| World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | stub rehearsal on the deployed app (approve → paid, deny → denied; browser evidence run 7); live run _fill in_ |
+| World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | live approve with a real Orb ID → paid ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9); `docs/evidence/2026-11-06-live-world.md`), live deny _fill in_; stub rehearsal of both (browser evidence run 7); debrief `docs/world-debrief.md` |
