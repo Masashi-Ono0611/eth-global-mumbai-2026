@@ -28,11 +28,13 @@ type MerchantCatalogue = typeof MerchantCatalogue.Type
 
 // MODEL
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const MerchantState = defineTaggedUnion({
   Loading: {},
   Loaded: { catalogue: MerchantCatalogue },
   Failed: { error: Schema.String },
 })
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const InvoiceState = defineTaggedUnion({
   NoInvoice: {},
   Creating: { itemId: Schema.String },
@@ -56,6 +58,7 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const LoadCatalogue = Command.define('LoadCatalogue', {
   messages: [Message.SucceededLoadCatalogue, Message.FailedLoadCatalogue],
   execute: getJson(`/api/merchants/${MERCHANT_ID}/items`, MerchantCatalogue).pipe(
@@ -64,6 +67,7 @@ export const LoadCatalogue = Command.define('LoadCatalogue', {
   ),
 })
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const CreateInvoice = Command.define('CreateInvoice', {
   args: { itemId: Schema.String },
   messages: [Message.SucceededCreateInvoice, Message.FailedCreateInvoice],
