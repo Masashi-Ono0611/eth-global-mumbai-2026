@@ -287,6 +287,52 @@ Also on chain:
 The three episodes' evidence rows were `pending` for M+R's uploader at 12:37 IST (0G Storage + `EpisodeLog.record`).
 Relayer after the run: 4.17 USDC.
 
+## Run 11 (release 34df520, `--gate --restricted`, 17:16 IST): 0G Compute via router, glm-5.3 (TeeML, provider 0xD179…E503)
+
+Brain: **0G Compute via router-api.0g.ai, `glm-5.3`** (a TeeML model). Both decision rows name the provider
+`router-api.0g.ai/glm-5.3@0xD179F4526064846dE9a9E9D93683AF75CB72E503`, and the request and chat ids are the
+router's. The chat ids were sent to the TEE-verification session at once, because the provider serves a chat's
+signature for about 20 minutes only. This run does not include that check. World is now the **real World IdP**
+(`auth.world.org`), so the driver cannot answer the approval. It stops there by design (exit 1), and the cigarettes
+approval is **left to real World, unanswered**. The approve and deny legs on glm-5.3 are Kris's own clicks. Chain:
+Arc mainnet, deployed enforcer.
+
+```text
+e2e  base https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev
+e2e  owner 0xDB792805a9D7085915F6A86efB8688B512Ce6619 (account 4tum6v3m75mm5z3322dz5fofjm)
+e2e  funded https://explorer.arc.io/tx/0x739269b07780dd30f80344706d1390b3188e729320609869af64766e1a37de61
+e2e  robot ehw3qkbpyvwvlypry2yqpnc32e pairing code KMQKF9QU
+chip chip 0x6270ed36C5b8298dFEb1d7b04C2C29f766BB3CA1 (new key)
+chip paired ehw3qkbpyvwvlypry2yqpnc32e
+e2e  chip paired
+e2e  grant b2crh6q2mgqxmiss6cdl4echkq active; account deploy https://explorer.arc.io/tx/0xa28f0e3c28c382ccc4a660dbdfb5c9748f1aac85671ca6648adbdc236554ba9f
+e2e  gate invoice c3c2rpdvlbgjj2uvxvqg3o3iuq 0xea08f37f7d912f6783a816cfc72254916825e96df37430748f34b682d6e9d87a
+e2e  gate pending (Ed25519 signature ok, nonce e2e431366)
+e2e  errand nvrriucl5b5wh5ncvtxve7wffm (chai) started in signing
+chip lease ok
+chip signed c3c2rpdvlbgjj2uvxvqg3o3iuq
+chip payment settled 0xf2460044adf6921de3242318a1fca95429198600f7bbac3e076fc3c006552854
+e2e  errand ended paid; decision pay by glm-5.3 via router-api.0g.ai/glm-5.3@0xD179F4526064846dE9a9E9D93683AF75CB72E503, request_id 3c745d60-4b0a-4a11-bcfd-d7dbb6d4935e
+e2e  settled https://explorer.arc.io/tx/0xf2460044adf6921de3242318a1fca95429198600f7bbac3e076fc3c006552854
+e2e  gate paid (Ed25519 signature ok, nonce e2e445389)
+e2e  gate used (Ed25519 signature ok, nonce e2e230471)
+e2e  gate OPEN once, then used
+e2e  errand 4jgwtprffwze4dhpfsulme3heq (cigarettes) started in awaiting_approval
+e2e FAILED: no approve link on auth.world.org
+```
+
+| errand | decision (0G glm-5.3) | result | arc tx |
+| --- | --- | --- | --- |
+| chai on the gate's invoice `c3c2rpdvlbgjj2uvxvqg3o3iuq`, episode `nvrriucl5b5wh5ncvtxve7wffm` | `pay`, decision `tserb4ygo4kb2e36oduxz4q6ze`, request `3c745d60-4b0a-4a11-bcfd-d7dbb6d4935e`, chat `ed7d55f5-70b9-4041-9726-f4c41ef728df`, 5916 ms | paid; gate `pending` → `paid` → `used` (Ed25519 verified) | [0xf2460044…2854](https://explorer.arc.io/tx/0xf2460044adf6921de3242318a1fca95429198600f7bbac3e076fc3c006552854), status 1, gas 503613 |
+| cigarettes, episode `4jgwtprffwze4dhpfsulme3heq` | `ask_human`, decision `5l43fxrrpa2le6mgi2o5oqjngi`, request `9998c5ea-6c62-4ae5-a52c-152ab1ae3a62`, chat `1fac660f-edf4-46d6-a7b7-7b05e0f31797`, 6626 ms | `awaiting_approval`, approval `xueasj2mnvcw6a4xb2ri5glt7a` left to real World, unanswered; nothing signed, nothing paid | — |
+
+Also on chain:
+- owner funding [0x739269b0…de61](https://explorer.arc.io/tx/0x739269b07780dd30f80344706d1390b3188e729320609869af64766e1a37de61), status 1
+- account deploy [0xa28f0e3c…a9f](https://explorer.arc.io/tx/0xa28f0e3c28c382ccc4a660dbdfb5c9748f1aac85671ca6648adbdc236554ba9f), status 1, gas 260106
+
+The chai episode's evidence row was `pending` for the uploader right after the run. Cigarettes has none yet: it is
+not terminal. The decision rows were read from production D1. Relayer after the run: 3.47 USDC.
+
 ## Not proven by this run
 
 - a payment under a passkey grant (needs `APP_ZG_*`; then `paid` with the settle tx link)
