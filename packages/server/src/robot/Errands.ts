@@ -135,6 +135,14 @@ const settlementTrace = (database: QueryDatabaseClient, invoiceId: string) =>
     SettlementTrace,
   )
 
+/** A settled payment used the approval (Arc consumed its nonce): the approval page and the evidence say so. */
+const consumeApproval = (database: QueryDatabaseClient, episodeId: string) =>
+  changes(
+    database
+      .prepare(`UPDATE approvals SET status = 'consumed' WHERE episode_id = ? AND status = 'approved'`)
+      .bind(episodeId),
+  )
+
 /** What the stored settlement says happened: paid (with its tx), failed (with a reason), or not known yet. */
 const verdictOf = (trace: typeof SettlementTrace.Type, ageSeconds: number) => {
   const paidTx =
@@ -172,6 +180,7 @@ const reconcileSettling = Effect.fnUntraced(function* (
     .prepare(`UPDATE invoices SET status = 'paid', paid_tx = ? WHERE id = ? AND status = 'pending'`)
     .bind(verdict.ref, episode.invoice_id)
     .run()
+  yield* consumeApproval(database, episode.id)
   if (yield* transition(database, episode.id, 'settling', 'paid', verdict.ref))
     yield* settleDecision(database, episode.id, 'paid', verdict.ref)
 })
@@ -272,6 +281,7 @@ const settleSigned = Effect.fnUntraced(function* (deps: ErrandDeps, request: Chi
   const approvalId = yield* approvalIdOf(database, request.episode_id)
   const paid = (txHash: Hex) =>
     Effect.gen(function* () {
+      yield* consumeApproval(database, request.episode_id)
       yield* transition(database, request.episode_id, 'settling', 'paid', txHash)
       yield* settleDecision(database, request.episode_id, 'paid', txHash)
       return { status: 'settled', txHash } satisfies PaymentReport

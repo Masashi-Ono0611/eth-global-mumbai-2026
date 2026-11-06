@@ -1,12 +1,14 @@
 import { expect } from 'bun:test'
 import { pairMessage, PairResponse, PollResponse } from '@ethmumbai/protocol/Chip'
 import type { TestApi } from 'alchemy/Test/Bun'
-import { Clock, Effect, Fiber, Schema } from 'effect'
+import { Clock, Effect, Fiber, Schedule, Schema } from 'effect'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { freshConnections, randomId, randomPairingCode, sampleSignRequest } from './AgentSamples.ts'
 import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
+
+class FixtureBusy extends Schema.TaggedError<FixtureBusy>()('FixtureBusy', {}) {}
 
 type Urls = { readonly appUrl: string; readonly url: string; readonly apiUrl: string }
 
@@ -77,13 +79,21 @@ export const registerChipAcceptance = (test: TestApi['test'], stack: Effect.Effe
         payTo: TEST_MERCHANT_PAY_TO,
         amount: '100000',
       })
+      // Local D1 is one SQLite file shared by two workerd processes: the held poll's reads can make this insert
+      // SQLITE_BUSY (500), so the fixture write is retried; production D1 serialises writes itself.
       const queued = yield* postJson(`${url}/test/vq/chip-requests`, {
         id: request.id,
         robotId,
         episodeId: randomId(),
         payloadJson: JSON.stringify(request),
         expiresAt: request.expiresAt,
-      })
+      }).pipe(
+        Effect.filterOrFail(
+          (response) => response.status !== 500,
+          () => new FixtureBusy(),
+        ),
+        Effect.retry({ times: 10, schedule: Schedule.spaced('200 millis') }),
+      )
       expect(queued.status).toBe(204)
       const delivered = yield* Schema.decodeUnknownEffect(PollResponse)(yield* Fiber.join(held))
       expect((yield* Clock.currentTimeMillis) - started).toBeLessThan(10_000)

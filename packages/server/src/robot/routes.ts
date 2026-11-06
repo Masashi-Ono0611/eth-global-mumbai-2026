@@ -1,3 +1,4 @@
+import { Id } from '@ethmumbai/protocol/Base32'
 import { CreateErrandRequest, type DecisionAction } from '@ethmumbai/protocol/Errand'
 import type { Invoice } from '@ethmumbai/protocol/Invoice'
 import { Clock, Effect, Option, Schema } from 'effect'
@@ -5,6 +6,7 @@ import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import { type Grant, isApprovalRequired, latestSignedGrant, spentInPeriod } from './Budget.ts'
+import { claimInvoice, findOpenInvoice } from './CounterInvoice.ts'
 import { actionOf, decideInput, decisionsOf, recordDecision } from './Decide.ts'
 import {
   type EpisodeRow,
@@ -21,9 +23,12 @@ import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { leaseOf, readRobot, type RobotRow } from '../chip/Lease.ts'
 import { readRequestForEpisode } from '../chip/Requests.ts'
 import { findItem, findMerchant } from '../merchant/Catalogue.ts'
-import { createInvoice, readInvoice, toInvoice } from '../merchant/Invoices.ts'
+import { createInvoice, type InvoiceRow, readInvoice, toInvoice } from '../merchant/Invoices.ts'
 import { json, jsonError, nowSeconds } from '../Respond.ts'
 import { firstRow } from '../Sql.ts'
+
+/** `{item}` (spec §6) plus an optional `invoiceId`: the exact counter invoice to pay (console, e2e driver, a scan). */
+const ErrandRequest = Schema.Struct({ ...CreateErrandRequest.fields, invoiceId: Schema.optionalKey(Id) })
 
 /** The robot's demo merchant (the catalogue's only one). */
 const MERCHANT_ID = 'duck-cafe'
@@ -91,9 +96,9 @@ const errandContext = Effect.fnUntraced(function* (deps: ErrandDeps) {
     'robot is not paired',
   )
   const body = yield* need(
-    yield* HttpServerRequest.schemaBodyJson(CreateErrandRequest).pipe(Effect.option),
+    yield* HttpServerRequest.schemaBodyJson(ErrandRequest).pipe(Effect.option),
     400,
-    'expected {"item": string}',
+    'expected {"item": string, "invoiceId"?: string}',
   )
   const payees = yield* need(deps.payees, 503, 'not configured: MERCHANT_PAY_TO')
   const zeroG = yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY')
@@ -101,29 +106,65 @@ const errandContext = Effect.fnUntraced(function* (deps: ErrandDeps) {
   const merchant = yield* need(findMerchant(MERCHANT_ID), 500, 'merchant catalogue is missing')
   const item = yield* need(findItem(merchant, body.item), 400, 'unknown item')
   const grant = yield* need(yield* latestSignedGrant(deps.database, robot.id), 409, 'robot has no signed grant')
-  return { robot, payees, zeroG, merchant, item, grant }
+  return { robot, payees, zeroG, merchant, item, grant, invoiceId: body.invoiceId }
+})
+
+type ErrandContext = Effect.Success<ReturnType<typeof errandContext>>
+
+/**
+ * The invoice this errand pays: the one the caller named (it must be open for this item, else 409), otherwise the
+ * counter's newest open invoice for the item (what the gate shows), otherwise a fresh one. Restricted items are never
+ * on the counter, so they always get their own invoice unless named.
+ */
+const attachInvoice = Effect.fnUntraced(function* (
+  deps: ErrandDeps,
+  context: ErrandContext,
+  episodeId: string,
+  named: Option.Option<InvoiceRow>,
+) {
+  const { database } = deps
+  const { merchant, item, payees } = context
+  const now = yield* nowSeconds
+  const counter =
+    Option.isSome(named) || item.restricted
+      ? named
+      : yield* findOpenInvoice(database, { merchantId: merchant.id, itemId: item.itemId, nowSeconds: now })
+  if (Option.isSome(counter) && (yield* claimInvoice(database, episodeId, counter.value.id, now))) return counter.value
+  if (Option.isSome(named)) {
+    yield* transition(database, episodeId, 'queued', 'failed', 'the named invoice was claimed by another errand')
+    return yield* new ErrandRefused({ status: 409, error: 'invoice is already claimed by another errand' })
+  }
+  const minted = yield* createInvoice(database, payees, merchant, item)
+  yield* claimInvoice(database, episodeId, minted.id, now)
+  return minted
 })
 
 /** queued → (invoice at the merchant) → deciding → the 0G decision → the next state; all inside this request. */
-const runErrand = Effect.fnUntraced(function* (
-  deps: ErrandDeps,
-  context: Effect.Success<ReturnType<typeof errandContext>>,
-) {
+const runErrand = Effect.fnUntraced(function* (deps: ErrandDeps, context: ErrandContext) {
   const { database } = deps
-  const { robot, payees, zeroG, merchant, item, grant } = context
+  const { robot, zeroG, merchant, item, grant } = context
   yield* tickRobot(database, robot.id)
+  const named =
+    context.invoiceId === undefined
+      ? Option.none<InvoiceRow>()
+      : Option.some(
+          yield* need(
+            yield* findOpenInvoice(database, {
+              merchantId: merchant.id,
+              itemId: item.itemId,
+              nowSeconds: yield* nowSeconds,
+              invoiceId: context.invoiceId,
+            }),
+            409,
+            'invoice is not open for this item',
+          ),
+        )
   const episodeId = yield* need(
     yield* insertEpisode(database, { robotId: robot.id, accountId: robot.account_id, item: item.itemId }),
     409,
     'this robot already has an errand in progress',
   )
-  const invoice = toInvoice(yield* createInvoice(database, payees, merchant, item), deps.origin)
-  yield* database
-    .prepare(
-      `UPDATE episodes SET invoice_id = ?, state = 'deciding', state_changed_at = ? WHERE id = ? AND state = 'queued'`,
-    )
-    .bind(invoice.id, yield* nowSeconds, episodeId)
-    .run()
+  const invoice = toInvoice(yield* attachInvoice(deps, context, episodeId, named), deps.origin)
   const spentToday = yield* spentInPeriod(database, grant, yield* nowSeconds)
   const outcome = yield* decide(zeroG, decideInput({ item, merchant, invoice, grant, spentToday })).pipe(
     Effect.provide(FetchHttpClient.layer),

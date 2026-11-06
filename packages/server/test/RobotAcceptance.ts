@@ -138,6 +138,44 @@ const evidenceRoundTrip = (appUrl: string, episodeId: string) =>
   })
 
 const Invoice = Schema.Struct({ id: Schema.String })
+const GateStatus = Schema.Struct({ status: Schema.String })
+
+const mintInvoice = (appUrl: string) =>
+  postTo(appUrl)('/api/merchants/duck-cafe/invoices', { itemId: 'chai' }).pipe(
+    Effect.flatMap((created) => created.json),
+    Effect.flatMap(Schema.decodeUnknownEffect(Invoice)),
+    Effect.map((invoice) => invoice.id),
+  )
+
+/** The errand took the counter's invoice; once its settlement lands, the gate reads that invoice `paid`, then `used`. */
+const gateInvoiceIsPaid = (input: {
+  readonly appUrl: string
+  readonly url: string
+  readonly cookie: string
+  readonly robotId: string
+  readonly episodeId: string
+  readonly gateInvoice: string
+}) =>
+  Effect.gen(function* () {
+    const { appUrl, url, cookie, robotId, episodeId, gateInvoice } = input
+    const signing = yield* errandView(appUrl, cookie, robotId, episodeId)
+    expect(signing.episode.invoice_id).toBe(gateInvoice)
+    const asked = yield* (yield* HttpClient.get(`${url}/test/vq/episodes/${episodeId}/chip-invoice`)).json
+    expect(asked).toEqual({ invoiceId: gateInvoice })
+    const settledTx = `0x${'7a'.repeat(32)}`
+    expect((yield* postTo(url)(`/test/vq/episodes/${episodeId}/settled`, { txHash: settledTx })).status).toBe(204)
+    expect((yield* errandView(appUrl, cookie, robotId, episodeId)).episode).toMatchObject({
+      state: 'paid',
+      result: settledTx,
+    })
+    const read = (nonce: string) =>
+      HttpClient.get(`${appUrl}/api/invoices/${gateInvoice}/status?nonce=${nonce}`).pipe(
+        Effect.flatMap((response) => response.json),
+        Effect.flatMap(Schema.decodeUnknownEffect(GateStatus)),
+        Effect.map(({ status }) => status),
+      )
+    expect([yield* read('gate1'), yield* read('gate2')]).toEqual(['paid', 'used'])
+  })
 
 /** A Worker that died mid-settle must not wedge the robot: the next read ends the errand from what D1 recorded. */
 const stuckSettlementsReconcile = (input: {
@@ -201,6 +239,8 @@ export const registerRobotAcceptance = (test: TestApi['test'], stack: Effect.Eff
 
       stub.setMode('pay')
       const robot = yield* seedRobot(url, accountId, freshChip())
+      // The counter (gate) shows an invoice; the errand must pay that one, not mint its own.
+      const gateInvoice = yield* mintInvoice(appUrl)
       const first = yield* call(`/api/robots/${robot}/errands`, { item: 'chai' }, cookie)
       // Until the native stack binds a (throwaway) relayer, errands refuse to start: the 503 contract of spec §10.
       if (first.status === 503) {
@@ -225,6 +265,7 @@ export const registerRobotAcceptance = (test: TestApi['test'], stack: Effect.Eff
       expect(signing.chipRequest).toMatchObject({ status: 'queued' })
       const busy = yield* call(`/api/robots/${robot}/errands`, { item: 'chai' }, cookie)
       expect(busy.status).toBe(409)
+      yield* gateInvoiceIsPaid({ appUrl, url, cookie, robotId: robot, episodeId: paying.episodeId, gateInvoice })
 
       stub.setMode('timeout')
       const slowRobot = yield* seedRobot(url, accountId, freshChip())
@@ -236,6 +277,12 @@ export const registerRobotAcceptance = (test: TestApi['test'], stack: Effect.Eff
 
       stub.setMode('garbage')
       const confusedRobot = yield* seedRobot(url, accountId, freshChip())
+      const paidAlready = yield* call(
+        `/api/robots/${confusedRobot}/errands`,
+        { item: 'chai', invoiceId: gateInvoice },
+        cookie,
+      )
+      expect(paidAlready.status).toBe(409)
       const garbled = yield* start(confusedRobot, 'chai')
       expect(garbled).toMatchObject({ state: 'safe_stop', decision: { action: 'safe_stop' } })
       expect((yield* errandView(appUrl, cookie, confusedRobot, garbled.episodeId)).chipRequest).toBeNull()

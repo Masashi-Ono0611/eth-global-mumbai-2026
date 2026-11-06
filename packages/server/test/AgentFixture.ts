@@ -161,6 +161,57 @@ const stuckEpisodeRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
+const SettledBody = Schema.Struct({ txHash: Schema.String })
+
+/** A stand-in for a settlement that landed on Arc: the errand moves to `settling` (old enough to reconcile) and D1
+ * holds a settled payment for its invoice, as the Settlement would have written it. */
+const settledRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/episodes/:episodeId/settled',
+    Effect.gen(function* () {
+      const { episodeId } = yield* HttpRouter.params
+      const { txHash } = yield* body(SettledBody)
+      yield* database.batch([
+        database
+          .prepare(
+            `UPDATE episodes SET state = 'settling', state_changed_at = unixepoch() - 200 WHERE id = ? AND state = 'signing'`,
+          )
+          .bind(episodeId ?? ''),
+        database
+          .prepare(
+            `INSERT INTO payments (invoice_hash, invoice_id, robot_id, episode_id, status, tx_hash, created_at, settled_at)
+              SELECT invoices.invoice_hash, invoices.id, episodes.robot_id, episodes.id, 'settled', ?, unixepoch() * 1000,
+                unixepoch() FROM episodes JOIN invoices ON invoices.id = episodes.invoice_id WHERE episodes.id = ?`,
+          )
+          .bind(txHash, episodeId ?? ''),
+      ])
+      return noContent
+    }),
+  )
+
+const SignedInvoice = Schema.Struct({ invoiceId: Schema.NullOr(Schema.String) })
+
+/** Which invoice the chip was asked to sign for an errand (from the queued request's payload). */
+const chipInvoiceRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'GET',
+    '/test/vq/episodes/:episodeId/chip-invoice',
+    Effect.gen(function* () {
+      const { episodeId } = yield* HttpRouter.params
+      const row = yield* database
+        .prepare(
+          `SELECT json_extract(payload_json, '$.invoice.id') AS invoiceId FROM chip_requests WHERE episode_id = ?`,
+        )
+        .bind(episodeId ?? '')
+        .first()
+      const decoded = Schema.decodeUnknownOption(SignedInvoice)(row)
+      return yield* HttpServerResponse.json({
+        invoiceId: Option.match(decoded, { onNone: () => null, onSome: (value) => value.invoiceId }),
+      }).pipe(Effect.orDie)
+    }),
+  )
+
 const ChipRequestStatus = Schema.Struct({ status: Schema.String })
 
 const chipRequestRoute = (database: QueryDatabaseClient) =>
@@ -188,4 +239,6 @@ export const agentFixtureRoutes = (database: QueryDatabaseClient) =>
     forcePaidRoute(database),
     chipRequestRoute(database),
     stuckEpisodeRoute(database),
+    settledRoute(database),
+    chipInvoiceRoute(database),
   ])
