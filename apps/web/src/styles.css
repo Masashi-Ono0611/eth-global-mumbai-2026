@@ -1,75 +1,11 @@
-/* The palette and typography inherited from the styldappv2 foundation; restyle when the product design lands. */
+/* Class rules inherited from the styldappv2 foundation, waiting for the redesign. Tokens and document defaults now
+ * live in zyzz (zyzz.config.ts, GlobalStyles.ts); restyled views move their rules into `<View>.styles.ts` and out of
+ * this file. These custom properties repeat the zyzz colour tokens for the rules below; change them together. */
 :root {
-  color-scheme: light;
   --paper: oklch(94.5% 0.01 76);
   --ink: oklch(19% 0.024 52);
   --muted: oklch(47% 0.014 60);
   --rule: oklch(81% 0.011 70);
-  --focus: oklch(50% 0.095 248);
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
-  background: var(--paper);
-  color: var(--ink);
-  line-height: 1.55;
-  font-synthesis: none;
-}
-* {
-  box-sizing: border-box;
-}
-html {
-  -webkit-text-size-adjust: 100%;
-  -webkit-tap-highlight-color: transparent;
-  scrollbar-gutter: stable;
-}
-body {
-  margin: 0;
-}
-h1,
-h2,
-p {
-  margin: 0;
-}
-h1,
-h2 {
-  font-family: 'Sentient', Georgia, serif;
-  font-weight: 300;
-  line-height: 1.12;
-  text-wrap: balance;
-}
-h1 {
-  font-size: clamp(2.5rem, 1.5rem + 4vw, 5rem);
-  letter-spacing: -0.022em;
-  max-inline-size: 15ch;
-}
-h2 {
-  font-size: 2rem;
-}
-p {
-  max-inline-size: 65ch;
-  text-wrap: pretty;
-}
-a {
-  color: inherit;
-  text-underline-offset: 0.2em;
-  touch-action: manipulation;
-}
-button,
-select {
-  font: inherit;
-  font-size: 1rem;
-  min-block-size: 44px;
-  touch-action: manipulation;
-}
-select {
-  background: transparent;
-  color: inherit;
-  border: 1px solid var(--muted);
-  border-radius: 3px;
-  max-inline-size: 100%;
-  padding: 0.45rem;
-}
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 4px;
 }
 .site {
   max-inline-size: 78rem;
@@ -202,9 +138,6 @@ footer a {
   min-block-size: 44px;
 }
 @media (hover: hover) and (pointer: fine) {
-  a:hover {
-    text-decoration-thickness: 2px;
-  }
   .primary-action:hover {
     opacity: 0.85;
   }
@@ -213,22 +146,6 @@ footer a {
   }
 }
 
-/* Japanese and Hindi: the Latin faces above have no CJK or Devanagari glyphs, so prefer each script's system face. */
-:lang(ja) {
-  font-family: 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif;
-}
-:lang(hi),
-:lang(mr) {
-  font-family: 'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Nirmala UI', system-ui, sans-serif;
-}
-:lang(ja) h1,
-:lang(ja) h2,
-:lang(hi) h1,
-:lang(hi) h2,
-:lang(mr) h1,
-:lang(mr) h2 {
-  font-family: inherit;
-}
 .passkey-panel {
   display: grid;
   justify-items: start;
@@ -289,11 +206,6 @@ footer a {
   padding-block: 1.5rem;
   border-block-start: 1px solid var(--rule);
   overflow-wrap: anywhere;
-}
-.pairing-code {
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 2rem;
-  letter-spacing: 0.2em;
 }
 .gate-light {
   font-size: clamp(3rem, 2rem + 6vw, 7rem);

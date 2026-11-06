@@ -1,8 +1,8 @@
-import {
-  type AssertionOptions,
-  type AssertionRequest,
-  type RegistrationOptions,
-  type RegistrationRequest,
+import type {
+  AssertionOptions,
+  AssertionRequest,
+  RegistrationOptions,
+  RegistrationRequest,
 } from '@ethmumbai/auth/config'
 import { Context, Effect, Layer, Result, Schema } from 'effect'
 import * as Base64Url from 'effect/encoding/Base64Url'

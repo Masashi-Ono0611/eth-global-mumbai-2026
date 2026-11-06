@@ -16,7 +16,8 @@
     "@ethmumbai/i18n": "workspace:*",
     "@ethmumbai/observability": "workspace:*",
     "effect": "catalog:",
-    "foldkit": "catalog:"
+    "foldkit": "catalog:",
+    "zyzz": "catalog:"
   },
   "devDependencies": {
     "@foldkit/vite-plugin": "catalog:",

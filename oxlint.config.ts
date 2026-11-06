@@ -27,9 +27,13 @@ export default defineConfig({
     './tools/oxlint/anti-slop/index.ts',
     './tools/oxlint/anti-slop/effect/index.ts',
     'oxlint-plugin-complexity',
+    { name: 'zyzz', specifier: 'zyzz/oxlint' },
   ],
   env: { es2024: true },
   rules: {
+    // zyzz's no-conflicting-props checks JSX and no-unused checks namespaces, neither of which Foldkit views use;
+    // typecheck rejects unknown properties and tokens, and Knip reports unused styles.
+    'zyzz/valid-styles': 'error',
     'typescript/no-explicit-any': 'error',
     'typescript/no-floating-promises': ['error', { ignoreVoid: false }],
     'typescript/no-misused-promises': 'error',
