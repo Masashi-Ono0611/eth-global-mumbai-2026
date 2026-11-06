@@ -236,6 +236,10 @@ export const robotsView = Submodel.defineView<Model, Message, { readonly locale:
                     [h.Class('robot-list')],
                     robots.map((robot) => robotCard(robot, model, locale, h)),
                   ),
+              h.button(
+                [h.Type('button'), h.Class('secondary-action'), h.OnClick(Message.ClickedReload())],
+                [format(locale, 'common.refresh', {})],
+              ),
               h.a([h.Href(walletRouter()), h.Class('secondary-action')], [format(locale, 'wallet.title', {})]),
             ],
           ),

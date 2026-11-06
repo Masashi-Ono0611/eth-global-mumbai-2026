@@ -158,10 +158,30 @@ describe('/wallet/robots', () => {
       Command.resolve(
         Robots.LoadRobots,
         Robots.Message.SucceededLoadRobots({
-          robots: [],
+          robots: [
+            {
+              ...pairedRobot,
+              status: 'unpaired',
+              chipAddress: null,
+              pairingCode: 'K7Q2M9XZ',
+              pairingExpiresAt: 1,
+              lease: { until: null, online: false },
+            },
+          ],
           maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }),
         }),
       ),
+      expect(text('not paired yet · offline')).toExist(),
+      Command.expectExact(Robots.LoadRobots({ delayMillis: 3000 })),
+      Command.resolve(
+        Robots.LoadRobots,
+        Robots.Message.SucceededLoadRobots({
+          robots: [pairedRobot],
+          maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }),
+        }),
+      ),
+      expect(text('paired · online')).toExist(),
+      Command.expectNone(),
     )
   })
 

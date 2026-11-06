@@ -90,19 +90,22 @@ export type Message = typeof Message.Type
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const LoadRobots = Command.define('LoadRobots', {
+  args: { delayMillis: Schema.Number },
   messages: [Message.SucceededLoadRobots, Message.FailedLoadRobots],
-  execute: Effect.gen(function* () {
-    const { robots } = yield* listRobots
-    const catalogue = yield* Effect.option(loadCatalogue)
-    const maybeMerchant = Option.flatMap(catalogue, ({ name, payTo }) =>
-      Option.map(Option.fromNullishOr(payTo), (address) => ({ name, payTo: address })),
-    )
-    return Message.SucceededLoadRobots({ robots, maybeMerchant })
-  }).pipe(
-    Effect.catch((failure) =>
-      Effect.succeed(Message.FailedLoadRobots({ error: failure.error, signedOut: isSignedOut(failure) })),
+  execute: ({ delayMillis }) =>
+    Effect.gen(function* () {
+      yield* Effect.sleep(delayMillis)
+      const { robots } = yield* listRobots
+      const catalogue = yield* Effect.option(loadCatalogue)
+      const maybeMerchant = Option.flatMap(catalogue, ({ name, payTo }) =>
+        Option.map(Option.fromNullishOr(payTo), (address) => ({ name, payTo: address })),
+      )
+      return Message.SucceededLoadRobots({ robots, maybeMerchant })
+    }).pipe(
+      Effect.catch((failure) =>
+        Effect.succeed(Message.FailedLoadRobots({ error: failure.error, signedOut: isSignedOut(failure) })),
+      ),
     ),
-  ),
 })
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
@@ -176,10 +179,15 @@ export const init = (): UpdateReturn => ({
     revoking: Revoking.Idle(),
     maybeMerchant: Option.none(),
   },
-  commands: [LoadRobots()],
+  commands: [LoadRobots({ delayMillis: 0 })],
 })
 
 // UPDATE
+
+/** A robot waiting for its chip to pair, or a revoke Arc has not confirmed yet: the page re-reads until it settles. */
+const isSettling = (robot: RobotView) =>
+  (robot.status === 'unpaired' && robot.pairingCode !== null) || robot.grant?.status === 'revoking'
+const WATCH_MILLIS = 3000
 
 const openGrantForm = (model: Model, robotId: string): GrantForm => ({
   robotId,
@@ -223,15 +231,21 @@ const updateGrantForm = (model: Model, change: (form: GrantForm) => GrantForm): 
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SucceededLoadRobots: ({ robots, maybeMerchant }) => ({
-      model: modifyFields(model, { robots: () => RobotsState.Loaded({ robots }), maybeMerchant: () => maybeMerchant }),
-    }),
+    SucceededLoadRobots: ({ robots, maybeMerchant }) => {
+      const loaded = modifyFields(model, {
+        robots: () => RobotsState.Loaded({ robots }),
+        maybeMerchant: () => maybeMerchant,
+      })
+      return robots.some(isSettling)
+        ? { model: loaded, commands: [LoadRobots({ delayMillis: WATCH_MILLIS })] }
+        : { model: loaded }
+    },
     FailedLoadRobots: ({ error, signedOut }) => ({
       model: modifyFields(model, {
         robots: () => (signedOut ? RobotsState.SignedOut() : RobotsState.Failed({ error })),
       }),
     }),
-    ClickedReload: () => ({ model, commands: [LoadRobots()] }),
+    ClickedReload: () => ({ model, commands: [LoadRobots({ delayMillis: 0 })] }),
     UpdatedRobotName: ({ value }) => ({ model: modifyFields(model, { newRobotName: () => value }) }),
     SubmittedRobot: () => {
       const name = String.trim(model.newRobotName)
@@ -242,7 +256,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     },
     SucceededAddRobot: ({ robot }) => ({
       model: modifyFields(model, { adding: () => Adding.Added({ robot }), newRobotName: () => '' }),
-      commands: [LoadRobots()],
+      commands: [LoadRobots({ delayMillis: 0 })],
     }),
     FailedAddRobot: ({ error }) => ({ model: modifyFields(model, { adding: () => Adding.Failed({ error }) }) }),
     ClickedGrantBudget: ({ robotId }) => ({
@@ -257,7 +271,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     SubmittedGrant: () => submitGrant(model),
     SucceededGrantBudget: () => ({
       model: modifyFields(model, { maybeGrantForm: () => Option.none() }),
-      commands: [LoadRobots()],
+      commands: [LoadRobots({ delayMillis: 0 })],
     }),
     FailedGrantBudget: ({ failure }) =>
       updateGrantForm(model, (form) => modifyFields(form, { step: () => GrantStep.Failed({ failure }) })),
@@ -270,7 +284,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           },
     SucceededRevokeGrant: () => ({
       model: modifyFields(model, { revoking: () => Revoking.Idle() }),
-      commands: [LoadRobots()],
+      commands: [LoadRobots({ delayMillis: 0 })],
     }),
     FailedRevokeGrant: ({ failure }) => ({
       model: modifyFields(model, {
