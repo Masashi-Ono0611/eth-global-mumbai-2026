@@ -114,6 +114,27 @@ export const authorize = (deps: WorldDeps) =>
     return HttpServerResponse.redirect(url.toString(), { status: 302 })
   })
 
+const EpisodePath = Schema.Struct({ episodeId: Schema.String })
+const ApprovalRef = Schema.Struct({ id: Schema.String, status: Schema.String })
+
+/** `GET /api/episodes/:episodeId/approval` → the errand's latest approval and its page, so a reloaded console can
+ * link it again (the errand's own answer carries the link only once, at creation). */
+export const approvalForEpisode = (deps: WorldDeps) =>
+  Effect.gen(function* () {
+    const session = yield* CurrentSession
+    const { episodeId } = yield* HttpRouter.schemaPathParams(EpisodePath).pipe(Effect.orDie)
+    const row = yield* firstRow(
+      deps.database
+        .prepare(
+          'SELECT id, status FROM approvals WHERE episode_id = ? AND account_id = ? ORDER BY created_at DESC LIMIT 1',
+        )
+        .bind(episodeId, session.accountId),
+      ApprovalRef,
+    )
+    if (Option.isNone(row)) return yield* NotFound.make({ what: 'approval' })
+    return yield* json({ ...row.value, approvalUrl: `/wallet/approvals/${row.value.id}` })
+  })
+
 /** `POST /api/approvals/:id/deny`: the owner says no without World; the errand ends `denied`, nothing is signed. */
 export const denyByOwner = (deps: WorldDeps) =>
   Effect.gen(function* () {

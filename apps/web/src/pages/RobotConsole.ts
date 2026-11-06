@@ -10,6 +10,7 @@ import {
   ErrandDetail,
   invoiceIdFrom,
   loadConsoleRobot,
+  loadEpisodeApproval,
   loadErrand,
   startErrand,
   terminalStates,
@@ -58,6 +59,7 @@ export const Message = defineMessageUnion({
   FailedStartErrand: { error: Schema.String },
   SucceededLoadErrand: { episodeId: Schema.String, detail: ErrandDetail },
   FailedLoadErrand: { episodeId: Schema.String },
+  CompletedFindApproval: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
   ClickedRefresh: {},
 })
 export type Message = typeof Message.Type
@@ -117,6 +119,22 @@ export const PollErrand = Command.define('PollErrand', {
       Effect.andThen(loadErrand(robotId, episodeId)),
       Effect.map((detail) => Message.SucceededLoadErrand({ episodeId, detail })),
       Effect.catch(() => Effect.succeed(Message.FailedLoadErrand({ episodeId }))),
+    ),
+})
+
+/**
+ * The approval page of an errand waiting for the owner, after a reload lost the link from the errand's creation.
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
+export const FindApproval = Command.define('FindApproval', {
+  args: { episodeId: Schema.String },
+  messages: [Message.CompletedFindApproval],
+  execute: ({ episodeId }) =>
+    loadEpisodeApproval(episodeId).pipe(
+      Effect.map(({ approvalUrl }) =>
+        Message.CompletedFindApproval({ episodeId, maybeApprovalUrl: Option.some(approvalUrl) }),
+      ),
+      Effect.catch(() => Effect.succeed(Message.CompletedFindApproval({ episodeId, maybeApprovalUrl: Option.none() }))),
     ),
 })
 
@@ -182,14 +200,25 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         return { model }
       }
       const live = !terminalStates.has(detail.episode.state)
+      const findApproval =
+        detail.episode.state === 'awaiting_approval' && Option.isNone(errand.maybeApprovalUrl)
+          ? [FindApproval({ episodeId })]
+          : []
       return {
         model: modifyFields(model, {
           errand: () => Errand.Running({ ...errand, maybeDetail: Option.some(detail) }),
         }),
         commands: live
-          ? [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS })]
+          ? [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS }), ...findApproval]
           : [LoadConsole({ robotId: model.robotId })],
       }
+    },
+    CompletedFindApproval: ({ episodeId, maybeApprovalUrl }) => {
+      const { errand } = model
+      if (!Errand.guards.Running(errand) || errand.episodeId !== episodeId) {
+        return { model }
+      }
+      return { model: modifyFields(model, { errand: () => Errand.Running({ ...errand, maybeApprovalUrl }) }) }
     },
     FailedLoadErrand: ({ episodeId }) =>
       Errand.guards.Running(model.errand) && model.errand.episodeId === episodeId

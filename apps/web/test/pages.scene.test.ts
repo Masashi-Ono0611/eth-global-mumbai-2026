@@ -326,6 +326,41 @@ describe('/robot/:id', () => {
     )
   })
 
+  test('after a reload while waiting for approval, the console finds the approval page again', () => {
+    const waiting = { ...detail('awaiting_approval', false), chipRequest: null }
+    scene(
+      { update: RobotConsole.update, view },
+      given(loaded),
+      click(role('button', { name: 'Buy Cigarettes (0.50 USDC)' })),
+      Command.resolve(
+        RobotConsole.StartErrand,
+        RobotConsole.Message.SucceededStartErrand({ episodeId: 'e3', maybeApprovalUrl: Option.none() }),
+      ),
+      Command.resolve(
+        RobotConsole.PollErrand,
+        RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e3', detail: waiting }),
+      ),
+      Command.expectHas(RobotConsole.FindApproval({ episodeId: 'e3' })),
+      Command.resolve(
+        RobotConsole.FindApproval,
+        RobotConsole.Message.CompletedFindApproval({
+          episodeId: 'e3',
+          maybeApprovalUrl: Option.some('/wallet/approvals/ap3'),
+        }),
+      ),
+      expect(role('link', { name: 'Approve in World App' })).toHaveAttr('href', '/wallet/approvals/ap3'),
+      Command.resolve(RobotConsole.PollErrand, RobotConsole.Message.FailedLoadErrand({ episodeId: 'e3' })),
+      Command.resolve(
+        RobotConsole.PollErrand,
+        RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e3', detail: detail('denied', false) }),
+      ),
+      Command.resolve(
+        RobotConsole.LoadConsole,
+        RobotConsole.Message.FailedLoadConsole({ error: 'x', signedOut: false }),
+      ),
+    )
+  })
+
   test('a restricted item links the World approval page', () => {
     scene(
       { update: RobotConsole.update, view },

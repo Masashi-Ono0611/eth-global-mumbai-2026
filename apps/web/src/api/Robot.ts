@@ -84,6 +84,9 @@ export const invoiceIdFrom = (text: string): string | null => {
 export const loadErrand = (robotId: string, episodeId: string) =>
   getJson(`/api/robots/${robotId}/errands/${episodeId}`, ErrandDetail)
 
+export const loadEpisodeApproval = (episodeId: string) =>
+  getJson(`/api/episodes/${episodeId}/approval`, Schema.Struct({ approvalUrl: Schema.String }))
+
 /** Spec §6 terminal states: the console stops polling and enables "Start" again. */
 export const terminalStates: ReadonlySet<string> = new Set([
   'paid',

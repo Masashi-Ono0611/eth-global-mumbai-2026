@@ -84,6 +84,8 @@ export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Ef
         account: { displayName: 'Wallet Owner', deployStatus: 'counterfactual' },
       })
       expect((yield* HttpClient.get(`${appUrl}/api/approvals/nope`, { headers: { cookie } })).status).toBe(404)
+      expect((yield* HttpClient.get(`${appUrl}/api/episodes/nope/approval`, { headers: { cookie } })).status).toBe(404)
+      expect((yield* HttpClient.get(`${appUrl}/api/episodes/nope/approval`)).status).toBe(401)
       // The native stack binds no WORLD_* client: approval sign-in answers 503 instead of redirecting to World.
       const authorize = yield* HttpClient.get(`${appUrl}/api/world/authorize?approval=nope`, { headers: { cookie } })
       expect(authorize.status).toBe(503)
