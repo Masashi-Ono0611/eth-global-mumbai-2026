@@ -175,6 +175,11 @@ const gateInvoiceIsPaid = (input: {
         Effect.map(({ status }) => status),
       )
     expect([yield* read('gate1'), yield* read('gate2')]).toEqual(['paid', 'used'])
+    // The episode's evidence is built after the decision learned its outcome.
+    const evidence = yield* (yield* HttpClient.get(`${appUrl}/api/evidence/${episodeId}`)).json
+    expect(evidence).toMatchObject({
+      payload: { decisions: [{ outcome: 'paid' }], outcome: { state: 'paid', txHash: settledTx } },
+    })
   })
 
 /** A Worker that died mid-settle must not wedge the robot: the next read ends the errand from what D1 recorded. */

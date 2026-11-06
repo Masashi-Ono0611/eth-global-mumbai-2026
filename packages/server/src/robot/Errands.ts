@@ -5,7 +5,7 @@ import type { SignedApproval } from '@ethmumbai/protocol/Approval'
 import { generateId } from '@ethmumbai/protocol/Base32'
 import type { RefusalCode, SignRequest } from '@ethmumbai/protocol/Chip'
 import { ARC_DELEGATION_MANAGER, buildLeaf, delegationHash } from '@ethmumbai/protocol/Delegation'
-import { EpisodeState, isTerminalState } from '@ethmumbai/protocol/Errand'
+import { type DecisionOutcome, EpisodeState, isTerminalState } from '@ethmumbai/protocol/Errand'
 import type { Hex } from '@ethmumbai/protocol/Hex'
 import { ARC_CHAIN_ID, type Invoice } from '@ethmumbai/protocol/Invoice'
 import { X402_VERSION } from '@ethmumbai/protocol/X402'
@@ -84,13 +84,18 @@ export const noApprovals: ApprovalPort = { request: () => Effect.succeedNone }
 export const readEpisode = (database: QueryDatabaseClient, episodeId: string) =>
   firstRow(database.prepare('SELECT * FROM episodes WHERE id = ?').bind(episodeId), EpisodeRow)
 
-/** One conditional move; entering a terminal state queues the episode's evidence (exactly once: the move wins once). */
+/**
+ * One conditional move; entering a terminal state queues the episode's evidence (exactly once: the move wins once).
+ * A `decision` outcome is written after the move wins and before the evidence is built, so the uploaded episode
+ * carries it.
+ */
 export const transition = Effect.fnUntraced(function* (
   database: QueryDatabaseClient,
   episodeId: string,
   from: State,
   to: State,
   result: string | null = null,
+  decision?: { readonly outcome: DecisionOutcome; readonly ref: string | null },
 ) {
   const moved = yield* changes(
     database
@@ -100,6 +105,7 @@ export const transition = Effect.fnUntraced(function* (
       .bind(to, yield* nowSeconds, result, episodeId, from),
   )
   if (moved !== 1) return false
+  if (decision !== undefined) yield* settleDecision(database, episodeId, decision.outcome, decision.ref)
   if (isTerminalState(to)) {
     const episode = yield* readEpisode(database, episodeId)
     if (Option.isSome(episode)) yield* enqueueEvidence(database, episode.value)
@@ -172,8 +178,7 @@ const reconcileSettling = Effect.fnUntraced(function* (
   const verdict = Option.isNone(trace) ? undefined : verdictOf(trace.value, age)
   if (verdict === undefined) return
   if (!verdict.paid) {
-    if (yield* transition(database, episode.id, 'settling', 'failed', verdict.ref))
-      yield* settleDecision(database, episode.id, 'failed', verdict.ref)
+    yield* transition(database, episode.id, 'settling', 'failed', verdict.ref, { outcome: 'failed', ref: verdict.ref })
     return
   }
   yield* database
@@ -181,8 +186,7 @@ const reconcileSettling = Effect.fnUntraced(function* (
     .bind(verdict.ref, episode.invoice_id)
     .run()
   yield* consumeApproval(database, episode.id)
-  if (yield* transition(database, episode.id, 'settling', 'paid', verdict.ref))
-    yield* settleDecision(database, episode.id, 'paid', verdict.ref)
+  yield* transition(database, episode.id, 'settling', 'paid', verdict.ref, { outcome: 'paid', ref: verdict.ref })
 })
 
 /** Apply every due timeout for this robot's live errands, and reconcile settlements a dead Worker left behind. */
@@ -202,7 +206,9 @@ export const tickRobot = Effect.fn('EthMumbai.Robot.tick')(function* (database: 
     const due = TIMEOUTS.find(
       (timeout) => timeout.from === episode.state && now - (episode.state_changed_at ?? 0) >= timeout.seconds,
     )
-    return due === undefined ? Effect.void : transition(database, episode.id, due.from, due.to, due.why)
+    if (due === undefined) return Effect.void
+    const decision = due.to === 'safe_stop' ? { outcome: 'safe_stop' as const, ref: due.why } : undefined
+    return transition(database, episode.id, due.from, due.to, due.why, decision)
   })
 })
 
@@ -265,8 +271,7 @@ const settleSigned = Effect.fnUntraced(function* (deps: ErrandDeps, request: Chi
     return { status: 'failed', reason: 'errand is no longer signing' } satisfies PaymentReport
   const fail = (reason: string) =>
     Effect.gen(function* () {
-      yield* transition(database, request.episode_id, 'settling', 'failed', reason)
-      yield* settleDecision(database, request.episode_id, 'failed', reason)
+      yield* transition(database, request.episode_id, 'settling', 'failed', reason, { outcome: 'failed', ref: reason })
       return { status: 'failed', reason } satisfies PaymentReport
     })
   if (Option.isNone(deps.settlement)) return yield* fail('not configured: RELAYER_PRIVATE_KEY')
@@ -282,8 +287,7 @@ const settleSigned = Effect.fnUntraced(function* (deps: ErrandDeps, request: Chi
   const paid = (txHash: Hex) =>
     Effect.gen(function* () {
       yield* consumeApproval(database, request.episode_id)
-      yield* transition(database, request.episode_id, 'settling', 'paid', txHash)
-      yield* settleDecision(database, request.episode_id, 'paid', txHash)
+      yield* transition(database, request.episode_id, 'settling', 'paid', txHash, { outcome: 'paid', ref: txHash })
       return { status: 'settled', txHash } satisfies PaymentReport
     })
   return yield* settlement
@@ -309,8 +313,7 @@ const settleSigned = Effect.fnUntraced(function* (deps: ErrandDeps, request: Chi
 })
 
 const refuseSigned = Effect.fnUntraced(function* (deps: ErrandDeps, request: ChipRequestRow, code: RefusalCode) {
-  if (yield* transition(deps.database, request.episode_id, 'signing', 'refused', code))
-    yield* settleDecision(deps.database, request.episode_id, 'refused', code)
+  yield* transition(deps.database, request.episode_id, 'signing', 'refused', code, { outcome: 'refused', ref: code })
 })
 
 /** The chip protocol's hooks, bound to this errand engine. */
@@ -351,9 +354,10 @@ export const denyErrand = Effect.fn('EthMumbai.Robot.deny')(function* (
   episodeId: string,
   reason: string,
 ) {
-  const moved = yield* transition(deps.database, episodeId, 'awaiting_approval', 'denied', reason)
-  if (moved) yield* settleDecision(deps.database, episodeId, 'denied', null)
-  return moved
+  return yield* transition(deps.database, episodeId, 'awaiting_approval', 'denied', reason, {
+    outcome: 'denied',
+    ref: null,
+  })
 })
 
 /** Insert a `queued` episode unless this robot already has a live errand (the check and insert are one statement). */
