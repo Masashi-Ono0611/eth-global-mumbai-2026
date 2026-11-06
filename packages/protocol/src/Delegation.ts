@@ -11,7 +11,7 @@ import {
   UintString,
   utf8ToBytes,
 } from './Hex.ts'
-import { ARC_USDC } from './Invoice.ts'
+import { ARC_CHAIN_ID, ARC_USDC } from './Invoice.ts'
 import { keccak256, keccak256Bytes } from './Keccak.ts'
 
 // MetaMask Delegation Framework v1.3.0 on Arc (delegation-deployments 2.1.0). Server code takes addresses from the kit's
@@ -43,6 +43,33 @@ export type UnsignedDelegation = typeof UnsignedDelegation.Type
 
 export const Delegation = Schema.Struct({ ...UnsignedDelegation.fields, signature: HexBytes })
 export type Delegation = typeof Delegation.Type
+
+/** The DelegationManager's EIP-712 types (viem `signTypedData` shape), shared by the chip and the server. */
+export const DELEGATION_TYPES = {
+  Delegation: [
+    { name: 'delegate', type: 'address' },
+    { name: 'delegator', type: 'address' },
+    { name: 'authority', type: 'bytes32' },
+    { name: 'caveats', type: 'Caveat[]' },
+    { name: 'salt', type: 'uint256' },
+  ],
+  Caveat: [
+    { name: 'enforcer', type: 'address' },
+    { name: 'terms', type: 'bytes' },
+  ],
+} as const
+
+export const delegationDomain = (delegationManager: Hex = ARC_DELEGATION_MANAGER) =>
+  ({ name: 'DelegationManager', version: '1', chainId: ARC_CHAIN_ID, verifyingContract: delegationManager }) as const
+
+/** The signed message of a wire delegation (salt as bigint, caveat args dropped). */
+export const delegationMessage = (delegation: UnsignedDelegation) => ({
+  delegate: delegation.delegate,
+  delegator: delegation.delegator,
+  authority: delegation.authority,
+  caveats: delegation.caveats.map((caveat) => ({ enforcer: caveat.enforcer, terms: caveat.terms })),
+  salt: BigInt(delegation.salt),
+})
 
 const CAVEAT_TYPE = 'Caveat(address enforcer,bytes terms)'
 const DELEGATION_TYPE = `Delegation(address delegate,address delegator,bytes32 authority,Caveat[] caveats,uint256 salt)${CAVEAT_TYPE}`

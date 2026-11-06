@@ -1,20 +1,9 @@
 import { Implementation, toMetaMaskSmartAccount } from '@metamask/smart-accounts-kit'
 import { hashDelegation } from '@metamask/smart-accounts-kit/utils'
-import {
-  createPublicClient,
-  custom,
-  decodeAbiParameters,
-  hexToBytes,
-  keccak256,
-  parseAbiParameters,
-  sha256,
-  toHex,
-  zeroAddress,
-} from 'viem'
+import { decodeAbiParameters, hexToBytes, keccak256, parseAbiParameters, sha256, toHex, zeroAddress } from 'viem'
 import { toWebAuthnAccount } from 'viem/account-abstraction'
 import { expect, test } from 'vitest'
 import {
-  arcChain,
   buildGrant,
   challengeOf,
   encodeDeleGatorSignature,
@@ -23,6 +12,7 @@ import {
   splitClientData,
   toKitDelegation,
 } from '../src/index.ts'
+import { offlineClient } from './OfflineClient.ts'
 
 // A software WebAuthn authenticator (docs/research/spikes/wallet-accounts-v2-spike.ts.txt) standing in for a phone
 // passkey: the kit signs a delegation through it, and our encoder must produce the same bytes from the raw assertion.
@@ -86,17 +76,6 @@ const makeAuthenticator = async () => {
   })
   return { account, publicKey, captured }
 }
-
-const offlineClient = createPublicClient({
-  chain: arcChain,
-  transport: custom({
-    request: async ({ method }: { method: string }) => {
-      if (method === 'eth_chainId') return toHex(5042)
-      if (method === 'eth_getCode') return '0x'
-      throw new Error(`offline test client: ${method}`)
-    },
-  }),
-})
 
 test('encodeDeleGatorSignature equals the kit’s passkey signature for the same assertion', async () => {
   const authenticator = await makeAuthenticator()

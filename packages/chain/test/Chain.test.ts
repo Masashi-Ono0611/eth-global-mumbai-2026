@@ -7,8 +7,6 @@ import { INVOICE_DOMAIN, INVOICE_TYPE } from '@ethmumbai/protocol/Invoice'
 import { keccak256 as protocolKeccak } from '@ethmumbai/protocol/Keccak'
 import { Effect } from 'effect'
 import {
-  createPublicClient,
-  custom,
   decodeAbiParameters,
   hashTypedData,
   hexToBytes,
@@ -23,7 +21,6 @@ import { describe, expect, test } from 'vitest'
 import {
   approvalArgs,
   arcAddresses,
-  arcChain,
   arcEnvironment,
   buildGrant,
   buildRevoke,
@@ -38,20 +35,11 @@ import {
   toKitDelegation,
   USDC,
 } from '../src/index.ts'
+import { offlineClient } from './OfflineClient.ts'
 
 const run = <A>(effect: Effect.Effect<A>) => Effect.runPromise(effect)
 const randomBytes = (size: number) => toHex(crypto.getRandomValues(new Uint8Array(size)))
 const randomAddress = () => privateKeyToAccount(generatePrivateKey()).address
-const offlineClient = createPublicClient({
-  chain: arcChain,
-  transport: custom({
-    request: async ({ method }: { method: string }) => {
-      if (method === 'eth_chainId') return toHex(5042)
-      if (method === 'eth_getCode') return '0x'
-      throw new Error(`offline test client: ${method}`)
-    },
-  }),
-})
 
 const grantInput = (owner = randomAddress()) => ({
   grantId: 'aaaaaaaaaaaaaaaaaaaaaaaaaa',
