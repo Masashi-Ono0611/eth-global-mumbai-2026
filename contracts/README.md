@@ -7,7 +7,7 @@ Two contracts, built and tested with Foundry (`forge` 1.8.3, solc 0.8.23, EVM `p
 | `src/RobotPaymentPolicyEnforcer` | Arc mainnet (5042)                              | A MetaMask Delegation Framework v1.3.0 caveat on the owner → chip grant: per-payment cap + payee allowlist; anything else needs the approver's one-time EIP-712 approval |
 | `src/EpisodeLog`                 | 0G Galileo (16602); 0G mainnet (16661) accepted | Write-once anchor of an errand's 0G Storage root hash and the hash of its 0G request ids                                                                                 |
 
-Arc Studio project: not created yet (Kris adds the `https://studio.arc.io/app/<id>` URL here).
+Arc Studio project: https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (created 6 Nov 11:40 IST from the CLI with both flattened contracts; Studio compiled them on solc 0.8.23 / paris, wrote 42 Foundry tests (33 enforcer incl. 2 fuzz, 9 EpisodeLog), deployed both to Arc testnet with its shared deployer — enforcer `0xf334227646b3372f46b4d9d6b562189b7e35d711`, EpisodeLog `0xe7019b50c2a519b1e61b0a46df695bc9b5333579` — and added a page that reads `USDC()`/`domainSeparator()`, cross-checks `approvalDigest` in the browser and calls `record()`). Mainnet enforcer: `0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3`, deployed by us.
 
 ## RobotPaymentPolicyEnforcer
 

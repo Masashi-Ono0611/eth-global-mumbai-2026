@@ -46,7 +46,7 @@ payment, only delay it.
   WebAuthn assertion (`@simplewebauthn/server`), encodes it as the HybridDeleGator's WebAuthn signature over the EIP-712
   digest the DelegationManager checks, and confirms it with an ERC-1271 `isValidSignature` call on Arc before a grant
   counts as active. No viem or wallet kit in the browser (the whole web bundle is under 150 KB gzip).
-- **`RobotPaymentPolicyEnforcer`** (Solidity, Foundry; shown in Arc Studio: _fill in_): per-payment cap, payee allowlist and an
+- **`RobotPaymentPolicyEnforcer`** (Solidity, Foundry; shown in Arc Studio: https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75): per-payment cap, payee allowlist and an
   approver whose EIP-712 approval (invoice hash, payee, amount, expiry, nonce) unlocks one over-limit or restricted
   payment.
 - **x402 with ERC-7710.** Our merchant answers `402` with `assetTransferMethod: erc7710` requirements; the payment
@@ -83,7 +83,7 @@ revoke [0x04f6994c…fb87](https://explorer.arc.io/tx/0x04f6994cf6c2bb7b46650d38
 whose account deploy and ERC-1271 check ran on Arc
 [0xddd15708…4a0b](https://explorer.arc.io/tx/0xddd15708400a776ba01c383aede146e83d737c6e6bf815269d3e77e59cbf4a0b)
 (`docs/evidence/2026-11-06-deployed-e2e.md`, `docs/evidence/2026-11-06-deployed-browser.md`). Arc Studio project:
-_fill in the shareable Studio URL_. Paid robot errand on the deployed app: _fill in tx_.
+https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (both contracts, 42 Foundry tests, Arc testnet deployments `0xf334…d711` / `0xe701…3579`, a page reading the live enforcer). Paid robot errand on the deployed app: _fill in tx_.
 
 ### 0G — Physical AI (Agents with a Body)
 
@@ -137,6 +137,6 @@ during the event too.
 | Public GitHub with real history, the predating-code section | repo + README "Code that predates the event" |
 | Demo video 2–4 min, ≥ 720p, real narration, ≤ 4 bullets per slide | _record from `docs/video-script.md`_ |
 | Up to 3 partner prizes with integration + feedback | Arc, 0G, World above; World debrief in `docs/world-debrief.md` |
-| Arc: shareable Studio URL, Studio in the demo, working frontend + backend, architecture diagram, Arc/Circle tools named | Studio URL _fill in_; the rest above |
+| Arc: shareable Studio URL, Studio in the demo, working frontend + backend, architecture diagram, Arc/Circle tools named | Studio URL https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75; the rest above |
 | 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | contract address and live ids _fill in_ |
 | World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | live run _fill in_ |

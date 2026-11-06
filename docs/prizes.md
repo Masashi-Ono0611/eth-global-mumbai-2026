@@ -19,7 +19,7 @@ replay guard, expiry, revoke, human approval, all checked on-chain when the paym
 - Working frontend + backend + an architecture diagram
 - One Arc track only
 
-**Ours:** `RobotPaymentPolicyEnforcer` authored in Studio and deployed to Arc mainnet by us (Studio deploys to
+**Ours:** Studio project https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (both contracts, 42 Foundry tests, Arc testnet deployments, a page on the live enforcer); `RobotPaymentPolicyEnforcer` deployed to Arc mainnet by us (Studio deploys to
 testnet only; ask at the booth whether that is acceptable), our ERC-7710 x402 facilitator settling through
 `redeemDelegations`, real transaction hashes in `docs/evidence/`.
 

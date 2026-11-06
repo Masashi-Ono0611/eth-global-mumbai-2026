@@ -45,8 +45,7 @@ workers build from `docs/spec.md` while Kris does the prerequisites and the team
 - [ ] a World IdP client (`auth.world.org/portal`, redirect
   `https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev/api/world/callback`,
   `client_secret_basic`)
-- [ ] the Arc Studio project and its shareable URL (headless route: `ARC_STUDIO_TOKEN` from
-  `https://studio.arc.io/cli-auth` into `.env.main.local`; the orchestrator drives `arc-studio run --file`)
+- [x] the Arc Studio project: https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (6 Nov 11:40 IST, built from the CLI with `ARC_STUDIO_TOKEN`; 42 tests, both contracts on Arc testnet, a live page)
 
 ### Checkpoints (IST)
 
