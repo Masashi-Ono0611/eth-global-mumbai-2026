@@ -47,8 +47,10 @@ export const verifyPasskeyBrowser = async (browser: Browser, origin: string): Pr
     await page.locator('#display-name').fill('Browser Owner')
     await page.getByRole('button', { name: 'Create passkey wallet' }).click()
     // Signed up on the sign-in page, the owner lands on the first steps (Telegram, money, robot); the wallet is a tap away.
-    await page.waitForURL(new URL('/app/welcome', origin).toString())
+    await page.waitForURL(new URL('/app/welcome', origin).toString(), { waitUntil: 'networkidle' })
     await page.getByRole('heading', { name: 'Where should your robot reach you?' }).waitFor({ state: 'visible' })
+    // Let the page crossfade into /welcome finish before the next navigation starts another.
+    await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished)))
     await page.getByRole('link', { name: 'Go to the wallet' }).click()
     await page.waitForURL(new URL('/app/wallet', origin).toString())
     const address = await smartAccount(page)
