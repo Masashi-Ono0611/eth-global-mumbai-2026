@@ -45,9 +45,6 @@ export const init = (): Model => ({ state: TelegramState.Idle() })
 /** Whether the owner's chat is linked: a page hosting the row moves on when it becomes true. */
 export const isLinked = (model: Model) => TelegramState.guards.Linked(model.state)
 
-/** Whether the server has no bot configured, so there is nothing to connect. */
-export const isOff = (model: Model) => TelegramState.guards.Off(model.state)
-
 // MESSAGE
 
 export const Message = defineMessageUnion({
