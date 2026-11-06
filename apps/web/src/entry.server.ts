@@ -61,14 +61,18 @@ export const renderPage: Server.EntryModule['renderPage'] = (request) =>
   Effect.runPromise(renderRequest(request).pipe(Effect.provide(cloudflareTracer)))
 
 /**
- * The page crossfade (styles.css `@view-transition`) is skipped by the browser whenever it cannot run (a second
- * navigation lands mid-fade, the tab is hidden, the next page is not ready), and each skip rejects the transition's
- * promises. Nothing awaits them, so they are handled here before the first render, as Foldkit does for its own view
- * transitions, instead of surfacing as unhandled rejections.
+ * The page crossfade (styles.css `@view-transition`) is skipped or aborted by the browser whenever it cannot run (a
+ * second navigation starts while a fade is still in flight, the tab is hidden, the next page is not ready), and each
+ * skip rejects the transition's promises. Nothing awaits them, so they are handled before the first render, as Foldkit
+ * does for its own view transitions: the transitions handed to pageswap and pagereveal, and any other rejection whose
+ * reason is the browser's "Transition was aborted/skipped" DOMException (an in-flight transition aborted by a new
+ * navigation). Every other unhandled rejection still surfaces.
  */
 const quietPageTransitions =
   '<script>for(const type of["pageswap","pagereveal"])addEventListener(type,(event)=>{const t=event.viewTransition;' +
-  'if(t)for(const p of[t.ready,t.finished,t.updateCallbackDone])p.catch(()=>{})})</script>'
+  'if(t)for(const p of[t.ready,t.finished,t.updateCallbackDone])p.catch(()=>{})});' +
+  'addEventListener("unhandledrejection",(event)=>{const r=event.reason;' +
+  'if(r instanceof DOMException&&/^Transition was (aborted|skipped)/.test(r.message))event.preventDefault()})</script>'
 
 export const renderDocument: Server.DocumentRenderer = (renderedApplication, assets) =>
   Server.renderDocument(renderedApplication, assets, {
