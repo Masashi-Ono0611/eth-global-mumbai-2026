@@ -15,13 +15,32 @@
     "pieces": "{count, plural, one {# piece} other {# pieces}}"
   },
   "common": {
+    "cancel": "Cancel",
     "error": "Something went wrong",
     "errorDetail": "Something went wrong: {message}",
     "goHome": "Go to home",
     "loading": "Loading...",
     "notFoundDescription": "The page you are looking for does not exist.",
     "notFoundTitle": "Page not found",
+    "refresh": "Refresh",
     "retry": "Retry"
+  },
+  "console": {
+    "buy": "Buy {item} ({amount} USDC)",
+    "chip": "Chip: {status} (refusal: {refusal})",
+    "decision": "0G decided {action}: {reason}",
+    "episodeLog": "EpisodeLog record on 0G Chain",
+    "errandState": "{item}: {state, select, queued {queued} deciding {deciding} awaiting_approval {waiting for approval} signing {chip signing} settling {settling} paid {paid} walked_away {walked away} safe_stop {safe stop} denied {denied} refused {refused by the chip} failed {failed} expired {expired} other {{state}}}",
+    "evidence": "Episode log: {status}",
+    "leaseOffline": "Chip offline: motors stay stopped until it polls again.",
+    "leaseOnline": "Chip online: its lease is current.",
+    "noGrant": "No grant yet: grant a budget on the robots page first.",
+    "openApproval": "Approve in World App",
+    "paymentTx": "Payment on Arc",
+    "requestId": "request id {requestId} · {model} · {latency} ms",
+    "starting": "Asking 0G about {item}...",
+    "storage": "Episode on 0G Storage",
+    "title": "Robot console"
   },
   "landing": {
     "browse": "Read the architecture",
@@ -33,9 +52,45 @@
     "lead": "Your duck, <italic>your budget</italic>.",
     "title": "A duck with a budget."
   },
+  "robot": {
+    "state": "{state, select, queued {queued} deciding {deciding} awaiting_approval {waiting for approval} signing {chip signing} settling {settling} paid {paid} walked_away {walked away} safe_stop {safe stop} denied {denied} refused {refused by the chip} failed {failed} expired {expired} other {{state}}}"
+  },
+  "robots": {
+    "add": "Add robot",
+    "allowlist": "Allowed payees: {payees}",
+    "allowlistLabel": "Allowed payees (addresses)",
+    "dailyCap": "Daily cap (USDC)",
+    "grantBudget": "Grant a budget",
+    "grantTerms": "Budget: {daily} USDC a day, at most {perPayment} USDC per payment ({status, select, active {active} revoking {revoking} revoked {revoked} expired {expired} other {{status}}})",
+    "hours": "Valid for (hours)",
+    "name": "Robot name",
+    "none": "No robots yet. Add one and pair its chip.",
+    "openConsole": "Open console",
+    "pairHint": "Start the chip with --pair {code} within 10 minutes. The code works once.",
+    "pairingCode": "Pairing code: {code}",
+    "pairWith": "Pair {name} with this code:",
+    "perPaymentCap": "Per-payment cap (USDC)",
+    "revoke": "Revoke grant",
+    "revokeTx": "Revoke transaction",
+    "revoking": "Revoking on Arc...",
+    "signGrant": "Sign grant with passkey",
+    "signingGrant": "Signing and activating on Arc...",
+    "status": "{status, select, unpaired {not paired yet} paired {paired} revoked {revoked} other {{status}}} · {online, select, yes {online} other {offline}}",
+    "title": "Robots"
+  },
   "wallet": {
+    "activity": "Activity",
     "address": "Your smart account on Arc",
     "addressNote": "This address exists before any transaction: the wallet is deployed with your first grant.",
-    "signedInAs": "Signed in as {name}"
+    "balance": "Balance",
+    "balanceUnknown": "Arc did not report a balance right now.",
+    "deployed": "Your smart account is deployed on Arc.",
+    "fundInstructions": "Send USDC on Arc mainnet to the address above. Keep it small: robots spend from it within the limits you grant.",
+    "fundTitle": "Add USDC",
+    "noActivity": "No errands yet.",
+    "signedInAs": "Signed in as {name}",
+    "signInFirst": "Sign in with your passkey to see this page.",
+    "title": "Wallet",
+    "viewTx": "View transaction"
   }
 }

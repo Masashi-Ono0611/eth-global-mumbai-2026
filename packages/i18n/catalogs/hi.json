@@ -15,13 +15,32 @@
     "pieces": "{count, plural, one {# वस्तु} other {# वस्तुएँ}}"
   },
   "common": {
+    "cancel": "रद्द करें",
     "error": "कुछ गड़बड़ हो गई",
     "errorDetail": "कुछ गड़बड़ हो गई: {message}",
     "goHome": "होम पर जाएँ",
     "loading": "लोड हो रहा है...",
     "notFoundDescription": "आप जो पेज ढूँढ रहे हैं, वह मौजूद नहीं है।",
     "notFoundTitle": "पेज नहीं मिला",
+    "refresh": "रीफ़्रेश करें",
     "retry": "फिर से कोशिश करें"
+  },
+  "console": {
+    "buy": "{item} खरीदें ({amount} USDC)",
+    "chip": "चिप: {status} (अस्वीकार: {refusal})",
+    "decision": "0G का निर्णय {action}: {reason}",
+    "episodeLog": "0G Chain पर EpisodeLog रिकॉर्ड",
+    "errandState": "{item}: {state, select, queued {कतार में} deciding {निर्णय हो रहा है} awaiting_approval {मंज़ूरी की प्रतीक्षा} signing {चिप हस्ताक्षर कर रही है} settling {भुगतान निपट रहा है} paid {भुगतान हो गया} walked_away {चला गया} safe_stop {सुरक्षित रोक} denied {अस्वीकृत} refused {चिप ने मना किया} failed {विफल} expired {समय समाप्त} other {{state}}}",
+    "evidence": "एपिसोड लॉग: {status}",
+    "leaseOffline": "चिप ऑफ़लाइन है: दोबारा जुड़ने तक मोटर रुकी रहेंगी।",
+    "leaseOnline": "चिप ऑनलाइन है: उसकी लीज़ चालू है।",
+    "noGrant": "अभी कोई अनुमति नहीं: पहले रोबोट पेज पर बजट दें।",
+    "openApproval": "World App में मंज़ूरी दें",
+    "paymentTx": "Arc पर भुगतान",
+    "requestId": "अनुरोध आईडी {requestId} · {model} · {latency} ms",
+    "starting": "{item} के बारे में 0G से पूछ रहे हैं...",
+    "storage": "0G Storage पर एपिसोड",
+    "title": "रोबोट कंसोल"
   },
   "landing": {
     "browse": "आर्किटेक्चर पढ़ें",
@@ -33,9 +52,45 @@
     "lead": "आपकी बत्तख, <italic>आपका बजट</italic>।",
     "title": "बजट वाली बत्तख।"
   },
+  "robot": {
+    "state": "{state, select, queued {कतार में} deciding {निर्णय हो रहा है} awaiting_approval {मंज़ूरी की प्रतीक्षा} signing {चिप हस्ताक्षर कर रही है} settling {भुगतान निपट रहा है} paid {भुगतान हो गया} walked_away {चला गया} safe_stop {सुरक्षित रोक} denied {अस्वीकृत} refused {चिप ने मना किया} failed {विफल} expired {समय समाप्त} other {{state}}}"
+  },
+  "robots": {
+    "add": "रोबोट जोड़ें",
+    "allowlist": "अनुमत प्राप्तकर्ता: {payees}",
+    "allowlistLabel": "अनुमत प्राप्तकर्ता (पते)",
+    "dailyCap": "दैनिक सीमा (USDC)",
+    "grantBudget": "बजट दें",
+    "grantTerms": "बजट: प्रतिदिन {daily} USDC, प्रति भुगतान अधिकतम {perPayment} USDC ({status, select, active {सक्रिय} revoking {रद्द हो रहा है} revoked {रद्द} expired {समय समाप्त} other {{status}}})",
+    "hours": "वैधता (घंटे)",
+    "name": "रोबोट का नाम",
+    "none": "अभी कोई रोबोट नहीं। एक जोड़ें और उसकी चिप को पेयर करें।",
+    "openConsole": "कंसोल खोलें",
+    "pairHint": "10 मिनट के भीतर चिप को --pair {code} के साथ चालू करें। कोड एक ही बार काम करता है।",
+    "pairingCode": "पेयरिंग कोड: {code}",
+    "pairWith": "{name} को इस कोड से पेयर करें:",
+    "perPaymentCap": "प्रति भुगतान सीमा (USDC)",
+    "revoke": "अनुमति रद्द करें",
+    "revokeTx": "रद्द करने का लेन-देन",
+    "revoking": "Arc पर रद्द हो रहा है...",
+    "signGrant": "पासकी से अनुमति पर हस्ताक्षर करें",
+    "signingGrant": "हस्ताक्षर करके Arc पर सक्रिय हो रहा है...",
+    "status": "{status, select, unpaired {अभी जोड़ा नहीं गया} paired {जोड़ा गया} revoked {रद्द} other {{status}}} · {online, select, yes {ऑनलाइन} other {ऑफ़लाइन}}",
+    "title": "रोबोट"
+  },
   "wallet": {
+    "activity": "गतिविधि",
     "address": "Arc पर आपका स्मार्ट अकाउंट",
     "addressNote": "यह पता किसी भी लेन-देन से पहले मौजूद है: वॉलेट आपकी पहली अनुमति के साथ डिप्लॉय होता है।",
-    "signedInAs": "{name} के रूप में साइन इन"
+    "balance": "शेष राशि",
+    "balanceUnknown": "Arc ने अभी शेष राशि नहीं बताई।",
+    "deployed": "आपका स्मार्ट अकाउंट Arc पर डिप्लॉय हो चुका है।",
+    "fundInstructions": "ऊपर दिए पते पर Arc मेननेट पर USDC भेजें। राशि कम रखें: रोबोट आपकी दी गई सीमा के भीतर इसी से खर्च करते हैं।",
+    "fundTitle": "USDC जोड़ें",
+    "noActivity": "अभी कोई काम नहीं।",
+    "signedInAs": "{name} के रूप में साइन इन",
+    "signInFirst": "यह पेज देखने के लिए अपनी पासकी से साइन इन करें।",
+    "title": "वॉलेट",
+    "viewTx": "लेन-देन देखें"
   }
 }

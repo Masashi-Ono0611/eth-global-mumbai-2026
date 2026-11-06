@@ -3,6 +3,9 @@ import { SessionView } from '@ethmumbai/auth/config'
 import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { Locale } from './Locale.ts'
+import * as RobotConsole from './pages/RobotConsole.ts'
+import * as Robots from './pages/Robots.ts'
+import * as Wallet from './pages/Wallet.ts'
 import { AppRoute } from './route.ts'
 
 /** What the server rendered with; serialized into the page and read back unchanged when the browser hydrates. */
@@ -37,5 +40,9 @@ export const Model = Schema.Struct({
   localeSave: LocaleSave,
   auth: AuthState,
   displayName: Schema.String,
+  /** The owner pages keep their own state; only the current route's is present. */
+  maybeWallet: Schema.Option(Wallet.Model),
+  maybeRobots: Schema.Option(Robots.Model),
+  maybeConsole: Schema.Option(RobotConsole.Model),
 })
 export type Model = typeof Model.Type

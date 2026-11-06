@@ -15,13 +15,32 @@
     "pieces": "{count, plural, one {# वस्तू} other {# वस्तू}}"
   },
   "common": {
+    "cancel": "रद्द करा",
     "error": "काहीतरी चुकले",
     "errorDetail": "काहीतरी चुकले: {message}",
     "goHome": "मुख्यपृष्ठावर जा",
     "loading": "लोड होत आहे...",
     "notFoundDescription": "तुम्ही शोधत असलेले पान अस्तित्वात नाही.",
     "notFoundTitle": "पान सापडले नाही",
+    "refresh": "रीफ्रेश करा",
     "retry": "पुन्हा प्रयत्न करा"
+  },
+  "console": {
+    "buy": "{item} विकत घ्या ({amount} USDC)",
+    "chip": "चिप: {status} (नकार: {refusal})",
+    "decision": "0G चा निर्णय {action}: {reason}",
+    "episodeLog": "0G Chain वरील EpisodeLog नोंद",
+    "errandState": "{item}: {state, select, queued {रांगेत} deciding {निर्णय होत आहे} awaiting_approval {मंजुरीची प्रतीक्षा} signing {चिप स्वाक्षरी करत आहे} settling {पेमेंट पूर्ण होत आहे} paid {पेमेंट झाले} walked_away {निघून गेला} safe_stop {सुरक्षित थांबा} denied {नाकारले} refused {चिपने नकार दिला} failed {अयशस्वी} expired {मुदत संपली} other {{state}}}",
+    "evidence": "एपिसोड लॉग: {status}",
+    "leaseOffline": "चिप ऑफलाइन आहे: पुन्हा जोडले जाईपर्यंत मोटर थांबलेल्या राहतील.",
+    "leaseOnline": "चिप ऑनलाइन आहे: तिची लीज चालू आहे.",
+    "noGrant": "अजून परवानगी नाही: आधी रोबोट पानावर बजेट द्या.",
+    "openApproval": "World App मध्ये मंजुरी द्या",
+    "paymentTx": "Arc वरील पेमेंट",
+    "requestId": "विनंती आयडी {requestId} · {model} · {latency} ms",
+    "starting": "{item} बद्दल 0G ला विचारत आहे...",
+    "storage": "0G Storage वरील एपिसोड",
+    "title": "रोबोट कन्सोल"
   },
   "landing": {
     "browse": "आर्किटेक्चर वाचा",
@@ -33,9 +52,45 @@
     "lead": "तुमचे बदक, <italic>तुमचे बजेट</italic>.",
     "title": "बजेट असलेले बदक."
   },
+  "robot": {
+    "state": "{state, select, queued {रांगेत} deciding {निर्णय होत आहे} awaiting_approval {मंजुरीची प्रतीक्षा} signing {चिप स्वाक्षरी करत आहे} settling {पेमेंट पूर्ण होत आहे} paid {पेमेंट झाले} walked_away {निघून गेला} safe_stop {सुरक्षित थांबा} denied {नाकारले} refused {चिपने नकार दिला} failed {अयशस्वी} expired {मुदत संपली} other {{state}}}"
+  },
+  "robots": {
+    "add": "रोबोट जोडा",
+    "allowlist": "परवानगी असलेले प्राप्तकर्ते: {payees}",
+    "allowlistLabel": "परवानगी असलेले प्राप्तकर्ते (पत्ते)",
+    "dailyCap": "दैनिक मर्यादा (USDC)",
+    "grantBudget": "बजेट द्या",
+    "grantTerms": "बजेट: दररोज {daily} USDC, प्रत्येक पेमेंटला कमाल {perPayment} USDC ({status, select, active {सक्रिय} revoking {रद्द होत आहे} revoked {रद्द} expired {मुदत संपली} other {{status}}})",
+    "hours": "वैधता (तास)",
+    "name": "रोबोटचे नाव",
+    "none": "अजून रोबोट नाही. एक जोडा आणि त्याची चिप जोडा.",
+    "openConsole": "कन्सोल उघडा",
+    "pairHint": "10 मिनिटांत चिप --pair {code} सह सुरू करा. कोड एकदाच चालतो.",
+    "pairingCode": "जोडणी कोड: {code}",
+    "pairWith": "{name} ला या कोडने जोडा:",
+    "perPaymentCap": "प्रति पेमेंट मर्यादा (USDC)",
+    "revoke": "परवानगी रद्द करा",
+    "revokeTx": "रद्द करण्याचा व्यवहार",
+    "revoking": "Arc वर रद्द होत आहे...",
+    "signGrant": "पासकीने परवानगीवर स्वाक्षरी करा",
+    "signingGrant": "स्वाक्षरी करून Arc वर सक्रिय होत आहे...",
+    "status": "{status, select, unpaired {अजून जोडलेले नाही} paired {जोडलेले} revoked {रद्द} other {{status}}} · {online, select, yes {ऑनलाइन} other {ऑफलाइन}}",
+    "title": "रोबोट"
+  },
   "wallet": {
+    "activity": "हालचाल",
     "address": "Arc वरील तुमचे स्मार्ट खाते",
     "addressNote": "हा पत्ता कोणत्याही व्यवहारापूर्वी अस्तित्वात आहे: वॉलेट तुमच्या पहिल्या परवानगीसोबत डिप्लॉय होते.",
-    "signedInAs": "{name} म्हणून साइन इन"
+    "balance": "शिल्लक",
+    "balanceUnknown": "Arc ने आत्ता शिल्लक सांगितली नाही.",
+    "deployed": "तुमचे स्मार्ट खाते Arc वर डिप्लॉय झाले आहे.",
+    "fundInstructions": "वरील पत्त्यावर Arc मेननेटवर USDC पाठवा. रक्कम कमी ठेवा: रोबोट तुम्ही दिलेल्या मर्यादेत यातूनच खर्च करतात.",
+    "fundTitle": "USDC जोडा",
+    "noActivity": "अजून कोणतेही काम नाही.",
+    "signedInAs": "{name} म्हणून साइन इन",
+    "signInFirst": "हे पान पाहण्यासाठी तुमच्या पासकीने साइन इन करा.",
+    "title": "वॉलेट",
+    "viewTx": "व्यवहार पहा"
   }
 }

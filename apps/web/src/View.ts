@@ -1,9 +1,13 @@
 import { direction, format, type Locale } from '@ethmumbai/i18n'
+import { Option } from 'effect'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { Message } from './message.ts'
-import { LocaleSave, type Model } from './model.ts'
+import { AuthState, LocaleSave, type Model } from './model.ts'
 import { homeView } from './pages/Home.ts'
-import { AppRoute, homeRouter } from './route.ts'
+import { robotConsoleView } from './pages/RobotConsoleView.ts'
+import { robotsView } from './pages/RobotsView.ts'
+import * as Wallet from './pages/Wallet.ts'
+import { AppRoute, homeRouter, robotsRouter, walletRouter } from './route.ts'
 const languages: ReadonlyArray<Readonly<{ locale: Locale; label: string }>> = [
   { locale: 'en', label: 'English' },
   { locale: 'sl', label: 'Slovenščina' },
@@ -38,6 +42,20 @@ const languagePicker = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/** Links to the owner pages once the session is known. */
+const ownerNav = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const { locale } = model.context
+  return AuthState.guards.SignedIn(model.auth)
+    ? h.nav(
+        [h.Class('owner-nav')],
+        [
+          h.a([h.Href(walletRouter())], [format(locale, 'wallet.title', {})]),
+          h.a([h.Href(robotsRouter())], [format(locale, 'robots.title', {})]),
+        ],
+      )
+    : h.empty
+}
+
 const notFoundView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.main(
     [h.Id('main'), h.Class('intro')],
@@ -53,6 +71,48 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const page = AppRoute.match(model.route, {
     Home: () => ({ title: format(locale, 'landing.title', {}), body: homeView(model, h) }),
     NotFound: () => ({ title: format(locale, 'common.notFoundTitle', {}), body: notFoundView(locale, h) }),
+    Wallet: () => ({
+      title: format(locale, 'wallet.title', {}),
+      body: Option.match(model.maybeWallet, {
+        onNone: () => notFoundView(locale, h),
+        onSome: (wallet) =>
+          h.submodel({
+            slotId: 'wallet',
+            model: wallet,
+            view: Wallet.view,
+            viewInputs: { locale },
+            toParentMessage: (message) => Message.GotWalletMessage({ message }),
+          }),
+      }),
+    }),
+    Robots: () => ({
+      title: format(locale, 'robots.title', {}),
+      body: Option.match(model.maybeRobots, {
+        onNone: () => notFoundView(locale, h),
+        onSome: (robots) =>
+          h.submodel({
+            slotId: 'robots',
+            model: robots,
+            view: robotsView,
+            viewInputs: { locale },
+            toParentMessage: (message) => Message.GotRobotsMessage({ message }),
+          }),
+      }),
+    }),
+    RobotConsole: () => ({
+      title: format(locale, 'console.title', {}),
+      body: Option.match(model.maybeConsole, {
+        onNone: () => notFoundView(locale, h),
+        onSome: (robotConsole) =>
+          h.submodel({
+            slotId: 'robot-console',
+            model: robotConsole,
+            view: robotConsoleView,
+            viewInputs: { locale },
+            toParentMessage: (message) => Message.GotConsoleMessage({ message }),
+          }),
+      }),
+    }),
   })
   return {
     title: `${page.title} | Vitaquack`,
@@ -63,7 +123,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       [
         h.header(
           [h.Class('masthead')],
-          [h.a([h.Href(homeRouter()), h.Class('brand')], ['Vitaquack']), languagePicker(model, h)],
+          [h.a([h.Href(homeRouter()), h.Class('brand')], ['Vitaquack']), ownerNav(model, h), languagePicker(model, h)],
         ),
         page.body,
         h.footer(

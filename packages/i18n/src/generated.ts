@@ -14,13 +14,34 @@ export interface MessageArgumentsByKey<T = string> {
   'auth.signOut': Readonly<Record<string, never>>
   'auth.signingIn': Readonly<Record<string, never>>
   'catalog.pieces': { readonly count: number }
+  'common.cancel': Readonly<Record<string, never>>
   'common.error': Readonly<Record<string, never>>
   'common.errorDetail': { readonly message: string | number }
   'common.goHome': Readonly<Record<string, never>>
   'common.loading': Readonly<Record<string, never>>
   'common.notFoundDescription': Readonly<Record<string, never>>
   'common.notFoundTitle': Readonly<Record<string, never>>
+  'common.refresh': Readonly<Record<string, never>>
   'common.retry': Readonly<Record<string, never>>
+  'console.buy': { readonly item: string | number; readonly amount: string | number }
+  'console.chip': { readonly status: string | number; readonly refusal: string | number }
+  'console.decision': { readonly action: string | number; readonly reason: string | number }
+  'console.episodeLog': Readonly<Record<string, never>>
+  'console.errandState': { readonly item: string | number; readonly state: string | number }
+  'console.evidence': { readonly status: string | number }
+  'console.leaseOffline': Readonly<Record<string, never>>
+  'console.leaseOnline': Readonly<Record<string, never>>
+  'console.noGrant': Readonly<Record<string, never>>
+  'console.openApproval': Readonly<Record<string, never>>
+  'console.paymentTx': Readonly<Record<string, never>>
+  'console.requestId': {
+    readonly requestId: string | number
+    readonly model: string | number
+    readonly latency: string | number
+  }
+  'console.starting': { readonly item: string | number }
+  'console.storage': Readonly<Record<string, never>>
+  'console.title': Readonly<Record<string, never>>
   'landing.browse': Readonly<Record<string, never>>
   'landing.contact': Readonly<Record<string, never>>
   'landing.description': Readonly<Record<string, never>>
@@ -29,10 +50,46 @@ export interface MessageArgumentsByKey<T = string> {
   'landing.feedTitle': Readonly<Record<string, never>>
   'landing.lead': { readonly italic: RichTextValue<T> }
   'landing.title': Readonly<Record<string, never>>
+  'robot.state': { readonly state: string | number }
+  'robots.add': Readonly<Record<string, never>>
+  'robots.allowlist': { readonly payees: string | number }
+  'robots.allowlistLabel': Readonly<Record<string, never>>
+  'robots.dailyCap': Readonly<Record<string, never>>
+  'robots.grantBudget': Readonly<Record<string, never>>
+  'robots.grantTerms': {
+    readonly daily: string | number
+    readonly perPayment: string | number
+    readonly status: string | number
+  }
+  'robots.hours': Readonly<Record<string, never>>
+  'robots.name': Readonly<Record<string, never>>
+  'robots.none': Readonly<Record<string, never>>
+  'robots.openConsole': Readonly<Record<string, never>>
+  'robots.pairHint': { readonly code: string | number }
+  'robots.pairWith': { readonly name: string | number }
+  'robots.pairingCode': { readonly code: string | number }
+  'robots.perPaymentCap': Readonly<Record<string, never>>
+  'robots.revoke': Readonly<Record<string, never>>
+  'robots.revokeTx': Readonly<Record<string, never>>
+  'robots.revoking': Readonly<Record<string, never>>
+  'robots.signGrant': Readonly<Record<string, never>>
+  'robots.signingGrant': Readonly<Record<string, never>>
+  'robots.status': { readonly status: string | number; readonly online: string | number }
+  'robots.title': Readonly<Record<string, never>>
+  'wallet.activity': Readonly<Record<string, never>>
   'wallet.address': Readonly<Record<string, never>>
   'wallet.addressNote': Readonly<Record<string, never>>
+  'wallet.balance': Readonly<Record<string, never>>
+  'wallet.balanceUnknown': Readonly<Record<string, never>>
+  'wallet.deployed': Readonly<Record<string, never>>
+  'wallet.fundInstructions': Readonly<Record<string, never>>
+  'wallet.fundTitle': Readonly<Record<string, never>>
+  'wallet.noActivity': Readonly<Record<string, never>>
+  'wallet.signInFirst': Readonly<Record<string, never>>
   'wallet.signedInAs': { readonly name: string | number }
+  'wallet.title': Readonly<Record<string, never>>
+  'wallet.viewTx': Readonly<Record<string, never>>
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '2a430476231de6df6f259ddbc862f319c63b39ae3d21d3a84cd9c09f96f4c21a'
+export const catalogVersion = '89ed2d6d8e5d00c9a9614bf78f19f57caad45ef22efa05024495dec00102239e'

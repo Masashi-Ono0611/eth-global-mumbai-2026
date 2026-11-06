@@ -1,0 +1,177 @@
+import { Effect, Option, Schema } from 'effect'
+import { Command, type Update } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { defineTaggedUnion } from 'foldkit/schema'
+import { modifyFields } from 'foldkit/struct'
+import type * as HttpClient from 'effect/http/HttpClient'
+import { isSignedOut } from '../api/Http.ts'
+import { ConsoleRobot, ErrandDetail, loadConsoleRobot, loadErrand, startErrand, terminalStates } from '../api/Robot.ts'
+import { Catalogue, loadActivity, loadCatalogue } from '../api/Wallet.ts'
+
+// MODEL
+
+export const ConsoleState = defineTaggedUnion({
+  Loading: {},
+  SignedOut: {},
+  Loaded: { robot: ConsoleRobot, catalogue: Catalogue },
+  Failed: { error: Schema.String },
+})
+export const Errand = defineTaggedUnion({
+  Idle: {},
+  Starting: { item: Schema.String },
+  Running: {
+    episodeId: Schema.String,
+    maybeDetail: Schema.Option(ErrandDetail),
+    maybeApprovalUrl: Schema.Option(Schema.String),
+  },
+  Refused: { error: Schema.String },
+})
+export type Errand = typeof Errand.Type
+export const Model = Schema.Struct({ robotId: Schema.String, state: ConsoleState, errand: Errand })
+export type Model = typeof Model.Type
+
+// MESSAGE
+
+export const Message = defineMessageUnion({
+  SucceededLoadConsole: {
+    robot: ConsoleRobot,
+    catalogue: Catalogue,
+    maybeLatestEpisode: Schema.Option(Schema.String),
+  },
+  FailedLoadConsole: { error: Schema.String, signedOut: Schema.Boolean },
+  ClickedStartErrand: { item: Schema.String },
+  SucceededStartErrand: { episodeId: Schema.String, maybeApprovalUrl: Schema.Option(Schema.String) },
+  FailedStartErrand: { error: Schema.String },
+  SucceededLoadErrand: { episodeId: Schema.String, detail: ErrandDetail },
+  FailedLoadErrand: { episodeId: Schema.String },
+  ClickedRefresh: {},
+})
+export type Message = typeof Message.Type
+
+// COMMAND
+
+/** The robot, the merchant's items and the robot's latest errand (to resume it after a reload). */
+export const LoadConsole = Command.define('LoadConsole', {
+  args: { robotId: Schema.String },
+  messages: [Message.SucceededLoadConsole, Message.FailedLoadConsole],
+  execute: ({ robotId }) =>
+    Effect.gen(function* () {
+      const [robot, catalogue, activity] = yield* Effect.all([loadConsoleRobot(robotId), loadCatalogue, loadActivity], {
+        concurrency: 3,
+      })
+      const latest = activity.episodes.find((episode) => episode.robotId === robotId)
+      return Message.SucceededLoadConsole({
+        robot,
+        catalogue,
+        maybeLatestEpisode: Option.fromNullishOr(latest?.id),
+      })
+    }).pipe(
+      Effect.catch((failure) =>
+        Effect.succeed(Message.FailedLoadConsole({ error: failure.error, signedOut: isSignedOut(failure) })),
+      ),
+    ),
+})
+
+export const StartErrand = Command.define('StartErrand', {
+  args: { robotId: Schema.String, item: Schema.String },
+  messages: [Message.SucceededStartErrand, Message.FailedStartErrand],
+  execute: ({ robotId, item }) =>
+    startErrand(robotId, item).pipe(
+      Effect.map((created) =>
+        Message.SucceededStartErrand({
+          episodeId: created.episodeId,
+          maybeApprovalUrl: Option.fromNullishOr(created.approvalUrl),
+        }),
+      ),
+      Effect.catch((failure) => Effect.succeed(Message.FailedStartErrand({ error: failure.error }))),
+    ),
+})
+
+/** Reads the errand after `delayMillis`: the console polls while the errand is live (spec §6 moves lazily on reads). */
+export const PollErrand = Command.define('PollErrand', {
+  args: { robotId: Schema.String, episodeId: Schema.String, delayMillis: Schema.Number },
+  messages: [Message.SucceededLoadErrand, Message.FailedLoadErrand],
+  execute: ({ robotId, episodeId, delayMillis }) =>
+    Effect.sleep(delayMillis).pipe(
+      Effect.andThen(loadErrand(robotId, episodeId)),
+      Effect.map((detail) => Message.SucceededLoadErrand({ episodeId, detail })),
+      Effect.catch(() => Effect.succeed(Message.FailedLoadErrand({ episodeId }))),
+    ),
+})
+
+export type Services = HttpClient.HttpClient
+
+// INIT
+
+type UpdateReturn = Update.Return<Model, Message, Services>
+const POLL_MILLIS = 1500
+
+export const init = (robotId: string): UpdateReturn => ({
+  model: { robotId, state: ConsoleState.Loading(), errand: Errand.Idle() },
+  commands: [LoadConsole({ robotId })],
+})
+
+// UPDATE
+
+export const isLive = (errand: Errand) =>
+  Errand.guards.Starting(errand) ||
+  (Errand.guards.Running(errand) &&
+    Option.match(errand.maybeDetail, {
+      onNone: () => true,
+      onSome: (detail) => !terminalStates.has(detail.episode.state),
+    }))
+
+const running = (episodeId: string, maybeApprovalUrl: Option.Option<string>) =>
+  Errand.Running({ episodeId, maybeDetail: Option.none(), maybeApprovalUrl })
+
+export const update = (model: Model, message: Message): UpdateReturn =>
+  Message.match(message, {
+    SucceededLoadConsole: ({ robot, catalogue, maybeLatestEpisode }) => {
+      const loaded = modifyFields(model, { state: () => ConsoleState.Loaded({ robot, catalogue }) })
+      const resume = Errand.guards.Idle(model.errand) ? maybeLatestEpisode : Option.none()
+      return Option.match(resume, {
+        onNone: () => ({ model: loaded }),
+        onSome: (episodeId) => ({
+          model: modifyFields(loaded, { errand: () => running(episodeId, Option.none()) }),
+          commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
+        }),
+      })
+    },
+    FailedLoadConsole: ({ error, signedOut }) => ({
+      model: modifyFields(model, {
+        state: () => (signedOut ? ConsoleState.SignedOut() : ConsoleState.Failed({ error })),
+      }),
+    }),
+    ClickedStartErrand: ({ item }) =>
+      isLive(model.errand)
+        ? { model }
+        : {
+            model: modifyFields(model, { errand: () => Errand.Starting({ item }) }),
+            commands: [StartErrand({ robotId: model.robotId, item })],
+          },
+    SucceededStartErrand: ({ episodeId, maybeApprovalUrl }) => ({
+      model: modifyFields(model, { errand: () => running(episodeId, maybeApprovalUrl) }),
+      commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
+    }),
+    FailedStartErrand: ({ error }) => ({ model: modifyFields(model, { errand: () => Errand.Refused({ error }) }) }),
+    SucceededLoadErrand: ({ episodeId, detail }) => {
+      const { errand } = model
+      if (!Errand.guards.Running(errand) || errand.episodeId !== episodeId) {
+        return { model }
+      }
+      const live = !terminalStates.has(detail.episode.state)
+      return {
+        model: modifyFields(model, {
+          errand: () => Errand.Running({ ...errand, maybeDetail: Option.some(detail) }),
+        }),
+        commands: live
+          ? [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS })]
+          : [LoadConsole({ robotId: model.robotId })],
+      }
+    },
+    FailedLoadErrand: ({ episodeId }) =>
+      Errand.guards.Running(model.errand) && model.errand.episodeId === episodeId
+        ? { model, commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS * 2 })] }
+        : { model },
+    ClickedRefresh: () => ({ model, commands: [LoadConsole({ robotId: model.robotId })] }),
+  })

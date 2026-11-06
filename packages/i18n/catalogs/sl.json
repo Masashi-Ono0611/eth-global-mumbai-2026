@@ -15,13 +15,32 @@
     "pieces": "{count, plural, one {# kos} two {# kosa} few {# kosi} other {# kosov}}"
   },
   "common": {
+    "cancel": "Prekliči",
     "error": "Nekaj je šlo narobe",
     "errorDetail": "Prišlo je do napake: {message}",
     "goHome": "Na domačo stran",
     "loading": "Nalaganje...",
     "notFoundDescription": "Iskana stran ne obstaja.",
     "notFoundTitle": "Stran ni najdena",
+    "refresh": "Osveži",
     "retry": "Ponovi"
+  },
+  "console": {
+    "buy": "Kupi {item} ({amount} USDC)",
+    "chip": "Čip: {status} (zavrnitev: {refusal})",
+    "decision": "0G se je odločil za {action}: {reason}",
+    "episodeLog": "Zapis EpisodeLog na 0G Chain",
+    "errandState": "{item}: {state, select, queued {v vrsti} deciding {odloča} awaiting_approval {čaka na odobritev} signing {čip podpisuje} settling {poravnava} paid {plačano} walked_away {odšel} safe_stop {varna ustavitev} denied {zavrnjeno} refused {čip je zavrnil} failed {neuspešno} expired {poteklo} other {{state}}}",
+    "evidence": "Dnevnik epizode: {status}",
+    "leaseOffline": "Čip ni na zvezi: motorji mirujejo, dokler se ne oglasi.",
+    "leaseOnline": "Čip je na zvezi: njegov zakup velja.",
+    "noGrant": "Še ni pooblastila: najprej odobrite proračun na strani robotov.",
+    "openApproval": "Odobri v aplikaciji World",
+    "paymentTx": "Plačilo na Arcu",
+    "requestId": "id zahteve {requestId} · {model} · {latency} ms",
+    "starting": "Vprašanje 0G glede: {item}...",
+    "storage": "Epizoda na 0G Storage",
+    "title": "Konzola robota"
   },
   "landing": {
     "browse": "Preberite arhitekturo",
@@ -33,9 +52,45 @@
     "lead": "Vaša raca, <italic>vaš proračun</italic>.",
     "title": "Raca s proračunom."
   },
+  "robot": {
+    "state": "{state, select, queued {v vrsti} deciding {odloča} awaiting_approval {čaka na odobritev} signing {čip podpisuje} settling {poravnava} paid {plačano} walked_away {odšel} safe_stop {varna ustavitev} denied {zavrnjeno} refused {čip je zavrnil} failed {neuspešno} expired {poteklo} other {{state}}}"
+  },
+  "robots": {
+    "add": "Dodaj robota",
+    "allowlist": "Dovoljeni prejemniki: {payees}",
+    "allowlistLabel": "Dovoljeni prejemniki (naslovi)",
+    "dailyCap": "Dnevna meja (USDC)",
+    "grantBudget": "Odobri proračun",
+    "grantTerms": "Proračun: {daily} USDC na dan, največ {perPayment} USDC na plačilo ({status, select, active {aktivno} revoking {preklic poteka} revoked {preklicano} expired {poteklo} other {{status}}})",
+    "hours": "Velja (ur)",
+    "name": "Ime robota",
+    "none": "Še ni robotov. Dodajte enega in povežite njegov čip.",
+    "openConsole": "Odpri konzolo",
+    "pairHint": "Zaženite čip z --pair {code} v 10 minutah. Koda deluje enkrat.",
+    "pairingCode": "Koda za povezavo: {code}",
+    "pairWith": "Povežite {name} s to kodo:",
+    "perPaymentCap": "Meja na plačilo (USDC)",
+    "revoke": "Prekliči pooblastilo",
+    "revokeTx": "Transakcija preklica",
+    "revoking": "Preklic na Arcu...",
+    "signGrant": "Podpiši pooblastilo s ključem za dostop",
+    "signingGrant": "Podpisovanje in aktivacija na Arcu...",
+    "status": "{status, select, unpaired {še ni povezan} paired {povezan} revoked {preklican} other {{status}}} · {online, select, yes {na zvezi} other {brez povezave}}",
+    "title": "Roboti"
+  },
   "wallet": {
+    "activity": "Dejavnost",
     "address": "Vaš pametni račun na Arcu",
     "addressNote": "Ta naslov obstaja že pred prvo transakcijo: denarnica se namesti ob prvem pooblastilu.",
-    "signedInAs": "Prijavljeni kot {name}"
+    "balance": "Stanje",
+    "balanceUnknown": "Arc trenutno ni sporočil stanja.",
+    "deployed": "Vaš pametni račun je nameščen na Arcu.",
+    "fundInstructions": "Pošljite USDC na omrežju Arc mainnet na zgornji naslov. Naj bo znesek majhen: roboti iz njega porabljajo v mejah, ki jih odobrite.",
+    "fundTitle": "Dodajte USDC",
+    "noActivity": "Še ni opravkov.",
+    "signedInAs": "Prijavljeni kot {name}",
+    "signInFirst": "Za ogled te strani se prijavite s ključem za dostop.",
+    "title": "Denarnica",
+    "viewTx": "Ogled transakcije"
   }
 }

@@ -15,13 +15,32 @@
     "pieces": "{count, plural, other {#点}}"
   },
   "common": {
+    "cancel": "キャンセル",
     "error": "問題が発生しました",
     "errorDetail": "問題が発生しました: {message}",
     "goHome": "ホームへ戻る",
     "loading": "読み込み中...",
     "notFoundDescription": "お探しのページは見つかりませんでした。",
     "notFoundTitle": "ページが見つかりません",
+    "refresh": "更新",
     "retry": "再試行"
+  },
+  "console": {
+    "buy": "{item} を買う（{amount} USDC）",
+    "chip": "チップ：{status}（拒否：{refusal}）",
+    "decision": "0G の判断：{action}（{reason}）",
+    "episodeLog": "0G Chain 上の EpisodeLog 記録",
+    "errandState": "{item}：{state, select, queued {待機中} deciding {判断中} awaiting_approval {承認待ち} signing {チップが署名中} settling {決済中} paid {支払い済み} walked_away {立ち去った} safe_stop {安全停止} denied {拒否} refused {チップが拒否} failed {失敗} expired {期限切れ} other {{state}}}",
+    "evidence": "エピソードログ：{status}",
+    "leaseOffline": "チップはオフラインです。再接続までモーターは停止したままです。",
+    "leaseOnline": "チップはオンラインです（リース有効）。",
+    "noGrant": "まだ権限がありません。先にロボットページで予算を付与してください。",
+    "openApproval": "World App で承認",
+    "paymentTx": "Arc 上の支払い",
+    "requestId": "リクエスト ID {requestId} · {model} · {latency} ms",
+    "starting": "{item} について 0G に問い合わせています...",
+    "storage": "0G Storage 上のエピソード",
+    "title": "ロボットコンソール"
   },
   "landing": {
     "browse": "アーキテクチャを見る",
@@ -33,9 +52,45 @@
     "lead": "あなたのアヒル、<italic>あなたの予算</italic>。",
     "title": "予算を持ったアヒル。"
   },
+  "robot": {
+    "state": "{state, select, queued {待機中} deciding {判断中} awaiting_approval {承認待ち} signing {チップが署名中} settling {決済中} paid {支払い済み} walked_away {立ち去った} safe_stop {安全停止} denied {拒否} refused {チップが拒否} failed {失敗} expired {期限切れ} other {{state}}}"
+  },
+  "robots": {
+    "add": "ロボットを追加",
+    "allowlist": "許可された支払先：{payees}",
+    "allowlistLabel": "許可する支払先（アドレス）",
+    "dailyCap": "1 日の上限（USDC）",
+    "grantBudget": "予算を付与",
+    "grantTerms": "予算：1 日 {daily} USDC、1 回の支払いは最大 {perPayment} USDC（{status, select, active {有効} revoking {取り消し中} revoked {取り消し済み} expired {期限切れ} other {{status}}}）",
+    "hours": "有効期間（時間）",
+    "name": "ロボットの名前",
+    "none": "まだロボットがいません。追加してチップをペアリングしてください。",
+    "openConsole": "コンソールを開く",
+    "pairHint": "10 分以内に --pair {code} でチップを起動してください。コードは 1 回だけ使えます。",
+    "pairingCode": "ペアリングコード：{code}",
+    "pairWith": "次のコードで {name} をペアリングしてください：",
+    "perPaymentCap": "1 回あたりの上限（USDC）",
+    "revoke": "権限を取り消す",
+    "revokeTx": "取り消しの取引",
+    "revoking": "Arc で取り消しています...",
+    "signGrant": "パスキーで権限に署名",
+    "signingGrant": "署名して Arc で有効化しています...",
+    "status": "{status, select, unpaired {未ペアリング} paired {ペアリング済み} revoked {取り消し済み} other {{status}}} · {online, select, yes {オンライン} other {オフライン}}",
+    "title": "ロボット"
+  },
   "wallet": {
+    "activity": "アクティビティ",
     "address": "Arc 上のスマートアカウント",
     "addressNote": "このアドレスは取引の前から存在します。ウォレットは最初の権限付与と同時にデプロイされます。",
-    "signedInAs": "{name} としてサインイン中"
+    "balance": "残高",
+    "balanceUnknown": "Arc から残高を取得できませんでした。",
+    "deployed": "スマートアカウントは Arc にデプロイ済みです。",
+    "fundInstructions": "上のアドレスに Arc メインネットで USDC を送ってください。少額にしてください。ロボットはあなたが許可した上限の範囲で使います。",
+    "fundTitle": "USDC を追加",
+    "noActivity": "まだおつかいはありません。",
+    "signedInAs": "{name} としてサインイン中",
+    "signInFirst": "このページを見るにはパスキーでサインインしてください。",
+    "title": "ウォレット",
+    "viewTx": "取引を表示"
   }
 }

@@ -5,20 +5,26 @@ import { CreatePasskeyWallet, ReadSession, SaveLocale, SignInWithPasskey, SignOu
 import { parseLocale } from './Locale.ts'
 import { Message } from './message.ts'
 import { AuthState, type Flags, LocaleSave, type Model } from './model.ts'
+import { foldConsole, foldRobots, foldWallet, initPages } from './pages.ts'
 import { routeFromPathname } from './route.ts'
 
 type UpdateReturn = Update.Return<Model, Message, Services>
 
-export const init = (context: Flags): UpdateReturn => ({
-  model: {
-    context,
-    route: routeFromPathname(context.pathname),
-    localeSave: LocaleSave.Saved(),
-    auth: AuthState.Checking(),
-    displayName: '',
-  },
-  commands: [ReadSession()],
-})
+export const init = (context: Flags): UpdateReturn => {
+  const route = routeFromPathname(context.pathname)
+  const pages = initPages(route)
+  return {
+    model: {
+      context,
+      route,
+      localeSave: LocaleSave.Saved(),
+      auth: AuthState.Checking(),
+      displayName: '',
+      ...pages.pages,
+    },
+    commands: [ReadSession(), ...('commands' in pages ? pages.commands : [])],
+  }
+}
 
 /** A passkey ceremony may start only from a signed-out page that is not already running one. */
 const canStartCeremony = (auth: AuthState) => AuthState.guards.SignedOut(auth) || AuthState.guards.Refused(auth)
@@ -94,5 +100,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       }
     },
     SucceededSignOut: () => ({ model: modifyFields(model, { auth: () => AuthState.SignedOut() }) }),
+    GotWalletMessage: ({ message: walletMessage }) => foldWallet(model, walletMessage),
+    GotRobotsMessage: ({ message: robotsMessage }) => foldRobots(model, robotsMessage),
+    GotConsoleMessage: ({ message: consoleMessage }) => foldConsole(model, consoleMessage),
     FailedSignOut: () => ({ model: modifyFields(model, { auth: () => AuthState.Unavailable() }) }),
   })
