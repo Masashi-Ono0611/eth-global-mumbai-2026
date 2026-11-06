@@ -10,7 +10,7 @@ import {
   isZeroGDecision,
   worldAuthorizeUrl,
 } from '../api/Robot.ts'
-import { type Catalogue, explorerTx, usdc } from '../api/Wallet.ts'
+import { type Catalogue, explorerTx, type GrantView, leftToday, usdc } from '../api/Wallet.ts'
 import { Dialog } from '@foldkit/ui'
 import { duck } from '../Duck.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
@@ -57,6 +57,27 @@ const declineClassName =
 
 const itemName = (item: string) => item.slice(0, 1).toUpperCase() + item.slice(1)
 
+/** The header pill: what is left today when the Worker reports the day, otherwise the daily allowance. */
+const allowancePill = (grant: GrantView, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const left = leftToday(grant)
+  return left === null
+    ? [
+        h.span([h.Class(allowanceAmountClassName)], [usdc(grant.dailyCap)]),
+        h.span([h.Class(allowanceLabelClassName)], [format(locale, 'thread.perDay', {})]),
+      ]
+    : [
+        h.span([h.Class(allowanceAmountClassName)], [usdc(left)]),
+        h.span([h.Class(allowanceLabelClassName)], [format(locale, 'thread.leftOf', { daily: usdc(grant.dailyCap) })]),
+      ]
+}
+
+const allowancePillLabel = (grant: GrantView, locale: Locale): string => {
+  const left = leftToday(grant)
+  return left === null
+    ? format(locale, 'allowance.open', { amount: usdc(grant.dailyCap) })
+    : format(locale, 'allowance.openLeft', { left: usdc(left), daily: usdc(grant.dailyCap) })
+}
+
 const header = (view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const online = view.lease.online
   return h.header(
@@ -91,13 +112,10 @@ const header = (view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Ht
             [
               h.Type('button'),
               h.Class(allowanceClassName),
-              h.AriaLabel(format(locale, 'allowance.open', { amount: usdc(view.grant.dailyCap) })),
+              h.AriaLabel(allowancePillLabel(view.grant, locale)),
               h.OnClick(Message.ClickedAllowance()),
             ],
-            [
-              h.span([h.Class(allowanceAmountClassName)], [usdc(view.grant.dailyCap)]),
-              h.span([h.Class(allowanceLabelClassName)], [format(locale, 'thread.perDay', {})]),
-            ],
+            [...allowancePill(view.grant, locale, h)],
           ),
     ],
   )

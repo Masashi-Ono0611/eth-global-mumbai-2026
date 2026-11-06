@@ -15,8 +15,20 @@ export const GrantView = Schema.Struct({
   allowlist: Schema.Array(Schema.String),
   expiresAt: Schema.Number,
   revokeTx: Schema.optionalKey(Nullable(Schema.String)),
+  delegationHash: Schema.optionalKey(Schema.String),
+  startAt: Schema.optionalKey(Schema.Number),
+  /** What the period enforcer's current day has used (base units), and when that day ends (unix s). */
+  spentToday: Schema.optionalKey(Schema.String),
+  periodEndsAt: Schema.optionalKey(Schema.Number),
 })
 export type GrantView = typeof GrantView.Type
+
+/** What is left of today's allowance (base units, never below 0), or null when the Worker did not report the day. */
+export const leftToday = (grant: { readonly dailyCap: string; readonly spentToday?: string }): string | null => {
+  if (grant.spentToday === undefined) return null
+  const left = BigInt(grant.dailyCap) - BigInt(grant.spentToday)
+  return (left > 0n ? left : 0n).toString()
+}
 
 export const WalletView = Schema.Struct({
   account: Schema.Struct({

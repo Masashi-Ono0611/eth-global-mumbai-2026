@@ -30,15 +30,19 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.for': Readonly<Record<string, never>>
   'allowance.give': { readonly name: string | number }
   'allowance.hours': { readonly hours: number }
+  'allowance.leftOf': { readonly daily: string | number }
   'allowance.open': { readonly amount: string | number }
+  'allowance.openLeft': { readonly left: string | number; readonly daily: string | number }
   'allowance.openNone': Readonly<Record<string, never>>
   'allowance.perDay': Readonly<Record<string, never>>
   'allowance.perPurchase': Readonly<Record<string, never>>
+  'allowance.resets': { readonly time: string | number }
   'allowance.ruleAsks': { readonly perPayment: string | number; readonly daily: string | number }
   'allowance.rulePerPurchase': { readonly amount: string | number }
   'allowance.ruleUntil': { readonly time: string | number }
   'allowance.ruleWhere': { readonly payee: string | number }
   'allowance.signing': Readonly<Record<string, never>>
+  'allowance.spent': { readonly spent: string | number; readonly daily: string | number }
   'allowance.stop': { readonly name: string | number }
   'allowance.stopping': Readonly<Record<string, never>>
   'allowance.summary': {
@@ -165,6 +169,7 @@ export interface MessageArgumentsByKey<T = string> {
   'home.lineBusy': { readonly item: string | number }
   'home.lineCodeExpired': Readonly<Record<string, never>>
   'home.lineDenied': { readonly item: string | number }
+  'home.lineLeft': { readonly amount: string | number }
   'home.lineNoAllowance': Readonly<Record<string, never>>
   'home.lineOffline': Readonly<Record<string, never>>
   'home.linePaid': { readonly item: string | number }
@@ -250,6 +255,7 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.intentStopped': { readonly reason: string | number }
   'thread.intentStoppedNoReason': Readonly<Record<string, never>>
   'thread.invoice': { readonly item: string | number; readonly amount: string | number }
+  'thread.leftOf': { readonly daily: string | number }
   'thread.needsOk': Readonly<Record<string, never>>
   'thread.noAllowance': Readonly<Record<string, never>>
   'thread.offline': Readonly<Record<string, never>>
@@ -279,4 +285,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '0d29fa59ff5816b368566cc98d37e3af272acd0fba2bd12b11ef14fc32d1d782'
+export const catalogVersion = '699f46c60e5a35ae5ab8d58e9d4dbac2a868ef6fd6dad9e9b56489a9990ef58f'

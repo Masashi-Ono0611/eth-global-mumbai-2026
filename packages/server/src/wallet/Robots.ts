@@ -8,7 +8,7 @@ import { decodeBody } from '../auth/Routes.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { leaseOf, RobotRow } from '../chip/Lease.ts'
 import { json, nowSeconds, randomBytes } from '../Respond.ts'
-import { GrantRow } from '../robot/Budget.ts'
+import { GrantRow, periodStartOf, spentSince } from '../robot/Budget.ts'
 import { allRows } from '../Sql.ts'
 import type { WalletDeps } from './Deps.ts'
 import { answerWalletErrors } from './Errors.ts'
@@ -73,6 +73,15 @@ export const grantView = (row: GrantRow) =>
     revokeTx: row.revoke_tx,
   }))
 
+/** What the grant's current day has used, from settled payments (Arc's period enforcer is the authority). */
+const budgetOf = (database: QueryDatabaseClient, grant: GrantRow, now: number) => {
+  const periodStart = periodStartOf(grant.start_at, now)
+  return Effect.map(spentSince(database, grant.robot_id, periodStart), (spent) => ({
+    spentToday: spent.toString(),
+    periodEndsAt: periodStart + 86_400,
+  }))
+}
+
 /** `GET /api/robots` → the owner's robots, each with its lease and its latest grant that was signed. */
 const listRobots = (deps: WalletDeps) =>
   Effect.gen(function* () {
@@ -104,7 +113,10 @@ const listRobots = (deps: WalletDeps) =>
           pairingCode: pairable ? robot.pairing_code : null,
           pairingExpiresAt: pairable ? robot.pairing_expires_at : null,
           lease: leaseOf(robot, nowMillis),
-          grant: latest === undefined ? null : yield* grantView(latest),
+          grant:
+            latest === undefined
+              ? null
+              : { ...(yield* grantView(latest)), ...(yield* budgetOf(database, latest, now)) },
         }
       }),
     )

@@ -228,6 +228,25 @@ describe('/robot/:id', () => {
     )
   })
 
+  test("with the day reported, the pill says what is left and the sheet shows the day's use and its reset", () => {
+    const today = {
+      ...consoleRobot,
+      grant: { ...grant, dailyCap: '3000000', spentToday: '2100000', periodEndsAt: 1793986400 },
+    }
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([], today)),
+      expect(text('0.90')).toExist(),
+      expect(text('of 3.00 today')).toExist(),
+      click(role('button', { name: 'Allowance: 0.90 of 3.00 USDC left today' })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(text('left of 3.00 today')).toExist(),
+      expect(role('meter', { name: 'Spent today: 2.10 of 3.00 USDC' })).toExist(),
+      expect(text('Resets at', { exact: false })).toExist(),
+    )
+  })
+
   test('the allowance pill opens the sheet: Stop revokes with the passkey, then the robot is re-read', () => {
     scene(
       { update: RobotConsole.update, view },

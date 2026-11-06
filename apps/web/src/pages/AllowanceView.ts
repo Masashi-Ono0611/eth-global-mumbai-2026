@@ -4,7 +4,7 @@ import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { clockTime } from '../api/Episodes.ts'
 import { ActionFailure } from '../api/OwnerAction.ts'
-import { usdc } from '../api/Wallet.ts'
+import { leftToday, usdc } from '../api/Wallet.ts'
 import { DAILY_PRESETS, HOUR_PRESETS, Message, type Model, PER_PAYMENT_PRESETS, Step, Stop } from './Allowance.ts'
 
 // STYLES
@@ -25,6 +25,10 @@ const stopClassName =
   'inline-flex min-h-12 cursor-pointer items-center justify-center rounded-control bg-error-soft px-4 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
 const rulesClassName = 'grid gap-1.5 [&_li]:flex [&_li]:gap-2'
 const leftClassName = 'font-display text-4xl leading-none font-extrabold'
+const unitClassName = 'ml-1.5 font-sans text-base font-normal text-muted'
+/** The day's use as a native meter: paper track, ink fill (WebKit and Firefox pseudo-elements). */
+const meterClassName =
+  'h-2.5 w-full appearance-none overflow-hidden rounded-full bg-paper [&::-moz-meter-bar]:rounded-full [&::-moz-meter-bar]:bg-ink [&::-webkit-meter-bar]:rounded-full [&::-webkit-meter-bar]:border-0 [&::-webkit-meter-bar]:bg-paper [&::-webkit-meter-optimum-value]:rounded-full [&::-webkit-meter-optimum-value]:bg-ink [&::-webkit-meter-optimum-value]:bg-none [&::-webkit-meter-suboptimum-value]:bg-ink [&::-webkit-meter-suboptimum-value]:bg-none [&::-webkit-meter-even-less-good-value]:bg-ink [&::-webkit-meter-even-less-good-value]:bg-none'
 const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
@@ -36,6 +40,8 @@ type ActiveGrant = Readonly<{
   dailyCap: string
   perPaymentCap: string
   expiresAt: number
+  spentToday?: string
+  periodEndsAt?: number
 }>
 
 export type ViewInputs = Readonly<{
@@ -169,22 +175,54 @@ const form = (model: Model, inputs: ViewInputs, h: HtmlBuilder<Message>): Html =
   )
 }
 
+/** Today's allowance: what is left, a meter of what the day has used, and when it resets; the daily cap alone when the
+ *  Worker does not report the day. */
+const today = (grant: ActiveGrant, inputs: ViewInputs, h: HtmlBuilder<Message>): Html => {
+  const { locale } = inputs
+  const left = leftToday(grant)
+  if (left === null || grant.spentToday === undefined)
+    return h.p(
+      [h.Class(leftClassName)],
+      [usdc(grant.dailyCap), h.span([h.Class(unitClassName)], [format(locale, 'allowance.aDay', {})])],
+    )
+  return h.div(
+    [h.Class('grid gap-2')],
+    [
+      h.p(
+        [h.Class(leftClassName)],
+        [
+          usdc(left),
+          h.span([h.Class(unitClassName)], [format(locale, 'allowance.leftOf', { daily: usdc(grant.dailyCap) })]),
+        ],
+      ),
+      h.meter([
+        h.Class(meterClassName),
+        h.Min('0'),
+        h.Max(grant.dailyCap),
+        h.Value(grant.spentToday),
+        h.AriaLabel(format(locale, 'allowance.spent', { spent: usdc(grant.spentToday), daily: usdc(grant.dailyCap) })),
+      ]),
+      grant.periodEndsAt === undefined
+        ? h.empty
+        : h.p(
+            [h.Class('text-sm text-muted')],
+            [
+              format(locale, 'allowance.resets', {
+                time: clockTime(grant.periodEndsAt * 1000, locale, inputs.timeZone),
+              }),
+            ],
+          ),
+    ],
+  )
+}
+
 const rules = (model: Model, grant: ActiveGrant, inputs: ViewInputs, h: HtmlBuilder<Message>): Html => {
   const { locale } = inputs
   const stopping = Stop.guards.Signing(model.stop)
   return h.div(
     [h.Class(formClassName)],
     [
-      h.p(
-        [h.Class(leftClassName)],
-        [
-          usdc(grant.dailyCap),
-          h.span(
-            [h.Class('ml-1.5 font-sans text-base font-normal text-muted')],
-            [format(locale, 'allowance.aDay', {})],
-          ),
-        ],
-      ),
+      today(grant, inputs, h),
       h.ul(
         [h.Class(rulesClassName)],
         [

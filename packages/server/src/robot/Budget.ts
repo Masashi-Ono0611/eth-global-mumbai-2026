@@ -62,25 +62,31 @@ export const latestSignedGrant = Effect.fnUntraced(function* (database: QueryDat
 
 const SettledAmount = Schema.Struct({ amount: Schema.String })
 
-/** USDC this robot settled in the grant's current period (the period enforcer's day starts at `start_at`). */
-export const spentInPeriod = Effect.fnUntraced(function* (
+/** The start of the period enforcer's current day: the grant's `start_at`, then every 86 400 s after it. */
+export const periodStartOf = (startAt: number, nowSeconds: number) =>
+  nowSeconds < startAt ? startAt : startAt + Math.floor((nowSeconds - startAt) / 86_400) * 86_400
+
+/** USDC a robot settled since `periodStart` (base units). */
+export const spentSince = Effect.fnUntraced(function* (
   database: QueryDatabaseClient,
-  grant: Grant,
-  nowSeconds: number,
+  robotId: string,
+  periodStart: number,
 ) {
-  const start = grant.row.start_at
-  const periodStart = nowSeconds < start ? start : start + Math.floor((nowSeconds - start) / 86_400) * 86_400
   const rows = yield* allRows(
     database
       .prepare(
         `SELECT invoices.amount AS amount FROM payments JOIN invoices ON invoices.id = payments.invoice_id
           WHERE payments.robot_id = ? AND payments.status = 'settled' AND payments.settled_at >= ?`,
       )
-      .bind(grant.row.robot_id, periodStart),
+      .bind(robotId, periodStart),
     SettledAmount,
   )
   return rows.reduce((total, row) => total + BigInt(row.amount), 0n)
 })
+
+/** USDC this robot settled in the grant's current period (the period enforcer's day starts at `start_at`). */
+export const spentInPeriod = (database: QueryDatabaseClient, grant: Grant, nowSeconds: number) =>
+  spentSince(database, grant.row.robot_id, periodStartOf(grant.row.start_at, nowSeconds))
 
 export const isApprovalRequired = (grant: Grant, payTo: string, amount: bigint) =>
   amount > grant.perPaymentCap || !grant.allowlist.some((payee) => payee.toLowerCase() === payTo.toLowerCase())

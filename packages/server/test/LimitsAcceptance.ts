@@ -82,6 +82,11 @@ export const registerLimitsAcceptance = (test: TestApi['test'], stack: Effect.Ef
         budget: { remainingToday: '3000000', perPaymentCap: '1000000' },
       })
       yield* settle(robotId, chai.episodeId, `0x${'c1'.repeat(32)}`)
+      // The owner's view of the same day: the robot route reports what the period has used (spec §6 budget).
+      const robotView: unknown = yield* (yield* HttpClient.get(`${appUrl}/api/robots/${robotId}`, {
+        headers: { cookie },
+      })).json
+      expect(robotView).toMatchObject({ grant: { dailyCap: '3000000', spentToday: '100000' } })
 
       const thali = yield* start(robotId, 'thali')
       expect(thali).toMatchObject({ state: 'awaiting_approval', decision: { action: 'ask_human' } })

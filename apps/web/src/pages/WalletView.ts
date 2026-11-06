@@ -4,7 +4,7 @@ import { clsx } from 'clsx'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
-import { type EpisodeActivity, type RobotView, usdc } from '../api/Wallet.ts'
+import { type EpisodeActivity, leftToday, type RobotView, usdc } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
 import { qrDataUri } from '../Qr.ts'
 import { robotConsoleRouter, robotsRouter } from '../route.ts'
@@ -174,7 +174,8 @@ const robotLine = (robot: RobotView, home: Home, locale: Locale): string => {
   }
   if (!robot.lease.online) return format(locale, 'home.lineOffline', {})
   if (robot.grant === null || robot.grant.status !== 'active') return format(locale, 'home.lineNoAllowance', {})
-  return format(locale, 'home.lineReady', {})
+  const left = leftToday(robot.grant)
+  return left === null ? format(locale, 'home.lineReady', {}) : format(locale, 'home.lineLeft', { amount: usdc(left) })
 }
 
 const robotRow = (robot: RobotView, home: Home, locale: Locale, h: HtmlBuilder<Message>): Html => {

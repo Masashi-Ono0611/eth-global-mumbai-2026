@@ -174,7 +174,8 @@
     "paid": "Paid",
     "notPaid": "Not paid",
     "pending": "Pending",
-    "sendSoon": "Send, coming soon"
+    "sendSoon": "Send, coming soon",
+    "lineLeft": "{amount} USDC left today"
   },
   "receive": {
     "title": "Receive USDC",
@@ -232,7 +233,8 @@
     "intentExpired": "I could not finish in time. Nothing was paid.",
     "intentFailed": "I could not set off: {message}",
     "step": "{tool, select, go_to {{place, select, entrance {Walking to the entrance} chai_stall {Walking to the chai stall} samosa_stall {Walking to the samosa stall} thali_stall {Walking to the thali stall} gate {Walking to the gate} other {Walking}}} look {Looking around} scan_qr {Scanning the QR code} wait {Waiting} finish {Done} other {{tool}}}",
-    "turnError": "0G's turn failed: {error}"
+    "turnError": "0G's turn failed: {error}",
+    "leftOf": "of {daily} today"
   },
   "allowance": {
     "title": "{name}'s allowance",
@@ -256,7 +258,11 @@
     "arcNote": "Arc enforces every limit. Stopping takes one passkey tap and works even if the robot is offline.",
     "open": "Allowance: {amount} a day",
     "openNone": "No allowance: give one",
-    "close": "Close"
+    "close": "Close",
+    "openLeft": "Allowance: {left} of {daily} USDC left today",
+    "leftOf": "left of {daily} today",
+    "spent": "Spent today: {spent} of {daily} USDC",
+    "resets": "Resets at {time}"
   },
   "addRobot": {
     "title": "New robot",

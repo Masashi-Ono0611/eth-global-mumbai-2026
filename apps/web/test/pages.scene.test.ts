@@ -41,6 +41,16 @@ describe('/wallet', () => {
       expect(role('link', { name: 'Add a robot' })).toHaveAttr('href', '/wallet/robots'),
       expect(role('link', { name: /Duck/ })).toHaveAttr('href', `/robot/${pairedRobot.id}`),
       expect(text('Bought chai')).toExist(),
+    )
+  })
+
+  test("a ready robot's row says what is left of today's allowance", () => {
+    scene(
+      { update: Wallet.update, view },
+      given(
+        loadedHome(home({ episodes: [], robots: [{ ...pairedRobot, grant: { ...grant, spentToday: '400000' } }] })),
+      ),
+      expect(text('0.60 USDC left today')).toExist(),
       expect(text('Chai')).toExist(),
       expect(text('−0.10')).toExist(),
       expect(text('Paid')).toExist(),

@@ -3,7 +3,7 @@ import { CreateErrandRequest } from '@ethmumbai/protocol/Errand'
 import { Clock, Effect, Option, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
-import { latestSignedGrant } from './Budget.ts'
+import { latestSignedGrant, periodStartOf, spentInPeriod } from './Budget.ts'
 import { decisionsOf } from './Decide.ts'
 import { type EpisodeRow, type ErrandDeps, readEpisode, tickRobot } from './Errands.ts'
 import { readEvidence } from './Evidence.ts'
@@ -14,7 +14,7 @@ import { leaseOf, readRobot } from '../chip/Lease.ts'
 import { readRequestForEpisode } from '../chip/Requests.ts'
 import { findItem } from '../merchant/Catalogue.ts'
 import { readInvoice, toInvoice } from '../merchant/Invoices.ts'
-import { json, jsonError } from '../Respond.ts'
+import { json, jsonError, nowSeconds } from '../Respond.ts'
 import { firstRow } from '../Sql.ts'
 
 /** `{item}` (spec §6) plus an optional `invoiceId`: the exact counter invoice to pay (console, e2e driver, a scan). */
@@ -117,6 +117,8 @@ const readRobotView = (deps: ErrandDeps) =>
     const intent = yield* openIntent(deps.database, robot.value.id)
     const grant = yield* latestSignedGrant(deps.database, robot.value.id)
     const { id, name, kind, status, chip_address, paired_at, last_poll_at } = robot.value
+    const now = yield* nowSeconds
+    const spent = Option.isSome(grant) ? yield* spentInPeriod(deps.database, grant.value, now) : 0n
     return yield* json({
       robot: { id, name, kind, status, chipAddress: chip_address, pairedAt: paired_at, lastPollAt: last_poll_at },
       lease: leaseOf(robot.value, yield* Clock.currentTimeMillis),
@@ -127,10 +129,15 @@ const readRobotView = (deps: ErrandDeps) =>
         onSome: ({ row, dailyCap, perPaymentCap, allowlist }) => ({
           id: row.id,
           status: row.status,
+          delegationHash: row.delegation_hash,
           dailyCap: dailyCap.toString(),
           perPaymentCap: perPaymentCap.toString(),
           allowlist,
+          startAt: row.start_at,
           expiresAt: row.expires_at,
+          // What the period enforcer's current day has used, from settled payments (Arc is the authority).
+          spentToday: spent.toString(),
+          periodEndsAt: periodStartOf(row.start_at, now) + 86_400,
         }),
       }),
     })
