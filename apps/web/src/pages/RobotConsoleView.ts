@@ -30,7 +30,7 @@ import { busyLabel } from '../Busy.ts'
 
 const pageClassName = 'flex min-h-[calc(100svh-2rem)] flex-col transition-opacity duration-150 starting:opacity-0'
 const headerClassName =
-  'sticky top-0 z-10 grid grid-cols-[44px_44px_1fr_auto] items-center gap-2.5 border-b border-rule bg-paper/95 px-1 pt-1 pb-2.5 backdrop-blur'
+  'sticky top-0 z-10 grid grid-cols-[44px_44px_1fr_auto] items-center gap-2.5 border-b border-rule bg-paper/95 px-1 pt-1 pb-2.5 backdrop-blur [@media(prefers-reduced-transparency:reduce)]:bg-paper [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none'
 const backClassName =
   'grid size-11 place-items-center rounded-full bg-surface text-xl no-underline transition-transform active:scale-[0.96]'
 const faceClassName = 'relative grid size-11 place-items-center rounded-full bg-ink'
