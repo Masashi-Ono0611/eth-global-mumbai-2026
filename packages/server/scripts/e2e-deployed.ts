@@ -16,9 +16,10 @@ import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie 
 // new smart account, "Add robot", the mock chip pairs, the passkey signs a grant (with the enforcer), one errand,
 // polled to its end. Prints addresses, ids and explorer links only; never a key, a token, a cookie or a signature.
 // Usage: bun --env-file=.env.main.local packages/server/scripts/e2e-deployed.ts [--base-url URL] [--fund 0.15]
-//        [--item chai] [--no-chip] [--invoice <id> | --gate]
+//        [--item chai] [--no-chip] [--invoice <id> | --gate] [--restricted]
 // --no-chip: pair your own chip (otherwise the mock chip runs as a child process with a fresh key).
-// --invoice <id>: the errand pays that counter invoice. --gate: mint the gate's invoice first, pay it, then read the
+// --restricted: after a paid chai, a cigarettes errand approved on the World IdP page (paid through the enforcer's
+// approval path), then one denied (nothing paid). --invoice <id>: the errand pays that counter invoice. --gate: mint the gate's invoice first, pay it, then read the
 // signed gate status like /gate/duck-cafe does (pending before, paid on the first read after, used on the next).
 // Exit 0: paid, or the expected end while 0G is not configured (503 / safe_stop "not configured"). Otherwise 1.
 const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
@@ -27,14 +28,19 @@ const flag = (name: string) => {
   return index < 0 ? undefined : Bun.argv[index + 1]
 }
 const base = new URL(flag('base-url') ?? DEPLOYED).origin
-const fundUnits = usdcToUnits(flag('fund') ?? '0.15')
+
 const item = flag('item') ?? 'chai'
 const spawnChip = !Bun.argv.includes('--no-chip')
 const gate = Bun.argv.includes('--gate')
 const namedInvoice = flag('invoice')
+const restricted = Bun.argv.includes('--restricted')
+// Chai is 0.10; cigarettes 0.50 (over the 0.25 per-payment cap, to an unlisted payee: approval required). An approval
+// never lifts Arc's daily period cap, so the restricted run grants 1.00/day and funds chai + cigarettes.
+const dailyCap = restricted ? '1.00' : '0.50'
+const fundUnits = usdcToUnits(flag('fund') ?? (restricted ? '0.65' : '0.15'))
 const relayerKey = process.env.APP_RELAYER_PRIVATE_KEY ?? ''
 if (!/^0x[0-9a-f]{64}$/.test(relayerKey)) throw new Error('APP_RELAYER_PRIVATE_KEY missing: run with --env-file')
-if (fundUnits > 500_000n) throw new Error('--fund is capped at 0.50 USDC')
+if (fundUnits > 1_000_000n) throw new Error('--fund is capped at 1.00 USDC')
 const rpcSetting = process.env.APP_ARC_RPC_URL ?? ''
 const arc = makeArcClient(rpcSetting.startsWith('https://') ? rpcSetting : 'https://rpc.mainnet.arc.io')
 const explorer = (hash: string) => `https://explorer.arc.io/tx/${hash}`
@@ -50,7 +56,12 @@ const jsonOf = <A>(
 ) =>
   response.json.pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(schema)),
-    Effect.mapError(() => new E2EFailure({ message: `${what}: unexpected body (status ${response.status})` })),
+    Effect.mapError(
+      (error) =>
+        new E2EFailure({
+          message: `${what}: unexpected body (status ${response.status}): ${String(error).slice(0, 240)}`,
+        }),
+    ),
   )
 const expectStatus = (response: HttpClientResponse.HttpClientResponse, status: number, what: string) =>
   response.status === status
@@ -67,12 +78,18 @@ const Robots = Schema.Struct({ robots: Schema.Array(Schema.Struct({ id: Schema.S
 const GrantOptions = Schema.Struct({ grantId: Schema.String, challenge: Schema.String, rpId: Schema.String })
 const GrantSigned = Schema.Struct({ status: Schema.String, deployTx: Schema.NullOr(Schema.String) })
 const ErrorBody = Schema.Struct({ error: Schema.String })
-const Errand = Schema.Struct({ episodeId: Schema.String, state: Schema.String })
+const Errand = Schema.Struct({
+  episodeId: Schema.String,
+  state: Schema.String,
+  approvalUrl: Schema.optionalKey(Schema.String),
+})
 const ErrandView = Schema.Struct({
   episode: Schema.Struct({ state: Schema.String, result: Schema.NullOr(Schema.String) }),
   decisions: Schema.Array(
     Schema.Struct({
       action: Schema.String,
+      model: Schema.NullOr(Schema.String),
+      provider: Schema.NullOr(Schema.String),
       request_id: Schema.NullOr(Schema.String),
       error: Schema.NullOr(Schema.String),
     }),
@@ -137,7 +154,7 @@ const signGrant = Effect.fn('e2e.signGrant')(function* (
   const expiresAt = Math.floor((yield* Clock.currentTimeMillis) / 1000) + 86_400
   const options = yield* call(
     '/api/wallet/grants/options',
-    { robotId, dailyCap: '0.50', perPaymentCap: '0.25', allowlist: [merchantPayTo], expiresAt },
+    { robotId, dailyCap, perPaymentCap: '0.25', allowlist: [merchantPayTo], expiresAt },
     session.cookie,
   )
   yield* expectStatus(options, 201, 'grant options')
@@ -154,38 +171,110 @@ const signGrant = Effect.fn('e2e.signGrant')(function* (
 })
 
 /** `true` when the run ended as expected (paid, or 0G not configured yet). */
-const errand = Effect.fn('e2e.errand')(function* (robotId: string, cookie: string, invoiceId: string | undefined) {
-  const body = invoiceId === undefined ? { item } : { item, invoiceId }
+/** Poll an errand until it reaches a terminal state (3 min), then print how and by which brain it ended. */
+const awaitEnd = Effect.fn('e2e.awaitEnd')(function* (robotId: string, cookie: string, episodeId: string) {
+  // Each attempt fetches anew: the retry re-runs the request, not just the decode of one response.
+  const view = yield* get(`/api/robots/${robotId}/errands/${episodeId}`, cookie).pipe(
+    Effect.flatMap((response) => jsonOf(response, ErrandView, 'errand')),
+    Effect.flatMap((current) =>
+      TERMINAL.includes(current.episode.state) ? Effect.succeed(current) : fail(`still ${current.episode.state}`),
+    ),
+    Effect.retry({ schedule: Schedule.spaced('2 seconds'), times: 90 }),
+    Effect.mapError(
+      (last) => new E2EFailure({ message: `errand ${episodeId} did not end within 3 minutes (last: ${last.message})` }),
+    ),
+  )
+  const decision = view.decisions[0]
+  yield* say(
+    `errand ended ${view.episode.state}; decision ${decision?.action ?? 'none'} by ${decision?.model ?? '-'}` +
+      ` via ${decision?.provider ?? '-'}, request_id ${decision?.request_id ?? '-'}`,
+  )
+  const txHash = view.payment?.txHash ?? null
+  if (txHash !== null) yield* say(`settled ${explorer(txHash)}`)
+  return { state: view.episode.state, txHash, decisionError: decision?.error ?? '', result: view.episode.result }
+})
+
+const startErrand = Effect.fn('e2e.startErrand')(function* (
+  robotId: string,
+  cookie: string,
+  body: { readonly item: string; readonly invoiceId?: string },
+) {
   const started = yield* passkeyCall(base)(`/api/robots/${robotId}/errands`, body, cookie)
   if (started.status === 503) {
     const { error } = yield* jsonOf(started, ErrorBody, 'errand')
     yield* say(`errand refused 503 "${error}"`)
-    return { expected: error.startsWith('not configured: ZG'), paid: false }
+    return { refused: error }
   }
   yield* expectStatus(started, 201, 'errand')
-  const { episodeId, state } = yield* jsonOf(started, Errand, 'errand')
-  yield* say(`errand ${episodeId} started in ${state}`)
-  const view = yield* jsonOf(
-    yield* get(`/api/robots/${robotId}/errands/${episodeId}`, cookie),
-    ErrandView,
-    'errand',
-  ).pipe(
-    Effect.flatMap((current) => (TERMINAL.includes(current.episode.state) ? Effect.succeed(current) : fail('live'))),
-    Effect.retry({ schedule: Schedule.spaced('2 seconds'), times: 90 }),
-    Effect.mapError(() => new E2EFailure({ message: `errand ${episodeId} did not end within 3 minutes` })),
-  )
-  const decision = view.decisions[0]
-  yield* say(
-    `errand ended ${view.episode.state}; decision ${decision?.action ?? 'none'} request_id ${decision?.request_id ?? '-'}`,
-  )
-  const txHash = view.payment?.txHash ?? null
-  if (view.episode.state === 'paid' && txHash !== null)
-    return yield* say(`paid ${explorer(txHash)}`).pipe(Effect.as({ expected: true, paid: true }))
-  const pending = view.episode.state === 'safe_stop' && (decision?.error ?? '').includes('not configured')
-  yield* say(
-    pending ? 'safe_stop because 0G is not configured yet (expected)' : `unexpected end: ${view.episode.result ?? ''}`,
-  )
+  const errand = yield* jsonOf(started, Errand, 'errand')
+  yield* say(`errand ${errand.episodeId} (${body.item}) started in ${errand.state}`)
+  return { refused: undefined, ...errand }
+})
+
+/** `true` when the run ended as expected (paid, or 0G not configured yet). */
+const errand = Effect.fn('e2e.errand')(function* (robotId: string, cookie: string, invoiceId: string | undefined) {
+  const started = yield* startErrand(robotId, cookie, invoiceId === undefined ? { item } : { item, invoiceId })
+  if (started.refused !== undefined) return { expected: started.refused.startsWith('not configured: ZG'), paid: false }
+  const end = yield* awaitEnd(robotId, cookie, started.episodeId)
+  if (end.state === 'paid' && end.txHash !== null) return { expected: true, paid: true }
+  const pending = end.state === 'safe_stop' && end.decisionError.includes('not configured')
+  yield* say(pending ? 'safe_stop because 0G is not configured yet (expected)' : `unexpected end: ${end.result ?? ''}`)
   return { expected: pending, paid: false }
+})
+
+const ApprovalView = Schema.Struct({ id: Schema.String, status: Schema.String, error: Schema.NullOr(Schema.String) })
+
+/** One GET without following redirects; returns the `location` it points to. */
+const locationOf = (url: string, cookie: string) =>
+  HttpClient.get(url, { headers: { cookie } }).pipe(
+    Effect.provideService(FetchHttpClient.RequestInit, { redirect: 'manual' }),
+    Effect.flatMap((response) => {
+      const location = response.headers.location
+      return response.status === 302 && location !== undefined
+        ? Effect.succeed(new URL(location, url).toString())
+        : fail(`${url} answered ${response.status}, not a redirect`)
+    }),
+  )
+
+/**
+ * The owner answers an approval on the World IdP's page: `/api/world/authorize` redirects to the issuer's authorize
+ * page (the in-Worker stub while the real client is pending), whose Approve / Deny link returns to our callback.
+ */
+const answerApproval = Effect.fn('e2e.answerApproval')(function* (
+  approvalId: string,
+  cookie: string,
+  answer: 'approve' | 'deny',
+) {
+  const authorizeUrl = yield* locationOf(`${base}/api/world/authorize?approval=${approvalId}`, cookie)
+  const page = yield* HttpClient.get(authorizeUrl).pipe(Effect.flatMap((response) => response.text))
+  const issuerLabel = page.includes('STUB IdP')
+    ? 'the stub IdP (rehearsal only, not World)'
+    : new URL(authorizeUrl).host
+  const link = new RegExp(`id="${answer}" href="([^"]+)"`).exec(page)?.[1]
+  if (link === undefined) return yield* fail(`no ${answer} link on ${issuerLabel}`)
+  yield* say(`approval ${approvalId}: ${answer} on ${issuerLabel}`)
+  yield* locationOf(new URL(link.replaceAll('&amp;', '&'), authorizeUrl).toString(), cookie)
+  const view = yield* jsonOf(yield* get(`/api/approvals/${approvalId}`, cookie), ApprovalView, 'approval')
+  yield* say(`approval ${approvalId} is ${view.status}${view.error === null ? '' : ` (${view.error})`}`)
+  return view.status
+})
+
+/** A restricted item (cigarettes, an unlisted payee): awaiting_approval, then approve → paid or deny → denied. */
+const restrictedErrand = Effect.fn('e2e.restrictedErrand')(function* (
+  robotId: string,
+  cookie: string,
+  answer: 'approve' | 'deny',
+) {
+  const started = yield* startErrand(robotId, cookie, { item: 'cigarettes' })
+  if (started.refused !== undefined) return false
+  const approvalId = started.approvalUrl?.split('/').pop()
+  if (started.state !== 'awaiting_approval' || approvalId === undefined)
+    return yield* fail(`cigarettes errand is ${started.state} without an approval`)
+  yield* answerApproval(approvalId, cookie, answer)
+  const end = yield* awaitEnd(robotId, cookie, started.episodeId)
+  const expected = answer === 'approve' ? end.state === 'paid' && end.txHash !== null : end.state === 'denied'
+  yield* say(`${answer} path ${expected ? 'as expected' : `UNEXPECTED (${end.state}: ${end.result ?? ''})`}`)
+  return expected
 })
 
 const MintedInvoice = Schema.Struct({ id: Schema.String, invoiceHash: Schema.String })
@@ -270,7 +359,10 @@ const program = Effect.gen(function* () {
     return yield* fail('a fresh gate invoice is not pending')
   const result = yield* errand(robot.robotId, session.cookie, invoiceId)
   if (result.paid && readGate !== undefined && invoiceId !== undefined) yield* gateOpens(readGate, invoiceId)
-  return result.expected
+  if (!restricted || !result.paid) return result.expected
+  const approved = yield* restrictedErrand(robot.robotId, session.cookie, 'approve')
+  const denied = yield* restrictedErrand(robot.robotId, session.cookie, 'deny')
+  return approved && denied
 })
 
 const passed = await Effect.runPromise(
