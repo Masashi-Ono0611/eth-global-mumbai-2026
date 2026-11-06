@@ -170,10 +170,10 @@ export const DeclineApproval = Command.define('DeclineApproval', {
   args: { approvalId: Schema.String },
   messages: [Message.SucceededDecline, Message.FailedDecline],
   execute: ({ approvalId }) =>
-    denyApproval(approvalId).pipe(
-      Effect.as(Message.SucceededDecline()),
-      Effect.catch((failure) => Effect.succeed(Message.FailedDecline({ error: failure.error }))),
-    ),
+    Effect.match(denyApproval(approvalId), {
+      onSuccess: () => Message.SucceededDecline(),
+      onFailure: (failure) => Message.FailedDecline({ error: failure.error }),
+    }),
 })
 
 type Services = HttpClient.HttpClient
