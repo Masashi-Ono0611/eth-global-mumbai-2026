@@ -1,0 +1,65 @@
+// Reference only (Node PoC, 2026-11-06, not wired into Vitaquack). See docs/research/voice-gpt-live.md.
+// For Vitaquack the tools would be run_errand {item: enum} and errand_status {episodeId} instead of go_to / stop / get_status.
+// GPT-Live のセッションを、サーバーが代わりに作る。ブラウザは SDP を渡すだけで、API キーも設定も持たない。
+import { buildLiveConfig } from './live-config.mjs';
+
+const MAX_SDP_BYTES = 64 * 1024;
+const bytes = (s) => Buffer.byteLength(s);
+const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/** 単純な制限(メモリ上): IP ごとに 1 時間あたり ipHourly 回、全体で 1 日あたり globalDaily 回。 */
+export class LiveLimiter {
+  constructor({ ipHourly, globalDaily, now = () => Date.now() }) {
+    Object.assign(this, { ipHourly, globalDaily, now });
+    this.byIp = new Map(); // ip -> 開始時刻(ms)の配列
+    this.day = null; this.dayCount = 0;
+  }
+
+  reserve(ip) {
+    const t = this.now();
+    const dayKey = new Date(t).toISOString().slice(0, 10);
+    if (this.day !== dayKey) { this.day = dayKey; this.dayCount = 0; }
+    if (this.dayCount >= this.globalDaily) return { ok: false, reason: 'budget', retryAfterSec: 3600 };
+    const recent = (this.byIp.get(ip) ?? []).filter((x) => t - x < 3600_000);
+    if (recent.length >= this.ipHourly) {
+      return { ok: false, reason: 'rate_limited', retryAfterSec: Math.max(1, Math.ceil((3600_000 - (t - recent[0])) / 1000)) };
+    }
+    recent.push(t);
+    this.byIp.set(ip, recent);
+    this.dayCount++;
+    return { ok: true };
+  }
+}
+
+const fail = (status, error, extra = {}) => ({ status, json: { ok: false, error, ...extra } });
+
+/**
+ * @param {{ body: unknown, env: ReturnType<import('./live-config.mjs').readLiveEnv>, limiter: LiveLimiter, ip: string, fetchImpl?: typeof fetch, timeoutMs?: number, log?: (m:string, x?:object)=>void }} a
+ * @returns {Promise<{status:number, json:object}>}
+ */
+export async function createLiveSession({ body, env, limiter, ip, fetchImpl = fetch, timeoutMs = 10_000, log = () => {} }) {
+  if (!env.enabled || !env.apiKey) return fail(503, 'disabled');
+  if (!isObject(body) || Object.keys(body).length !== 1 || typeof body.sdp !== 'string' ||
+      !body.sdp.startsWith('v=0') || bytes(body.sdp) > MAX_SDP_BYTES) return fail(400, 'bad_request');
+
+  const slot = limiter.reserve(ip);
+  if (!slot.ok) return fail(429, slot.reason, { retryAfterSec: slot.retryAfterSec });
+
+  try {
+    const res = await fetchImpl('https://api.openai.com/v1/live/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.apiKey}` },
+      body: JSON.stringify({ session: buildLiveConfig(env), transport: { type: 'webrtc', sdp: body.sdp } }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) { log('live upstream', { status: res.status }); return fail(502, 'model_unavailable'); }
+    const v = await res.json();
+    const id = v?.session?.id;
+    const sdp = v?.transport?.sdp;
+    if (typeof id !== 'string' || !/^[\w-]{1,256}$/.test(id) || typeof sdp !== 'string' || !sdp.startsWith('v=0') || bytes(sdp) > MAX_SDP_BYTES ||
+        id.includes(env.apiKey) || sdp.includes(env.apiKey)) return fail(502, 'model_unavailable');
+    return { status: 201, json: { ok: true, session: { id }, transport: { sdp }, maxSessionSeconds: env.maxSessionSeconds } };
+  } catch {
+    return fail(502, 'model_unavailable');
+  }
+}
