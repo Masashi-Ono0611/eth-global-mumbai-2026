@@ -1,6 +1,6 @@
 # 0G: integration debrief
 
-Ready to paste into the 0G prize form. Written by the 0G lane (Masashi) on Fri 6 Nov 2026 from measurements, not
+Optional partner feedback for 0G, for the ETHGlobal submission form's feedback field if there is one; it is not a 0G prize requirement. Written by the 0G lane (Masashi) on Fri 6 Nov 2026 from measurements, not
 impressions; the numbers and scripts are in `docs/research/0g-measurements.md`.
 
 ## What we built
