@@ -56,16 +56,15 @@
 <body>
 <main>
   <nav class="tabs"><a href="/architecture/" aria-current="page">Architecture</a><a href="/plan/">Plan</a></nav>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.7 · Fri 6 Nov 12:45 IST · status board below · comment with 💬 (blocks, diagram nodes, selected text)</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.8 · Fri 6 Nov 12:39 IST · status board below · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <section id="status-board">
-  <h2>Where we are (Fri 6 Nov 12:45 IST)</h2>
+  <h2>Where we are (Fri 6 Nov 12:39 IST)</h2>
   <ul>
-    <li><strong>The full loop is proven on the deployed app and Arc mainnet (12:06–12:40 IST):</strong> passkey owner → grant with the enforcer → account deployed → mock chip paired through the edge → "buy chai" decided → chip signs → settled (<code>0x29a477f9…f29f</code>, <code>0x782f8dfc…8875</code>) → the gate's invoice <code>paid</code> → <code>used</code> → the episode on 0G Storage and anchored by <code>EpisodeLog.record</code> on Galileo (<code>0xd2fe9e75…aa21</code>); revoke, then the next chai refused on-chain. Both the API driver and the real UI with a virtual passkey. The decision came from a <em>labelled rehearsal brain</em> (LiteLLM → DeepSeek), not 0G. Evidence: <code>docs/evidence/README.md</code>.</li>
-    <li><strong>Contracts:</strong> enforcer <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code> on Arc; <code>EpisodeLog</code> <code>0x4C947E6D794C78d0F684e46EFC97f712E51a206A</code> on 0G Galileo; Arc Studio project <a href="https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75">studio.arc.io/app/63241623…</a>.</li>
-    <li><strong>In progress:</strong> the restricted-item approve / deny rehearsal through the in-Worker stub issuer (prompt fixed at 12:40 so a restricted item ends in <code>ask_human</code>).</li>
-    <li><strong>Blocker 1 — 0G Compute credits:</strong> a router key, or ≥ 4 Galileo 0G to <code>0xc6fF…1fcD</code> (has 0.5) for the direct broker route (setup script ready). Until then every decision is labelled "rehearsal brain, not 0G".</li>
-    <li><strong>Blocker 2 — World IdP client:</strong> the production portal reports Kris's Google account not eligible for self-service; booth ask: enable it or create the client (redirect <code>…/api/world/callback</code>, <code>client_secret_basic</code>). Until then approvals go through the labelled stub.</li>
-    <li><strong>Next:</strong> approve / deny evidence → real World and real 0G when credentials arrive → demo rehearsal (<code>docs/demo.md</code>) → video (<code>docs/video-script.md</code>) Sat 06:00 → submit by 08:00. Relayer ≈ 7 USDC: top up before the demo.</li>
+    <li><strong>The full MUST loop is proven with real 0G decisions, in one command on the deployed app and Arc mainnet:</strong> passkey owner → grant with the enforcer → chip paired through the edge → "buy chai": <strong>0G Compute decided <code>pay</code></strong> (router request id) → chip signed → settled (<code>0xd8d27c74…0f0b</code>) → the gate's invoice <code>paid</code> → <code>used</code>; cigarettes: <strong>0G <code>ask_human</code></strong> → approve → <strong>0.50 paid through the enforcer's approval path</strong> (<code>0x33f30e0f…42b3</code>, <code>PaymentApproved</code>); second cigarettes → deny → nothing paid. Through the real UI too. Evidence: <code>docs/evidence/README.md</code>.</li>
+    <li><strong>0G:</strong> Compute via the 0G router (<code>qwen3-vl-plus</code>, 8/8 on the probe, ≈ 2.7 s; 0GM-1.0-35B TeeML preferred when its provider recovers), Storage + <code>EpisodeLog</code> <code>0x4C947E6D794C78d0F684e46EFC97f712E51a206A</code> on Galileo. <strong>Arc:</strong> enforcer <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code>, Studio project <a href="https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75">studio.arc.io/app/63241623…</a>.</li>
+    <li><strong>Remaining blocker — World IdP client:</strong> the production portal reports Kris's Google account not eligible for self-service; booth ask: enable it or create the client (redirect <code>…/api/world/callback</code>, <code>client_secret_basic</code>). Until then approvals go through a labelled stub issuer inside our Worker (never presented as World).</li>
+    <li><strong>Still unproven:</strong> a real phone passkey end to end (Kris), real World approve / deny with an Orb ID, the Radxa running the chip client (<code>docs/hardware-handoff.md</code>). Relayer at ≈ 4 USDC: top up before the demo.</li>
+    <li><strong>Next:</strong> phone rehearsal (<code>docs/demo.md</code>) → video (<code>docs/video-script.md</code>) → submission (<code>docs/submission.md</code>) by Sat 08:00 IST.</li>
   </ul>
   </section>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
@@ -528,7 +527,7 @@ flowchart LR
   </table>
 
   <footer>
-    Plan v3.7, 6 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/decisions.md</code> the decisions, <code>docs/research/</code> the evidence ·
+    Plan v3.8, 6 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/decisions.md</code> the decisions, <code>docs/research/</code> the evidence ·
     <a href="https://github.com/grmkris/eth-global-mumbai-2026">github.com/grmkris/eth-global-mumbai-2026</a>
   </footer>
 </main>

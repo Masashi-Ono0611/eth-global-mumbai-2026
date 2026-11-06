@@ -13,15 +13,16 @@ v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the fo
 **Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.** On Fri 05:00 no product code existed. Three Opus
 workers build from `docs/spec.md` while Kris does the prerequisites and the teammates build the physical duck.
 
-### Status board (Fri 6 Nov 12:45 IST)
+### Status board (Fri 6 Nov 12:39 IST)
 
 | Lane | State | Blocker |
 | --- | --- | --- |
-| **Full loop on the deployed app** | **Proven 12:06–12:40 IST, Arc mainnet:** passkey owner → grant with the enforcer → account deployed → mock chip paired → "buy chai" decided → chip signs → settled (`0x29a477f9…f29f`, `0x782f8dfc…8875`) → the gate's invoice `paid` → `used` → episode on 0G Storage + `EpisodeLog.record` (`0xd2fe9e75…aa21`); revoke, then a chai refused on-chain (`CannotUseADisabledDelegation`). API driver and real UI (virtual passkey) both | the decision came from the **labelled rehearsal brain** (LiteLLM → DeepSeek), not 0G |
-| Chain / contracts | Done: enforcer `0x7c21…e4D3` (Arc), `EpisodeLog` `0x4C94…206A` (Galileo), Arc Studio project | none; relayer at ≈ 7 USDC (top-up before the demo) |
-| Wallet / World | Done, deployed; approve/deny rehearsal through the in-Worker stub running now (prompt fixed 12:40: restricted → `ask_human`) | **World client**: production portal says Kris's Google account is not eligible (booth: enable it, or a client with redirect `…/api/world/callback`, `client_secret_basic`) |
-| Merchant / Robot / evidence | Done, deployed; first 0G Storage upload done; uploader `--once` drains the rest | **0G Compute credits**: router key, or ≥ 4 Galileo 0G to `0xc6fF…1fcD` (has 0.5) for the direct broker route (script ready) |
-| Next | approve/deny evidence (stub) → real World and real 0G when credentials arrive → demo rehearsal (`docs/demo.md`) → video (`docs/video-script.md`) Sat 06:00 → submit by 08:00 | the two booth asks |
+| **Full MUST loop, real 0G** | **Proven in one command on the deployed app, Arc mainnet (runs 9–10):** passkey owner → grant with the enforcer → chip paired → "buy chai": **0G Compute decided `pay`** (router request id `642ed186…`) → chip signed → settled `0xd8d27c74…0f0b` → gate `paid` → `used`; cigarettes: **0G `ask_human`** → approve on the stub → **paid 0.50 through the enforcer's approval path** `0x33f30e0f…42b3` (`PaymentApproved`); second cigarettes → deny → `denied`, nothing paid. Episodes queued for 0G Storage | World approval = the labelled in-Worker stub until the real client exists |
+| Chain / contracts | Done: enforcer `0x7c21…e4D3` (Arc), `EpisodeLog` `0x4C94…206A` (Galileo), Arc Studio project; `APP_ZG_EXTRA_JSON` binding for the 0GM switch | **relayer 4.17 USDC → top up** `0x404b09F43db64fB08f70b0b3e2b785bC312D6fDb` |
+| Wallet / World | Done, deployed; approve + deny proven through the real UI and the API (stub); final real-0G browser journey running | **World client** (production portal: Kris's Google account not eligible; booth ask) |
+| Merchant / Robot / evidence | Done, deployed; 0G router live (`qwen3-vl-plus`, 8/8 on the probe); uploader fixed; first upload done, real-0G episodes uploading | 0GM-1.0-35B (TeeML) provider answers 502: switch when up (`APP_ZG_MODEL` + `APP_ZG_EXTRA_JSON`) |
+| Still unproven | a real phone passkey (Kris's) end to end · real World approve/deny with an Orb ID · the Radxa running the chip client (`docs/hardware-handoff.md`) | Kris at the venue; the teammates |
+| Next | Kris's phone rehearsal (`docs/demo.md`) → video (`docs/video-script.md`) → submission (`docs/submission.md`) by Sat 08:00 | |
 
 ### Scope
 
@@ -66,7 +67,7 @@ workers build from `docs/spec.md` while Kris does the prerequisites and the team
 | Fri 12:00 | ~~merchant 402/pay/status and the chip protocol with the mock chip~~ **code done 06:00** (native 14/14); first push to `main` 06:18; verified on the deployed app 06:22 (`docs/evidence/2026-11-06-deployed-merchant.md`) |
 | Fri 15:00 | Robot Agent errands with a real 0G decision; evidence uploaded to 0G Storage |
 | Fri 19:00 | World approve/deny on the deployed app; wallet pages complete |
-| **Fri 21:00** | **the full MUST loop on the deployed app, recorded in `docs/evidence/demo-run.md`** |
+| **Fri 21:00** | ~~the full MUST loop on the deployed app~~ **done 12:39 IST with real 0G decisions** (`docs/evidence/2026-11-06-deployed-e2e.md` runs 9–10; World = stub until the client exists) |
 | Sat 02:00 | stretch stops; README, diagram, Studio walkthrough |
 | **Sat 06:00** | **feature freeze**: video (2:30–2:59), World debrief, contract addresses |
 | Sat 09:00 | submitted (aim for 08:00) |
