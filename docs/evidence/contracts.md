@@ -28,7 +28,7 @@ Verification:
 | | |
 | --- | --- |
 | Address (`APP_EPISODE_LOG_ADDRESS`) | `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` ([chainscan](https://chainscan-galileo.0g.ai/address/0x4C947E6D794C78d0F684e46EFC97f712E51a206A)) |
-| Deploy tx | [0xe4eb07f3…bf69](https://chainscan-galileo.0g.ai/tx/0xe4eb07f387cc5a767c019f150cc7abca7424fa68ae092ab50fe1bc49b2bebf69), block 64122644, `status 1`, gas 282232 at ≈ 4 gwei, 6 Nov ≈ 06:50 IST |
+| Deploy tx | [0xe4eb07f3…bf69](https://chainscan-galileo.0g.ai/tx/0xe4eb07f387cc5a767c019f150cc7abca7424fa68ae092ab50fe1bc49b2bebf69), block 64122644, `status 1`, gas 282232 at ≈ 4 gwei, 6 Nov 12:00 IST (block time 06:30:05Z) |
 | Deployer | the 0G storage signer `0xc6fF8A666f4C7F674C1D129C73b46D61f2891fcD` (nonce 0; funded 0.5 0G by Kris, [0xbfc30ee8…9651](https://chainscan-galileo.0g.ai/tx/0xbfc30ee8fa193c6aa144cf2d635efaf5b61c6d8d03d43a6f9b40180b1df69651)); ≈ 0.4988 0G left for uploads |
 | Command | dry run, then `cd contracts && DEPLOYER_PRIVATE_KEY=<APP_ZG_STORAGE_PRIVATE_KEY from .env.main.local, never printed> forge script script/DeployZg.s.sol --rpc-url https://evmrpc-testnet.0g.ai --broadcast` |
 | Sources | `contracts/src/EpisodeLog.sol` at `39ecb5e`, solc 0.8.23, `paris` |
