@@ -14,15 +14,17 @@ import { addVirtualAuthenticator } from '../test/PasskeyBrowserAcceptance.ts'
 // grant → "Buy Chai" on the console (reload mid-errand: the console restores the errand from activity and keeps
 // polling) → the gate → revoke. Screenshots go to docs/evidence/screens/. Prints ids and explorer links only.
 // Usage: bun --env-file=.env.main.local packages/server/scripts/wallet-browser.ts [--base-url URL] [--fund 0.15]
-//   --fund sends that much USDC from the relayer to the new owner first (needed for 'paid'); without it the errand
-//   ends 'failed' (no balance), which still exercises the console. Exit 0 when every step showed what it must.
+//   --fund (default 0.01) sends that much USDC from the relayer to the new owner first; a paid chai needs ≥ 0.10.
+//   The owner is throwaway (its virtual passkey ends with the run), so the funds stay in that account.
+//   Exit 0 when every step showed what it must.
 const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
 const flag = (name: string) => {
   const index = Bun.argv.indexOf(`--${name}`)
   return index < 0 ? undefined : Bun.argv[index + 1]
 }
 const base = new URL(flag('base-url') ?? DEPLOYED).origin
-const fund = flag('fund')
+// A throwaway owner's virtual passkey dies with the browser, so whatever it holds is stranded: fund only a little.
+const fund = flag('fund') ?? '0.01'
 const screens = join(import.meta.dir, '../../../docs/evidence/screens')
 const say = (line: string) => process.stdout.write(`browser  ${line}\n`)
 const TERMINAL = /: (paid|walked away|safe stop|denied|refused by the chip|failed|expired)$/
@@ -192,7 +194,7 @@ const main = async () => {
   try {
     const { page, context } = await withAuthenticator(browser)
     const owner = await signup(page)
-    if (fund !== undefined) {
+    {
       if (!isHex(owner)) throw new Error('the signup address is not hex')
       const units = usdcToUnits(fund)
       if (units > 500_000n) throw new Error('--fund is capped at 0.50 USDC')
