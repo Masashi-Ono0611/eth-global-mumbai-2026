@@ -139,8 +139,8 @@ const uploadOne = async (episode: Pending) => {
     console.error(`episode ${episode.episodeId} failed: ${reason}`)
     await evidence
       .markFailed(episode.episodeId, reason)
-      .catch((error: unknown) =>
-        console.error(`episode ${episode.episodeId}: could not record the failure: ${errorText(error)}`),
+      .catch((reportError: unknown) =>
+        console.error(`episode ${episode.episodeId}: could not record the failure: ${errorText(reportError)}`),
       )
     return false
   }
