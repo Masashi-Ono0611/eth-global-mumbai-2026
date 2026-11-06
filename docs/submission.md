@@ -100,8 +100,11 @@ The owner approves restricted or over-limit robot payments with a fresh World ID
 bound to the exact payment by using the EIP-712 digest of {invoice, payee, amount, expiry} as the OIDC nonce; the
 backend verifies the token (Orb `acr`, `amr` contains `pop` and not `mfa`, `jti` once, `sub` bound to the wallet) and
 co-signs that single payment, which our Arc enforcer requires. Denial or a 300 s timeout means nothing is ever signed.
-Proven: the verifier and the approval flow in tests (`packages/server/test/World.test.ts`, scene tests). _Fill in: the
-live approve and deny with an Orb ID on the deployed app._ Debrief: `docs/world-debrief.md`.
+Proven: the verifier and the approval flow in tests (`packages/server/test/World.test.ts`, scene tests). Rehearsed on
+the deployed app through the real pages with the in-Worker **stub issuer** (rehearsal only, not World): a 0.50 USDC
+restricted, over-cap payment approved, co-signed and paid on Arc ([0xc0e507b6…5fa7](https://explorer.arc.io/tx/0xc0e507b6a5b9da03061f98afe4f64a9aeb6879e6d8927cfd43be1504937f5fa7)), and a second one denied with
+nothing signed (`docs/evidence/2026-11-06-deployed-browser.md`, runs 5–6; the decisions came from the rehearsal brain,
+not 0G). _Fill in: the live approve and deny with an Orb ID on the deployed app._ Debrief: `docs/world-debrief.md`.
 
 ## Links
 
@@ -125,7 +128,7 @@ during the event too.
 
 - A real 0G decision on the deployed app: _pending a 0G key in `APP_ZG_*`_ (a robot errand paid on the deployed app is proven with the LiteLLM rehearsal brain, labelled as such).
 - The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: done 6 Nov 12:06 IST for the first paid episode `hg2ouddwe2h5j6ekbrsn7grfja` (root `0x8db4ffc1…d5dd`, storage tx `0x87d1be1f…12dc`, `EpisodeLog.record` tx `0xd2fe9e75…aa21`; `docs/evidence/2026-11-06-evidence-upload.md`). The decision in that episode came from the rehearsal brain, not 0G.
-- A live World approve and deny: _pending the World IdP client_.
+- A live World approve and deny: _pending the World IdP client_ (rehearsed on the deployed app with the stub issuer, not World: runs 5–6).
 - On-chain verification of the World token (the S5b prototype) is a stretch; the backend co-signer is what runs.
 - The physical duck walking to the till; the virtual loop (mock chip + web gate) is the demo.
 
@@ -139,4 +142,4 @@ during the event too.
 | Up to 3 partner prizes with integration + feedback | Arc, 0G, World above; World debrief in `docs/world-debrief.md` |
 | Arc: shareable Studio URL, Studio in the demo, working frontend + backend, architecture diagram, Arc/Circle tools named | Studio URL https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75; the rest above |
 | 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo); live ids _fill in_ |
-| World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | live run _fill in_ |
+| World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | stub rehearsal on the deployed app (approve → paid, deny → denied; browser evidence runs 5–6); live run _fill in_ |

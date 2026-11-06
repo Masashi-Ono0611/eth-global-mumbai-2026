@@ -49,9 +49,41 @@ Screens from this run: `01-signed-up`, `02-wallet`, `03-pairing-code`, `04-grant
 `06-console-live`, `07-console-ended` (paid, the rehearsal-brain label and provider), `08-gate`,
 `10-restricted-approve-no-approval` / `15-restricted-deny-no-approval` (walked away), `20-revoked`, `21-after-revoke`.
 
+## Runs 5 and 6 — the restricted item approved and denied through the issuer page, release 0532509 (≈ 13:20–13:26 IST), **rehearsal: brain = LiteLLM → DeepSeek, not 0G; issuer = the World stub, not World**
+
+`heavy --wait bun --env-file=.env.main.local packages/server/scripts/wallet-browser.ts --only-restricted --fund 0.55`
+against release `0532509f941e7e0fc2e45f98adc1da3ab6c46d7e` (the decide prompt spells out the approval rule). Each run is a
+fresh passkey owner: signup → fund → Add robot (mock chip pairs) → grant 1.00/day, 0.30/payment, Duck Café, 24 h signed
+with the passkey → Buy Cigarettes (0.50 USDC, restricted, over the per-payment cap) for an approve, again for a deny →
+Revoke. **Approve with World** opens the in-Worker stub issuer (`/api/dev/world`), whose page says "STUB IdP — not World
+— rehearsal only" (`12-restricted-approve-issuer.png`, `17-restricted-deny-issuer.png`); it asks nobody to prove
+anything, so none of this is a World approval. Run 6 used the script's retry (934f465): when the brain does not ask the
+owner, it buys the cigarettes again, at most three times.
+
+| Run | Step | Result | Arc |
+| --- | --- | --- | --- |
+| 5 | Owner `0xbdf783Fd3d2a88BCafE46Fba486DE086fB3F2Fc0`, funded 0.55; chip `0x790A31ACa16345F8B13C4bb23C1b60C0093549aE`; grant active | — | [0xa58d6d63…5dec](https://explorer.arc.io/tx/0xa58d6d63633dd24c7a693824ad9171a81dba6ec2d263fac82702d6b1f30a5dec) (fund) |
+| 5 | Buy Cigarettes (approve) | the rehearsal brain answered `walk_away` (`chatcmpl-0985f4b5-…`: "price exceeds policy limit, so it cannot be paid even with approval", which is wrong: the enforcer accepts an over-cap payment with an approval); nothing asked, nothing paid (`10-restricted-approve-no-approval.png`). This run's script did not retry | — |
+| 5 | **Buy Cigarettes (deny)** → brain `ask_human` (`chatcmpl-8aa0ad65-…`, 2978 ms) → **Approve in World App** → approval page → **Approve with World** → stub issuer page → **Deny** | back on the approval page, then the console: **cigarettes: denied**, "Reason: World answered access_denied", no payment link, nothing signed (`15-restricted-deny-asks` … `19-restricted-deny-console`) | — |
+| 5 | Revoke grant | `(revoked)` | [0x100641a0…8a7c](https://explorer.arc.io/tx/0x100641a04be2f96140c37862a9945314a634ba2137ca43864090dc74745f8a7c) |
+| 6 | Owner `0xF4815A01e15FeC530E2224CB255e735472ba58C0`, funded 0.55; chip `0x709C9463Ea1B132C558f5E8Cca22A6EFDd783016`; grant active | — | [0xb827c1f8…b919](https://explorer.arc.io/tx/0xb827c1f852bd2124ca95832a32daba9c8101b6a26e824a585c372c830547b919) (fund) |
+| 6 | **Buy Cigarettes (approve)**: attempt 1 `walk_away` (`10-restricted-approve-no-approval-1.png`); attempt 2 → brain `ask_human` (`chatcmpl-dcc1fb3b-…`, 2391 ms: "restricted with approvalRequired=true (and 500000 exceeds the 300000 per-payment cap), so owner must approve in World App") → **Approve in World App** → approval page → **Approve with World** → stub issuer page → **Approve** | **Approved**, the chip signs, console **cigarettes: paid** + **Payment on Arc**: 0.50 USDC from the owner to the Duck Café payee `0x0166cd2a4e81f381ca005a791e151ee7d3f88f52` (receipt status 1; `10-restricted-approve-asks` … `14-restricted-approve-console`) | [0xc0e507b6…5fa7](https://explorer.arc.io/tx/0xc0e507b6a5b9da03061f98afe4f64a9aeb6879e6d8927cfd43be1504937f5fa7) |
+| 6 | Buy Cigarettes (deny), three attempts | each ended **safe stop**, "decide arguments are not {action, reason}" (`chatcmpl-ebb5c79a-…` 7563 ms, `chatcmpl-8083da4d-…` 3617 ms, `chatcmpl-f3c5f700-…` 2264 ms): the brain's `decide` arguments did not decode as `{action, reason ≤ 200 characters}`, so the errand stopped and no decision was made up for it (`15-restricted-deny-no-approval-{1,2,3}.png`). The deny path is run 5's | — |
+| 6 | Revoke grant | `(revoked)` (`20-revoked.png`) | [0x442c0b7b…54f8](https://explorer.arc.io/tx/0x442c0b7b3f87a0dd1512c2ec93fc1c48ef0f66f2bb24b5b8a8cd6eaec52254f8) |
+
+Receipts read back from the Arc RPC: the approve payment, run 6's fund and run 6's revoke all have status 1; the payment
+carries the 0.50 USDC transfer to the payee.
+
+**What the rehearsal brain did with a restricted item the owner asked for (7 calls, temperature 0):** 2 × `ask_human`,
+2 × `walk_away`, 3 × a tool call that does not decode (safe stop). The app handled each one
+as the spec says (approval page, nothing paid, safe stop), but the rehearsal brain is not a reliable stage brain for
+the cigarettes beat. **Stranded:** run 5's owner keeps 0.55 USDC and run 6's 0.05 USDC (counterfactual accounts whose
+virtual passkeys ended with the browser). `01`–`05` and `20-revoked` in `screens/` are now run 6's (run 4's showed the
+same pages for its own owner).
+
 ## Not yet proven on the deployed app
 
-- A **0G** decision (this run's decisions came from the rehearsal brain).
-- The restricted item approved and denied through the issuer page (the rerun after the decide-prompt change), and a
-  live **World** approval (the stub is a rehearsal; the submission uses auth.world.org).
-- The gate's OPEN state in a screenshot (caught live from the next run on).
+- A **0G** decision (every decision in runs 4–6 came from the rehearsal brain).
+- A live **World** approval and denial: runs 5–6 went through the stub issuer, a rehearsal; the submission uses
+  auth.world.org once the World client exists.
+- The gate's OPEN state in a screenshot (`--only-restricted` skips the chai and the gate).
