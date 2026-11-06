@@ -216,6 +216,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.dockNoAllowance': "{name} has no allowance yet, so it can't buy anything.",
   'thread.specificQr': 'Pay a specific QR code',
   'thread.records': "All of {name}'s errands, with their proof",
+  'thread.dockStopped': "{name}'s allowance is stopped. Send it anyway and Arc refuses the payment on-chain.",
   'allowance.title': "{name}'s allowance",
   'allowance.give': 'Give {name} an allowance',
   'allowance.perDay': 'Per day (USDC)',

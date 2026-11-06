@@ -217,7 +217,8 @@
     "dockBusy": "{name} is on an errand. The buttons come back when it ends.",
     "dockNoAllowance": "{name} has no allowance yet, so it can't buy anything.",
     "specificQr": "Pay a specific QR code",
-    "records": "All of {name}'s errands, with their proof"
+    "records": "All of {name}'s errands, with their proof",
+    "dockStopped": "{name}'s allowance is stopped. Send it anyway and Arc refuses the payment on-chain."
   },
   "allowance": {
     "title": "{name}'s allowance",

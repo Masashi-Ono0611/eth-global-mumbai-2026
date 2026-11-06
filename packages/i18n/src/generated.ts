@@ -220,6 +220,7 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.dockBusy': { readonly name: string | number }
   'thread.dockNoAllowance': { readonly name: string | number }
   'thread.dockReady': { readonly name: string | number }
+  'thread.dockStopped': { readonly name: string | number }
   'thread.empty': { readonly name: string | number }
   'thread.expired': Readonly<Record<string, never>>
   'thread.failed': { readonly reason: string | number }
@@ -246,4 +247,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'c46d7ff7b3591f7422bd203c55140865dbb93c849b77784911e624de4067cb6c'
+export const catalogVersion = '6c46ab243e3f20697f4f38120c65bf937efc5166fae205dff4f46a2bbc440ad9'

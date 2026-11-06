@@ -105,6 +105,16 @@ describe('/robot/:id', () => {
     )
   })
 
+  test('a stopped allowance still sends the robot out, so Arc can refuse the payment on-chain', () => {
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([], { ...consoleRobot, grant: { ...grant, status: 'revoked' } })),
+      expect(text('No allowance')).toExist(),
+      expect(text("Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain.")).toExist(),
+      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toBeEnabled(),
+    )
+  })
+
   test("a pasted gate payment link pays the gate's invoice; a typo is flagged", () => {
     const invoiceId = 'abcdefghijklmnopqrstuvwxyz'
     scene(

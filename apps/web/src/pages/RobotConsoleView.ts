@@ -349,7 +349,10 @@ const dock = (
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const noAllowance = view.grant === null || view.grant.status !== 'active'
+  // Never granted: nothing can be paid. Stopped (revoked, expired): the errand still runs and Arc refuses it on-chain,
+  // which is the proof the revoke worked (spec §0 "done").
+  const noAllowance = view.grant === null
+  const stopped = view.grant !== null && view.grant.status !== 'active'
   const busy = isLive(model.errand)
   const invoiceInvalid = model.invoiceInput.trim().length > 0 && invoiceIdFrom(model.invoiceInput) === null
   return h.div(
@@ -358,9 +361,19 @@ const dock = (
       h.p(
         [h.Class(dockHintClassName), h.Id('dock-hint')],
         [
-          format(locale, noAllowance ? 'thread.dockNoAllowance' : busy ? 'thread.dockBusy' : 'thread.dockReady', {
-            name: view.robot.name,
-          }),
+          format(
+            locale,
+            noAllowance
+              ? 'thread.dockNoAllowance'
+              : busy
+                ? 'thread.dockBusy'
+                : stopped
+                  ? 'thread.dockStopped'
+                  : 'thread.dockReady',
+            {
+              name: view.robot.name,
+            },
+          ),
         ],
       ),
       h.div(
