@@ -1,4 +1,4 @@
-import { VoiceSay, VoiceTurn } from '@ethmumbai/protocol/Voice'
+import { VoiceSay, VoiceTurn, VoiceWarm } from '@ethmumbai/protocol/Voice'
 import { Effect, Schema } from 'effect'
 import { getJson, postJson } from './Http.ts'
 
@@ -15,6 +15,9 @@ export const voiceAvailable = getJson('/api/health', Health).pipe(
  *  the turn's kind, Vita's line and its speech. */
 export const sendVoiceTurn = (robotId: string, audio: string, model: string | null) =>
   postJson(`/api/robots/${robotId}/voice`, { audio, model }, VoiceTurn)
+
+/** Has the Worker make the speech of Vita's fixed lines ahead, so they play at once (it takes a few seconds). */
+export const warmSpeech = (robotId: string) => postJson(`/api/robots/${robotId}/voice/warm`, {}, VoiceWarm)
 
 /** Vita's line for an intent's current state, built by the Worker from that state. */
 export const sayIntent = (robotId: string, intentId: string) =>
