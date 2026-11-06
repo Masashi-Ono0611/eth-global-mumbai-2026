@@ -1,62 +1,82 @@
-// チームの repo(grmkris/eth-global-mumbai-2026)の 0G 判断(decide)呼び出しを、そのままの形で複数モデルに投げて比べる。
-// 使い方: node --env-file=.env.local scripts/team-decide-probe.mjs [model ...]   (OG_ROUTER_API_KEY が要る)
-// 本文は、チームの packages/server/src/robot/ZeroGClient.ts の decideRequestBody と同じ(強制ツール呼び出し、temperature 0、構造化入力のみ)。
-// 出力: モデルごとに HTTP・遅延・request_id・provider・解析できた action。チームの 10 秒タイムアウトを超えたものは印を付ける。
+// チームの現行の decide 呼び出し(2026-11-06 の main、決定表と例つきのプロンプト、promptInput)を、そのまま複数モデルに投げて、
+// 4 つの場面 × N 回で、正解率・遅延・10 秒超え(= safe_stop)を数える。返答の読み取りは、チームの DecideReply.ts と同じく寛容にする。
+// 使い方: node --env-file=.env.local scripts/team-decide-probe-v2.mjs [--n 5] [model[:nothink] ...]
 const KEY = process.env.OG_ROUTER_API_KEY;
 if (!KEY) { console.error('OG_ROUTER_API_KEY 未設定'); process.exit(2); }
-const BASE = (process.env.OG_ROUTER_BASE_URL || 'https://router-api.0g.ai/v1').replace(/\/+$/, '');
-const TEAM_TIMEOUT_MS = 10_000;
+const BASE = 'https://router-api.0g.ai/v1';
+const TIMEOUT_MS = 10_000; // チームの ZEROG_TIMEOUT
 
-const SYSTEM_PROMPT = 'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool. Never pay when approvalRequired is true or merchant trust is untrusted.';
+const APPROVAL_RULE = 'Never pay when approvalRequired is true. When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown.';
+const SYSTEM_PROMPT = [
+  'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool: call it once with {"action": "pay" | "ask_human" | "walk_away", "reason": one short sentence}.',
+  'Decision table, apply the first row that matches:',
+  '1. The item, the price or the merchant does not match (requested differs from catalogue.itemId, invoice.amount differs from catalogue.amount, or merchant.trust is untrusted) → walk_away.',
+  "2. policy.approvalRequired=true and the item is what the owner asked for → ask_human. The per-payment cap and the allowlist never justify walk_away: the owner's approval in World App lifts them (see the approval field).",
+  '3. policy.approvalRequired=false and invoice.amount is within budget.remainingToday → pay.',
+  '4. Otherwise → walk_away.',
+  'Examples:',
+  '- requested chai, catalogue chai 100000, invoice 100000, approvalRequired false, remainingToday 1000000 → {"action":"pay","reason":"Chai as asked, within budget."}',
+  '- requested cigarettes, catalogue cigarettes 500000 restricted, invoice 500000, approvalRequired true → {"action":"ask_human","reason":"Restricted item the owner asked for; the owner approves it in World App."}',
+  '- requested chai, catalogue samosa → {"action":"walk_away","reason":"Not the item the owner asked for."}',
+  APPROVAL_RULE,
+].join('\n');
+const promptInput = (input) => (input.policy.approvalRequired ? { ...input, approval: { required: true, canBeGrantedBy: 'the owner in World App', capsDoNotBlock: true } } : input);
 const DECIDE_TOOL = { type: 'function', function: { name: 'decide', parameters: { type: 'object', required: ['action', 'reason'], properties: { action: { type: 'string', enum: ['pay', 'ask_human', 'walk_away'] }, reason: { type: 'string', maxLength: 200 } } } } };
-const bodyFor = (model, input, extra = {}) => ({
-  model, temperature: 0,
-  messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: JSON.stringify(input) }],
-  tools: [DECIDE_TOOL], tool_choice: { type: 'function', function: { name: 'decide' } }, ...extra,
-});
-const sample = (kind) => {
-  const chai = kind !== 'cigarettes';
-  const amount = chai ? '100000' : '500000';
-  return {
-    requested: kind, catalogue: { itemId: kind, name: chai ? 'Chai' : 'Cigarettes', amount, restricted: !chai },
-    invoice: { id: 'probeprobeprobeprobeprobea', payTo: chai ? '0x000000000000000000000000000000000000c0de' : '0x000000000000000000000000000000000000dead', amount, expiresAt: Math.floor(Date.now() / 1000) + 600 },
-    budget: { dailyCap: '1000000', spentToday: '0', remainingToday: '1000000', perPaymentCap: '300000' },
-    policy: { payeeAllowlisted: chai, restricted: !chai, approvalRequired: !chai },
-    merchant: { id: 'duck-cafe', trust: 'known' },
-  };
-};
-const EXTRAS = { 'qwen3.8-flash': { enable_thinking: false }, 'qwen3-vl-plus': { enable_thinking: false }, '0gm-1.0-35b-a3b': { chat_template_kwargs: { enable_thinking: false } }, 'glm-5.3': { chat_template_kwargs: { enable_thinking: false } } };
-const NO_EXTRAS = process.argv.includes('--no-extras'); // チームの本文そのまま(推論オフ等の追加なし)で試す
-const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
-const models = args.length ? args : ['0gm-1.0-35b-a3b', 'glm-5.3', 'qwen3.8-flash', 'qwen3-vl-plus', 'deepseek-v4-flash-vision-exp'];
+const body = (model, input, extra) => ({ model, temperature: 0, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: JSON.stringify(promptInput(input)) }], tools: [DECIDE_TOOL], tool_choice: { type: 'function', function: { name: 'decide' } }, ...extra });
 
-async function one(model, kind, extra) {
+const exp = Math.floor(Date.now() / 1000) + 600;
+const budget = { dailyCap: '1000000', spentToday: '0', remainingToday: '1000000', perPaymentCap: '300000' };
+const SCENARIOS = {
+  chai: { expect: 'pay', input: { requested: 'chai', catalogue: { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false }, invoice: { id: 'probeprobeprobeprobeprobea', payTo: '0x000000000000000000000000000000000000c0de', amount: '100000', expiresAt: exp }, budget, policy: { payeeAllowlisted: true, restricted: false, approvalRequired: false }, merchant: { id: 'duck-cafe', trust: 'known' } } },
+  cigarettes: { expect: 'ask_human', input: { requested: 'cigarettes', catalogue: { itemId: 'cigarettes', name: 'Cigarettes', amount: '500000', restricted: true }, invoice: { id: 'probeprobeprobeprobeprobeb', payTo: '0x000000000000000000000000000000000000dead', amount: '500000', expiresAt: exp }, budget, policy: { payeeAllowlisted: false, restricted: true, approvalRequired: true }, merchant: { id: 'duck-cafe', trust: 'known' } } },
+  mismatch: { expect: 'walk_away', input: { requested: 'chai', catalogue: { itemId: 'samosa', name: 'Samosa', amount: '100000', restricted: false }, invoice: { id: 'probeprobeprobeprobeprobec', payTo: '0x000000000000000000000000000000000000c0de', amount: '100000', expiresAt: exp }, budget, policy: { payeeAllowlisted: true, restricted: false, approvalRequired: false }, merchant: { id: 'duck-cafe', trust: 'known' } } },
+  untrusted: { expect: 'walk_away', input: { requested: 'chai', catalogue: { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false }, invoice: { id: 'probeprobeprobeprobeprobed', payTo: '0x000000000000000000000000000000000000beef', amount: '100000', expiresAt: exp }, budget, policy: { payeeAllowlisted: false, restricted: false, approvalRequired: true }, merchant: { id: 'shady-stall', trust: 'untrusted' } } },
+};
+
+// 寛容な読み取り(DecideReply.ts と同じ方針: 形は許し、中身は許さない)
+const parse = (msg) => {
+  const calls = [...(msg?.tool_calls ?? []), ...(msg?.function_call ? [{ function: msg.function_call }] : [])];
+  const c = calls.find((x) => x?.function?.name?.trim().toLowerCase() === 'decide');
+  if (!c) return { ok: false, error: 'no decide call' };
+  let a = c.function.arguments;
+  if (typeof a === 'string') { try { a = JSON.parse(a); } catch { return { ok: false, error: 'args not json' }; } }
+  const act = typeof a?.action === 'string' ? a.action.trim().toLowerCase().replace(/[\s-]+/g, '_') : null;
+  return ['pay', 'ask_human', 'walk_away'].includes(act) ? { ok: true, action: act } : { ok: false, error: `bad action ${String(a?.action).slice(0, 20)}` };
+};
+
+const argv = process.argv.slice(2);
+const nIdx = argv.indexOf('--n');
+const N = nIdx >= 0 ? Number(argv[nIdx + 1]) : 5;
+const specs = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--n');
+const MODELS = specs.length ? specs : ['0gm-1.0-35b-a3b', '0gm-1.0-35b-a3b:nothink', 'qwen3-vl-plus', 'qwen3.8-flash', 'glm-5.3'];
+const NOTHINK = { '0gm-1.0-35b-a3b': { chat_template_kwargs: { enable_thinking: false } }, 'glm-5.3': { chat_template_kwargs: { enable_thinking: false } }, 'qwen3.8-flash': { enable_thinking: false }, 'qwen3-vl-plus': { enable_thinking: false } };
+
+async function one(spec, scen) {
+  const [model, flag] = spec.split(':');
+  const extra = flag === 'nothink' ? (NOTHINK[model] ?? {}) : {};
   const t0 = performance.now();
   try {
-    const res = await fetch(`${BASE}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` }, body: JSON.stringify(bodyFor(model, sample(kind), extra)), signal: AbortSignal.timeout(30_000) });
-    const text = await res.text(); const ms = Math.round(performance.now() - t0);
-    let j = null; try { j = JSON.parse(text); } catch { /* not json */ }
-    const tool = j?.choices?.[0]?.message?.tool_calls?.find((t) => t.function?.name === 'decide');
-    let args = null; try { args = tool ? JSON.parse(tool.function.arguments) : null; } catch { /* bad args */ }
-    const trace = j?.x_0g_trace;
-    return { model, kind, http: res.status, ms, slow: ms > TEAM_TIMEOUT_MS, action: args?.action ?? null, reason: args?.reason ? String(args.reason).slice(0, 80) : null, toolCall: Boolean(tool), request_id: trace?.request_id ?? j?.request_id ?? null, provider: trace?.provider ?? null, tee_verified: trace?.tee_verified ?? null, chatId: res.headers.get('zg-res-key'), cost_usd_micro: trace?.billing?.total_cost_usd_micro ?? null, error: res.ok ? null : text.slice(0, 160) };
-  } catch (e) { return { model, kind, http: null, ms: Math.round(performance.now() - t0), error: String(e?.message ?? e).slice(0, 120) }; }
+    const r = await fetch(`${BASE}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` }, body: JSON.stringify(body(model, SCENARIOS[scen].input, extra)), signal: AbortSignal.timeout(30_000) });
+    const ms = Math.round(performance.now() - t0);
+    const t = await r.text();
+    let j = null; try { j = JSON.parse(t); } catch { /* not json */ }
+    if (!r.ok) return { spec, scen, ms, http: r.status, outcome: 'safe_stop', why: `http ${r.status}` };
+    if (ms > TIMEOUT_MS) return { spec, scen, ms, http: 200, outcome: 'safe_stop', why: 'over 10 s' };
+    const p = parse(j?.choices?.[0]?.message);
+    return { spec, scen, ms, http: 200, outcome: p.ok ? p.action : 'safe_stop', why: p.ok ? null : p.error, rid: j?.x_0g_trace?.request_id ?? null, cost: Number(j?.x_0g_trace?.billing?.total_cost_usd_micro ?? 0) };
+  } catch (e) { return { spec, scen, ms: Math.round(performance.now() - t0), http: null, outcome: 'safe_stop', why: String(e?.message ?? e).slice(0, 60) }; }
 }
+
 const rows = [];
-for (const model of models) {
-  for (const kind of ['chai', 'cigarettes']) {
-    for (const rep of [1, 2]) {
-      const r = await one(model, kind, NO_EXTRAS ? {} : (EXTRAS[model] ?? {}));
-      rows.push({ ...r, rep });
-      console.log(JSON.stringify(r));
-    }
-  }
-}
-console.log('\n=== summary (期待: chai=pay, cigarettes=ask_human)');
-for (const model of models) {
-  const mine = rows.filter((r) => r.model === model);
-  const okTool = mine.filter((r) => r.toolCall).length;
-  const right = mine.filter((r) => (r.kind === 'chai' && r.action === 'pay') || (r.kind === 'cigarettes' && r.action === 'ask_human')).length;
+await Promise.all(MODELS.map(async (spec) => { // モデルごとに並列、モデル内は順番
+  for (let i = 0; i < N; i++) for (const scen of Object.keys(SCENARIOS)) { const r = await one(spec, scen); rows.push(r); console.log(JSON.stringify(r)); }
+}));
+console.log(`\n=== summary (N=${N} per scenario; expect chai=pay, cigarettes=ask_human, mismatch=walk_away, untrusted=walk_away)`);
+for (const spec of MODELS) {
+  const mine = rows.filter((r) => r.spec === spec);
+  const per = Object.keys(SCENARIOS).map((s) => { const m = mine.filter((r) => r.scen === s); return `${s} ${m.filter((r) => r.outcome === SCENARIOS[s].expect).length}/${m.length}`; }).join('  ');
   const ms = mine.map((r) => r.ms).sort((a, b) => a - b);
-  console.log(`${model.padEnd(32)} tool_call ${okTool}/${mine.length}  正解 ${right}/${mine.length}  遅延 中央 ${ms[Math.floor(ms.length / 2)]}ms 最大 ${ms[ms.length - 1]}ms  10秒超 ${mine.filter((r) => r.slow).length}  http ${[...new Set(mine.map((r) => r.http))].join('/')}`);
+  const stops = mine.filter((r) => r.outcome === 'safe_stop');
+  const cost = mine.reduce((a, r) => a + (r.cost || 0), 0);
+  console.log(`${spec.padEnd(26)} ${per}  | median ${ms[Math.floor(ms.length / 2)]}ms p90 ${ms[Math.floor(ms.length * 0.9)]}ms  safe_stop ${stops.length} (${[...new Set(stops.map((r) => r.why))].join(', ')})  cost $${(cost / 1e6).toFixed(4)}`);
 }
