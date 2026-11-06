@@ -164,9 +164,9 @@ export const FindApproval = Command.define('FindApproval', {
     ),
 })
 
-/** "No" to the waiting approval: the errand ends `denied` and nothing is signed (spec §9).
+/** The conversation's "No": the errand ends `denied` and nothing is signed (spec §9).
  * @internal Exported for the scene tests; the page update is its only production caller. */
-export const DeclineApproval = Command.define('DeclineApproval', {
+export const DeclineInThread = Command.define('DeclineInThread', {
   args: { approvalId: Schema.String },
   messages: [Message.SucceededDecline, Message.FailedDecline],
   execute: ({ approvalId }) =>
@@ -273,7 +273,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ? { model }
         : {
             model: modifyFields(model, { decline: () => Decline.Declining() }),
-            commands: [DeclineApproval({ approvalId })],
+            commands: [DeclineInThread({ approvalId })],
           },
     SucceededDecline: () => {
       const { errand } = model

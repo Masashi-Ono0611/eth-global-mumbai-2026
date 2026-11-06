@@ -145,9 +145,9 @@ describe('/robot/:id', () => {
       expect(text('Cigarettes needs your OK before I can pay. Approving pays this once.')).toExist(),
       expect(role('link', { name: 'Approve with World ID' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
       click(role('button', { name: 'No' })),
-      Command.expectExact(RobotConsole.DeclineApproval({ approvalId: 'ap1' })),
+      Command.expectExact(RobotConsole.DeclineInThread({ approvalId: 'ap1' })),
       expect(role('button', { name: 'Saying no...' })).toBeDisabled(),
-      Command.resolve(RobotConsole.DeclineApproval, RobotConsole.Message.SucceededDecline()),
+      Command.resolve(RobotConsole.DeclineInThread, RobotConsole.Message.SucceededDecline()),
       Command.expectExact(RobotConsole.PollErrand({ robotId, episodeId: 'e2', delayMillis: 0 })),
       Command.resolve(
         RobotConsole.PollErrand,
