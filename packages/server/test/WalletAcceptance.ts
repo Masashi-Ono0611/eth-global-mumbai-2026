@@ -3,9 +3,10 @@ import type { TestApi } from 'alchemy/Test/Bun'
 import { Effect, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpClient from 'effect/http/HttpClient'
+import { registerEpisodesAcceptance } from './EpisodesAcceptance.ts'
 import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
 
-type Urls = { readonly appUrl: string }
+type Urls = { readonly appUrl: string; readonly url: string; readonly apiUrl: string }
 
 const AddedRobot = Schema.Struct({
   robotId: Schema.String.check(Schema.isPattern(/^[a-z2-7]{26}$/)),
@@ -13,8 +14,13 @@ const AddedRobot = Schema.Struct({
   pairingExpiresAt: Schema.Finite,
 })
 /** The wallet API on the native Worker: session + Origin guards, "Add robot" pairing codes, and the grant routes
- * refusing a grant outside its limits (expiry beyond 30 days). */
-export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
+ * refusing a grant outside its limits (expiry beyond 30 days); then the errand audit view (EpisodesAcceptance.ts). */
+export const registerWalletAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>) => {
+  walletGuards(test, stack)
+  registerEpisodesAcceptance(test, stack)
+}
+
+const walletGuards = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
   test(
     'wallet: owner-scoped robots with pairing codes, session and Origin guards, grant limits enforced',
     Effect.gen(function* () {

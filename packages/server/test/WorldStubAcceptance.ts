@@ -26,6 +26,15 @@ const Created = Schema.Struct({ episodeId: Schema.String, state: Schema.String, 
 const State = Schema.Struct({ episode: Schema.Struct({ state: Schema.String }) })
 const ApprovalView = Schema.Struct({ status: Schema.String, error: Schema.NullOr(Schema.String) })
 
+const AuditApprovals = Schema.Struct({
+  approvals: Schema.Array(
+    Schema.Struct({
+      status: Schema.String,
+      world: Schema.NullOr(Schema.Struct({ acr: Schema.NullOr(Schema.String), amr: Schema.Array(Schema.String) })),
+    }),
+  ),
+})
+
 const unescape = (html: string) => html.replaceAll('&amp;', '&').replaceAll('&quot;', '"')
 
 /** One restricted errand answered through the stub's page: `approve` or `deny`. Returns the callback URL it used. */
@@ -69,6 +78,7 @@ const answer = async (
   const approval = await fetch(`${urls.appUrl}/api/approvals/${approvalId}`, { headers: { cookie: owner.cookie } })
   return {
     href,
+    episodeId: errand.episodeId,
     state: Schema.decodeUnknownSync(State)(await view.json()).episode.state,
     approval: Schema.decodeUnknownSync(ApprovalView)(await approval.json()),
   }
@@ -148,6 +158,13 @@ const rehearse = async (urls: Urls, owner: { readonly accountId: string; readonl
   expect(approved.state).toBe('signing')
   expect(approved.approval).toEqual({ status: 'approved', error: null })
   expect((await fetch(approved.href, { redirect: 'manual' })).status).toBe(409)
+  // The audit view records what the issuer asserted (acr, amr), never the token, jti or sub.
+  const audit = await fetch(`${urls.appUrl}/api/wallet/episodes/${approved.episodeId}`, {
+    headers: { cookie: owner.cookie },
+  })
+  expect(Schema.decodeUnknownSync(AuditApprovals)(await audit.json()).approvals).toEqual([
+    { status: 'approved', world: { acr: 'https://world.org/oidc/acr/orb', amr: ['pop', 'user', 'mfa'] } },
+  ])
   const denied = await answer(urls, owner, 'deny')
   expect(denied.state).toBe('denied')
   expect(denied.approval).toEqual({ status: 'denied', error: 'World answered access_denied' })
