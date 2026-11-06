@@ -90,6 +90,7 @@ No `Date` or `crypto.randomUUID` in server code (Effect diagnostics): use `Clock
 | `episodes` (= errands) | `id`, `robot_id`, `account_id`, `item`, `invoice_id`, `state text NOT NULL`, `decision_count integer`, `result text`, `request_ids_hash text`, `state_changed_at integer`, `created_at` | index `(robot_id, created_at)` | `state`: §6 |
 | `decisions` | `id`, `episode_id`, `step integer`, `model`, `request_id`, `chat_id` (ZG-Res-Key), `provider`, `latency_ms integer`, `prompt_sha256`, `input_json`, `action text NOT NULL`, `reason`, `outcome`, `outcome_ref`, `error`, `created_at` | unique `(episode_id, step)` | `action`: `pay` `ask_human` `walk_away` `safe_stop`; `outcome`: `paid` `approved` `denied` `refused` `failed` `walked_away` `safe_stop` |
 | `evidence_uploads` | `episode_id text PK`, `status text NOT NULL`, `payload_json`, `request_ids_hash`, `root_hash`, `storage_tx`, `log_tx`, `attempts integer`, `claimed_at integer`, `uploaded_at integer`, `error`, `created_at` | index `status` | `pending` `uploading` `uploaded` `failed` |
+| `observations` | `id text PK`, `robot_id`, `episode_id`, `invoice_id`, `frame_sha256` (0x + 64 lowercase hex), `bytes integer`, `captured_at integer` (unix ms), `chip_sig` (0x + 65 B), `r2_key`, `created_at` | unique (`robot_id`, `invoice_id`); index `episode_id` | one chip-signed QR crop per scan-initiated errand; the JPEG lives in R2 under `r2_key`, only the hash and signature enter the evidence JSON (feature flag `APP_SCANS_ENABLED`) |
 | `chip_requests` | `id`, `robot_id`, `episode_id`, `kind text NOT NULL`, `payload_json text NOT NULL`, `status text NOT NULL`, `expires_at`, `delivered_at`, `responded_at`, `signature`, `leaf_hash`, `refusal_code`, `created_at` | index `(robot_id, status)`, unique `episode_id` | `kind`: `sign-invoice`; `status`: `queued` `delivered` `signed` `refused` `expired` |
 | `relayer_txs` | `key text PK` (`settle:<invoiceHash>` / `revoke:<delegationHash>` / `deploy:<smartAccount>`), `kind`, `nonce integer`, `to_address`, `data_sha256`, `tx_hash`, `status text NOT NULL`, `gas_used`, `error`, `created_at`, `updated_at integer` | unique `nonce` | `pending` `sent` `confirmed` `failed` |
 | `used_nonces` | `nonce text PK` (approval nonce or `keccak(jti)`), `kind`, `ref`, `created_at` | — | `kind`: `approval` `jti` |
@@ -97,7 +98,7 @@ No `Date` or `crypto.randomUUID` in server code (Effect diagnostics): use `Clock
 `relayer_txs` PK insert is the persistent per-invoice guard (a second settle → unique violation → 409). Relayer nonce =
 `eth_getTransactionCount(relayer, 'pending')`, inserted before the send; on conflict re-read and retry ≤ 3. The native
 test's table list becomes: `accounts, approvals, auth_challenges, chip_requests, decisions, episodes, evidence_uploads,
-grants, invoices, passkeys, payments, relayer_txs, robots, used_nonces` (the `styld_auth_*` tables and
+grants, invoices, observations, passkeys, payments, relayer_txs, robots, used_nonces` (the `styld_auth_*` tables and
 `auth_attempt_buckets` are dropped by the migration). The merchant catalogue is a constant in
 `packages/server/src/merchant/Catalogue.ts`: `chai` 0.10, `samosa` 0.25, `cigarettes` 0.50 `restricted` with
 `payTo = RESTRICTED_PAY_TO` (a second merchant address that no grant allowlists).
