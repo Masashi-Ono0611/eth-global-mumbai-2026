@@ -1,7 +1,6 @@
 import { Implementation, toMetaMaskSmartAccount } from '@metamask/smart-accounts-kit'
 import { hashDelegation } from '@metamask/smart-accounts-kit/utils'
-import { decodeAbiParameters, hexToBytes, keccak256, parseAbiParameters, sha256, toHex, zeroAddress } from 'viem'
-import { toWebAuthnAccount } from 'viem/account-abstraction'
+import { decodeAbiParameters, keccak256, parseAbiParameters, toHex, zeroAddress } from 'viem'
 import { expect, test } from 'vitest'
 import { delegationDigest } from '@ethmumbai/protocol/Delegation'
 import {
@@ -13,70 +12,8 @@ import {
   splitClientData,
   toKitDelegation,
 } from '../src/index.ts'
+import { keyId, makeAuthenticator, rpId, toDer } from './SoftwarePasskey.ts'
 import { offlineClient } from './OfflineClient.ts'
-
-// A software WebAuthn authenticator (docs/research/spikes/wallet-accounts-v2-spike.ts.txt) standing in for a phone
-// passkey: the kit signs a delegation through it, and our encoder must produce the same bytes from the raw assertion.
-const subtle = globalThis.crypto.subtle
-type GetFn = NonNullable<Parameters<typeof toWebAuthnAccount>[0]['getFn']>
-const rpId = 'vitaquack.example'
-// The kit types keyId as Hex though it hashes it as a string; a 0x-prefixed id satisfies both without a cast.
-const keyId = '0x5a6d397659574679'
-const base64url = (bytes: Uint8Array) =>
-  btoa(String.fromCharCode(...bytes))
-    .replaceAll('+', '-')
-    .replaceAll('/', '_')
-    .replace(/=+$/, '')
-const derInteger = (value: Uint8Array) => {
-  let start = 0
-  while (start < value.length - 1 && value[start] === 0) start++
-  const trimmed = value.slice(start)
-  const body = (trimmed[0] ?? 0) & 0x80 ? Uint8Array.from([0, ...trimmed]) : trimmed
-  return Uint8Array.from([0x02, body.length, ...body])
-}
-const toDer = (raw: Uint8Array) => {
-  const r = derInteger(raw.slice(0, 32))
-  const s = derInteger(raw.slice(32))
-  return Uint8Array.from([0x30, r.length + s.length, ...r, ...s])
-}
-
-const makeAuthenticator = async () => {
-  const keyPair = await subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])
-  const publicKey = new Uint8Array(await subtle.exportKey('raw', keyPair.publicKey))
-  const captured: { authenticatorData: Uint8Array; clientDataJSON: string; signature: Uint8Array }[] = []
-  const getFn: GetFn = async (options) => {
-    const source = options?.publicKey?.challenge
-    const challenge = ArrayBuffer.isView(source)
-      ? new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
-      : new Uint8Array(source ?? new ArrayBuffer(0))
-    const clientDataJSON = `{"type":"webauthn.get","challenge":"${base64url(challenge)}","origin":"https://${rpId}","crossOrigin":false}`
-    const clientData = new TextEncoder().encode(clientDataJSON)
-    const authenticatorData = Uint8Array.from([...hexToBytes(sha256(new TextEncoder().encode(rpId))), 0x05, 0, 0, 0, 1])
-    const message = Uint8Array.from([...authenticatorData, ...hexToBytes(sha256(clientData))])
-    const signature = toDer(
-      new Uint8Array(await subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, keyPair.privateKey, message)),
-    )
-    captured.push({ authenticatorData, clientDataJSON, signature })
-    const credential = {
-      id: keyId,
-      rawId: new TextEncoder().encode(keyId).buffer,
-      type: 'public-key',
-      response: {
-        authenticatorData: authenticatorData.buffer,
-        clientDataJSON: clientData.buffer,
-        signature: signature.buffer,
-      },
-      getClientExtensionResults: () => ({}),
-    }
-    return credential
-  }
-  const account = toWebAuthnAccount({
-    credential: { id: keyId, publicKey: toHex(publicKey) },
-    getFn,
-    rpId,
-  })
-  return { account, publicKey, captured }
-}
 
 test('encodeDeleGatorSignature equals the kit’s passkey signature for the same assertion', async () => {
   const authenticator = await makeAuthenticator()
