@@ -167,6 +167,12 @@ const observationImage = (urls: Urls) =>
     const detail = yield* HttpClient.get(`${urls.appUrl}/api/wallet/episodes/${scan.episodeId}`, as(alice.cookie))
     const seen = yield* Schema.decodeUnknownEffect(Seen)(yield* detail.json)
     expect(seen.observations).toEqual([expect.objectContaining({ kind: 'qr_crop', sha256: scan.sha256 })])
+    // The owner's conversation lists the same crop on the errand's row (metadata only).
+    const rows: unknown = yield* (yield* HttpClient.get(
+      `${urls.appUrl}/api/wallet/episodes?robotId=${robot.robotId}`,
+      as(alice.cookie),
+    )).json
+    expect(rows).toMatchObject({ episodes: [{ id: scan.episodeId, observation: { sha256: scan.sha256 } }] })
     expect(seen.episode.chipAddress?.toLowerCase()).toBe(privateKeyToAccount(robot.chipKey).address.toLowerCase())
     expect(seen.timeline).toContainEqual({ kind: 'observation', detail: scan.sha256 })
 

@@ -2,7 +2,7 @@ import { format, type Locale } from '@ethmumbai/i18n'
 import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import type { EpisodeSummary } from '../api/Episodes.ts'
+import type { EpisodeSummary, SeenCrop } from '../api/Episodes.ts'
 import {
   type ConsoleRobot,
   type Decision,
@@ -19,7 +19,7 @@ import { allowanceView } from './AllowanceView.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
 import { dock } from './RobotDockView.ts'
-import { teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
+import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
 import { fromIntent, intentMessages, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 
@@ -217,13 +217,48 @@ const outcome = (
   }
 }
 
+/** The crop the robot scanned, with what the invoice said, as its first message of the errand. */
+const seen = (
+  key: string,
+  episodeId: string,
+  crop: SeenCrop | null,
+  item: string,
+  amount: string | null,
+  robot: ConsoleRobot['robot'],
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html =>
+  crop === null
+    ? h.empty
+    : seenBubble(
+        key,
+        episodeId,
+        crop,
+        amount === null ? null : format(locale, 'thread.invoice', { item: itemName(item), amount: usdc(amount) }),
+        robot.kind === 'sim',
+        robot.name,
+        locale,
+        h,
+      )
+
 const historyMessages = (
   episode: EpisodeSummary,
   amounts: Readonly<Record<string, string>>,
+  robot: ConsoleRobot['robot'],
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => [
   ownerBubble(episode.id, episode.item, locale, h),
+  seen(
+    episode.id,
+    episode.id,
+    episode.observation ?? null,
+    episode.item,
+    amounts[episode.id] ?? null,
+    robot,
+    locale,
+    h,
+  ),
   episode.decision === null
     ? h.empty
     : decisionBubble(
@@ -298,6 +333,9 @@ const decisionOf = (decision: Decision, key: string, locale: Locale, h: HtmlBuil
     h,
   )
 
+const robotOf = (model: Model): ConsoleRobot['robot'] | null =>
+  ConsoleState.guards.Loaded(model.state) ? model.state.robot.robot : null
+
 const liveMessages = (
   model: Model,
   episodeId: string,
@@ -308,22 +346,26 @@ const liveMessages = (
 ): ReadonlyArray<Html> => {
   const { episode } = detail
   const step = liveStep(episode.state, locale)
+  const robot = robotOf(model)
+  const crop = detail.observation ?? null
   const approvalId = Option.map(maybeApprovalUrl, (url) => url.split('/').at(-1) ?? url)
   return [
     fromIntent(model, episodeId) ? h.empty : ownerBubble(episodeId, episode.item, locale, h),
-    detail.payment === null
-      ? h.empty
-      : h.keyed('p')(
-          `${episodeId}-invoice`,
-          [h.Class(robotBubbleClassName)],
-          [
-            h.span([h.Class(labelClassName)], [format(locale, 'thread.atCounter', {})]),
-            format(locale, 'thread.invoice', {
-              item: itemName(episode.item),
-              amount: usdc(detail.payment.invoice.amount),
-            }),
-          ],
-        ),
+    crop !== null && robot !== null
+      ? seen(episodeId, episodeId, crop, episode.item, detail.payment?.invoice.amount ?? null, robot, locale, h)
+      : detail.payment === null
+        ? h.empty
+        : h.keyed('p')(
+            `${episodeId}-invoice`,
+            [h.Class(robotBubbleClassName)],
+            [
+              h.span([h.Class(labelClassName)], [format(locale, 'thread.atCounter', {})]),
+              format(locale, 'thread.invoice', {
+                item: itemName(episode.item),
+                amount: usdc(detail.payment.invoice.amount),
+              }),
+            ],
+          ),
     ...detail.decisions.map((decision) => decisionOf(decision, episodeId, locale, h)),
     episode.state === 'awaiting_approval'
       ? Option.match(approvalId, {
@@ -446,7 +488,7 @@ const loadedView = (
                 [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
-          ...past.flatMap((episode) => historyMessages(episode, amounts, locale, h)),
+          ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
           ...intentMessages(model, view.robot.name, locale, h),
           ...errandMessages(model, locale, h),
         ],

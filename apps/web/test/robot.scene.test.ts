@@ -142,6 +142,29 @@ describe('/robot/:id', () => {
     )
   })
 
+  test('an errand opens with what the robot saw: the scanned QR crop, the item and price; a sim says whose camera', () => {
+    const scanned = {
+      ...summary('e1', 'chai', 'paid', 'within budget'),
+      observation: { sha256: '0xabc', capturedAt: 1 },
+    }
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([scanned])),
+      expect(text('What I saw at the counter')).toExist(),
+      expect(role('img', { name: 'The QR code Duck read at the counter' })).toHaveAttr(
+        'src',
+        '/api/wallet/episodes/e1/observations/0xabc',
+      ),
+      expect(text('Duck Café: Chai, 0.10 USDC')).toExist(),
+      expect(text("Seen by the simulator's camera")).not.toExist(),
+    )
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([scanned], { ...consoleRobot, robot: { ...consoleRobot.robot, kind: 'sim' } })),
+      expect(text("Seen by the simulator's camera")).toExist(),
+    )
+  })
+
   test('a robot without an allowance cannot be sent out', () => {
     scene(
       { update: RobotConsole.update, view },

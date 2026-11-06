@@ -78,3 +78,18 @@ export const evidenceObservation = (row: ObservationRow): EvidenceObservation =>
   capturedAt: row.captured_at,
   chipSig: row.chip_sig,
 })
+
+const FirstObservation = Schema.Struct({ frame_sha256: Sha256Hex, captured_at: Schema.Finite })
+
+/** The errand's first chip-signed crop, as the owner's conversation shows it (the image itself stays behind the
+ *  owner-only route `GET /api/wallet/episodes/:id/observations/:sha256`). */
+export const firstObservation = (database: QueryDatabaseClient, episodeId: string) =>
+  Effect.map(
+    firstRow(
+      database
+        .prepare('SELECT frame_sha256, captured_at FROM observations WHERE episode_id = ? ORDER BY captured_at LIMIT 1')
+        .bind(episodeId),
+      FirstObservation,
+    ),
+    Option.map((row) => ({ sha256: row.frame_sha256, capturedAt: row.captured_at })),
+  )

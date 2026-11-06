@@ -46,6 +46,8 @@ const ListRow = Schema.Struct({
   storage_tx: Text,
   log_tx: Text,
   evidence_error: Text,
+  observation_sha256: Text,
+  observation_captured_at: Time,
 })
 
 const ListQuery = Schema.Struct({
@@ -59,13 +61,15 @@ const LIST_SQL = `SELECT e.id, e.robot_id, r.name AS robot_name, e.item, e.state
     d.action, d.reason, d.request_id, d.provider, d.latency_ms, d.tee_json,
     COALESCE(p.tx_hash, i.paid_tx) AS tx_hash, COALESCE(p.status, CASE WHEN i.paid_tx IS NULL THEN NULL ELSE 'settled' END) AS payment_status,
     a.status AS approval_status, a.amr_json,
-    u.status AS evidence_status, u.root_hash, u.storage_tx, u.log_tx, u.error AS evidence_error
+    u.status AS evidence_status, u.root_hash, u.storage_tx, u.log_tx, u.error AS evidence_error,
+    o.frame_sha256 AS observation_sha256, o.captured_at AS observation_captured_at
   FROM episodes e JOIN robots r ON r.id = e.robot_id
     LEFT JOIN invoices i ON i.id = e.invoice_id
     LEFT JOIN decisions d ON d.id = (SELECT id FROM decisions WHERE episode_id = e.id ORDER BY step DESC, created_at DESC LIMIT 1)
     LEFT JOIN payments p ON p.invoice_hash = (SELECT invoice_hash FROM payments WHERE episode_id = e.id ORDER BY created_at DESC LIMIT 1)
     LEFT JOIN approvals a ON a.id = (SELECT id FROM approvals WHERE episode_id = e.id ORDER BY created_at DESC LIMIT 1)
     LEFT JOIN evidence_uploads u ON u.episode_id = e.id
+    LEFT JOIN observations o ON o.id = (SELECT id FROM observations WHERE episode_id = e.id ORDER BY captured_at LIMIT 1)
   WHERE e.account_id = ? AND (? IS NULL OR e.robot_id = ?)
   ORDER BY e.created_at DESC LIMIT ?`
 
@@ -106,6 +110,11 @@ const listView = (row: typeof ListRow.Type) => ({
           logTx: row.log_tx,
           error: row.evidence_error,
         },
+  // What the robot saw: the errand's first chip-signed QR crop (metadata; the image is behind the owner-only route).
+  observation:
+    row.observation_sha256 === null || row.observation_captured_at === null
+      ? null
+      : { sha256: row.observation_sha256, capturedAt: row.observation_captured_at },
 })
 
 /** `GET /api/wallet/episodes?robotId=&limit=50` → the owner's errands, newest first, one row each with its latest

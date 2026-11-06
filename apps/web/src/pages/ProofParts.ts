@@ -1,6 +1,6 @@
 import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { chainScan, storageScan } from '../api/Episodes.ts'
+import { chainScan, observationImage, type SeenCrop, storageScan } from '../api/Episodes.ts'
 
 // STYLES
 
@@ -10,6 +10,13 @@ const zeroGPendingClassName = 'text-[0.9rem] text-muted'
 const zeroGFailedClassName = 'text-[0.9rem] text-error'
 const teeMarkClassName =
   'ml-1.5 inline-flex items-center rounded-full bg-paid/10 px-1.5 align-middle text-[0.72rem] font-semibold text-paid'
+
+const seenBubbleClassName = 'grid max-w-[86%] gap-1.5 self-start rounded-[20px_20px_20px_6px] bg-surface p-2 pb-2.5'
+const seenLabelClassName = 'px-1.5 text-[0.8rem] text-muted'
+/** Inner radius = the bubble's 20 px minus its 8 px padding; a pure-black 10 % outline keeps the photo's edge clean. */
+const seenImageClassName = 'block w-44 rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
+const seenCaptionClassName = 'px-1.5 text-[0.95rem]'
+const seenSourceClassName = 'block px-1.5 text-[0.8rem] text-muted'
 
 // VIEW
 
@@ -54,3 +61,36 @@ export const zeroGLine = <M>(record: ZeroGRecord | null, locale: Locale, h: Html
 /** A decision whose 0G provider proved its answer from a TEE (the stored verification flag; the proof page re-checks). */
 export const teeMark = <M>(verified: boolean, locale: Locale, h: HtmlBuilder<M>): Html =>
   verified ? h.span([h.Class(teeMarkClassName)], [format(locale, 'proof.tee', {})]) : h.empty
+
+/** What the robot saw: the chip-signed QR crop it scanned at the counter, as the errand's first robot message. A sim
+ *  robot's crop comes from the simulator's head camera, and says so. Never a camera frame beyond this crop. */
+export const seenBubble = <M>(
+  key: string,
+  episodeId: string,
+  crop: SeenCrop,
+  caption: string | null,
+  sim: boolean,
+  robotName: string,
+  locale: Locale,
+  h: HtmlBuilder<M>,
+): Html =>
+  h.keyed('figure')(
+    `${key}-seen`,
+    [h.Class(seenBubbleClassName)],
+    [
+      h.span([h.Class(seenLabelClassName)], [format(locale, 'proof.atCounter', {})]),
+      h.img([
+        h.Src(observationImage(episodeId, crop.sha256)),
+        h.Alt(format(locale, 'proof.seenAlt', { name: robotName })),
+        h.Loading('lazy'),
+        h.Class(seenImageClassName),
+      ]),
+      h.figcaption(
+        [],
+        [
+          caption === null ? h.empty : h.span([h.Class(seenCaptionClassName)], [caption]),
+          sim ? h.span([h.Class(seenSourceClassName)], [format(locale, 'proof.seenBySim', {})]) : h.empty,
+        ],
+      ),
+    ],
+  )

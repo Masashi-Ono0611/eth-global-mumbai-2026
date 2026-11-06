@@ -303,4 +303,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'proof.noReason': 'the uploader has not said why',
   'proof.tee': 'TEE-verified',
   'proof.onZeroG': 'on 0G',
+  'proof.atCounter': 'What I saw at the counter',
+  'proof.seenAlt': 'The QR code {name} read at the counter',
+  'proof.seenBySim': "Seen by the simulator's camera",
 }

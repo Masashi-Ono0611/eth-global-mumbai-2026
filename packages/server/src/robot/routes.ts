@@ -4,6 +4,7 @@ import { Clock, Effect, Option, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import { latestSignedGrant, periodStartOf, spentInPeriod } from './Budget.ts'
+import { firstObservation } from './Observations.ts'
 import { decisionsOf } from './Decide.ts'
 import { type EpisodeRow, type ErrandDeps, readEpisode, tickRobot } from './Errands.ts'
 import { readEvidence } from './Evidence.ts'
@@ -106,6 +107,8 @@ const readErrand = (deps: ErrandDeps) =>
       payment: yield* PaymentRow(deps, episode.value),
       approval: Option.getOrNull(yield* approvalOf(deps, episode.value.id)),
       evidence: Option.getOrNull(yield* readEvidence(deps.database, episode.value.id)),
+      // What the robot saw: the errand's first chip-signed QR crop (metadata only; the image is owner-only).
+      observation: Option.getOrNull(yield* firstObservation(deps.database, episode.value.id)),
     })
   })
 

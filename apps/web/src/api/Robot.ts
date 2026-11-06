@@ -1,5 +1,6 @@
 import { IntentView, RobotKind } from '@ethmumbai/protocol/Intent'
 import { Option, Schema } from 'effect'
+import { SeenCrop } from './Episodes.ts'
 import { getJson, postJson } from './Http.ts'
 import { GrantView } from './Wallet.ts'
 
@@ -76,6 +77,7 @@ export const ErrandDetail = Schema.Struct({
       logTx: Schema.NullOr(Schema.String),
     }),
   ),
+  observation: Schema.optionalKey(Schema.NullOr(SeenCrop)),
 })
 export type ErrandDetail = typeof ErrandDetail.Type
 

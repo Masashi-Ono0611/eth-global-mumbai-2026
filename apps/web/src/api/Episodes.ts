@@ -12,6 +12,10 @@ const Time = Schema.NullOr(Schema.Number)
 /** What World asserted about the approving sign-in (`acr`, `amr`); never the token itself. */
 const WorldClaims = Schema.NullOr(Schema.Struct({ acr: Text, amr: Schema.Array(Schema.String) }))
 
+/** What the robot saw: an errand's first chip-signed QR crop (metadata; the image is the owner-only route below). */
+export const SeenCrop = Schema.Struct({ sha256: Schema.String, capturedAt: Schema.Number })
+export type SeenCrop = typeof SeenCrop.Type
+
 export const EpisodeSummary = Schema.Struct({
   id: Schema.String,
   robotId: Schema.String,
@@ -43,6 +47,7 @@ export const EpisodeSummary = Schema.Struct({
       error: Schema.optionalKey(Text),
     }),
   ),
+  observation: Schema.optionalKey(Schema.NullOr(SeenCrop)),
 })
 export type EpisodeSummary = typeof EpisodeSummary.Type
 
