@@ -178,9 +178,11 @@ const restricted = async (page: Page, choice: 'approve' | 'deny', step: number) 
   if (!asked) return say('no approval after 3 attempts; skipping this restricted step')
   await shot(page, prefix(0, 'asks'))
   await ask.click()
-  await page.getByRole('heading', { name: 'Approval for a restricted item' }).waitFor({ timeout: 30_000 })
+  // The heading renders before the approval loads; the World link is there only once its details are.
+  const approveWithWorld = page.getByRole('link', { name: 'Approve with World' })
+  await approveWithWorld.waitFor({ timeout: 30_000 })
   await shot(page, prefix(1, 'approval'))
-  await page.getByRole('link', { name: 'Approve with World' }).click()
+  await approveWithWorld.click()
   await page.waitForLoadState('networkidle')
   const issuerPage = (await page.locator('h1').first().textContent()) ?? ''
   say(`issuer page: ${issuerPage}`)
