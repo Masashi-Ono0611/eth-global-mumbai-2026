@@ -8,12 +8,12 @@ its own policy and only then signs the one-time payment voucher (a delegation le
 bun apps/chip/src/main.ts --server <URL> [--pair CODE] [--state DIR] [--local-port N]
 ```
 
-| Flag             | Meaning                                                                                                                                                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--server`       | The app origin, e.g. `https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev` (only the origin is used). Every invoice the chip signs must live under it: `invoice.url == <origin>/api/i/<id>`. |
-| `--pair CODE`    | The 8-character code from the wallet's **+ Robot** (`/wallet/robots`) (valid 10 minutes, single use). Omit it on later starts: `pairing.json` remembers the robot.                                                  |
-| `--state DIR`    | State directory, default `~/.vitaquack-chip`.                                                                                                                                                                       |
-| `--local-port N` | Optional, off by default: the scan listener `POST http://127.0.0.1:N/scan`, bound to 127.0.0.1 only (see below). The Worker answers 404 unless `APP_SCANS_ENABLED` is `true`.                                       |
+| Flag             | Meaning                                                                                                                                                                       |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--server`       | The app origin, e.g. `https://vitaquack.com` (only the origin is used). Every invoice the chip signs must live under it: `invoice.url == <origin>/api/i/<id>`.                |
+| `--pair CODE`    | The 8-character code from the wallet's **+ Robot** (`/app/wallet/robots`) (valid 10 minutes, single use). Omit it on later starts: `pairing.json` remembers the robot.        |
+| `--state DIR`    | State directory, default `~/.vitaquack-chip`.                                                                                                                                 |
+| `--local-port N` | Optional, off by default: the scan listener `POST http://127.0.0.1:N/scan`, bound to 127.0.0.1 only (see below). The Worker answers 404 unless `APP_SCANS_ENABLED` is `true`. |
 
 ## State directory (created 700)
 

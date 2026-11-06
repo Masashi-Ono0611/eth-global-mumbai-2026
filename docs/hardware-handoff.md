@@ -4,8 +4,9 @@ For the MacBook agent and the teammates building the physical duck. The Worker d
 the ESP32 is a client of the merchant API, the Radxa runs the same chip client as the laptop mock chip. No secrets
 here: the only key a device holds is the chip's own, generated on the Radxa.
 
-**Deployed app** (`$APP`): <https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev> (release
-`b342dc2` at the time of writing; `curl $APP/api/health`). Every example below is from the deployed run recorded in
+**Deployed app** (`$APP`): <https://vitaquack.com> from the cutover on 6 Nov (before it, and in the recorded runs
+below, <https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev>; `curl $APP/api/health`). A chip
+paired with the old origin must pair again with `--server https://vitaquack.com`. Every example below is from the deployed run recorded in
 `docs/evidence/2026-11-06-deployed-merchant.md`, unless it says "shape".
 
 ## 1. ESP32 gate
