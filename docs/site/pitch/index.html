@@ -69,22 +69,6 @@
       .key .k-chain::before { background: var(--lamp); }
       @media (max-width: 40rem) { .where div { grid-template-columns: 1fr; } }
 
-      /* Proof: the real app, one phone screen per step. */
-      .proof { align-content: center; padding: clamp(3rem, 8vh, 5rem) 0; background: var(--night); }
-      .proof .head { padding: 0 clamp(1.25rem, 6vw, 5.5rem); max-width: 52rem; }
-      .steps {
-        list-style: none; margin: 2rem 0 0; padding: 0 clamp(1.25rem, 6vw, 5.5rem) 1rem; display: grid;
-        grid-template-columns: repeat(6, minmax(12.5rem, 1fr)); gap: clamp(1rem, 2vw, 1.75rem); overflow-x: auto; scroll-snap-type: x mandatory;
-        scrollbar-width: thin;
-      }
-      .steps li { scroll-snap-align: start; display: grid; grid-template-rows: auto 1fr; gap: 0.85rem; }
-      .shot { aspect-ratio: 430 / 760; border-radius: 1.4rem; overflow: hidden; background: #f1eee7; border: 6px solid #2b2d62; }
-      .shot img { width: 100%; display: block; }
-      .steps h3 { margin: 0 0 0.25rem; font: 700 1.1rem/1.25 var(--display); }
-      .steps p { margin: 0; font-size: 0.95rem; color: var(--soft); }
-      .steps a.tx { display: inline-block; margin-top: 0.4rem; font-size: 0.9rem; color: var(--lamp); text-underline-offset: 0.2em; }
-      .note { padding: 0 clamp(1.25rem, 6vw, 5.5rem); margin: 1.25rem 0 0; font-size: 0.88rem; color: var(--faint); max-width: 52rem; }
-
       .live { place-content: center; text-align: center; background: radial-gradient(60rem 40rem at 50% 60%, #2a2c66, var(--night)); }
       .live h2 { font-size: clamp(3rem, 10vw, 7rem); }
       .buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.75rem; }
@@ -172,44 +156,6 @@
         </div>
       </section>
 
-      <section class="chapter proof" tabindex="-1" aria-labelledby="c7">
-        <div class="head">
-          <h2 id="c7">Six steps, all real</h2>
-          <p class="lede">These are screens from the deployed app. Every link opens a real transaction.</p>
-        </div>
-        <ol class="steps">
-          <li>
-            <div class="shot"><img src="media/02-wallet.webp" alt="The wallet page: signed in, a USDC balance and the smart account's address on Arc" loading="lazy" /></div>
-            <div><h3>A wallet from a passkey</h3><p>Sign up with Face ID. Your smart account on Arc exists right away.</p></div>
-          </li>
-          <li>
-            <div class="shot"><img src="media/05-grant-active.webp" alt="The robots page: the duck is paired and its budget of 1.00 USDC a day, 0.30 per payment, is active" loading="lazy" /></div>
-            <div><h3>A robot with a budget</h3><p>Pair the duck with a one-time code, then grant 1.00 a day and 0.30 a payment with one passkey signature.</p>
-              <a class="tx" href="https://explorer.arc.io/tx/0xddd15708400a776ba01c383aede146e83d737c6e6bf815269d3e77e59cbf4a0b">A passkey-signed grant on Arc</a></div>
-          </li>
-          <li>
-            <div class="shot"><img src="media/07-console-ended.webp" alt="The robot console: 0G decided to pay for chai, the chip signed, chai paid with a link to the payment on Arc" loading="lazy" /></div>
-            <div><h3>It buys chai</h3><p>0G decides to buy, the robot's chip signs, Arc settles.</p>
-              <a class="tx" href="https://explorer.arc.io/tx/0xa18da6c6aa0b5963839d53133c72dc0e75616450779e534efedc6d687090814a">The payment on Arc</a><br />
-              <a class="tx" href="https://chainscan-galileo.0g.ai/tx/0xd5b631b87c388563d4fb750194149b8a24cab2af323c1e34224611e9fb38261b">The errand kept on 0G</a></div>
-          </li>
-          <li>
-            <div class="shot"><img src="media/08-gate-open.webp" alt="The merchant's gate: OPEN, paid, the merchant's signed status verified" loading="lazy" /></div>
-            <div><h3>The gate opens</h3><p>The stall sees a signed "paid" in under a second and lets the robot through.</p></div>
-          </li>
-          <li>
-            <div class="shot"><img src="media/10-restricted-approve-asks.webp" alt="The robot console: for a 0.50 USDC item over the cap, 0G decided to ask the owner first, with an approval link" loading="lazy" /></div>
-            <div><h3>Bigger buys ask you</h3><p>0.50 is over its cap, so it asks. You approve in World App, and only that one payment goes through.</p>
-              <a class="tx" href="https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9">Approved live with World ID, paid on Arc</a></div>
-          </li>
-          <li>
-            <div class="shot"><img src="media/21-after-revoke.webp" alt="The robot console after revoking: the budget is revoked and the next chai is refused by Arc" loading="lazy" /></div>
-            <div><h3>You switch it off</h3><p>Revoke with your passkey. The next purchase is refused by Arc itself.</p>
-              <a class="tx" href="https://explorer.arc.io/tx/0x4f1ba8e1625008ec90242657948a8291c495f86aa12011e7a2c7b4bc4afc8e02">The revoke on Arc</a></div>
-          </li>
-        </ol>
-        <p class="note">In today's demo the robot's chip software runs on a laptop beside the duck; signing on the duck's own board (a Radxa Zero 3W) works in a bench test. The screens come from our recorded runs on the deployed app, and the links are transactions from those runs.</p>
-      </section>
 
       <section class="chapter live" tabindex="-1" aria-labelledby="c8">
         <div class="words">
@@ -237,7 +183,7 @@
       </section>
     </main>
     <footer>
-      <p>The films are illustrations, generated with Qwen Image and Wan. Only the six screens above show the real app.</p>
+      <p>The films are illustrations, generated with Qwen Image and Wan. In today's demo the robot's chip software runs on a laptop beside the duck; signing on the duck's own board (a Radxa Zero 3W) works in a bench test.</p>
       <p>The duck is our modified <a href="https://github.com/apirrone/Open_Duck_Mini">Open Duck Mini</a> (Apache-2.0). Built at ETHGlobal Mumbai 2026 on Arc, 0G and World. <a href="https://github.com/grmkris/eth-global-mumbai-2026">Source on GitHub</a>.</p>
     </footer>
     <p class="hint">Space or arrow keys for the next screen</p>
@@ -268,7 +214,7 @@
         target.focus({ preventScroll: true })
       }
       addEventListener('keydown', (event) => {
-        if (event.target.closest?.('a, button, input, .steps')) return
+        if (event.target.closest?.('a, button, input')) return
         if ([' ', 'ArrowDown', 'ArrowRight', 'PageDown'].includes(event.key) && !event.shiftKey) {
           event.preventDefault()
           go(current() + 1)
