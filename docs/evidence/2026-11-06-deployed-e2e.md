@@ -231,9 +231,66 @@ Each ending is the brain's own, recorded with its request id and never overridde
 Deny on the stub page needs a brain that answers `ask_human` reliably for restricted items, or the real 0G model; the
 driver's deny step is built: `/api/world/authorize` → stub page → Deny link → callback → errand `denied`.
 
+## Runs 9–10 (release 563edcb, `--gate --restricted`, ≈ 12:30 IST): real 0G, one command, the whole loop (World = stub, rehearsal only)
+
+Brain: **0G Compute via router-api.0g.ai, `qwen3-vl-plus`**. The decision rows name the provider
+`router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044`, and the request ids are the router's. The
+World approval is answered on the in-Worker **stub issuer, rehearsal only, not World**. Chain: Arc mainnet with the
+deployed enforcer. One run of the driver covered chai with the gate, cigarettes approved (run 9) and cigarettes
+denied (run 10), so the separate `--deny-only` run was not needed. Exit 0.
+
+```text
+e2e  base https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev
+e2e  owner 0x684Bb73aD69e22C92273a7A0a928028Fb8D31bC7 (account jdoptleru4fzqo2yyhbwtizrli)
+e2e  funded https://explorer.arc.io/tx/0xd81d84859c35bbb66803f7dab779585b6174f1ee0c05e1aacd96f0f5465b761a
+e2e  robot ef3ljk7rmhmhzikmwvkwr76c3e pairing code YSG6V2E7
+chip chip 0xf46A7eCAEC0421c7C488706eBA19024fD00f7051 (new key)
+chip paired ef3ljk7rmhmhzikmwvkwr76c3e
+e2e  chip paired
+e2e  grant hkt4qhll7wstms6j46wwchlbau active; account deploy https://explorer.arc.io/tx/0xc41e207c2062cf2df7c17931c5c30e836269d1d331efb41136a943248637db9e
+e2e  gate invoice yswamh47sfxznzjvgznh247nke 0xb967fd66dde5d585e9cb3e555c0aa956246af511d467f310c1f12b8fe8cb779c
+e2e  gate pending (Ed25519 signature ok, nonce e2e908891)
+e2e  errand 64xccb53sv3stqqbecpeiy5g2q (chai) started in signing
+chip lease ok
+chip signed yswamh47sfxznzjvgznh247nke
+e2e  errand ended paid; decision pay by qwen3-vl-plus via router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044, request_id 642ed186-c4ba-422d-8f20-128ce8381da0
+e2e  settled https://explorer.arc.io/tx/0xd8d27c74839180841d8a31b5c775524fa46a03d3694ffe400f42d021e7ba0f0b
+chip payment settled 0xd8d27c74839180841d8a31b5c775524fa46a03d3694ffe400f42d021e7ba0f0b
+e2e  gate paid (Ed25519 signature ok, nonce e2e663756)
+e2e  gate used (Ed25519 signature ok, nonce e2e553520)
+e2e  gate OPEN once, then used
+e2e  errand cjdyozc77efciakfbk3mb4mnim (cigarettes) started in awaiting_approval
+e2e  approval 6povd4yqj4nk75wsmjdz5wrg2m: approve on the stub IdP (rehearsal only, not World)
+e2e  approval 6povd4yqj4nk75wsmjdz5wrg2m is approved
+chip signed 664vhunmqswtxxidq3rs47wpwu
+chip payment settled 0x33f30e0f6abeec0fa42faeacf8c5d81812f787788a1646a79a2b377d23aa42b3
+e2e  errand ended paid; decision ask_human by qwen3-vl-plus via router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044, request_id 3cf1326d-45da-45b7-9c67-b3f4e5eaa9c8
+e2e  settled https://explorer.arc.io/tx/0x33f30e0f6abeec0fa42faeacf8c5d81812f787788a1646a79a2b377d23aa42b3
+e2e  approve path as expected
+e2e  errand ipgyznpi5pjkx4dbbcdn72djcu (cigarettes) started in awaiting_approval
+e2e  approval sqn4u5nawgmvfxk6wam3ouzacq: deny on the stub IdP (rehearsal only, not World)
+e2e  approval sqn4u5nawgmvfxk6wam3ouzacq is denied (World answered access_denied)
+e2e  errand ended denied; decision ask_human by qwen3-vl-plus via router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044, request_id 0a5aa416-55c3-4767-a231-ea6b60975f2c
+e2e  deny path as expected
+```
+
+| errand | decision (0G, request id) | result | arc tx |
+| --- | --- | --- | --- |
+| chai on the gate's invoice `yswamh47sfxznzjvgznh247nke` | `pay`, `642ed186-c4ba-422d-8f20-128ce8381da0` | paid; gate `pending` → `paid` → `used` (Ed25519 verified) | [0xd8d27c74…0f0b](https://explorer.arc.io/tx/0xd8d27c74839180841d8a31b5c775524fa46a03d3694ffe400f42d021e7ba0f0b), status 1, gas 503509 |
+| cigarettes, approval `6povd4yqj4nk75wsmjdz5wrg2m` **approved** on the stub | `ask_human`, `3cf1326d-45da-45b7-9c67-b3f4e5eaa9c8` | paid 0.50 to the restricted payee through the enforcer's approval path (`PaymentApproved` in the tx) | [0x33f30e0f…42b3](https://explorer.arc.io/tx/0x33f30e0f6abeec0fa42faeacf8c5d81812f787788a1646a79a2b377d23aa42b3), status 1, gas 446319 |
+| cigarettes, approval `sqn4u5nawgmvfxk6wam3ouzacq` **denied** on the stub | `ask_human`, `0a5aa416-55c3-4767-a231-ea6b60975f2c` | errand `denied` ("World answered access_denied"), nothing signed, nothing paid | — |
+
+Also on chain:
+- owner funding [0xd81d8485…761a](https://explorer.arc.io/tx/0xd81d84859c35bbb66803f7dab779585b6174f1ee0c05e1aacd96f0f5465b761a)
+- account deploy [0xc41e207c…b9e](https://explorer.arc.io/tx/0xc41e207c2062cf2df7c17931c5c30e836269d1d331efb41136a943248637db9e)
+
+The three episodes' evidence rows were `pending` for M+R's uploader at 12:37 IST (0G Storage + `EpisodeLog.record`).
+Relayer after the run: 4.17 USDC.
+
 ## Not proven by this run
 
 - a payment under a passkey grant (needs `APP_ZG_*`; then `paid` with the settle tx link)
 - the chip's `lease ok` / `signed` lines: the driver stops right after the errand answer, before the first held poll
   returns. The two polls above cover the lease.
-- revoke from the passkey (`/api/wallet/grants/:id/revoke/*`) and the World approval (needs `APP_WORLD_*`).
+- revoke from the passkey on the deployed app (`/api/wallet/grants/:id/revoke/*`), and the approval with the real
+  World IdP (the stub stands in; needs `APP_WORLD_*`).
