@@ -20,6 +20,7 @@ import {
 } from '../api/Wallet.ts'
 import { Clipboard } from '../Clipboard.ts'
 import { sheetFolds } from '../Sheet.ts'
+import { Copy } from '../Receive.ts'
 
 // MODEL
 
@@ -52,7 +53,6 @@ export const WalletState = defineTaggedUnion({
   Loaded: { home: Home },
   Failed: { error: Schema.String },
 })
-export const Copy = defineTaggedUnion({ Idle: {}, Copied: {}, Failed: {} })
 export const Decline = defineTaggedUnion({
   Idle: {},
   Declining: { approvalId: Schema.String },

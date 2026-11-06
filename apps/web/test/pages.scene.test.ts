@@ -1,6 +1,7 @@
 import { Command, Mount, click, expect, given, role, scene, text, withViewInputs } from 'foldkit/scene'
 import { describe, expect as vitestExpect, test } from 'vitest'
 import { Animation, Dialog } from '@foldkit/ui'
+import { qrDataUri } from '../src/Qr.ts'
 import * as Wallet from '../src/pages/Wallet.ts'
 import { walletView } from '../src/pages/WalletView.ts'
 import { activityRow, address, grant, pairedRobot, summary, txHash } from './Fixtures.ts'
@@ -68,7 +69,11 @@ describe('/wallet', () => {
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
 
       expect(role('heading', { name: 'Receive USDC' })).toExist(),
-      expect(role('img', { name: 'QR code of your wallet address' })).toExist(),
+      // The QR is an EIP-681 payment request on Arc (chain 5042), so a wallet app opens a send on the right network.
+      expect(role('img', { name: 'QR code of your wallet address' })).toHaveAttr(
+        'src',
+        qrDataUri(`ethereum:${address}@5042`),
+      ),
       expect(text('0x1234 5678 90ab cdef 1234 5678 90AB CDEF 1234 5678')).toExist(),
       click(role('button', { name: 'Copy address' })),
       Command.expectExact(Wallet.CopyAddress({ address })),

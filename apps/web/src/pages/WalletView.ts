@@ -6,12 +6,12 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { type EpisodeActivity, leftToday, type RobotView, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
-import { qrDataUri } from '../Qr.ts'
+import { receiveBody } from '../Receive.ts'
 import { robotConsoleRouter, robotsRouter } from '../route.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
 import { walletSkeleton } from '../Skeleton.ts'
 import { failedView, signedOutView } from './Shared.ts'
-import { Copy, Decline, type Home, Message, type Model, type NeedsYou, WalletState } from './Wallet.ts'
+import { Decline, type Home, Message, type Model, type NeedsYou, WalletState } from './Wallet.ts'
 import { busyLabel } from '../Busy.ts'
 
 // STYLES
@@ -56,12 +56,6 @@ const onZeroGClassName = 'ml-1.5 rounded-full bg-paid/10 px-1.5 text-[0.75rem] f
 const paymentAmountClassName = 'shrink-0 text-right font-semibold whitespace-nowrap'
 const paidClassName = 'block text-[0.92rem] text-paid'
 const emptyClassName = 'px-2 text-muted'
-const qrFrameClassName = 'justify-self-center rounded-[26px] bg-surface p-4 shadow-[0_0_0_1px_var(--color-rule)]'
-const qrClassName = 'block size-48'
-const addressClassName = 'text-center text-[1.06rem] leading-relaxed font-semibold tracking-[0.04em] break-words'
-const sheetButtonsClassName = 'grid gap-2'
-const sheetButtonClassName =
-  'min-h-12 cursor-pointer rounded-control bg-paper font-semibold transition-transform active:scale-[0.96]'
 const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
@@ -288,9 +282,6 @@ const paymentRow = (episode: EpisodeActivity, onZeroG: boolean, locale: Locale, 
   )
 }
 
-/** Four-character groups, so an address can be read aloud and checked by eye. */
-const grouped = (address: string) => address.slice(0, 6) + ' ' + (address.slice(6).match(/.{1,4}/g) ?? []).join(' ')
-
 const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const address = home.wallet.account.smartAccount
   return h.submodel({
@@ -304,30 +295,7 @@ const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<M
           render,
           [
             h.h2([...render.title, h.Class(sheetTitleClassName)], [format(locale, 'receive.title', {})]),
-            h.div(
-              [h.Class(qrFrameClassName)],
-              [h.img([h.Src(qrDataUri(address)), h.Alt(format(locale, 'receive.qrAlt', {})), h.Class(qrClassName)])],
-            ),
-            h.p([h.Class(addressClassName)], [grouped(address)]),
-            h.div(
-              [h.Class(sheetButtonsClassName)],
-              [
-                h.button(
-                  [h.Type('button'), h.Class(sheetButtonClassName), h.OnClick(Message.ClickedCopyAddress({ address }))],
-                  [format(locale, 'receive.copy', {})],
-                ),
-                Copy.match(model.copy, {
-                  Idle: () => h.empty,
-                  Copied: () =>
-                    h.p([h.Role('status'), h.Class('text-center text-paid')], [format(locale, 'receive.copied', {})]),
-                  Failed: () =>
-                    h.p(
-                      [h.Role('alert'), h.Class('text-center text-error')],
-                      [format(locale, 'receive.copyFailed', {})],
-                    ),
-                }),
-              ],
-            ),
+            ...receiveBody({ address, copy: model.copy, onCopy: Message.ClickedCopyAddress({ address }), locale, h }),
             h.p([...render.description, h.Class(noteClassName)], [format(locale, 'receive.note', {})]),
           ],
           format(locale, 'profile.close', {}),
