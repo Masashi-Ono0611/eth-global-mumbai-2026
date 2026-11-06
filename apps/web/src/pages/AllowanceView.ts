@@ -16,6 +16,7 @@ import {
   Stop,
 } from './Allowance.ts'
 import { busyLabel } from '../Busy.ts'
+import { approvalIcon, clockIcon, placeIcon, receiptIcon } from '../Icons.ts'
 
 // STYLES
 
@@ -33,7 +34,7 @@ const secondaryClassName =
   'min-h-12 cursor-pointer rounded-control bg-paper px-4 font-semibold transition-transform active:scale-[0.96]'
 const stopClassName =
   'inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-control bg-error-soft px-4 font-semibold text-error transition-transform active:scale-[0.96] disabled:cursor-progress disabled:opacity-60'
-const rulesClassName = 'grid gap-1.5 [&_li]:flex [&_li]:gap-2'
+const rulesClassName = 'grid gap-2 [&_li]:flex [&_li]:items-center [&_li]:gap-2.5'
 const leftClassName = 'font-display text-4xl leading-none font-extrabold'
 const unitClassName = 'ml-1.5 font-sans text-base font-normal text-muted'
 /** The day's use as a native meter: paper track, ink fill (WebKit and Firefox pseudo-elements). */
@@ -259,25 +260,21 @@ const rules = (model: Model, grant: ActiveGrant, inputs: ViewInputs, h: HtmlBuil
       h.ul(
         [h.Class(rulesClassName)],
         [
-          h.li([], [format(locale, 'allowance.rulePerPurchase', { amount: usdc(grant.perPaymentCap) })]),
-          h.li([], [format(locale, 'allowance.ruleWhere', { payee: inputs.payeeName })]),
+          h.li(
+            [],
+            [receiptIcon(h), format(locale, 'allowance.rulePerPurchase', { amount: usdc(grant.perPaymentCap) })],
+          ),
+          h.li([], [placeIcon(h), format(locale, 'allowance.ruleWhere', { payee: inputs.payeeName })]),
           h.li(
             [],
             [
+              clockIcon(h),
               format(locale, 'allowance.ruleUntil', {
                 time: clockTime(grant.expiresAt * 1000, locale, inputs.timeZone),
               }),
             ],
           ),
-          h.li(
-            [],
-            [
-              format(locale, 'allowance.ruleAsks', {
-                perPayment: usdc(grant.perPaymentCap),
-                daily: usdc(grant.dailyCap),
-              }),
-            ],
-          ),
+          h.li([], [approvalIcon(h), format(locale, 'allowance.ruleAsks', { perPayment: usdc(grant.perPaymentCap) })]),
         ],
       ),
       h.button(

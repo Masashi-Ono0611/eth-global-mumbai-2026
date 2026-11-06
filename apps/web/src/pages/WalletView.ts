@@ -21,7 +21,7 @@ const pageClassName = 'grid gap-0 pb-6 transition-opacity duration-150 starting:
 const balanceClassName = 'grid min-w-0 gap-0.5 px-2 pt-3'
 const amountClassName =
   'font-display text-[clamp(2.75rem,16vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.02em] wrap-anywhere'
-const amountUnitClassName = 'ml-1.5 text-[1.4rem] font-bold tracking-normal'
+const amountUnitClassName = 'ml-1.5 inline-block text-[1.4rem] font-bold tracking-normal whitespace-nowrap'
 const spentClassName = 'text-muted'
 const pillRowClassName = 'flex flex-wrap gap-1.5 px-1 pt-4 pb-1'
 const pillClassName =

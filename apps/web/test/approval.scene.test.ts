@@ -154,9 +154,7 @@ describe('/wallet/approvals/:id', () => {
       ),
       expect(role('heading', { name: 'Approval for a payment over the limit' })).toExist(),
       expect(
-        text(
-          "This payment is over the robot's per-payment limit (2.00 > 1.00 USDC), so it needs your fresh approval in World App. Nothing is paid without it.",
-        ),
+        text('Over the per-payment limit (2.00 > 1.00 USDC): approve it in World App. Nothing is paid until you do.'),
       ).toExist(),
       expect(text('restricted', { exact: false })).toBeAbsent(),
       expect(role('heading', { name: 'Duck wants to buy thali' })).toExist(),

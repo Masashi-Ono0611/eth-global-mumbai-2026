@@ -274,19 +274,15 @@ describe('/wallet/episodes/:id', () => {
     scene(
       { update: Episode.update, view },
       given(loaded),
-      expect(
-        text(
-          'A replay sends the same input to the brain again. It is non-binding: it never pays and never changes the errand.',
-        ),
-      ).toExist(),
-      click(role('button', { name: 'Replay decision (non-binding)' })),
+      expect(text('Asks the brain again with the same input. It never pays or changes the errand.')).toExist(),
+      click(role('button', { name: 'Replay decision' })),
       Command.expectExact(Episode.ReplayDecision({ episodeId: 'ep1' })),
       Command.resolve(Episode.ReplayDecision, Episode.Message.SucceededReplay({ result: replayed })),
       expect(text('Replay: 0G would ask you first: Still restricted')).toExist(),
       expect(text('req-2')).toExist(),
       expect(text('Same action as the original.')).toExist(),
       expect(text('0G decided to ask you first: Restricted item the owner asked for')).toExist(),
-      click(role('button', { name: 'Replay decision (non-binding)' })),
+      click(role('button', { name: 'Replay decision' })),
       Command.resolve(
         Episode.ReplayDecision,
         Episode.Message.SucceededReplay({
@@ -345,7 +341,7 @@ describe('/wallet/episodes/:id', () => {
       expect(text(`${frame.slice(0, 10)}…${frame.slice(-6)}`)).toExist(),
       expect(text('chip 0x700664bc…8fcc8e')).toExist(),
       expect(role('list')).toContainText('The robot scanned the QR'),
-      expect(text('Not checked yet: press Verify under Evidence on 0G')).toExist(),
+      expect(text('Not checked yet: Verify is under Evidence on 0G')).toExist(),
       expect(text('Saving the frame to 0G...')).toExist(),
       click(role('button', { name: 'Verify' })),
       Command.resolve(Episode.VerifyEvidence, checked(true, true)),
@@ -388,7 +384,7 @@ describe('/wallet/episodes/:id', () => {
     scene(
       { update: Episode.update, view },
       given(sealed),
-      expect(text('TEE proof present, not yet checked: press Verify under Evidence on 0G')).toExist(),
+      expect(text('TEE proof present: Verify is under Evidence on 0G')).toExist(),
       expect(text(`${teeSigner.slice(0, 10)}…${teeSigner.slice(-6)}`)).toExist(),
       expect(text('Text the TEE signed')).toExist(),
       expect(text(proof.text)).toExist(),

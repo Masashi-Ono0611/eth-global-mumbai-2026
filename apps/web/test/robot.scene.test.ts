@@ -279,8 +279,8 @@ describe('/robot/:id', () => {
       Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(role('heading', { name: "Duck's allowance" })).toExist(),
-      expect(text('At most 0.30 for one purchase')).toExist(),
-      expect(text('Only at Duck Café')).toExist(),
+      expect(text('0.30 max per purchase')).toExist(),
+      expect(text('Duck Café only')).toExist(),
       click(role('button', { name: "Stop Duck's allowance" })),
       Command.expectExact(Allowance.StopAllowance({ grantId: grant.id })),
       expect(role('button', { name: 'Stopping on Arc...' })).toBeDisabled(),
@@ -333,7 +333,7 @@ describe('/robot/:id', () => {
       click(role('radio', { name: '1 week' })),
       expect(
         text(
-          'Duck can spend up to 5.00 USDC a day, only at Duck Café, for the next week. A purchase over 1.00 asks you first in World App; nothing goes past 5.00 a day. Arc enforces this, so not even our server can go past it.',
+          'Duck can spend up to 5.00 USDC a day at Duck Café, for the next week. Over 1.00 asks you in World App. Arc enforces it; not even our server can go past.',
         ),
       ).toExist(),
       click(role('button', { name: 'Confirm with passkey' })),
