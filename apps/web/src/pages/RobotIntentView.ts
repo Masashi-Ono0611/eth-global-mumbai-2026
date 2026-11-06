@@ -147,7 +147,8 @@ const intentParts = (model: Model, name: string, sim: boolean, locale: Locale, h
       tail: [],
     }),
     Open: ({ intent }) => ({
-      head: [h.keyed('p')(`${intent.id}-ask`, [h.Class(ownerBubbleClassName)], [intent.instruction])],
+      // The same key as while Sending, so the owner's words do not enter twice.
+      head: [h.keyed('p')('intent-ask', [h.Class(ownerBubbleClassName)], [intent.instruction])],
       turns: intent.turns.map((turn) => ({ at: turn.createdAt, messages: turnMessages(turn, locale, h) })),
       tail: [liveFrame(model, name, locale, h), walking(model, name, sim, locale, h), intentEnd(model, locale, h)],
     }),
