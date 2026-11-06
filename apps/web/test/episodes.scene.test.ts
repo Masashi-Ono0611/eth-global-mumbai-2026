@@ -1,17 +1,5 @@
 import { Option } from 'effect'
-import {
-  Command,
-  change,
-  click,
-  expect,
-  given,
-  label,
-  role,
-  scene,
-  selector,
-  text,
-  withViewInputs,
-} from 'foldkit/scene'
+import { Command, change, click, expect, given, label, role, scene, text, withViewInputs } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 import type { EpisodeAudit, EpisodeSummary, ReplayResult, VerifyResult } from '../src/api/Episodes.ts'
 import * as Episode from '../src/pages/Episode.ts'
@@ -206,11 +194,11 @@ describe('/wallet/episodes/:id', () => {
       { update: Episode.update, view },
       given(loaded),
       expect(role('heading', { name: 'Errand: cigarettes' })).toExist(),
-      expect(selector('ol.timeline')).toContainText('Errand started · cigarettes'),
-      expect(selector('ol.timeline')).toContainText(`Settled on Arc · ${txHash}`),
+      expect(role('list')).toContainText('Errand started · cigarettes'),
+      expect(role('list')).toContainText(`Settled on Arc · ${txHash}`),
       expect(text('0G decided to ask you first: Restricted item the owner asked for')).toExist(),
       expect(text('Input sent to the brain (exact JSON)')).toExist(),
-      expect(selector('.audit-input pre')).toContainText('"requested": "cigarettes"'),
+      expect(text('"requested": "cigarettes"', { exact: false })).toExist(),
       expect(text('The chip signed the payment')).toExist(),
       expect(role('link', { name: 'Payment on Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
       expect(text(orb)).toExist(),

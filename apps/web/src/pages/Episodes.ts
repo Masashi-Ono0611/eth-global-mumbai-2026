@@ -12,6 +12,8 @@ import { isZeroGDecision } from '../api/Robot.ts'
 import { explorerTx, listRobots } from '../api/Wallet.ts'
 import { episodeRouter } from '../route.ts'
 import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
+import { styled } from '../Styled.ts'
+import { episodeTable, filterRow, tableScroll } from './Episodes.styles.ts'
 
 // MODEL
 
@@ -109,19 +111,16 @@ const filter = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => 
   // The robot in the URL is an option even before the robot list arrives.
   const known = model.robots.some((robot) => robot.id === selected) || selected === ''
   const options = known ? model.robots : [...model.robots, { id: selected, name: selected }]
-  return h.div(
-    [h.Class('episode-filter')],
-    [
-      h.label([h.For('episode-robot')], [format(locale, 'episodes.filter', {})]),
-      h.select(
-        [h.Id('episode-robot'), h.Value(selected), h.OnChange((value) => Message.ChangedRobotFilter({ value }))],
-        [
-          h.keyed('option')('', [h.Value('')], [format(locale, 'episodes.allRobots', {})]),
-          ...options.map((robot) => h.keyed('option')(robot.id, [h.Value(robot.id)], [robot.name])),
-        ],
-      ),
-    ],
-  )
+  return h.div(styled(h, filterRow()), [
+    h.label([h.For('episode-robot')], [format(locale, 'episodes.filter', {})]),
+    h.select(
+      [h.Id('episode-robot'), h.Value(selected), h.OnChange((value) => Message.ChangedRobotFilter({ value }))],
+      [
+        h.keyed('option')('', [h.Value('')], [format(locale, 'episodes.allRobots', {})]),
+        ...options.map((robot) => h.keyed('option')(robot.id, [h.Value(robot.id)], [robot.name])),
+      ],
+    ),
+  ])
 }
 
 const brainLabel = (provider: string | null, locale: Locale) =>
@@ -154,7 +153,7 @@ const row = (episode: EpisodeSummary, inputs: Inputs, h: HtmlBuilder<Message>): 
           : [
               episode.payment.txHash === null
                 ? episode.payment.status
-                : h.a([h.Href(explorerTx(episode.payment.txHash)), h.Class('tx-link')], [episode.payment.status]),
+                : h.a([h.Href(explorerTx(episode.payment.txHash))], [episode.payment.status]),
             ],
       ),
       cell([
@@ -175,39 +174,33 @@ const table = (episodes: ReadonlyArray<EpisodeSummary>, inputs: Inputs, h: HtmlB
   if (episodes.length === 0) return h.p([h.Class('hint')], [format(locale, 'episodes.empty', {})])
   const heading = (key: 'when' | 'robot' | 'item' | 'state' | 'decision' | 'payment' | 'world' | 'evidence' | 'open') =>
     h.th([], [format(locale, 'episodes.column', { column: key })])
-  return h.div(
-    [h.Class('table-scroll')],
-    [
-      h.table(
-        [h.Class('episodes')],
+  return h.div(styled(h, tableScroll()), [
+    h.table(styled(h, episodeTable()), [
+      h.thead(
+        [],
         [
-          h.thead(
+          h.tr(
             [],
             [
-              h.tr(
-                [],
-                [
-                  heading('when'),
-                  heading('robot'),
-                  heading('item'),
-                  heading('state'),
-                  heading('decision'),
-                  heading('payment'),
-                  heading('world'),
-                  heading('evidence'),
-                  heading('open'),
-                ],
-              ),
+              heading('when'),
+              heading('robot'),
+              heading('item'),
+              heading('state'),
+              heading('decision'),
+              heading('payment'),
+              heading('world'),
+              heading('evidence'),
+              heading('open'),
             ],
-          ),
-          h.tbody(
-            [],
-            episodes.map((episode) => row(episode, inputs, h)),
           ),
         ],
       ),
-    ],
-  )
+      h.tbody(
+        [],
+        episodes.map((episode) => row(episode, inputs, h)),
+      ),
+    ]),
+  ])
 }
 
 /** `/wallet/episodes`: every errand of the owner's robots with what decided it, what it paid and what proves it. */

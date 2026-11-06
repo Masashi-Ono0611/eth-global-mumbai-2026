@@ -34,6 +34,8 @@ export const { style, vars } = defineConfig({
       heading: '2rem',
       code: '2rem',
       body: '1rem',
+      // Labels, hashes and timestamps in the audit view's dense rows.
+      small: '0.875rem',
     },
     radius: { control: '3px' },
   },

@@ -15,6 +15,20 @@ import { explorerTx } from '../api/Wallet.ts'
 import { episodesRouter, robotConsoleRouter } from '../route.ts'
 import { AuditState, Message, type Model, Replay, Verify } from './Episode.ts'
 import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
+import { styled } from '../Styled.ts'
+import {
+  actionRow,
+  alertText,
+  auditButton,
+  auditCard,
+  auditLayout,
+  checkList,
+  fieldList,
+  inputDetails,
+  replayBox,
+  stack,
+  timelineList,
+} from './EpisodeView.styles.ts'
 
 type Inputs = { readonly locale: Locale; readonly timeZone: string }
 type Field =
@@ -37,8 +51,7 @@ type Field =
   | 'recordedAt'
 type Card = 'decision' | 'chip' | 'payment' | 'approval' | 'evidence' | 'timeline'
 
-const link = (href: string, label: string, h: HtmlBuilder<Message>): Html =>
-  h.a([h.Href(href), h.Class('tx-link')], [label])
+const link = (href: string, label: string, h: HtmlBuilder<Message>): Html => h.a([h.Href(href)], [label])
 
 /** A definition list of the fields that have a value. */
 const fields = (
@@ -47,17 +60,14 @@ const fields = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.dl(
-    [h.Class('audit-fields')],
+    styled(h, fieldList()),
     rows.flatMap(([field, value]) =>
-      value === null ? [] : [h.dt([], [format(locale, 'episode.field', { field })]), h.dd([h.Class('mono')], [value])],
+      value === null ? [] : [h.dt([], [format(locale, 'episode.field', { field })]), h.dd([], [value])],
     ),
   )
 
 const card = (kind: Card, locale: Locale, content: ReadonlyArray<Html>, h: HtmlBuilder<Message>): Html =>
-  h.section(
-    [h.Class(`audit-card audit-${kind}`)],
-    [h.h2([], [format(locale, 'episode.card', { card: kind })]), ...content],
-  )
+  h.section(styled(h, auditCard()), [h.h2([], [format(locale, 'episode.card', { card: kind })]), ...content])
 const none = (kind: Card, locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.p([h.Class('hint')], [format(locale, 'episode.none', { card: kind })])
 
@@ -77,82 +87,77 @@ const replayView = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html
   Replay.match(model.replay, {
     Idle: () => h.empty,
     Running: () => h.p([h.Role('status')], [format(locale, 'episode.action', { action: 'replaying' })]),
-    Failed: ({ error }) => h.p([h.Role('alert')], [format(locale, 'common.errorDetail', { message: error })]),
+    Failed: ({ error }) =>
+      h.p([h.Role('alert'), ...styled(h, alertText())], [format(locale, 'common.errorDetail', { message: error })]),
     Done: ({ result }) => replayResultView(result, locale, h),
   })
 
 const replayResultView = (result: ReplayResult, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const { replay } = result
-  return h.div(
-    [h.Class('replay')],
-    [
-      replay.ok
-        ? h.p(
-            [h.Role('status')],
-            [
-              format(locale, 'episode.replayResult', {
-                brain: brainOf(replay.provider, locale),
-                action: replay.action,
-                reason: replay.reason,
-              }),
-            ],
-          )
-        : h.p([h.Role('alert')], [format(locale, 'common.errorDetail', { message: replay.error })]),
-      replay.ok
-        ? fields(
-            [
-              ['requestId', replay.requestId],
-              ['brain', replay.provider],
-              ['latency', `${replay.latencyMs} ms`],
-            ],
-            locale,
-            h,
-          )
-        : h.empty,
-      replay.ok
-        ? h.p([h.Class('hint')], [format(locale, 'episode.replaySame', { same: result.same ? 'yes' : 'no' })])
-        : h.empty,
-    ],
-  )
+  return h.div(styled(h, replayBox()), [
+    replay.ok
+      ? h.p(
+          [h.Role('status')],
+          [
+            format(locale, 'episode.replayResult', {
+              brain: brainOf(replay.provider, locale),
+              action: replay.action,
+              reason: replay.reason,
+            }),
+          ],
+        )
+      : h.p(
+          [h.Role('alert'), ...styled(h, alertText())],
+          [format(locale, 'common.errorDetail', { message: replay.error })],
+        ),
+    replay.ok
+      ? fields(
+          [
+            ['requestId', replay.requestId],
+            ['brain', replay.provider],
+            ['latency', `${replay.latencyMs} ms`],
+          ],
+          locale,
+          h,
+        )
+      : h.empty,
+    replay.ok
+      ? h.p([h.Class('hint')], [format(locale, 'episode.replaySame', { same: result.same ? 'yes' : 'no' })])
+      : h.empty,
+  ])
 }
 
 const decisionView = (decision: AuditDecision, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class('audit-decision')],
-    [
-      h.p(
-        [],
-        [
-          format(locale, 'console.decision', {
-            brain: brainOf(decision.provider, locale),
-            action: decision.action,
-            reason: decision.reason ?? decision.error ?? '—',
-          }),
-        ],
-      ),
-      fields(
-        [
-          ['requestId', decision.request_id],
-          ['brain', decision.provider],
-          ['latency', decision.latency_ms === null ? null : `${decision.latency_ms} ms`],
-          ['promptHash', decision.prompt_sha256],
-          ['outcome', decision.outcome],
-          ['error', decision.error],
-        ],
-        locale,
-        h,
-      ),
-      decision.input_json === null
-        ? h.empty
-        : h.details(
-            [h.Class('audit-input')],
-            [
-              h.summary([], [format(locale, 'episode.input', {})]),
-              h.pre([h.Class('mono')], [prettyInput(decision.input_json)]),
-            ],
-          ),
-    ],
-  )
+  h.div(styled(h, stack()), [
+    h.p(
+      [],
+      [
+        format(locale, 'console.decision', {
+          brain: brainOf(decision.provider, locale),
+          action: decision.action,
+          reason: decision.reason ?? decision.error ?? '—',
+        }),
+      ],
+    ),
+    fields(
+      [
+        ['requestId', decision.request_id],
+        ['brain', decision.provider],
+        ['latency', decision.latency_ms === null ? null : `${decision.latency_ms} ms`],
+        ['promptHash', decision.prompt_sha256],
+        ['outcome', decision.outcome],
+        ['error', decision.error],
+      ],
+      locale,
+      h,
+    ),
+    decision.input_json === null
+      ? h.empty
+      : h.details(styled(h, inputDetails()), [
+          h.summary([], [format(locale, 'episode.input', {})]),
+          h.pre([], [prettyInput(decision.input_json)]),
+        ]),
+  ])
 
 const decisionCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: HtmlBuilder<Message>): Html =>
   card(
@@ -167,7 +172,7 @@ const decisionCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
         : h.button(
             [
               h.Type('button'),
-              h.Class('secondary-action'),
+              ...styled(h, auditButton()),
               h.Disabled(Replay.guards.Running(model.replay)),
               h.OnClick(Message.ClickedReplay()),
             ],
@@ -258,38 +263,35 @@ const approvalCard = (audit: EpisodeAudit, locale: Locale, h: HtmlBuilder<Messag
 const MATCHED: ReadonlyArray<'rootHash' | 'requestIdsHash'> = ['rootHash', 'requestIdsHash']
 
 const verifyResultView = (result: VerifyResult, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class('verify')],
-    [
-      result.onChain === null
-        ? h.p([h.Role('status')], [format(locale, 'episode.notOnChain', {})])
-        : h.ul(
-            [h.Role('status')],
-            MATCHED.map((field) =>
-              h.li(
-                [h.Class(result.matches[field] ? 'match' : 'mismatch')],
-                [format(locale, 'episode.verifyMatch', { field, matches: result.matches[field] ? 'yes' : 'no' })],
-              ),
+  h.div(styled(h, stack()), [
+    result.onChain === null
+      ? h.p([h.Role('status')], [format(locale, 'episode.notOnChain', {})])
+      : h.ul(
+          [h.Role('status'), ...styled(h, checkList())],
+          MATCHED.map((field) =>
+            h.li(
+              [h.DataAttribute('match', result.matches[field] ? 'yes' : 'no')],
+              [format(locale, 'episode.verifyMatch', { field, matches: result.matches[field] ? 'yes' : 'no' })],
             ),
           ),
-      result.onChain === null
-        ? h.empty
-        : fields(
-            [
-              ['recorder', result.onChain.recorder],
-              ['recordedAt', String(result.onChain.recordedAt)],
-            ],
-            locale,
-            h,
-          ),
-      result.links.storagescan === null
-        ? h.empty
-        : link(result.links.storagescan, format(locale, 'console.storage', {}), h),
-      result.links.chainscan === null
-        ? h.empty
-        : link(result.links.chainscan, format(locale, 'console.episodeLog', {}), h),
-    ],
-  )
+        ),
+    result.onChain === null
+      ? h.empty
+      : fields(
+          [
+            ['recorder', result.onChain.recorder],
+            ['recordedAt', String(result.onChain.recordedAt)],
+          ],
+          locale,
+          h,
+        ),
+    result.links.storagescan === null
+      ? h.empty
+      : link(result.links.storagescan, format(locale, 'console.storage', {}), h),
+    result.links.chainscan === null
+      ? h.empty
+      : link(result.links.chainscan, format(locale, 'console.episodeLog', {}), h),
+  ])
 
 const evidenceCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const { evidence } = audit
@@ -318,7 +320,7 @@ const evidenceCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
           h.button(
             [
               h.Type('button'),
-              h.Class('secondary-action'),
+              ...styled(h, auditButton()),
               h.Disabled(Verify.guards.Running(model.verify)),
               h.OnClick(Message.ClickedVerify()),
             ],
@@ -331,7 +333,11 @@ const evidenceCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
           Verify.match(model.verify, {
             Idle: () => h.empty,
             Running: () => h.empty,
-            Failed: ({ error }) => h.p([h.Role('alert')], [format(locale, 'common.errorDetail', { message: error })]),
+            Failed: ({ error }) =>
+              h.p(
+                [h.Role('alert'), ...styled(h, alertText())],
+                [format(locale, 'common.errorDetail', { message: error })],
+              ),
             Done: ({ result }) => verifyResultView(result, locale, h),
           }),
         ],
@@ -345,13 +351,13 @@ const timelineCard = (audit: EpisodeAudit, inputs: Inputs, h: HtmlBuilder<Messag
     inputs.locale,
     [
       h.ol(
-        [h.Class('timeline')],
+        styled(h, timelineList()),
         // The timeline is read once and never reordered in place, so its rows need no keys.
         audit.timeline.map((entry) =>
           h.li(
             [],
             [
-              h.time([h.Class('mono')], [clockTime(entry.at, inputs.locale, inputs.timeZone)]),
+              h.time([], [clockTime(entry.at, inputs.locale, inputs.timeZone)]),
               ' ',
               format(inputs.locale, 'episode.event', { kind: entry.kind }),
               entry.detail === null ? '' : ` · ${entry.detail}`,
@@ -366,40 +372,34 @@ const timelineCard = (audit: EpisodeAudit, inputs: Inputs, h: HtmlBuilder<Messag
 const auditView = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBuilder<Message>): Html => {
   const { locale, timeZone } = inputs
   const { episode } = audit
-  return h.div(
-    [h.Class('episode-audit')],
-    [
-      h.p(
-        [h.Class('lead')],
-        [
-          format(locale, 'episode.meta', {
-            robot: episode.robotName,
-            started: clockTime(episode.createdAt, locale, timeZone),
-          }),
-        ],
+  return h.div(styled(h, auditLayout()), [
+    h.p(
+      [h.Class('lead')],
+      [
+        format(locale, 'episode.meta', {
+          robot: episode.robotName,
+          started: clockTime(episode.createdAt, locale, timeZone),
+        }),
+      ],
+    ),
+    h.p([h.Role('status')], [format(locale, 'robot.state', { state: episode.state })]),
+    episode.result === null
+      ? h.empty
+      : h.p([h.Class('hint')], [format(locale, 'console.reason', { reason: episode.result })]),
+    timelineCard(audit, inputs, h),
+    decisionCard(model, audit, locale, h),
+    chipCard(audit, locale, h),
+    paymentCard(audit, locale, h),
+    approvalCard(audit, locale, h),
+    evidenceCard(model, audit, locale, h),
+    h.div(styled(h, actionRow()), [
+      h.a([h.Href(episodesRouter()), h.Class('secondary-action')], [format(locale, 'episodes.title', {})]),
+      h.a(
+        [h.Href(robotConsoleRouter({ robotId: episode.robotId })), h.Class('secondary-action')],
+        [format(locale, 'robots.openConsole', {})],
       ),
-      h.p([h.Role('status')], [format(locale, 'robot.state', { state: episode.state })]),
-      episode.result === null
-        ? h.empty
-        : h.p([h.Class('hint')], [format(locale, 'console.reason', { reason: episode.result })]),
-      timelineCard(audit, inputs, h),
-      decisionCard(model, audit, locale, h),
-      chipCard(audit, locale, h),
-      paymentCard(audit, locale, h),
-      approvalCard(audit, locale, h),
-      evidenceCard(model, audit, locale, h),
-      h.p(
-        [],
-        [
-          h.a([h.Href(episodesRouter()), h.Class('secondary-action')], [format(locale, 'episodes.title', {})]),
-          h.a(
-            [h.Href(robotConsoleRouter({ robotId: episode.robotId })), h.Class('secondary-action')],
-            [format(locale, 'robots.openConsole', {})],
-          ),
-        ],
-      ),
-    ],
-  )
+    ]),
+  ])
 }
 
 /** `/wallet/episodes/:id`: one errand after the fact, every recorded step with what proves it. */
