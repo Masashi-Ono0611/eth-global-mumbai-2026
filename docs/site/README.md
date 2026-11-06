@@ -10,6 +10,7 @@ Shareable pages for the team (architecture, brainstorms, spikes), not product co
 | Architecture | `architecture/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/ |
 | Story: the pitch in four screens (films: Qwen Image 3.0 Pro keyframes + Wan 3.0 loops, made in `~/code/vitaquack-film/`, not in Git) | `story/index.html`, `story/media/` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/story/ |
 | Pitch: the main presentation, vision first (everyone gets a robot; the key belongs on the robot; who holds what), then the proof (six real screens with their Arc and 0G transactions), the live demo and what's next. Films: the Open Duck Mini look, Qwen Image 3.0 Pro + Wan 3.0, made in `~/code/vitaquack-film/` | `pitch/index.html`, `pitch/media/` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/pitch/ |
+| 0G: where 0G fits, one errand end to end (0G decides, our agent acts, the episode goes to 0G Storage and EpisodeLog on 0G Chain, and how anyone checks it), in the look of /story/ | `0g/index.html` (uses `/story/media/v4.webp`) | https://eth-mumbai-site.kristjan-grm11775.workers.dev/0g/ |
 | Template | `_template/index.html` | https://eth-mumbai-site.kristjan-grm11775.workers.dev/_template/ |
 
 ## Add a page

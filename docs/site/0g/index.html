@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Vitaquack — where 0G fits</title>
+    <meta name="description" content="One errand, end to end: 0G decides, our agent acts, the episode is kept on 0G Storage and anchored on 0G Chain." />
+    <meta name="theme-color" content="#1c1d45" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600&display=swap" rel="stylesheet" />
+    <style>
+      /* Same look as /story/: dusk, duck yellow, satchel teal, paper. */
+      :root {
+        --dusk: #1c1d45;
+        --dusk-up: #26285a;
+        --duck: #ffd24a;
+        --satchel: #48b3ad;
+        --paper: #fff8e8;
+        --ink-soft: rgb(255 248 232 / 0.82);
+        --ink-faint: rgb(255 248 232 / 0.6);
+        --line: rgb(255 248 232 / 0.18);
+        --display: 'Fredoka', ui-rounded, 'Arial Rounded MT Bold', system-ui, sans-serif;
+        --body: 'Nunito Sans', system-ui, sans-serif;
+        --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html { background: var(--dusk); }
+      body { margin: 0; color: var(--paper); font: 400 1.0625rem/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+      code { font: 0.88em/1.4 var(--mono); color: var(--paper); }
+
+      .chapter {
+        position: relative;
+        min-height: 100svh;
+        display: grid;
+        align-content: center;
+        padding: clamp(3rem, 9vh, 6rem) clamp(1.25rem, 6vw, 5.5rem);
+        border-top: 1px solid var(--line);
+      }
+      .chapter:focus-visible { outline: 3px solid var(--duck); outline-offset: -3px; }
+
+      /* Opening screen: a still from /story/, scrim only under the words. */
+      .hero { align-content: end; overflow: hidden; isolation: isolate; border-top: 0; }
+      .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+      .hero::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 66%;
+        z-index: -1;
+        background: linear-gradient(to top, rgb(28 29 69 / 0.94), rgb(28 29 69 / 0.6) 45%, transparent);
+      }
+
+      .words { max-width: 46rem; }
+      .step { display: flex; gap: 0.4rem; margin: 0 0 1.1rem; padding: 0; list-style: none; }
+      .step li { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: rgb(255 248 232 / 0.35); }
+      .step li[aria-current='step'] { background: var(--duck); width: 1.6rem; border-radius: 0.3rem; }
+      h1, h2 {
+        margin: 0 0 0.6rem;
+        font: 600 clamp(2.2rem, 5.6vw, 4.2rem) / 1.02 var(--display);
+        letter-spacing: -0.01em;
+        text-wrap: balance;
+      }
+      h1 { text-shadow: 0 0.08em 0.6em rgb(28 29 69 / 0.45); }
+      .lede { margin: 0; max-width: 36rem; font-size: clamp(1.05rem, 1.5vw, 1.3rem); color: var(--ink-soft); text-wrap: pretty; }
+      .credit { margin: 1.25rem 0 0; font-size: 0.9rem; color: var(--satchel); font-weight: 600; }
+      .credit::before {
+        content: '';
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        margin-right: 0.5rem;
+        border-radius: 50%;
+        background: currentColor;
+        vertical-align: 0.05em;
+      }
+
+      /* Diagrams: boxes and arrows in HTML, so they reflow on a phone. */
+      .flow {
+        display: flex;
+        align-items: stretch;
+        gap: 0.6rem;
+        margin: 2.25rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .flow > li { flex: 1 1 0; display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+      .flow > li + li::before {
+        content: '→';
+        flex: none;
+        color: var(--duck);
+        font: 600 1.6rem/1 var(--display);
+      }
+      .node {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        padding: 1rem 1.1rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background: var(--dusk-up);
+      }
+      .node b { display: block; font: 600 1.15rem/1.2 var(--display); margin-bottom: 0.3rem; }
+      .node p { margin: 0; font-size: 0.95rem; color: var(--ink-soft); }
+      .node.zg { border-color: var(--satchel); box-shadow: inset 0 0 0 1px var(--satchel); }
+      .node.zg b::after { content: '0G'; margin-left: 0.5rem; padding: 0.1rem 0.45rem; border-radius: 999px; font-size: 0.75rem; vertical-align: 0.15em; background: var(--satchel); color: var(--dusk); }
+      .node.ours b::after { content: 'ours'; margin-left: 0.5rem; padding: 0.1rem 0.45rem; border-radius: 999px; font-size: 0.75rem; vertical-align: 0.15em; background: rgb(255 248 232 / 0.14); color: var(--paper); }
+
+      .answers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 2.25rem 0 0; padding: 0; list-style: none; }
+      .answers li { padding: 1rem 1.1rem; border-radius: 1rem; background: var(--dusk-up); border: 1px solid var(--line); }
+      .answers .tag { display: inline-block; margin-bottom: 0.6rem; padding: 0.25rem 0.7rem; border-radius: 999px; font: 600 0.95rem/1.2 var(--mono); background: var(--duck); color: var(--dusk); }
+      .answers .tag.ours { background: rgb(255 248 232 / 0.14); color: var(--paper); }
+      .answers .then { display: block; margin-top: 0.5rem; font-size: 0.95rem; color: var(--ink-soft); }
+      .answers .then::before { content: '→ '; color: var(--duck); font-weight: 600; }
+      .answers .who { display: block; margin-top: 0.6rem; font-size: 0.82rem; font-weight: 600; color: var(--satchel); }
+
+      .record {
+        margin: 2.25rem 0 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+      }
+      .record pre {
+        margin: 0;
+        padding: 1.1rem 1.2rem;
+        overflow-x: auto;
+        border-radius: 1rem;
+        background: #13143a;
+        border: 1px solid var(--line);
+        font: 0.85rem/1.55 var(--mono);
+        color: var(--ink-soft);
+      }
+      .record pre .k { color: var(--duck); }
+      .record ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.6rem; }
+      .record li { padding: 0.8rem 1rem; border-radius: 0.8rem; background: var(--dusk-up); border: 1px solid var(--line); font-size: 0.95rem; color: var(--ink-soft); }
+      .record li b { color: var(--paper); font-weight: 600; }
+      .record li.no b::before { content: '✕ '; color: var(--duck); }
+      .record li.yes b::before { content: '✓ '; color: var(--satchel); }
+
+      .agree { margin: 2.25rem 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; padding: 0; list-style: none; }
+      .agree li { padding: 1rem 1.1rem; border-radius: 1rem; background: var(--dusk-up); border: 1px solid var(--line); }
+      .agree li b { display: block; font: 600 1.1rem/1.2 var(--display); margin-bottom: 0.3rem; }
+      .agree li p { margin: 0; font-size: 0.92rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+      .equals { margin: 0.9rem 0 0; font: 600 1.1rem/1.3 var(--display); color: var(--duck); }
+
+      .note {
+        margin: 1.75rem 0 0;
+        max-width: 46rem;
+        padding: 1rem 1.2rem;
+        border-left: 3px solid var(--satchel);
+        background: rgb(72 179 173 / 0.1);
+        border-radius: 0 0.8rem 0.8rem 0;
+        font-size: 0.95rem;
+        color: var(--ink-soft);
+      }
+      .note b { color: var(--paper); }
+
+      .links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.75rem; }
+      .links a { color: var(--dusk); background: var(--duck); text-decoration: none; font: 600 1rem/1 var(--display); padding: 0.8rem 1.15rem; border-radius: 999px; }
+      .links a.quiet { background: rgb(255 248 232 / 0.14); color: var(--paper); }
+      .links a:focus-visible { outline: 3px solid var(--duck); outline-offset: 3px; }
+      .hint { position: fixed; right: 1rem; bottom: 1rem; margin: 0; font-size: 0.8rem; color: var(--ink-faint); }
+      @media (hover: none) { .hint { display: none; } }
+
+      @media (max-width: 860px) {
+        .flow { flex-direction: column; }
+        .flow > li { flex-direction: column; align-items: stretch; }
+        .flow > li + li::before { content: '↓'; text-align: center; }
+        .answers { grid-template-columns: repeat(2, 1fr); }
+        .record, .agree { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 480px) { .answers { grid-template-columns: 1fr; } .record pre { font-size: 0.7rem; padding: 0.9rem; } }
+      @media (max-aspect-ratio: 3/4) { .hero img { object-position: 58% 50%; } .hero::after { height: 72%; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="chapter hero" id="top" tabindex="-1" aria-labelledby="t0">
+        <img src="/story/media/v4.webp" alt="" />
+        <div class="words">
+          <ol class="step" aria-label="Step 1 of 6"><li aria-current="step"></li><li></li><li></li><li></li><li></li><li></li></ol>
+          <h1 id="t0">0G is the judge. We are the hands.</h1>
+          <p class="lede">One errand, end to end: 0G decides, our agent acts, and each finished errand goes to 0G as an episode anyone can check.</p>
+          <p class="credit">Decisions on 0G Compute, episodes on 0G Storage and 0G Chain</p>
+        </div>
+      </section>
+
+      <section class="chapter" id="decide" tabindex="-1" aria-labelledby="t1">
+        <div class="words">
+          <ol class="step" aria-label="Step 2 of 6"><li></li><li aria-current="step"></li><li></li><li></li><li></li><li></li></ol>
+          <h2 id="t1">An errand starts with one question to 0G.</h2>
+          <p class="lede">“Buy me a chai.” Our Robot Agent sends facts only, and 0G answers with one decision.</p>
+        </div>
+        <ol class="flow" aria-label="The decide call">
+          <li><div class="node ours"><b>Robot Agent</b><p>Item, invoice, budget left today, policy flags, merchant trust. No camera frames, no keys.</p></div></li>
+          <li><div class="node zg"><b>decide</b><p>0G Router, one forced tool call, temperature 0.</p></div></li>
+          <li><div class="node ours"><b>Logged</b><p>The answer, its reason, the 0G request id and chat id, the model and provider.</p></div></li>
+        </ol>
+      </section>
+
+      <section class="chapter" id="answers" tabindex="-1" aria-labelledby="t2">
+        <div class="words">
+          <ol class="step" aria-label="Step 3 of 6"><li></li><li></li><li aria-current="step"></li><li></li><li></li><li></li></ol>
+          <h2 id="t2">0G picks. Our agent does it.</h2>
+          <p class="lede">0G never moves the duck and never touches money. It only chooses one of three answers.</p>
+        </div>
+        <ul class="answers" aria-label="The answers and what happens next">
+          <li><span class="tag">pay</span><span class="then">the chip signs</span><span class="then">USDC is paid on Arc, inside the budget</span><span class="who">Arc enforces the limits</span></li>
+          <li><span class="tag">ask_human</span><span class="then">your phone asks</span><span class="then">yes: it pays. No: nothing is paid</span><span class="who">a verified human, World ID</span></li>
+          <li><span class="tag">walk_away</span><span class="then">nothing is paid</span><span class="who">the errand ends</span></li>
+          <li><span class="tag ours">safe_stop</span><span class="then">0G failed or took over 10 s</span><span class="then">the errand stops, no guessed decision</span><span class="who">ours, never the model's</span></li>
+        </ul>
+      </section>
+
+      <section class="chapter" id="episode" tabindex="-1" aria-labelledby="t3">
+        <div class="words">
+          <ol class="step" aria-label="Step 4 of 6"><li></li><li></li><li></li><li aria-current="step"></li><li></li><li></li></ol>
+          <h2 id="t3">When it ends, the errand becomes an episode.</h2>
+          <p class="lede">Paid, denied, walked away or stopped: every ending writes one small record.</p>
+        </div>
+        <div class="record">
+          <pre aria-label="The episode record"><span class="k">episodeId</span>  the errand
+<span class="k">robotId</span>    which duck
+<span class="k">item</span>       "chai"
+<span class="k">decisions</span>  [ step, model, provider,
+             requestId, chatId,
+             action, reason, outcome,
+             promptSha256, latencyMs ]
+<span class="k">outcome</span>    paid + Arc tx hash
+             (or denied, walked_away, safe_stop…)
+             approval id, if a human said yes
+<span class="k">requestIds</span> every 0G request id</pre>
+          <ul aria-label="What is and is not in it">
+            <li class="yes"><b>Why it was bought</b>: each 0G answer with its reason.</li>
+            <li class="yes"><b>Where to trace it</b>: the 0G request ids and the Arc payment.</li>
+            <li class="no"><b>No keys</b>, no camera frames.</li>
+            <li class="no"><b>No prompt text</b>: only its sha256.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="chapter" id="kept" tabindex="-1" aria-labelledby="t4">
+        <div class="words">
+          <ol class="step" aria-label="Step 5 of 6"><li></li><li></li><li></li><li></li><li aria-current="step"></li><li></li></ol>
+          <h2 id="t4">Kept on 0G Storage, anchored on 0G Chain.</h2>
+          <p class="lede">A small uploader outside Cloudflare picks up finished episodes, so the Worker never holds the storage key.</p>
+        </div>
+        <ol class="flow" aria-label="From the app to 0G">
+          <li><div class="node ours"><b>Uploader</b><p>Collects finished episodes from the app, up to 5 attempts each.</p></div></li>
+          <li><div class="node zg"><b>0G Storage</b><p>The episode JSON is uploaded. 0G returns its root hash.</p></div></li>
+          <li><div class="node zg"><b>EpisodeLog</b><p><code>record(episodeId, rootHash, requestIdsHash)</code> on 0G Chain.</p></div></li>
+        </ol>
+        <p class="note"><b>requestIdsHash</b> is <code>keccak256</code> of the 0G request ids joined with commas, so the chain also fixes which 0G decisions the episode used. Today this runs on the Galileo testnet: <code>EpisodeLog</code> is <code>0x4C947E6D…E51a206A</code>.</p>
+      </section>
+
+      <section class="chapter" id="check" tabindex="-1" aria-labelledby="t5">
+        <div class="words">
+          <ol class="step" aria-label="Step 6 of 6"><li></li><li></li><li></li><li></li><li></li><li aria-current="step"></li></ol>
+          <h2 id="t5">Anyone can check it.</h2>
+          <p class="lede">Three places, kept by different parties, have to say the same thing.</p>
+        </div>
+        <ul class="agree" aria-label="The three places">
+          <li><b>Our app</b><p><code>GET /api/evidence/:id</code>, public, and the audit page with its Verify button.</p></li>
+          <li><b>0G Chain</b><p>The <code>EpisodeLog</code> record: root hash and request id hash.</p></li>
+          <li><b>0G Storage</b><p>The file itself, downloaded with its Merkle proof.</p></li>
+        </ul>
+        <p class="equals">Same root, same bytes, same request ids. On 6 Nov all 7 episodes decided by 0G passed this check from outside.</p>
+        <p class="note"><b>One step further, the TEE.</b> On a TeeML model such as <code>glm-5.3</code>, an answer can also be checked with 0G's own SDK, which confirms it came from the provider's TEE. In our one test the signature was still there after 15 minutes and gone after 20, so this check is best run soon after the errand.</p>
+        <nav class="links" aria-label="More">
+          <a href="https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev/wallet/episodes">See the episodes</a>
+          <a class="quiet" href="/story/">The story</a>
+          <a class="quiet" href="/architecture/">Architecture</a>
+          <a class="quiet" href="https://chainscan-galileo.0g.ai/address/0x4C947E6D794C78d0F684e46EFC97f712E51a206A">EpisodeLog on 0G</a>
+        </nav>
+      </section>
+    </main>
+    <p class="hint">Space or arrow keys for the next screen</p>
+
+    <script>
+      // Stage navigation as on /story/: space / arrows / PageUp-Down jump a whole screen.
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+      const chapters = [...document.querySelectorAll('.chapter')]
+      const current = () => {
+        const middle = innerHeight / 2
+        return Math.max(0, chapters.findIndex((c) => c.getBoundingClientRect().bottom > middle))
+      }
+      const go = (index) => {
+        if (index < 0 || index >= chapters.length) return
+        const target = chapters[index]
+        target.scrollIntoView({ behavior: still ? 'auto' : 'smooth' })
+        target.focus({ preventScroll: true })
+      }
+      // A screen taller than the window (a phone) is read to its end before the jump.
+      const page = (direction) => scrollBy({ top: direction * innerHeight * 0.85, behavior: still ? 'auto' : 'smooth' })
+      addEventListener('keydown', (event) => {
+        if (event.target.closest?.('a, button, input')) return
+        if ([' ', 'ArrowDown', 'ArrowRight', 'PageDown'].includes(event.key) && !event.shiftKey) {
+          event.preventDefault()
+          const index = current()
+          if (chapters[index].getBoundingClientRect().bottom > innerHeight + 4) page(1)
+          else go(index + 1)
+        } else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(event.key) || (event.key === ' ' && event.shiftKey)) {
+          event.preventDefault()
+          const index = current()
+          if (chapters[index].getBoundingClientRect().top < -4) page(-1)
+          else go(index - 1)
+        } else if (event.key === 'Home') go(0)
+        else if (event.key === 'End') go(chapters.length - 1)
+      })
+    </script>
+  </body>
+</html>
