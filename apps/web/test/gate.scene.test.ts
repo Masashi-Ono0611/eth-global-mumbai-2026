@@ -64,11 +64,23 @@ describe('merchant page', () => {
     ],
   }
 
-  test('shows the menu with the restricted item marked for approval, and the gate link', () => {
-    const loaded = Merchant.update(Merchant.init().model, Merchant.Message.SucceededLoadCatalogue({ catalogue })).model
+  test('starts with the published menu, without fetching it', () => {
+    const start = Merchant.init()
+    vitestExpect(start.commands ?? []).toEqual([])
     scene(
       { update: Merchant.update, view },
-      given(loaded),
+      given(start.model),
+      expect(role('heading', { name: 'Duck Café', level: 1 })).toExist(),
+      expect(text('0.10 USDC')).toExist(),
+      expect(text('0.25 USDC')).toExist(),
+      expect(text('2.00 USDC')).toExist(),
+    )
+  })
+
+  test('shows the menu with the restricted item marked for approval, and the gate link', () => {
+    scene(
+      { update: Merchant.update, view },
+      given(Merchant.init(catalogue).model),
       expect(text('Duck Café')).toExist(),
       expect(text('0.50 USDC')).toExist(),
       expect(text("Restricted item: needs the owner's approval")).toExist(),

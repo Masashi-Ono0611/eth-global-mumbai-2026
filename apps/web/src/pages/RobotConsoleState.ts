@@ -31,12 +31,10 @@ export const Intent = defineTaggedUnion({
 export type Intent = typeof Intent.Type
 export const Errand = defineTaggedUnion({
   Idle: {},
-  Starting: { item: Schema.String },
   Running: {
     episodeId: Schema.String,
     maybeDetail: Schema.Option(ErrandDetail),
     maybeApprovalUrl: Schema.Option(Schema.String),
   },
-  Refused: { error: Schema.String },
 })
 export type Errand = typeof Errand.Type

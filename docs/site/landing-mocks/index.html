@@ -4,18 +4,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Vitaquack: a passkey wallet that gives your robot a budget</title>
-    <meta name="description" content="Your robot pays for small things by itself and asks you before big ones. Live on Arc mainnet with real USDC." />
+    <meta name="description" content="Your robot pays for small things by itself and asks you before big ones. Preorder the duck, built in Shenzhen and shipping in January 2027." />
     <link rel="canonical" href="https://vitaquack.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://vitaquack.com/" />
     <meta property="og:title" content="Vitaquack: a passkey wallet that gives your robot a budget" />
-    <meta property="og:description" content="Your robot pays for small things by itself and asks you before big ones. Live on Arc mainnet with real USDC." />
+    <meta property="og:description" content="Your robot pays for small things by itself and asks you before big ones. Preorder the duck, built in Shenzhen and shipping in January 2027." />
     <meta property="og:image" content="https://vitaquack.com/media/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Vitaquack: a passkey wallet that gives your robot a budget" />
-    <meta name="twitter:description" content="Your robot pays for small things by itself and asks you before big ones. Live on Arc mainnet with real USDC." />
+    <meta name="twitter:description" content="Your robot pays for small things by itself and asks you before big ones. Preorder the duck, built in Shenzhen and shipping in January 2027." />
     <meta name="twitter:image" content="https://vitaquack.com/media/og.jpg" />
     <meta name="theme-color" content="#16173a" id="theme-color" />
     <link rel="icon" href="/pitch/media/favicon.svg" type="image/svg+xml" />
@@ -228,6 +228,34 @@
       .lightbox .close { position: fixed; top: calc(1rem + env(safe-area-inset-top)); right: 1rem; }
 
 
+      /* Get your own: three kits, the duck kit first and marked. */
+      .shop, .two, .hack { padding-block: clamp(3rem, 8vh, 6rem); border-top: 1px solid var(--rule); }
+      .shop .lede { margin-top: 0.8rem; }
+      .tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1rem, 2.5vw, 2rem); margin-top: clamp(1.5rem, 4vh, 2.5rem); }
+      .tier { display: flex; flex-direction: column; gap: 0.45rem; padding: clamp(1.25rem, 2.5vw, 1.75rem); border-radius: var(--r-card); background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); }
+      .tier.pick { border-color: transparent; outline: 3px solid var(--accent); outline-offset: -3px; }
+      .tier .what { font: 600 0.95rem/1.2 var(--text); color: var(--glow); }
+      .tier .price { font: var(--display-weight) clamp(2.2rem, 4vw, 3rem)/1 var(--display); letter-spacing: var(--track); font-variant-numeric: tabular-nums; margin-top: 0.3rem; }
+      .tier .then { font: 600 0.95rem/1.3 var(--text); color: var(--muted); }
+      .tier .body { color: var(--soft); margin-top: 0.4rem; }
+      .tier .go { margin-top: auto; padding-top: 1rem; display: grid; }
+      .shop .small { margin-top: 1.25rem; color: var(--muted); font-size: 0.95rem; max-width: 46rem; }
+      @media (max-width: 48rem) { .tiers { grid-template-columns: 1fr; } }
+      /* The module and the counter, side by side. */
+      .two .wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(2rem, 5vw, 4rem); }
+      .two .panel { margin-bottom: 1.25rem; }
+      .two h2 { font-size: clamp(1.8rem, 3.4vw, 2.6rem); }
+      .two p { margin-top: 0.8rem; color: var(--soft); }
+      .two .small { color: var(--muted); font-size: 0.95rem; }
+      .two .ctas { margin-top: 1.25rem; }
+      @media (max-width: 48rem) { .two .wrap { grid-template-columns: 1fr; } }
+      /* Open source. */
+      .hack { text-align: center; }
+      .hack .words { max-width: 48rem; margin-inline: auto; }
+      .hack .lede { margin: 0.9rem auto 0; }
+      .hack .ctas { justify-content: center; }
+      .built .lede { margin-top: 0.8rem; font-weight: 400; }
+
       /* The final band and the footer. */
       .band { display: grid; align-items: center; min-height: 56svh; overflow: hidden; isolation: isolate; text-align: center; }
       [data-model='slides'] .band { min-height: 100svh; }
@@ -341,6 +369,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         <a class="brand" href="#top" aria-label="Vitaquack, top of page"><svg class="duck" aria-hidden="true"><use href="#i-duck"/></svg><svg class="robot" aria-hidden="true"><use href="#i-robot"/></svg>Vitaquack</a>
         <nav aria-label="Site">
           <a href="#how-it-works">How it works</a>
+          <a href="/pitch/shop/">Shop</a>
           <a class="cta" href="https://vitaquack.com/app/">Try the app</a>
         </nav>
       </div>
@@ -351,12 +380,11 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         <div class="media"><video muted loop playsinline preload="metadata" poster="/pitch/media/rv1.webp" data-src="/pitch/media/rv1.mp4" aria-hidden="true"></video></div>
         <div class="wrap">
           <div class="words">
-            <p class="badge in">Live on Arc mainnet, with real USDC</p>
             <h1 class="in" id="h-hero">Give your robot a budget, not your wallet.</h1>
             <p class="lede in">It pays for a chai on its own. Anything bigger, it asks you first.</p>
             <div class="ctas in">
               <a class="cta big" href="https://vitaquack.com/app/">Try the app</a>
-              <a class="quiet" href="#how-it-works">How it works</a>
+              <a class="quiet" href="#get">Get your own duck</a>
             </div>
             <p class="built in">Built on <svg class="arc" aria-label="Arc"><use href="#i-arc-word"/></svg> <svg class="zg" aria-label="0G"><use href="#i-zg"/></svg> <svg class="world" aria-label="World"><use href="#i-world"/></svg></p>
           </div>
@@ -364,7 +392,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       </section>
 
       <section class="film drift" aria-labelledby="h-key">
-        <div class="media"><video muted playsinline preload="metadata" poster="/pitch/media/f2.webp" data-src="/pitch/media/f2.mp4" data-once aria-hidden="true"></video></div>
+        <div class="media"><video muted playsinline preload="metadata" data-poster="/pitch/media/f2.webp" data-src="/pitch/media/f2.mp4" data-once aria-hidden="true"></video></div>
         <div class="wrap">
           <div class="words">
             <h2 id="h-key">Your robot's key belongs on your robot.</h2>
@@ -375,8 +403,8 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
 
       <section class="live" id="how-it-works" aria-labelledby="h-how">
         <div class="wall" aria-hidden="true">
-          <div class="row-screens"><img src="/pitch/media/app-home.webp" alt="" loading="lazy" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" /></div>
-          <div class="row-screens back"><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" /></div>
+          <div class="row-screens"><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /></div>
+          <div class="row-screens back"><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /></div>
         </div>
         <div class="wrap">
           <div class="head"><h2 id="h-how">How it works</h2></div>
@@ -406,9 +434,49 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         <div class="wrap">
           <h2 id="h-get">A budget it can't break.</h2>
           <div class="cards">
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/f4.webp" data-src="/pitch/media/f4.mp4" aria-hidden="true"></video></div><h3>You set the budget.</h3><p>3.00 USDC a day, 1.00 a go, and only at the places you pick.</p><p class="credit">Enforced on Arc</p></div>
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/rv2.webp" data-src="/pitch/media/rv2.mp4" aria-hidden="true"></video></div><h3>It shops for you.</h3><p>It decides, signs and pays, and every decision comes with a reason you can read.</p><p class="credit">Decided by 0G</p></div>
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/f6.webp" data-src="/pitch/media/f6.mp4" aria-hidden="true"></video></div><h3>It asks you for the big ones.</h3><p>Over the limit, you get a message on your phone. Say no and nothing is paid.</p><p class="credit">A real person, with World ID</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="/pitch/media/f4.webp" data-src="/pitch/media/f4.mp4" aria-hidden="true"></video></div><h3>You set the budget.</h3><p>3.00 USDC a day, 1.00 a go, and only at the places you pick.</p><p class="credit">Enforced on Arc</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="/pitch/media/rv2.webp" data-src="/pitch/media/rv2.mp4" aria-hidden="true"></video></div><h3>It shops for you.</h3><p>It decides, signs and pays, and every decision comes with a reason you can read.</p><p class="credit">Decided by 0G</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="/pitch/media/f6.webp" data-src="/pitch/media/f6.mp4" aria-hidden="true"></video></div><h3>It asks you for the big ones.</h3><p>Over the limit, you get a message on your phone. Say no and nothing is paid.</p><p class="credit">A real person, with World ID</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="shop" id="get" aria-labelledby="h-own">
+        <div class="wrap">
+          <h2 id="h-own">Get your own duck.</h2>
+          <p class="lede">The first 20 are built by hand in Shenzhen in December and ship in January.</p>
+          <div class="tiers">
+            <div class="tier pick"><p class="what">Full Kit</p><p class="price">$499</p><p class="then">For the first 20. Then $599.</p><p class="body">The walking duck with its chip, the counter it pays at, and 5 USDC to spend.</p><div class="go"><a class="cta" href="/pitch/shop/#full-kit">Preorder the duck</a></div></div>
+            <div class="tier"><p class="what">Dev Kit</p><p class="price">$99</p><p class="then">For the first 50. Then $149.</p><p class="body">The chip for a robot you already have, and a counter it can pay at.</p><div class="go"><a class="quiet" href="/pitch/shop/#dev-kit">See the Dev Kit</a></div></div>
+            <div class="tier"><p class="what">Wallet</p><p class="price">Free</p><p class="then">Today, in your browser.</p><p class="body">The wallet and the simulator duck. Give the simulator a budget and send it for a chai.</p><div class="go"><a class="quiet" href="https://vitaquack.com/app/">Try the app</a></div></div>
+          </div>
+          <p class="small">You pay in USDC on Arc, the same money your robot spends. Or reserve a kit for 50 USDC. It counts toward the price, and you get it back if you cancel before we ship.</p>
+        </div>
+      </section>
+
+      <section class="two" aria-label="The module and the counter">
+        <div class="wrap">
+          <article aria-labelledby="h-module">
+            <div class="panel"><img src="/pitch/media/build-05.webp" width="640" height="640" alt="A Radxa Zero 3W board held in a hand" loading="lazy" /></div>
+            <h2 id="h-module">Already have a robot? Give it a budget.</h2>
+            <p>The Vitaquack module is the duck's chip in its own case. It keeps your robot's key, checks every bill against the limits you set, and signs. It runs on the same board as Pollen's Microduck, a Radxa Zero 3W. If it loses its connection for 35 seconds, it stops signing until it's back.</p>
+            <div class="ctas"><a class="quiet" href="/pitch/shop/#dev-kit">See the Dev Kit</a></div>
+          </article>
+          <article aria-labelledby="h-counter">
+            <div class="panel"><img src="/pitch/media/build-07.webp" width="640" height="640" alt="The counter's small screen lit on the table" loading="lazy" /></div>
+            <h2 id="h-counter">Every robot needs somewhere to shop.</h2>
+            <p>The counter is an ESP32 with a small screen. It shows the bill as a QR code and moves its servo only when the payment comes back signed as paid. Put it by a till, on a box or on a gate.</p>
+            <p class="small">In every kit, or $39 on its own.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="hack" aria-labelledby="h-hack">
+        <div class="wrap">
+          <div class="words">
+            <h2 id="h-hack">Hack anything. The worst case is your daily cap.</h2>
+            <p class="lede">The wallet, the chip and the contracts are open source under Apache-2.0. Change the robot's brain, or write your own spending rule as a contract on Arc. Whatever you change, Arc still holds the robot to the limits you signed.</p>
+            <div class="ctas"><a class="cta" href="https://github.com/grmkris/eth-global-mumbai-2026">Read the code on GitHub</a><a class="quiet" href="https://vitaquack.com/sim/">Try the simulator</a></div>
           </div>
         </div>
       </section>
@@ -416,29 +484,21 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       <section class="built" aria-labelledby="h-built">
         <div class="wrap">
           <h2 id="h-built">Built in a weekend at ETHGlobal Mumbai.</h2>
+          <p class="lede">The next 20 are built in Shenzhen, 27 November to 19 December.</p>
           <ol class="story" aria-label="How we built it">
-              <li><figure><button type="button" data-large="/pitch/media/build-01-large.webp"><div class="pic"><img src="/pitch/media/build-01.webp" alt="The 3D printer buckled into the back seat of a car" loading="lazy" /></div><figcaption>The printer came by car.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-02-large.webp"><div class="pic"><img src="/pitch/media/build-02.webp" alt="The printer printing on the hackathon table" loading="lazy" /></div><figcaption>Printing the duck, at the table.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-03-large.webp"><div class="pic"><img src="/pitch/media/build-03.webp" alt="Printed black parts on the print bed" loading="lazy" /></div><figcaption>Parts off the bed.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-04-large.webp"><div class="pic"><img src="/pitch/media/build-04.webp" alt="Hands assembling a printed leg with its servos" loading="lazy" /></div><figcaption>Putting it together.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-05-large.webp"><div class="pic"><img src="/pitch/media/build-05.webp" alt="A Radxa Zero 3W board held in a hand" loading="lazy" /></div><figcaption>The brain: a Radxa Zero 3W.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-06-large.webp"><div class="pic"><img src="/pitch/media/build-06.webp" alt="The gate's little screen wired to its board on the table" loading="lazy" /></div><figcaption>Wiring the gate: an ESP32 and a tiny screen.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-07-large.webp"><div class="pic"><img src="/pitch/media/build-07.webp" alt="The gate's screen lit for the first time" loading="lazy" /></div><figcaption>First words on the gate's screen.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-08-large.webp"><div class="pic"><img src="/pitch/media/build-08.webp" alt="The team at the hackathon table" loading="lazy" /></div><figcaption>The team, late.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-01-large.webp"><div class="pic"><img src="/pitch/media/build-01.webp" srcset="/pitch/media/build-01-320.webp 320w, /pitch/media/build-01.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The 3D printer buckled into the back seat of a car" loading="lazy" /></div><figcaption>The printer came by car.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-02-large.webp"><div class="pic"><img src="/pitch/media/build-02.webp" srcset="/pitch/media/build-02-320.webp 320w, /pitch/media/build-02.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The printer printing on the hackathon table" loading="lazy" /></div><figcaption>Printing the duck, at the table.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-03-large.webp"><div class="pic"><img src="/pitch/media/build-03.webp" srcset="/pitch/media/build-03-320.webp 320w, /pitch/media/build-03.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="Printed black parts on the print bed" loading="lazy" /></div><figcaption>Parts off the bed.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-04-large.webp"><div class="pic"><img src="/pitch/media/build-04.webp" srcset="/pitch/media/build-04-320.webp 320w, /pitch/media/build-04.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="Hands assembling a printed leg with its servos" loading="lazy" /></div><figcaption>Putting it together.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-05-large.webp"><div class="pic"><img src="/pitch/media/build-05.webp" srcset="/pitch/media/build-05-320.webp 320w, /pitch/media/build-05.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="A Radxa Zero 3W board held in a hand" loading="lazy" /></div><figcaption>The brain: a Radxa Zero 3W.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-06-large.webp"><div class="pic"><img src="/pitch/media/build-06.webp" srcset="/pitch/media/build-06-320.webp 320w, /pitch/media/build-06.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The gate's little screen wired to its board on the table" loading="lazy" /></div><figcaption>Wiring the gate: an ESP32 and a tiny screen.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-07-large.webp"><div class="pic"><img src="/pitch/media/build-07.webp" srcset="/pitch/media/build-07-320.webp 320w, /pitch/media/build-07.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The gate's screen lit for the first time" loading="lazy" /></div><figcaption>First words on the gate's screen.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="/pitch/media/build-08-large.webp"><div class="pic"><img src="/pitch/media/build-08.webp" srcset="/pitch/media/build-08-320.webp 320w, /pitch/media/build-08.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The team at the hackathon table" loading="lazy" /></div><figcaption>The team, late.</figcaption></button></figure></li>
             </ol>
         </div>
       </section>
 
 
-      <section class="band" id="try" aria-labelledby="h-try">
-        <div class="media"><img src="/pitch/media/rv5.webp" alt="" loading="lazy" /></div>
-        <div class="wrap">
-          <div class="words">
-            <h2 id="h-try">Give your robot a budget.</h2>
-            <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/">Try the app</a><a class="quiet" href="https://vitaquack.com/plan/architecture/">Read how it's built</a></div>
-          </div>
-        </div>
-      </section>
     </main>
 
     <footer>
@@ -448,9 +508,9 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
             <a class="brand" href="#top"><svg class="duck" aria-hidden="true"><use href="#i-duck"/></svg><svg class="robot" aria-hidden="true"><use href="#i-robot"/></svg>Vitaquack</a>
             <p style="margin-top: 0.8rem; max-width: 28rem">A passkey wallet that gives robots a budget. Built on Arc, 0G and World.</p>
           </div>
-          <div><h3>Product</h3><ul><li><a href="https://vitaquack.com/app/">Try the app</a></li><li><a href="https://vitaquack.com/plan/architecture/">How it works</a></li></ul></div>
+          <div><h3>Product</h3><ul><li><a href="https://vitaquack.com/app/">Try the app</a></li><li><a href="/pitch/shop/">Shop</a></li><li><a href="https://vitaquack.com/plan/architecture/">How it works</a></li></ul></div>
           <div><h3>Built by</h3><ul><li><a href="https://x.com/_krisgg">@_krisgg</a></li><li><a href="https://x.com/corotvoid">@corotvoid</a></li><li><a href="https://x.com/Masashi_Ono0611">@Masashi_Ono0611</a></li></ul></div>
-          <div><h3>Links</h3><ul><li><a href="https://github.com/grmkris/eth-global-mumbai-2026">GitHub</a></li><li><a href="https://t.me/vitaquack_bot">Telegram bot</a></li><li><a href="https://ethglobal.com/events/mumbai">ETHGlobal Mumbai 2026</a></li></ul></div>
+          <div><h3>Links</h3><ul><li><a href="https://github.com/grmkris/eth-global-mumbai-2026">GitHub (Apache-2.0)</a></li><li><a href="https://t.me/vitaquack_bot">Telegram bot</a></li><li><a href="https://ethglobal.com/events/mumbai">ETHGlobal Mumbai 2026</a></li></ul></div>
         </div>
         <p class="fine">The duck is a modified <a href="https://github.com/apirrone/Open_Duck_Mini">Open Duck Mini</a> (Apache-2.0).</p>
       </div>
@@ -487,6 +547,17 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       // Films: the source is attached one screen ahead, played only while on screen, and detached two screens away so
       // iPhones never hold more than a few decoders. A play-once film restarts whenever its section comes back.
       const videos = [...document.querySelectorAll('video[data-src]')]
+      // Posters: only the hero's loads with the page; the others arrive one screen ahead, or all at once for visitors who
+      // never get the films (reduced motion, save-data), because the posters are all they see.
+      const lazyPosters = [...document.querySelectorAll('video[data-poster]')]
+      const showPoster = (v) => { if (!v.poster) v.poster = v.dataset.poster }
+      if (still) lazyPosters.forEach(showPoster)
+      else {
+        const posterNear = new IntersectionObserver((entries, observer) => {
+          for (const { target, isIntersecting } of entries) if (isIntersecting) { showPoster(target); observer.unobserve(target) }
+        }, { rootMargin: '150% 0px' })
+        lazyPosters.forEach((v) => posterNear.observe(v))
+      }
       if (!still) {
         const near = new IntersectionObserver((entries) => {
           for (const { target, isIntersecting } of entries) {
@@ -510,7 +581,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
 
       // The phone's bottom bar hides while the final call to action is on screen.
       const bar = document.getElementById('bar')
-      new IntersectionObserver((entries) => { for (const e of entries) bar.classList.toggle('away', e.isIntersecting) }, { threshold: 0.6 }).observe(document.querySelector('#try .cta'))
+      new IntersectionObserver((entries) => { for (const e of entries) bar.classList.toggle('away', e.isIntersecting) }, { threshold: 0.2 }).observe(document.querySelector('footer'))
 
       // How it works: three scenarios in plain words, a step per stop. 'off' = not needed this time, 'no' = refused.
       const live = document.querySelector('.live')

@@ -1,3 +1,4 @@
+import { menus } from '@ethmumbai/protocol/Catalogue'
 import type { Hex } from '@ethmumbai/protocol/Hex'
 import { Option } from 'effect'
 
@@ -21,22 +22,15 @@ export interface Merchant {
 }
 
 /**
- * The merchant catalogue is a constant (spec §3): chai 0.10, samosa 0.25 and thali 2.00, the counter item above the
- * demo grant's 1.00 per-payment cap, so it needs the owner's World approval. The demo's approval story is spending
- * limits only (6 Nov, Kris): no restricted item is sold, though `restricted` items and their separate payee still work.
+ * The catalogue is the public constant `menus` (@ethmumbai/protocol/Catalogue, spec §3), which the web's counter page
+ * also renders. The server adds what only it decides: every listed merchant is known, and a restricted item pays the
+ * restricted payee, every other item the merchant's own.
  */
-export const merchants: ReadonlyArray<Merchant> = [
-  {
-    id: 'duck-cafe',
-    name: 'Duck Café',
-    trust: 'known',
-    items: [
-      { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false, payee: 'merchant' },
-      { itemId: 'samosa', name: 'Samosa', amount: '250000', restricted: false, payee: 'merchant' },
-      { itemId: 'thali', name: 'Thali', amount: '2000000', restricted: false, payee: 'merchant' },
-    ],
-  },
-]
+export const merchants: ReadonlyArray<Merchant> = menus.map((menu) => ({
+  ...menu,
+  trust: 'known',
+  items: menu.items.map((item) => ({ ...item, payee: item.restricted ? 'restricted' : 'merchant' })),
+}))
 
 export const findMerchant = (merchantId: string) =>
   Option.fromNullishOr(merchants.find((merchant) => merchant.id === merchantId))

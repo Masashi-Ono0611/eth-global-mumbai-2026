@@ -10,6 +10,7 @@ const assets = (seen: Request[] = []) => ({
     seen.push(request)
     const path = new URL(request.url).pathname
     if (path === '/landing/') return new Response('<h1>Vitaquack</h1>', { headers: { 'content-type': 'text/html' } })
+    if (path === '/landing/shop/') return new Response('<h1>Shop</h1>', { headers: { 'content-type': 'text/html' } })
     if (path !== '/media/f2.mp4') return new Response('not found', { status: 404 })
     return new Response(film, { headers: { 'content-type': 'video/mp4', etag: '"f2"' } })
   },
@@ -19,6 +20,18 @@ const refuse = {
   fetch: async () => {
     throw new Error('Unexpected request')
   },
+}
+
+/** The website Worker, recording the method and path of everything the edge forwards to it. */
+const recordingWebsite = () => {
+  const paths: string[] = []
+  const website = {
+    fetch: async (request: Request) => {
+      paths.push(`${request.method} ${new URL(request.url).pathname}`)
+      return new Response('website')
+    },
+  }
+  return { paths, website }
 }
 
 const get = (headers: Record<string, string> = {}, method = 'GET') =>
@@ -52,13 +65,7 @@ describe('the landing through the edge', () => {
     })
     expect(redirect.status).toBe(301)
     expect(redirect.headers.get('location')).toBe('https://vitaquack.com/')
-    const paths: string[] = []
-    const website = {
-      fetch: async (request: Request) => {
-        paths.push(`${request.method} ${new URL(request.url).pathname}`)
-        return new Response('website')
-      },
-    }
+    const { paths, website } = recordingWebsite()
     await edge.fetch(new Request('https://vitaquack.com/', { method: 'POST' }), {
       API: refuse,
       WEBSITE: website,
@@ -71,6 +78,27 @@ describe('the landing through the edge', () => {
       ASSETS: refuse,
     })
     expect(paths).toEqual(['POST /', 'GET /app', 'GET /app/wallet/approvals/a1'])
+  })
+
+  test('answers GET /shop/ with the shop asset, sends /shop to /shop/ and leaves writes to the website', async () => {
+    const seen: Request[] = []
+    const env = { API: refuse, WEBSITE: refuse, ASSETS: assets(seen) }
+    const shop = await edge.fetch(
+      new Request('https://vitaquack.com/shop/', { headers: { 'if-none-match': '"s"' } }),
+      env,
+    )
+    expect(shop.status).toBe(200)
+    expect(await shop.text()).toBe('<h1>Shop</h1>')
+    expect(seen.map((asked) => [new URL(asked.url).pathname, asked.headers.get('if-none-match')])).toEqual([
+      ['/landing/shop/', '"s"'],
+    ])
+    const bare = await edge.fetch(new Request('https://vitaquack.com/shop'), env)
+    expect(bare.status).toBe(301)
+    expect(bare.headers.get('location')).toBe('https://vitaquack.com/shop/')
+    const { paths, website } = recordingWebsite()
+    await edge.fetch(new Request('https://vitaquack.com/shop/', { method: 'POST' }), { ...env, WEBSITE: website })
+    await edge.fetch(new Request('https://vitaquack.com/shops'), { ...env, WEBSITE: website })
+    expect(paths).toEqual(['POST /shop/', 'GET /shops'])
   })
 
   test.each([
@@ -101,6 +129,7 @@ describe('the landing through the edge', () => {
     const response = await serveMedia(get(), assets())
     expect(response.status).toBe(200)
     expect(response.headers.get('accept-ranges')).toBe('bytes')
+    expect(response.headers.get('cache-control')).toBe('public, max-age=86400, stale-while-revalidate=604800')
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(film)
   })
 

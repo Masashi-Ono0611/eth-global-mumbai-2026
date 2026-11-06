@@ -76,12 +76,32 @@ const indexer = new Indexer(config.indexer)
 
 const evidence = makeEvidenceApi(config.server, config.token)
 
+/**
+ * How long one 0G Storage upload may take. The SDK waits without end for the storage node to see its flow tx, and a
+ * reverted tx never appears (6 Nov 23:46 IST: a frame's submission ran out of gas and the uploader waited 2 h). The
+ * SDK's wait cannot be cancelled, so past this the process exits and systemd starts a fresh one; the Worker hands the
+ * unfinished claim out again after 5 minutes.
+ */
+const UPLOAD_TIMEOUT_MS = 4 * 60 * 1000
+
+const uploadOrExit = async (data: MemData) => {
+  const timer = setTimeout(() => {
+    console.error(`0G Storage upload did not finish in ${UPLOAD_TIMEOUT_MS / 1000} s, exiting for a restart`)
+    process.exit(3)
+  }, UPLOAD_TIMEOUT_MS)
+  try {
+    return await indexer.upload(data, config.rpc, signer)
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** Bytes to 0G Storage; the storage SDK returns the Merkle root and the flow submission tx. */
 const store = async (bytes: Uint8Array) => {
   const data = new MemData(bytes)
   const [, treeError] = await data.merkleTree()
   if (treeError !== null) throw new Error(`merkle tree: ${treeError.message}`)
-  const [result, uploadError] = await indexer.upload(data, config.rpc, signer)
+  const [result, uploadError] = await uploadOrExit(data)
   if (uploadError !== null) throw new Error(`0G Storage upload: ${uploadError.message}`)
   const stored =
     'rootHash' in result

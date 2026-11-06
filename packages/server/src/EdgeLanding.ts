@@ -18,9 +18,29 @@ export const isMediaPath = (path: string): boolean => path.startsWith('/media/')
 
 const readable = (method: string) => method === 'GET' || method === 'HEAD'
 
+/**
+ * The shop (docs/site/pitch/shop) is the asset `/landing/shop/`, answered at `/shop/`. Its files are `../media/<name>`
+ * and its home link `../`, so it lives at the slash address and `/shop` is sent there.
+ */
+const SHOP_ASSET = '/landing/shop/'
+
+/** `/shop` and `/shop/`: the shop's two addresses (the first only redirects). */
+export const isShopPath = (path: string): boolean => path === '/shop' || path === '/shop/'
+
+const fromAssets = (request: Request, assets: FetchService, path: string): Promise<Response> =>
+  assets.fetch(new Request(new URL(path, request.url), { method: request.method, headers: request.headers }))
+
 /** `GET /` and `HEAD /`: the landing asset, with the caller's conditional headers (so a revalidation can be a 304). */
 export const serveLanding = (request: Request, assets: FetchService): Promise<Response> =>
-  assets.fetch(new Request(new URL(LANDING_ASSET, request.url), { method: request.method, headers: request.headers }))
+  fromAssets(request, assets, LANDING_ASSET)
+
+/** `GET /shop/` (and HEAD): the shop asset, conditional headers kept; `/shop` is a 301 to `/shop/`. */
+export const serveShop = (request: Request, assets: FetchService): Promise<Response> =>
+  new URL(request.url).pathname === '/shop'
+    ? Promise.resolve(
+        new Response(null, { status: 301, headers: { location: new URL('/shop/', request.url).toString() } }),
+      )
+    : fromAssets(request, assets, SHOP_ASSET)
 
 /** The landing's asset path is not an address of its own: 301 to `/`. */
 export const landingHome = (request: Request): Response =>
@@ -55,7 +75,9 @@ export const serveMedia = async (request: Request, assets: FetchService): Promis
   if (!asset.ok) return asset
   const headers = new Headers(asset.headers)
   headers.set('accept-ranges', 'bytes')
-  headers.set('cache-control', 'public, max-age=3600')
+  // A day fresh, then served from cache while it revalidates for a week: the films and photos keep their names, so a
+  // replaced file shows up within a day, and a returning visitor never waits on a revalidation.
+  headers.set('cache-control', 'public, max-age=86400, stale-while-revalidate=604800')
   const body = (content: BodyInit | null) => (request.method === 'HEAD' ? null : content)
   const header = request.headers.get('range')
   if (header === null) return new Response(body(asset.body), { status: 200, headers })

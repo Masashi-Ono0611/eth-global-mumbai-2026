@@ -32,8 +32,8 @@ export const seedRobot = async (url: string, accountId: string) => {
 const signingStep = (page: Page) => page.getByRole('status').filter({ hasText: 'My chip is signing the payment...' })
 
 /**
- * The robot conversation in a real browser (spec §6, M7): "Buy Chai" runs the 0G decision (stub) and queues the chip's sign
- * request; after a reload the console restores the robot's latest errand from /api/wallet/activity and keeps polling
+ * The robot conversation in a real browser (spec §6, M7): an errand for chai runs the 0G decision (stub) and queues the
+ * chip's sign request; the open page follows it, and after a reload the console restores the robot's latest errand from /api/wallet/activity and keeps polling
  * it (the chip never answers here, so the errand stays live in `signing`).
  */
 export const registerConsoleAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>, zeroG: ZeroGStub) =>
@@ -63,15 +63,19 @@ export const registerConsoleAcceptance = (test: TestApi['test'], stack: Effect.E
           if (!Schema.is(Session)(body)) throw new Error('no session after the browser signup')
           const robotId = await seedRobot(url, body.accountId)
 
+          // The errand starts as the robot's own call would start it (the page has no pay-now button since 7 Nov);
+          // the conversation finds it in the robot's activity and follows it.
+          const started = await context.request.post(new URL(`/api/robots/${robotId}/errands`, appUrl).toString(), {
+            data: { item: 'chai' },
+            headers: { origin: new URL(appUrl).origin },
+          })
+          expect(started.status()).toBe(201)
           await page.goto(new URL(`/app/robot/${robotId}`, appUrl).toString(), { waitUntil: 'networkidle' })
-          // A real robot fetches from the item row; paying its counter directly sits in the fold below it.
-          await page.getByText('Pay the counter directly').click()
-          await page.getByRole('button', { name: 'Buy Chai for 0.10 USDC' }).click()
           // 0G's reason is quoted verbatim under the decision; a 0G provider is labelled 0G, not the rehearsal brain.
           await page.getByText('chai is allowlisted and within budget').waitFor({ timeout: 30_000 })
           expect(await page.getByText('0G decided: buy it').count()).toBe(1)
           await signingStep(page).waitFor()
-          expect(await page.getByRole('button', { name: 'Buy Chai for 0.10 USDC' }).isDisabled()).toBe(true)
+          expect(await page.getByRole('button', { name: 'Get me a chai' }).isDisabled()).toBe(true)
 
           const polls: Array<string> = []
           page.on('request', (request) => {

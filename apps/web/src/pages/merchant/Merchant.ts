@@ -1,4 +1,5 @@
 import { format, type Locale } from '@ethmumbai/i18n'
+import { duckCafe } from '@ethmumbai/protocol/Catalogue'
 import { Effect, Schema } from 'effect'
 import type * as HttpClient from 'effect/http/HttpClient'
 import { Command, Submodel, type Update } from 'foldkit'
@@ -6,16 +7,13 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
-import { getJson } from '../../api/Http.ts'
 import { usdc } from '../../api/Wallet.ts'
 import { gateRouter } from '../../route.ts'
-import { failedView } from '../Shared.ts'
 import { createInvoice, MerchantInvoice } from '../gate/GateApi.ts'
 
 // `/merchant`: Duck Café's counter: its menu, an invoice for any item on request (what the robot or a person pays
-// through x402), and the way to the gate screen.
-
-const MERCHANT_ID = 'duck-cafe'
+// through x402), and the way to the gate screen. The menu is the public constant catalogue, so the page starts with it
+// and the server's render already shows it (no loading state, nothing moves when it arrives).
 
 const MerchantCatalogue = Schema.Struct({
   merchantId: Schema.String,
@@ -28,47 +26,31 @@ type MerchantCatalogue = typeof MerchantCatalogue.Type
 
 // MODEL
 
-const MerchantState = defineTaggedUnion({
-  Loading: {},
-  Loaded: { catalogue: MerchantCatalogue },
-  Failed: { error: Schema.String },
-})
 const InvoiceState = defineTaggedUnion({
   NoInvoice: {},
   Creating: { itemId: Schema.String },
   Created: { invoice: MerchantInvoice },
   Refused: { error: Schema.String },
 })
-export const Model = Schema.Struct({ state: MerchantState, invoice: InvoiceState })
+export const Model = Schema.Struct({ catalogue: MerchantCatalogue, invoice: InvoiceState })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
 export const Message = defineMessageUnion({
-  SucceededLoadCatalogue: { catalogue: MerchantCatalogue },
-  FailedLoadCatalogue: { error: Schema.String },
   ClickedCreateInvoice: { itemId: Schema.String },
   SucceededCreateInvoice: { invoice: MerchantInvoice },
   FailedCreateInvoice: { error: Schema.String },
-  ClickedReload: {},
 })
 export type Message = typeof Message.Type
 
 // COMMAND
 
-const LoadCatalogue = Command.define('LoadCatalogue', {
-  messages: [Message.SucceededLoadCatalogue, Message.FailedLoadCatalogue],
-  execute: getJson(`/api/merchants/${MERCHANT_ID}/items`, MerchantCatalogue).pipe(
-    Effect.map((catalogue) => Message.SucceededLoadCatalogue({ catalogue })),
-    Effect.catch((failure) => Effect.succeed(Message.FailedLoadCatalogue({ error: failure.error }))),
-  ),
-})
-
 const CreateInvoice = Command.define('CreateInvoice', {
-  args: { itemId: Schema.String },
+  args: { merchantId: Schema.String, itemId: Schema.String },
   messages: [Message.SucceededCreateInvoice, Message.FailedCreateInvoice],
-  execute: ({ itemId }) =>
-    createInvoice(MERCHANT_ID, itemId).pipe(
+  execute: ({ merchantId, itemId }) =>
+    createInvoice(merchantId, itemId).pipe(
       Effect.map((invoice) => Message.SucceededCreateInvoice({ invoice })),
       Effect.catch((failure) => Effect.succeed(Message.FailedCreateInvoice({ error: failure.error }))),
     ),
@@ -78,37 +60,28 @@ const CreateInvoice = Command.define('CreateInvoice', {
 
 type UpdateReturn = Update.Return<Model, Message, HttpClient.HttpClient>
 
-export const init = (): UpdateReturn => ({
-  model: { state: MerchantState.Loading(), invoice: InvoiceState.NoInvoice() },
-  commands: [LoadCatalogue()],
+const duckCafeCatalogue: MerchantCatalogue = { merchantId: duckCafe.id, name: duckCafe.name, items: duckCafe.items }
+
+export const init = (catalogue: MerchantCatalogue = duckCafeCatalogue): UpdateReturn => ({
+  model: { catalogue, invoice: InvoiceState.NoInvoice() },
 })
 
 // UPDATE
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SucceededLoadCatalogue: ({ catalogue }) => ({
-      model: modifyFields(model, { state: () => MerchantState.Loaded({ catalogue }) }),
-    }),
-    FailedLoadCatalogue: ({ error }) => ({
-      model: modifyFields(model, { state: () => MerchantState.Failed({ error }) }),
-    }),
     ClickedCreateInvoice: ({ itemId }) =>
       InvoiceState.guards.Creating(model.invoice)
         ? { model }
         : {
             model: modifyFields(model, { invoice: () => InvoiceState.Creating({ itemId }) }),
-            commands: [CreateInvoice({ itemId })],
+            commands: [CreateInvoice({ merchantId: model.catalogue.merchantId, itemId })],
           },
     SucceededCreateInvoice: ({ invoice }) => ({
       model: modifyFields(model, { invoice: () => InvoiceState.Created({ invoice }) }),
     }),
     FailedCreateInvoice: ({ error }) => ({
       model: modifyFields(model, { invoice: () => InvoiceState.Refused({ error }) }),
-    }),
-    ClickedReload: () => ({
-      model: modifyFields(model, { state: () => MerchantState.Loading() }),
-      commands: [LoadCatalogue()],
     }),
   })
 
@@ -172,21 +145,17 @@ const invoiceArea = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Htm
 export const view = Submodel.defineView<Model, Message, { readonly locale: Locale }>((model, { locale }, h) =>
   h.main(
     [h.Id('main'), h.Class('merchant-page')],
-    MerchantState.match(model.state, {
-      Loading: () => [h.p([h.Role('status')], [format(locale, 'common.loading', {})])],
-      Failed: ({ error }) => [failedView(error, Message.ClickedReload(), locale, h)],
-      Loaded: ({ catalogue }) => [
-        h.h1([], [format(locale, 'merchant.title', { name: catalogue.name })]),
-        h.ul(
-          [h.Class('menu')],
-          catalogue.items.map((item) => itemRow(item, InvoiceState.guards.Creating(model.invoice), locale, h)),
-        ),
-        invoiceArea(model, locale, h),
-        h.a(
-          [h.Href(gateRouter({ merchantId: catalogue.merchantId })), h.Class('primary-action')],
-          [format(locale, 'merchant.openGate', {})],
-        ),
-      ],
-    }),
+    [
+      h.h1([], [format(locale, 'merchant.title', { name: model.catalogue.name })]),
+      h.ul(
+        [h.Class('menu')],
+        model.catalogue.items.map((item) => itemRow(item, InvoiceState.guards.Creating(model.invoice), locale, h)),
+      ),
+      invoiceArea(model, locale, h),
+      h.a(
+        [h.Href(gateRouter({ merchantId: model.catalogue.merchantId })), h.Class('primary-action')],
+        [format(locale, 'merchant.openGate', {})],
+      ),
+    ],
   ),
 )

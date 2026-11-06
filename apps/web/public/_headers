@@ -1,0 +1,16 @@
+# Workers static assets read this file from the asset directory's root (apps/web/dist/client, where Vite copies
+# public/). Rules apply only to files the asset layer answers; /media/* runs through the edge first and sets its own.
+#
+# Every page change in the app is a full document load (Navigation.load and the cross-document crossfade), so with
+# the platform default (max-age=0, must-revalidate) each tap revalidated the CSS, the JS and the fonts before the
+# page could render. Bundles are content-hashed by Vite: a new build means a new URL, so they never change in place.
+/app/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The simulator's bundle (apps/sim, ~25 MB of wasm), content-hashed the same way; /sim/index.html stays revalidated.
+/sim/bundle/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The fonts keep fixed names, so a week rather than forever.
+/app/fonts/*
+  Cache-Control: public, max-age=604800

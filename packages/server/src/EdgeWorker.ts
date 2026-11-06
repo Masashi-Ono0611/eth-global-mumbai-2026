@@ -1,4 +1,12 @@
-import { isLandingAssetPath, isMediaPath, landingHome, serveLanding, serveMedia } from './EdgeLanding.ts'
+import {
+  isLandingAssetPath,
+  isMediaPath,
+  isShopPath,
+  landingHome,
+  serveLanding,
+  serveMedia,
+  serveShop,
+} from './EdgeLanding.ts'
 
 type FetchService = {
   readonly fetch: (request: Request) => Promise<Response>
@@ -20,15 +28,17 @@ export const isApiPath = (path: string): boolean =>
  * callers cannot choose log labels or smuggle payloads through correlation IDs.
  * Request bodies and responses keep their native streaming semantics.
  * Files of the build (the app's under /app, the simulator under /sim) never reach this Worker: the asset layer answers
- * them first. The landing is the edge's (EdgeLanding.ts): `GET /` is its asset, `/media/*` its files with byte ranges,
+ * them first. The landing is the edge's (EdgeLanding.ts): `GET /` is its asset, `GET /shop/` the shop's, `/media/*`
+ * their files with byte ranges,
  * and its asset path redirects to `/`. Every other path goes to the API or the website with its full URL. */
 export default {
   fetch(request: Request, env: EdgeEnvironment): Promise<Response> {
     const path = new URL(request.url).pathname
     if (isMediaPath(path)) return serveMedia(request, env.ASSETS)
     if (isLandingAssetPath(path)) return Promise.resolve(landingHome(request))
-    if (path === '/' && (request.method === 'GET' || request.method === 'HEAD'))
-      return serveLanding(request, env.ASSETS)
+    const readable = request.method === 'GET' || request.method === 'HEAD'
+    if (path === '/' && readable) return serveLanding(request, env.ASSETS)
+    if (isShopPath(path) && readable) return serveShop(request, env.ASSETS)
     const headers = new Headers(request.headers)
     for (const name of request.headers.keys()) {
       if (name.startsWith('x-app-')) headers.delete(name)

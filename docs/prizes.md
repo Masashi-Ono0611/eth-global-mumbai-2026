@@ -35,7 +35,7 @@ testnet only; ask at the booth whether that is acceptable), our ERC-7710 x402 fa
 - A real safe-stop: a failed 0G call ends the errand in `safe_stop`; never a faked decision
 - Live demo at the 0G booth; video under 3 minutes
 
-Booth question: may Storage and `EpisodeLog` run on Galileo testnet. Credits: we have them.
+Galileo testnet is fine for Storage and `EpisodeLog`: the 0G judges confirmed it (Kris, 7 Nov). Credits: we have them.
 
 ## World — World ID Agent Pass ($5k: $2.5k / $1.5k / $1k)
 
