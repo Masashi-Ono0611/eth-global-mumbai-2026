@@ -165,10 +165,7 @@ const uploadOne = async (episode: Pending) => {
   } catch (error) {
     const reason = errorText(error)
     console.error(`episode ${episode.episodeId} failed: ${reason}`)
-    await api(`/api/evidence/${episode.episodeId}/failed`, {
-      method: 'POST',
-      body: JSON.stringify({ error: reason }),
-    }).catch(() => undefined)
+    await api(`/api/evidence/${episode.episodeId}/failed`, { error: reason }).catch(() => undefined)
     return false
   }
 }
