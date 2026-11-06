@@ -234,7 +234,8 @@
     "dockReady": "Send {name} for something",
     "dockBusy": "{name} is on an errand. The buttons come back when it ends.",
     "dockNoAllowance": "{name} has no allowance yet, so it can't buy anything.",
-    "specificQr": "Pay the counter directly",
+    "specificQr": "Pay a specific QR code",
+    "payDirectly": "Pay the counter directly",
     "records": "All of {name}'s errands, with their proof",
     "dockStopped": "{name}'s allowance is stopped. Send it anyway and Arc refuses the payment on-chain.",
     "instructionFor": "Get me a {item}",
@@ -258,6 +259,7 @@
     "leftOf": "of {daily} today",
     "waitingScan": "Waiting for {name} to scan the QR code at the counter.",
     "askChip": "Get me a {item}",
+    "askChipLabel": "{restricted, select, yes {Get me a {item}, asks you first} other {Get me a {item}, {amount} USDC}}",
     "buyRowHint": "Its open invoice, now:",
     "liveAlt": "What {name} sees right now",
     "liveSeen": "Live from {name}'s camera · {seconds, plural, =0 {just now} one {# second ago} other {# seconds ago}}"

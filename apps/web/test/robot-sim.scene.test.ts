@@ -57,6 +57,17 @@ describe('/robot/:id, a simulator robot', () => {
     createdAt: 1,
   })
 
+  test("a simulator's one row buys; its fold is only the exact-QR field, not a second row of chips", () => {
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([], simRobot)),
+      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toExist(),
+      expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).not.toExist(),
+      expect(text('Pay a specific QR code')).toExist(),
+      expect(text('Pay the counter directly')).not.toExist(),
+    )
+  })
+
   test('a Buy chip sends the owner an intent; the duck says what it does and walks; Open simulator links it', () => {
     scene(
       { update: RobotConsole.update, view },

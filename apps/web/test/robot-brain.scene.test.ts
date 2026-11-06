@@ -34,7 +34,7 @@ describe('/robot/:id, the brain for the next message', () => {
       // Back to the TEE brain: the next message names it explicitly.
       click(role('radio', { name: 'glm-5.3 · TEE' })),
       focused,
-      click(role('button', { name: 'Get me a samosa' })),
+      click(role('button', { name: 'Get me a samosa, 0.25 USDC' })),
       Command.expectExact(
         RobotConsole.SendIntent({ robotId, instruction: 'Get me a samosa', item: 'samosa', model: 'glm-5.3' }),
       ),

@@ -234,7 +234,8 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.dockReady': 'Send {name} for something',
   'thread.dockBusy': '{name} is on an errand. The buttons come back when it ends.',
   'thread.dockNoAllowance': "{name} has no allowance yet, so it can't buy anything.",
-  'thread.specificQr': 'Pay the counter directly',
+  'thread.specificQr': 'Pay a specific QR code',
+  'thread.payDirectly': 'Pay the counter directly',
   'thread.records': "All of {name}'s errands, with their proof",
   'thread.dockStopped': "{name}'s allowance is stopped. Send it anyway and Arc refuses the payment on-chain.",
   'thread.instructionFor': 'Get me a {item}',
@@ -260,6 +261,8 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.leftOf': 'of {daily} today',
   'thread.waitingScan': 'Waiting for {name} to scan the QR code at the counter.',
   'thread.askChip': 'Get me a {item}',
+  'thread.askChipLabel':
+    '{restricted, select, yes {Get me a {item}, asks you first} other {Get me a {item}, {amount} USDC}}',
   'thread.buyRowHint': 'Its open invoice, now:',
   'thread.liveAlt': 'What {name} sees right now',
   'thread.liveSeen':

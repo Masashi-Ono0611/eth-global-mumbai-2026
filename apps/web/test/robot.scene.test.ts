@@ -362,7 +362,10 @@ describe('/robot/:id', () => {
       { update: RobotConsole.update, view },
       given(loadedConsole()),
       expect(role('link', { name: 'Open simulator' })).not.toExist(),
-      click(role('button', { name: 'Get me a chai' })),
+      // One row: a real robot fetches; its name carries the price. Paying the counter at once is in the fold.
+      expect(text('Pay the counter directly')).toExist(),
+      expect(role('button', { name: 'Buy Chai for 0.10 USDC' })).toExist(),
+      click(role('button', { name: 'Get me a chai, 0.10 USDC' })),
       Command.expectExact(
         RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai', model: null }),
       ),

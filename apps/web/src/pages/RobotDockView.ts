@@ -30,19 +30,19 @@ const brainLabelClassName = 'pr-0.5 text-[0.78rem] text-muted'
 const brainGroupClassName = 'flex flex-wrap gap-0.5'
 // Small and quiet: the TEE brain is the default, the other one a tap away. Not duck yellow (that means "needs you").
 const brainOptionClassName =
-  'inline-flex min-h-9 cursor-pointer items-center rounded-full px-2.5 text-[0.78rem] font-medium text-muted transition-[transform,background-color,color] active:scale-[0.96] data-[checked]:bg-surface data-[checked]:font-semibold data-[checked]:text-ink data-[checked]:shadow-[0_1px_2px_rgb(31_45_54/0.08)]'
+  'inline-flex min-h-11 cursor-pointer items-center rounded-full px-2.5 text-[0.78rem] font-medium text-muted transition-[transform,background-color,color] active:scale-[0.96] data-[checked]:bg-surface data-[checked]:font-semibold data-[checked]:text-ink data-[checked]:shadow-[0_1px_2px_rgb(31_45_54/0.08)]'
 const bottomRowClassName = 'grid gap-0.5'
 
 // VIEW
 
 /** Paying the counter directly, folded away: for a real robot its open invoice now (`payNow`), and for any robot one
  *  exact invoice by the gate's payment link or its 26-character id (empty = the counter's open invoice). */
-const invoiceDetails = (model: Model, payNow: Html, locale: Locale, h: HtmlBuilder<Message>): Html => {
+const invoiceDetails = (model: Model, sim: boolean, payNow: Html, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const invoiceInvalid = model.invoiceInput.trim().length > 0 && invoiceIdFrom(model.invoiceInput) === null
   return h.details(
     [h.Class(detailsClassName)],
     [
-      h.summary([], [format(locale, 'thread.specificQr', {})]),
+      h.summary([], [format(locale, sim ? 'thread.specificQr' : 'thread.payDirectly', {})]),
       payNow,
       h.label([h.For('gate-invoice')], [format(locale, 'console.gateInvoice', {})]),
       h.input([
@@ -138,7 +138,11 @@ const itemChips = (
           h.AriaDescribedBy('dock-hint'),
           h.AriaLabel(
             fetch
-              ? format(locale, 'thread.askChip', { item: item.name.toLowerCase() })
+              ? format(locale, 'thread.askChipLabel', {
+                  item: item.name.toLowerCase(),
+                  amount: usdc(item.amount),
+                  restricted: item.restricted ? 'yes' : 'no',
+                })
               : format(locale, 'thread.buyChip', { item: item.name, amount: usdc(item.amount) }),
           ),
           h.OnClick(
@@ -242,6 +246,7 @@ export const dock = (
         [
           invoiceDetails(
             model,
+            sim,
             sim
               ? h.empty
               : h.div(
