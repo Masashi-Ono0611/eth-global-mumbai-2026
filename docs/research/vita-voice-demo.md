@@ -6,8 +6,8 @@ the measurements and the GPT-Live comparison are in `voice-gpt-live.md`. Code: `
 
 This is a talking demo only: Vita does not start real errands or pay from here. The voice inside the app (issue #5:
 the owner talks to the robot in its conversation, a spoken buy starts the real errand, Vita speaks 0G's decision) is
-being built separately: its server route is behind `APP_VOICE_ENABLED` (off by default) and the conversation page does
-not have the button yet.
+built separately (PR #6): its routes have no flag (Kris, 7 Nov) and answer once the `APP_ZG_*` bindings are set, and
+the conversation page has the hold-to-talk mic on its Get me row.
 
 ## 1. Before you demo (5 minutes)
 

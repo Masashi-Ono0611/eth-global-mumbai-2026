@@ -17,7 +17,6 @@ const configured = {
   GATE_ED25519_SEED: 'c'.repeat(64),
   EVIDENCE_TOKEN: 'evidence-token-0123456789',
   SCANS_ENABLED: 'true',
-  VOICE_ENABLED: 'true',
   LIVE_ENABLED: 'true',
   TELEGRAM_BOT_TOKEN: `12345678:${'k'.repeat(35)}`,
   TELEGRAM_WEBHOOK_SECRET: 'webhook-secret-0123456789',
@@ -57,10 +56,9 @@ test('scans are on only for the exact string `true`', () => {
   expect(features({ ...configured, SCANS_ENABLED: '1' }).scans).toBe(false)
 })
 
-test('voice is on only for the exact string `true`', () => {
-  expect(features({ ...configured, VOICE_ENABLED: 'pending' })).toMatchObject({ voice: false, scans: true })
-  expect(features({ ...configured, VOICE_ENABLED: 'TRUE' }).voice).toBe(false)
-  expect(features({ ...configured, VOICE_ENABLED: '1' }).voice).toBe(false)
+test('voice has no flag: it follows the 0G router binding', () => {
+  expect(features(configured)).toMatchObject({ zg: true, voice: true })
+  expect(features({ ...configured, ZG_API_KEY: 'pending' })).toMatchObject({ zg: false, voice: false, scans: true })
 })
 
 test('the live view is on only for the exact string `true`', () => {

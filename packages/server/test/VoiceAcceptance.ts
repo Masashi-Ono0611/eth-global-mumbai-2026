@@ -11,9 +11,9 @@ import { postTo, STUB_SPEECH, TEST_ZG_API_KEY, type ZeroGStub } from './RobotAcc
 import { scanErrand, seedScanningRobot } from './ScanAcceptance.ts'
 import { BOSS, SNACKS } from '../src/robot/VoiceLines.ts'
 
-// Vita's voice (`POST /api/robots/:robotId/voice`, `…/voice/say`, behind VOICE_ENABLED) against the 0G stand-in: the
-// omni model's JSON drives the turn, a `buy` turn creates the same intent a Buy chip does, the robot's scan then runs
-// 0G's decide, and Vita's line about it comes from the typed state. VOICE_ENABLED is on only after the restart test.
+// Vita's voice (`POST /api/robots/:robotId/voice`, `…/voice/say`; no flag, mounted whenever the Worker runs) against the
+// 0G stand-in: the omni model's JSON drives the turn, a `buy` turn creates the same intent a Buy chip does, the robot's
+// scan then runs 0G's decide, and Vita's line about it comes from the typed state.
 
 type Urls = { readonly appUrl: string; readonly url: string; readonly apiUrl: string }
 
@@ -118,19 +118,19 @@ const approvalBeat = (urls: Urls, me: Owner, robot: ScanningRobot, stub: ZeroGSt
     stub.setSpeech(true)
   })
 
-export const registerVoiceOffAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
+export const registerVoiceOnByDefaultAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
   test(
-    'voice: while VOICE_ENABLED is pending the voice routes do not exist (404) and health reports voice off',
+    'voice: with no flag the voice routes exist before the restart (refused without Origin, not 404) and health reports voice on',
     Effect.gen(function* () {
       const { apiUrl } = yield* stack
       for (const path of ['voice', 'voice/say']) {
         const response = yield* HttpClient.post(`${apiUrl}/api/robots/${randomId()}/${path}`, {
           body: HttpBody.text('{}', 'application/json'),
         })
-        expect(response.status).toBe(404)
+        expect(response.status).toBe(403)
       }
       const health = yield* (yield* HttpClient.get(`${apiUrl}/api/health`)).json
-      expect(health).toMatchObject({ features: { voice: false } })
+      expect(health).toMatchObject({ features: { scans: false, voice: true } })
     }).pipe(Effect.provide(freshConnections)),
     { timeout: 60000 },
   )

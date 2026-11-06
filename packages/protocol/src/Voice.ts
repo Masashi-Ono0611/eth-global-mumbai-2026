@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 import { Id } from './Base32.ts'
 import { IntentView } from './Intent.ts'
 
-// Vita's voice in the robot conversation (behind APP_VOICE_ENABLED). The owner holds to talk; the Worker sends the clip
+// Vita's voice in the robot conversation (no flag; on whenever 0G is configured). The owner holds to talk; the Worker sends the clip
 // to the 0G Router's omni model, which only says what it heard and what kind of turn it is. The voice never decides a
 // purchase: a `buy` turn creates the same errand intent as a Buy chip, and 0G's `decide` stays the only decision.
 // Everything Vita says about an errand is built by code from the intent's real state, never by the voice model.

@@ -13,23 +13,26 @@ const longer = (length: number) => (value: unknown) => set(value) && value.lengt
 /** Scan-initiated errands (`SCANS_ENABLED`): on only for the exact string `true`; `pending` or anything else is off. */
 export const scansEnabled = (env: Bindings) => env.SCANS_ENABLED === 'true'
 
-/** Vita's voice in the conversation (`VOICE_ENABLED`): on only for the exact string `true`, like scans. */
-export const voiceEnabled = (env: Bindings) => env.VOICE_ENABLED === 'true'
 /** The robot's live camera view (`LIVE_ENABLED`): on only for the exact string `true`, like scans. */
 export const liveEnabled = (env: Bindings) => env.LIVE_ENABLED === 'true'
+
+/** The 0G router (`ZG_BASE_URL`, `ZG_API_KEY`, `ZG_MODEL`): decisions, and Vita's voice, which has no flag of its own. */
+const zeroG = (env: Bindings) =>
+  shaped(/^https?:\/\/\S+$/)(env.ZG_BASE_URL) && longer(8)(env.ZG_API_KEY) && set(env.ZG_MODEL)
 
 export const features = (env: Bindings) => ({
   arc: https(env.ARC_RPC_URL),
   relayer: key(env.RELAYER_PRIVATE_KEY),
   approver: key(env.APPROVER_PRIVATE_KEY),
   enforcer: address(env.ENFORCER_ADDRESS),
-  zg: shaped(/^https?:\/\/\S+$/)(env.ZG_BASE_URL) && longer(8)(env.ZG_API_KEY) && set(env.ZG_MODEL),
+  zg: zeroG(env),
   world: set(env.WORLD_CLIENT_ID) && set(env.WORLD_CLIENT_SECRET) && https(env.WORLD_ISSUER),
   merchant: address(env.MERCHANT_PAY_TO) && address(env.RESTRICTED_PAY_TO),
   gate: shaped(/^(0x)?[0-9a-fA-F]{64}$/)(env.GATE_ED25519_SEED),
   evidence: longer(16)(env.EVIDENCE_TOKEN),
   scans: scansEnabled(env),
-  voice: voiceEnabled(env),
+  // Vita's voice is always mounted and answers once 0G is configured (Kris, 7 Nov: no flag).
+  voice: zeroG(env),
   live: liveEnabled(env),
   telegram:
     shaped(/^\d{5,}:[A-Za-z0-9_-]{30,}$/)(env.TELEGRAM_BOT_TOKEN) &&

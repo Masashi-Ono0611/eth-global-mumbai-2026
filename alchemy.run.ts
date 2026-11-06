@@ -99,8 +99,6 @@ export default Alchemy.Stack(
         RESTRICTED_PAY_TO: yield* plain('APP_RESTRICTED_PAY_TO'),
         // Scan-initiated errands: `true` turns them on; the `pending` default keeps them off (Features.scansEnabled).
         SCANS_ENABLED: yield* plain('APP_SCANS_ENABLED'),
-        // Vita's voice in the conversation: `true` turns it on; the `pending` default keeps it off (Features.voiceEnabled).
-        VOICE_ENABLED: yield* plain('APP_VOICE_ENABLED'),
         // The robot's live camera view: `true` turns it on; the `pending` default keeps it off (Features.liveEnabled).
         LIVE_ENABLED: yield* plain('APP_LIVE_ENABLED'),
         // Telegram notifications (spec §14): both set turns them on; `pending` keeps them off, never a 500.

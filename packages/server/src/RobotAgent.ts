@@ -3,7 +3,7 @@ import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWrite
 import { Address } from '@ethmumbai/protocol/Hex'
 import { Effect, Layer, Option, Redacted, Schema } from 'effect'
 import { chipRoutes } from './chip/Routes.ts'
-import { liveEnabled, scansEnabled, voiceEnabled } from './Features.ts'
+import { liveEnabled, scansEnabled } from './Features.ts'
 import { merchantPayees, merchantRoutes } from './merchant/Routes.ts'
 import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
@@ -95,8 +95,8 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     scansEnabled(env)
       ? Layer.mergeAll(scanRoutes(errands, media), intentRoutes(errands), navRoutes(errands))
       : Layer.empty,
-    // Vita's voice exists only while VOICE_ENABLED is `true` (otherwise 404); its `buy` turns create intents.
-    voiceEnabled(env) ? voiceRoutes({ ...errands, media }) : Layer.empty,
+    // Vita's voice is always mounted (no flag); without 0G it answers 503. Its `buy` turns create intents.
+    voiceRoutes({ ...errands, media }),
     // The robot's live camera view exists only while LIVE_ENABLED is `true`; otherwise its paths are 404.
     liveEnabled(env) ? liveRoutes(errands, media) : Layer.empty,
   )

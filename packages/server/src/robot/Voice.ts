@@ -43,7 +43,7 @@ import { firstRow } from '../Sql.ts'
 
 const LIVE = LIVE_STATES.map((state) => `'${state}'`).join(', ')
 
-// Vita's voice in the robot conversation (protocol Voice.ts), behind VOICE_ENABLED. Two 0G Router calls, both with
+// Vita's voice in the robot conversation (protocol Voice.ts), always mounted. Two 0G Router calls, both with
 // the Worker's key: the omni model hears the owner's clip, and `minimax-speech` speaks the line. The voice model never
 // decides: a `buy` turn calls `createIntent`, the one operation the Buy chips and typed text use, and the robot's scan
 // then runs 0G's `decide` (glm-5.3, TEE-proven) as for any errand. Audio, transcripts and prompts are never stored or
@@ -304,7 +304,7 @@ export interface VoiceDeps extends ErrandDeps {
   readonly media: ReadWriteBucketClient
 }
 
-/** The owner's voice routes (session + Origin); `RobotAgent` mounts them only while `VOICE_ENABLED` is `true`. */
+/** The owner's voice routes (session + Origin); `RobotAgent` always mounts them (no flag). */
 export const voiceRoutes = (deps: VoiceDeps) =>
   HttpRouter.addAll([
     HttpRouter.route('POST', '/api/robots/:robotId/voice', requireSession(turn(deps))),

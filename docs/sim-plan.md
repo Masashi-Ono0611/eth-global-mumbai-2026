@@ -62,7 +62,7 @@ Critical path: S0 → S1 + S2 + S5 → first deployed sim payment. S3/S4/S6 add 
 
 ## Integration with voice and camera
 
-Masa's hold-to-talk voice (issue #5: `POST /api/robots/:robotId/voice`, `APP_VOICE_ENABLED`) lands on the same
+Masa's hold-to-talk voice (issue #5: `POST /api/robots/:robotId/voice`, no flag since 7 Nov) lands on the same
 conversation page. Agreed with the voice session so nothing is built twice:
 
 - **One intent operation and one route.** "Create an errand intent" is a single typed operation behind one route (S3),

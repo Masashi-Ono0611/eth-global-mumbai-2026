@@ -46,7 +46,11 @@ import {
   TEST_TELEGRAM_SECRET,
   TEST_TELEGRAM_TOKEN,
 } from './TelegramAcceptance.ts'
-import { registerVoiceAcceptance, registerVoiceOffAcceptance, registerVoiceStopAcceptance } from './VoiceAcceptance.ts'
+import {
+  registerVoiceAcceptance,
+  registerVoiceOnByDefaultAcceptance,
+  registerVoiceStopAcceptance,
+} from './VoiceAcceptance.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
 import { registerWorldStubAcceptance, TEST_ENFORCER_ADDRESS, TEST_WORLD_STUB_JWK } from './WorldStubAcceptance.ts'
@@ -112,8 +116,6 @@ const makeStack = (generation: string) =>
           ZG_INFERENCE_CONTRACT: TEST_INFERENCE,
           // Off in the first generation (the flag-off 404 runs there), on after the restart test (ScanAcceptance.ts).
           SCANS_ENABLED: generation === 'after' ? 'true' : 'pending',
-          // Vita's voice: off before the restart (its flag-off 404 runs there), on after (VoiceAcceptance.ts).
-          VOICE_ENABLED: generation === 'after' ? 'true' : 'pending',
           // The live camera view follows the same two generations (LiveAcceptance.ts).
           LIVE_ENABLED: generation === 'after' ? 'true' : 'pending',
           TELEGRAM_BOT_TOKEN: Redacted.make(TEST_TELEGRAM_TOKEN),
@@ -341,7 +343,7 @@ test(
 )
 
 registerScansOffAcceptance(test, stack)
-registerVoiceOffAcceptance(test, stack)
+registerVoiceOnByDefaultAcceptance(test, stack)
 registerLiveOffAcceptance(test, stack)
 
 test(

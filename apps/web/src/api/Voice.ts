@@ -2,7 +2,7 @@ import { VoiceSay, VoiceTurn } from '@ethmumbai/protocol/Voice'
 import { Effect, Schema } from 'effect'
 import { getJson, postJson } from './Http.ts'
 
-/** Vita's voice routes (packages/server/src/robot/Voice.ts), behind the Worker's VOICE_ENABLED flag. */
+/** Vita's voice routes (packages/server/src/robot/Voice.ts); `/api/health` reports `voice` once 0G is configured. */
 
 const Health = Schema.Struct({ features: Schema.Struct({ voice: Schema.optionalKey(Schema.Boolean) }) })
 
