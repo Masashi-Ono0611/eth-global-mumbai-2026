@@ -5,17 +5,19 @@ was run for real unless it is listed under "Not verified". Scripts are in `docs/
 copy the request from `packages/server/src/robot/ZeroGClient.ts` at `main` of 2026-11-06 07:00 UTC (the decision-table
 prompt and `promptInput`), checked string for string.
 
-## 1. Prize checklist against what exists now
+## 1. Prize checklist against what exists now (updated 2026-11-06 07:40 UTC)
 
-| "Must show" (0G Physical AI) | State on 2026-11-06 07:15 UTC |
+| "Must show" (0G Physical AI) | State |
 |---|---|
-| A 0G call inside the decision loop | Code ready. **Not yet observed on the deployed app**: the only uploaded episode was decided by the rehearsal brain. A team Router key has been handed over; the next step is `APP_ZG_*` on the Worker, then `zg-probe.ts` and `e2e-deployed.ts`. |
-| An episode log on 0G Storage with a request id per decision | Path proven. Episode `hg2ouddwe2h5j6ekbrsn7grfja` re-verified independently: `EpisodeLog.records` on Galileo, download of root `0x8db4ffc1…d5dd` with proof (774 bytes, same episode id), `keccak256(requestIds.join(","))` equal to the on-chain `requestIdsHash`. Its decision provider is LiteLLM, so it shows storage, not a 0G decision. |
+| A 0G call inside the decision loop | **Done.** Runs 7 and 9-10 on the deployed app decided through `router-api.0g.ai` (`qwen3-vl-plus`), with the router's `x_0g_trace.request_id` per decision. |
+| An episode log on 0G Storage with a request id per decision | **Done, and re-verified independently** for all 7 real-0G episodes (`aln2b7m3…`, `uekjj7u4…`, `k7gpiroq…`, `h2ldvuf3…`, `64xccb53…`, `cjdyozc7…`, `ipgyznpi…`): per episode, the public `GET /api/evidence/:id` is `uploaded`; its root equals `EpisodeLog.records` on Galileo; the bytes downloaded from 0G Storage with the Merkle proof equal the app's payload; `keccak256(requestIds.join(","))` equals the on-chain `requestIdsHash`; every decision's provider starts with `router-api.0g.ai/` and every request id is a router UUID; the recorder is the uploader. 8 of 8 checks pass for all 7. Negative control: the rehearsal-brain episode `hg2ouddwe2h5j6ekbrsn7grfja` fails the two 0G checks. Script: `docs/research/spikes/zg-verify-episodes.mjs.txt`. |
 | A replayable simulation, or a live hardware demo at the 0G booth | Not checked here. The prize text says simulated builds are eligible for every place except the hardware one; the submission should say which of the two we show. |
-| A safe-stop fallback if 0G is unreachable (never a faked decision) | Proven against a stub (`RobotAcceptance.ts`). A live example exists for free: `0gm-1.0-35b-a3b` answered HTTP 502 for every call at 06:45 and again from 07:05 to 07:14 UTC (section 2), which the errand turns into `safe_stop`. |
+| A safe-stop fallback if 0G is unreachable (never a faked decision) | Proven against a stub (`RobotAcceptance.ts`) and seen live in the rehearsal runs (5 `safe_stop`). `0gm-1.0-35b-a3b` answering 502 (section 2) is a natural live example. |
 | Contract deployment addresses | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo). Explorer source verification not done (optional). |
 
-"Not wanted: 0G used only for logs." Until a 0G-decided episode is uploaded, that is exactly what the evidence shows.
+**The one 0G upgrade left:** the live model `qwen3-vl-plus` cannot carry a TEE claim (its provider is not a registered 0G
+service). Setting `APP_ZG_MODEL=glm-5.3` and running one chai and one cigarettes errand would give episodes whose
+decisions verify independently in a TEE (section 3), which we can check from outside with the same scripts.
 
 ## 2. Which `APP_ZG_MODEL`: measured with the current prompt
 
@@ -63,7 +65,6 @@ the team's request body unchanged, reply read like `DecideReply.ts`, a reply ove
 
 ## 5. Not verified
 
-- A 0G decision on the deployed Worker (needs the key in `APP_ZG_*`).
 - `processResponse` inside the Worker runtime (only tried in Node).
 - How long a provider keeps a signature retrievable beyond a few minutes.
 - The replay or hardware part of the demo.
