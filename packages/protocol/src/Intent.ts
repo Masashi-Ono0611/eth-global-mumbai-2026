@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { Id } from './Base32.ts'
-import { EpisodeState, TeeProof } from './Errand.ts'
+import { BrainModel, EpisodeState, TeeProof } from './Errand.ts'
 import { UnixMs } from './Hex.ts'
 import { LiveFrame } from './Frame.ts'
 
@@ -24,6 +24,8 @@ export const isOpenIntent = (state: IntentState): boolean => state === 'running'
 export const CreateIntentRequest = Schema.Struct({
   instruction: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(INSTRUCTION_MAX)),
   item: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(64))),
+  /** The brain for this message: its navigation turns and the errand its scan starts use it (absent = ZG_MODEL). */
+  model: Schema.optionalKey(Schema.NullOr(BrainModel)),
 })
 export type CreateIntentRequest = typeof CreateIntentRequest.Type
 
@@ -90,6 +92,8 @@ export const IntentView = Schema.Struct({
   episodeId: Schema.NullOr(Id),
   episodeState: Schema.NullOr(EpisodeState),
   reason: Schema.NullOr(Schema.String),
+  /** The model the owner picked with this message; null = ZG_MODEL (each turn names the model it used). */
+  model: Schema.optionalKey(Schema.NullOr(Schema.String)),
   turns: Schema.Array(NavTurnView),
   createdAt: UnixMs,
   /** The robot's latest live camera frame while it is out (owner reads only; absent elsewhere or with no frame). */

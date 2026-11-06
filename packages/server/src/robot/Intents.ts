@@ -6,7 +6,7 @@ import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { type ErrandDeps, LIVE_STATES, readEpisode, tickRobot } from './Errands.ts'
-import { ErrandRefused, MERCHANT_ID, need } from './Start.ts'
+import { chosenBrain, ErrandRefused, MERCHANT_ID, need } from './Start.ts'
 import { IntentRow, navCallsOf, type NavTurnRow, navTurnsOf, readIntent } from './IntentRows.ts'
 import { liveFrameOf } from './Live.ts'
 import { decodeTeeProof } from './TeeProof.ts'
@@ -130,6 +130,7 @@ export const intentView = Effect.fnUntraced(function* (database: QueryDatabaseCl
     episodeId: intent.episode_id,
     episodeState: Option.match(episode, { onNone: () => null, onSome: (row) => row.state }),
     reason: intent.reason,
+    model: intent.model,
     turns: turns.map(turnView),
     createdAt: intent.created_at,
   } satisfies IntentView
@@ -138,11 +139,16 @@ export const intentView = Effect.fnUntraced(function* (database: QueryDatabaseCl
 /**
  * The one shared operation behind the Buy chips, typed text and voice: a new `running` intent for this (owner-checked,
  * paired) robot. 409 while another intent of the robot is open (the check and the insert are one statement); 400 for
- * an item the café does not sell.
+ * an item the café does not sell, or a `model` that is neither ZG_MODEL nor an allowlisted alternative.
  */
 export const createIntent = Effect.fn('EthMumbai.Robot.createIntent')(function* (
-  deps: Pick<ErrandDeps, 'database'>,
-  input: { readonly robot: RobotRow; readonly instruction: string; readonly item?: string | undefined },
+  deps: Pick<ErrandDeps, 'database' | 'zeroG'>,
+  input: {
+    readonly robot: RobotRow
+    readonly instruction: string
+    readonly item?: string | undefined
+    readonly model?: string | null | undefined
+  },
 ) {
   const { database } = deps
   const { robot, instruction, item } = input
@@ -151,6 +157,7 @@ export const createIntent = Effect.fn('EthMumbai.Robot.createIntent')(function* 
     const merchant = yield* need(findMerchant(MERCHANT_ID), 500, 'merchant catalogue is missing')
     yield* need(findItem(merchant, item), 400, 'unknown item')
   }
+  const model = yield* chosenBrain(deps.zeroG, input.model)
   yield* settleIntents(database, robot.id)
   const id = yield* generateId
   const instructionSha256 = `0x${yield* sha256Hex(instruction)}`
@@ -158,11 +165,12 @@ export const createIntent = Effect.fn('EthMumbai.Robot.createIntent')(function* 
   const inserted = yield* changes(
     database
       .prepare(
-        `INSERT INTO intents (id, robot_id, account_id, instruction, instruction_sha256, item, state, turn, created_at)
-          SELECT ?, ?, ?, ?, ?, ?, 'running', 0, ?
+        `INSERT INTO intents (id, robot_id, account_id, instruction, instruction_sha256, item, model, state, turn,
+            created_at)
+          SELECT ?, ?, ?, ?, ?, ?, ?, 'running', 0, ?
           WHERE NOT EXISTS (SELECT 1 FROM intents WHERE robot_id = ? AND state IN ('running', 'scanned'))`,
       )
-      .bind(id, robot.id, robot.account_id, instruction, instructionSha256, item ?? null, createdAt, robot.id),
+      .bind(id, robot.id, robot.account_id, instruction, instructionSha256, item ?? null, model, createdAt, robot.id),
   )
   if (inserted !== 1)
     return yield* new ErrandRefused({ status: 409, error: 'this robot already has an open errand intent' })
@@ -206,9 +214,10 @@ const create = (deps: ErrandDeps) =>
       const body = yield* need(
         yield* HttpServerRequest.schemaBodyJson(CreateIntentRequest).pipe(Effect.option),
         400,
-        'expected {"instruction": string (1–200 chars), "item"?: string}',
+        'expected {"instruction": string (1–200 chars), "item"?: string, "model"?: string}',
       )
-      return yield* json(yield* createIntent(deps, { robot, instruction: body.instruction, item: body.item }), 201)
+      const { instruction, item, model } = body
+      return yield* json(yield* createIntent(deps, { robot, instruction, item, model }), 201)
     }),
   )
 

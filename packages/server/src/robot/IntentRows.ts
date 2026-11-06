@@ -19,6 +19,8 @@ export const IntentRow = Schema.Struct({
   busy_until: Schema.NullOr(Schema.Finite),
   episode_id: Schema.NullOr(Schema.String),
   reason: Schema.NullOr(Schema.String),
+  /** The model the owner picked with this message; null = ZG_MODEL. */
+  model: Schema.NullOr(Schema.String),
   created_at: Schema.Finite,
   ended_at: Schema.NullOr(Schema.Finite),
 })

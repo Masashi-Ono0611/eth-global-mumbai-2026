@@ -207,6 +207,9 @@ export const episodes = sqliteTable(
     result: text('result'),
     requestIdsHash: text('request_ids_hash'),
     stateChangedAt: integer('state_changed_at'),
+    // The 0G model the owner picked for this errand (ZG_MODEL or an allowlisted alternative); null = ZG_MODEL.
+    // What each call actually used is `decisions.model`.
+    model: text('model'),
     createdAt: createdAt(),
   },
   (table) => [index('episodes_robot_created').on(table.robotId, table.createdAt)],
@@ -418,6 +421,9 @@ export const intents = sqliteTable(
     busyUntil: integer('busy_until'),
     episodeId: text('episode_id'),
     reason: text('reason'),
+    // The 0G model the owner picked with this message: its navigation turns and the errand its scan starts use it;
+    // null = ZG_MODEL. What each turn actually used is `nav_turns.model`.
+    model: text('model'),
     createdAt: createdAt(),
     endedAt: integer('ended_at'),
   },

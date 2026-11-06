@@ -77,7 +77,11 @@ const scanContext = Effect.fnUntraced(function* (deps: ErrandDeps, robot: RobotR
   const context = { robot, payees, zeroG, merchant, item, grant, invoiceId }
   return Option.match(intent, {
     onNone: () => ({ context, intentId: Option.none<string>() }),
-    onSome: (row) => ({ context: { ...context, owner: ownerOf(row) }, intentId: Option.some(row.id) }),
+    // The scan that claims the intent decides with the brain the owner picked for that message.
+    onSome: (row) => ({
+      context: { ...context, owner: ownerOf(row), model: row.model },
+      intentId: Option.some(row.id),
+    }),
   })
 })
 

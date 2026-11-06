@@ -6,7 +6,7 @@ import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { DEMO_CAPS, freshConnections } from './AgentSamples.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
-import { errandView, postTo, SentDecide, type ZeroGStub } from './RobotAcceptance.ts'
+import { errandView, postTo, SentDecide, TEST_ZG_MODEL, type ZeroGStub } from './RobotAcceptance.ts'
 import { scanErrand, seedScanningRobot } from './ScanAcceptance.ts'
 
 // The café counter (spec §7): the till puts one invoice on the ESP32's screen (`POST …/counter`), the screen pulls it
@@ -232,6 +232,66 @@ const match = (urls: Urls, owner: CounterOwner) =>
     expect(paying.episode.invoice_id).toBe(shown.id)
   })
 
+const SentModel = Schema.Struct({ model: Schema.String })
+const Brains = Schema.Struct({ brains: Schema.Array(Schema.Struct({ model: Schema.String, tee: Schema.Boolean })) })
+const ErrandModels = Schema.Struct({
+  episode: Schema.Struct({ model: Schema.NullOr(Schema.String) }),
+  decisions: Schema.Array(Schema.Struct({ model: Schema.String })),
+})
+
+/**
+ * The owner picks the brain per message (Kris, 7 Nov): an intent's model reaches the decide of the scan that claims it,
+ * an errand's model its own decide; a model off the allowlist is 400; without one, ZG_MODEL.
+ */
+const brainPerMessage = (urls: Urls, owner: CounterOwner, stub: ZeroGStub) =>
+  Effect.gen(function* () {
+    const read = <A>(path: string, schema: Schema.Decoder<A>) =>
+      HttpClient.get(`${urls.appUrl}${path}`, { headers: { cookie: owner.cookie } }).pipe(
+        Effect.flatMap((answer) => answer.json),
+        Effect.flatMap(Schema.decodeUnknownEffect(schema)),
+      )
+    const sentModel = Effect.suspend(() => Schema.decodeUnknownEffect(SentModel)(stub.seen.at(-1)?.body)).pipe(
+      Effect.map((sent) => sent.model),
+    )
+    const scanning = yield* seedScanningRobot(urls.url, owner.accountId, DEMO_CAPS)
+    expect((yield* read(`/api/robots/${scanning.robotId}`, Brains)).brains).toEqual([
+      { model: TEST_ZG_MODEL, tee: true },
+      { model: 'qwen3-vl-plus', tee: false },
+    ])
+    const intents = `/api/robots/${scanning.robotId}/intents`
+    const allowlist = { error: `model must be one of: ${TEST_ZG_MODEL}, qwen3-vl-plus` }
+    expect(yield* owner.asOwner(intents, { instruction: 'Get me a chai', item: 'chai', model: 'gpt-4o' })).toEqual({
+      status: 400,
+      json: allowlist,
+    })
+    const asked = yield* owner.asOwner(intents, { instruction: 'Get me a chai', item: 'chai', model: 'qwen3-vl-plus' })
+    expect(asked.status).toBe(201)
+    expect(yield* Schema.decodeUnknownEffect(IntentView)(asked.json)).toMatchObject({ model: 'qwen3-vl-plus' })
+    const invoice = yield* Schema.decodeUnknownEffect(Minted)(yield* place(urls.appUrl, 'chai'))
+    const scanned = yield* scanErrand({ apiUrl: urls.apiUrl, ...scanning, invoiceId: invoice.id })
+    expect(yield* sentModel).toBe('qwen3-vl-plus')
+    expect(yield* read(`/api/robots/${scanning.robotId}/errands/${scanned.episodeId}`, ErrandModels)).toEqual({
+      episode: { model: 'qwen3-vl-plus' },
+      decisions: [{ model: 'qwen3-vl-plus' }],
+    })
+    // The conversation's Buy: the errand route takes the same field; the next message without one is ZG_MODEL again.
+    const picked = yield* seedScanningRobot(urls.url, owner.accountId, DEMO_CAPS)
+    const errands = `/api/robots/${picked.robotId}/errands`
+    expect(yield* owner.asOwner(errands, { item: 'chai', model: 'glm-9' })).toEqual({ status: 400, json: allowlist })
+    const bought = yield* owner.asOwner(errands, { item: 'chai', model: 'qwen3-vl-plus' })
+    expect(bought.status).toBe(201)
+    expect(yield* sentModel).toBe('qwen3-vl-plus')
+    const plain = yield* seedScanningRobot(urls.url, owner.accountId, DEMO_CAPS)
+    const defaulted = yield* owner.asOwner(`/api/robots/${plain.robotId}/errands`, { item: 'chai' })
+    expect(defaulted.status).toBe(201)
+    expect(yield* sentModel).toBe(TEST_ZG_MODEL)
+    const started = yield* Schema.decodeUnknownEffect(Started)(defaulted.json)
+    expect(yield* read(`/api/robots/${plain.robotId}/errands/${started.episodeId}`, ErrandModels)).toEqual({
+      episode: { model: null },
+      decisions: [{ model: TEST_ZG_MODEL }],
+    })
+  })
+
 export const registerChipIntentAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>, stub: ZeroGStub) =>
   test(
     "counter: a chip robot's owner intent waits for the scan of the counter's invoice, and decide compares it with what was asked",
@@ -242,6 +302,7 @@ export const registerChipIntentAcceptance = (test: TestApi['test'], stack: Effec
       yield* mismatch(owner)
       yield* overCap(owner)
       yield* match(urls, owner)
+      yield* brainPerMessage(urls, owner, stub)
       stub.setMode('pay')
     }).pipe(Effect.provide(freshConnections)),
     { timeout: 120000 },

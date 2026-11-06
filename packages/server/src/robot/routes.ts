@@ -9,7 +9,8 @@ import { decisionsOf } from './Decide.ts'
 import { type EpisodeRow, type ErrandDeps, readEpisode, tickRobot } from './Errands.ts'
 import { readEvidence } from './Evidence.ts'
 import { openIntent, settleIntents } from './Intents.ts'
-import { errandSetup, need, runErrand, signedGrant } from './Start.ts'
+import { chosenBrain, errandSetup, need, runErrand, signedGrant } from './Start.ts'
+import { brainChoices } from './ZeroGClient.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { leaseOf, readRobot } from '../chip/Lease.ts'
 import { readRequestForEpisode } from '../chip/Requests.ts'
@@ -18,7 +19,10 @@ import { readInvoice, toInvoice } from '../merchant/Invoices.ts'
 import { json, jsonError, nowSeconds } from '../Respond.ts'
 import { firstRow } from '../Sql.ts'
 
-/** `{item}` (spec §6) plus an optional `invoiceId`: the exact counter invoice to pay (console, e2e driver, a scan). */
+/**
+ * `{item}` (spec §6) plus an optional `invoiceId`: the exact counter invoice to pay (console, e2e driver, a scan), and an
+ * optional `model`: the brain the owner picked for this errand.
+ */
 const ErrandRequest = Schema.Struct({ ...CreateErrandRequest.fields, invoiceId: Schema.optionalKey(Id) })
 
 /** The signed-in owner's own robot, or nothing (another account's robot is indistinguishable from a missing one). */
@@ -39,12 +43,13 @@ const errandContext = Effect.fnUntraced(function* (deps: ErrandDeps) {
   const body = yield* need(
     yield* HttpServerRequest.schemaBodyJson(ErrandRequest).pipe(Effect.option),
     400,
-    'expected {"item": string, "invoiceId"?: string}',
+    'expected {"item": string, "invoiceId"?: string, "model"?: string}',
   )
   const { payees, zeroG, merchant } = yield* errandSetup(deps)
   const item = yield* need(findItem(merchant, body.item), 400, 'unknown item')
+  const model = yield* chosenBrain(deps.zeroG, body.model)
   const grant = yield* signedGrant(deps, robot)
-  return { robot, payees, zeroG, merchant, item, grant, invoiceId: body.invoiceId }
+  return { robot, payees, zeroG, merchant, item, grant, invoiceId: body.invoiceId, model }
 })
 
 const startErrand = (deps: ErrandDeps) =>
@@ -127,6 +132,8 @@ const readRobotView = (deps: ErrandDeps) =>
       lease: leaseOf(robot.value, yield* Clock.currentTimeMillis),
       // The newest open errand intent (running or scanned), so the conversation resumes after a reload.
       openIntentId: Option.match(intent, { onNone: () => null, onSome: (row) => row.id }),
+      // The brains the owner may pick per message (ZG_MODEL first); none while 0G is not configured.
+      brains: Option.match(deps.zeroG, { onNone: () => [], onSome: brainChoices }),
       grant: Option.match(grant, {
         onNone: () => null,
         onSome: ({ row, dailyCap, perPaymentCap, allowlist }) => ({

@@ -14,6 +14,23 @@ export interface ZeroGConfig {
   readonly extraBody?: Readonly<Record<string, unknown>>
 }
 
+/**
+ * The models an owner may pick per message besides `ZG_MODEL` (Kris, 7 Nov, after glm-5.3's TeeML provider answered 429
+ * for 20 minutes): the router's qwen3-vl-plus answers faster but its provider publishes no TEE proof. Never a fallback:
+ * the owner picks it by hand.
+ */
+export const BRAIN_ALTERNATIVES: ReadonlyArray<string> = ['qwen3-vl-plus']
+
+/** The brains the owner may pick, `ZG_MODEL` first (the router's TeeML provider), then the alternatives (no TEE). */
+export const brainChoices = (config: ZeroGConfig) => [
+  { model: config.model, tee: true },
+  ...BRAIN_ALTERNATIVES.filter((model) => model !== config.model).map((model) => ({ model, tee: false })),
+]
+
+/** One message's brain: its model, and `ZG_EXTRA_JSON` only for `ZG_MODEL` (those fields are per model). */
+export const brainFor = (config: ZeroGConfig, model: string | null): ZeroGConfig =>
+  model === null || model === config.model ? config : { baseUrl: config.baseUrl, apiKey: config.apiKey, model }
+
 export const ZEROG_TIMEOUT = '10 seconds'
 const ZEROG_BUDGET_MS = 10_000
 /** A `429` (the provider's `model_overloaded`) is asked once more after this pause, inside the same 10 s budget. */

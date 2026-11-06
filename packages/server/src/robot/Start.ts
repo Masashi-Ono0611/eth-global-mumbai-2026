@@ -8,7 +8,14 @@ import { claimInvoice, findOpenInvoice } from './CounterInvoice.ts'
 import { actionOf, decideInput, recordDecision } from './Decide.ts'
 import { type ErrandDeps, insertEpisode, queueSigning, readEpisode, tickRobot, transition } from './Errands.ts'
 import { proveDecision } from './TeeProof.ts'
-import { decide, type ZeroGConfig, type ZeroGOutcome } from './ZeroGClient.ts'
+import {
+  BRAIN_ALTERNATIVES,
+  brainChoices,
+  brainFor,
+  decide,
+  type ZeroGConfig,
+  type ZeroGOutcome,
+} from './ZeroGClient.ts'
 import type { RobotRow } from '../chip/Lease.ts'
 import { type CatalogueItem, findMerchant, type Merchant, type Payees } from '../merchant/Catalogue.ts'
 import { createInvoice, type InvoiceRow, toInvoice } from '../merchant/Invoices.ts'
@@ -31,6 +38,8 @@ export interface ErrandContext {
   readonly invoiceId?: string | undefined
   /** What the owner asked for (a scan that claimed the robot's errand intent); `decide` compares the invoice with it. */
   readonly owner?: DecideInput['owner'] | undefined
+  /** The model the owner picked with the message (checked by {@link chosenBrain}); null or absent = `ZG_MODEL`. */
+  readonly model?: string | null | undefined
 }
 
 /** Where the errand goes after the decision (spec §6 `deciding`). */
@@ -93,6 +102,18 @@ export const errandSetup = Effect.fnUntraced(function* (deps: ErrandDeps) {
   return { payees, zeroG, merchant }
 })
 
+/** The model the owner picked with a message: `ZG_MODEL` or an allowlisted alternative (400 otherwise); none = null. */
+export const chosenBrain = (zeroG: Option.Option<ZeroGConfig>, requested: string | null | undefined) => {
+  if (requested === undefined || requested === null) return Effect.succeed<string | null>(null)
+  const allowed = Option.match(zeroG, {
+    onNone: () => BRAIN_ALTERNATIVES,
+    onSome: (config) => brainChoices(config).map((choice) => choice.model),
+  })
+  return allowed.includes(requested)
+    ? Effect.succeed<string | null>(requested)
+    : Effect.fail(new ErrandRefused({ status: 400, error: `model must be one of: ${allowed.join(', ')}` }))
+}
+
 /** The robot's newest signed grant (spec §5): no grant, no errand. */
 export const signedGrant = (deps: ErrandDeps, robot: RobotRow) =>
   latestSignedGrant(deps.database, robot.id).pipe(
@@ -153,7 +174,12 @@ export const runErrand = Effect.fnUntraced(function* (
           ),
         )
   const episodeId = yield* need(
-    yield* insertEpisode(database, { robotId: robot.id, accountId: robot.account_id, item: item.itemId }),
+    yield* insertEpisode(database, {
+      robotId: robot.id,
+      accountId: robot.account_id,
+      item: item.itemId,
+      model: context.model ?? null,
+    }),
     409,
     'this robot already has an errand in progress',
   )
@@ -163,7 +189,7 @@ export const runErrand = Effect.fnUntraced(function* (
   )
   const spentToday = yield* spentInPeriod(database, grant, yield* nowSeconds)
   const outcome = yield* decide(
-    zeroG,
+    brainFor(zeroG, context.model ?? null),
     decideInput({ item, merchant, invoice, grant, spentToday, owner: context.owner }),
   ).pipe(Effect.provide(FetchHttpClient.layer))
   const action = actionOf(outcome)

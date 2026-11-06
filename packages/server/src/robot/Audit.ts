@@ -13,7 +13,7 @@ import { type EpisodeRow, type ErrandDeps, readEpisode } from './Errands.ts'
 import { readEvidence } from './Evidence.ts'
 import { frameSha256, type ObservationRow, observationsOf, scanSignedBy } from './Observations.ts'
 import { decodeTeeProof, teeSignerMatches } from './TeeProof.ts'
-import { decide } from './ZeroGClient.ts'
+import { brainFor, decide } from './ZeroGClient.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { readRobot } from '../chip/Lease.ts'
 import type { Hex } from '@ethmumbai/protocol/Hex'
@@ -211,7 +211,10 @@ const verify = (
 
 const decodeInput = Schema.decodeUnknownOption(Schema.fromJsonString(DecideInput))
 
-/** Re-ask the current brain with the latest decision's stored input: temperature 0, 10 s, nothing written. */
+/**
+ * Re-ask the brain with the latest decision's stored input: the model the owner picked for the errand (ZG_MODEL
+ * without one), temperature 0, 10 s, nothing written.
+ */
 const replay = (deps: ErrandDeps) =>
   Effect.gen(function* () {
     const episode = yield* ownEpisode(deps)
@@ -220,7 +223,8 @@ const replay = (deps: ErrandDeps) =>
     const latest = (yield* decisionsOf(deps.database, episode.value.id)).at(-1)
     const input = latest === undefined ? Option.none() : decodeInput(latest.input_json)
     if (latest === undefined || Option.isNone(input)) return yield* jsonError(409, 'episode has no decision to replay')
-    const outcome = yield* decide(deps.zeroG.value, input.value).pipe(Effect.provide(FetchHttpClient.layer))
+    const brain = brainFor(deps.zeroG.value, episode.value.model)
+    const outcome = yield* decide(brain, input.value).pipe(Effect.provide(FetchHttpClient.layer))
     const { call } = outcome
     return yield* json({
       episodeId: episode.value.id,

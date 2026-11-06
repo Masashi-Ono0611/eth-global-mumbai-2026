@@ -82,7 +82,16 @@ export const DecideInput = Schema.Struct({
 })
 export type DecideInput = typeof DecideInput.Type
 
-export const CreateErrandRequest = Schema.Struct({ item: Schema.String.check(Schema.isMaxLength(64)) })
+/**
+ * The 0G model the owner picks for one message (an errand or an intent): the Worker accepts only its `ZG_MODEL` or an
+ * allowlisted alternative (400 otherwise); absent or null = `ZG_MODEL`.
+ */
+export const BrainModel = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(64))
+
+export const CreateErrandRequest = Schema.Struct({
+  item: Schema.String.check(Schema.isMaxLength(64)),
+  model: Schema.optionalKey(Schema.NullOr(BrainModel)),
+})
 export const CreateErrandResponse = Schema.Struct({
   episodeId: Id,
   state: EpisodeState,

@@ -27,15 +27,15 @@ import { endIntent, settleIntents } from './Intents.ts'
 import { ErrandRefused, MERCHANT_ID, need } from './Start.ts'
 import { encodeTeeProof, proveChat } from './TeeProof.ts'
 import { zeroGChat, type ZeroGChatOutcome } from './ZeroGChat.ts'
-import type { ZeroGConfig } from './ZeroGClient.ts'
+import { brainFor, type ZeroGConfig } from './ZeroGClient.ts'
 import type { RobotRow } from '../chip/Lease.ts'
 import { authenticateChip } from '../chip/Pairing.ts'
 import { findItem, findMerchant, type Merchant } from '../merchant/Catalogue.ts'
 import { json, jsonError, nowSeconds } from '../Respond.ts'
 import { changes } from '../Sql.ts'
 
-// `POST /api/chips/:robotId/intents/:intentId/turn` (Spike C, RESULTS.md §C5): glm-5.3 on 0G drives a simulator duck,
-// one Worker-stored turn at a time. The transcript lives in D1 and is rebuilt every turn (the sim cannot forge an
+// `POST /api/chips/:robotId/intents/:intentId/turn` (Spike C, RESULTS.md §C5): 0G (ZG_MODEL, glm-5.3, or the brain the
+// owner picked with the message) drives a simulator duck, one Worker-stored turn at a time. The transcript lives in D1 and is rebuilt every turn (the sim cannot forge an
 // earlier assistant turn), and the outcomes of `scan_qr` and `wait` come from the errand the scan started, never from
 // the sim. A failed or late 0G call stops the duck ("0G brain busy/offline"); there is no scripted fallback. The
 // navigation brain cannot pay: only the scan's `decide` can lead to a payment, and Arc's caps sit under that.
@@ -492,7 +492,8 @@ const turn = (deps: ErrandDeps) =>
     )
     if (intent.state !== 'running' && intent.state !== 'scanned')
       return yield* json(response(intent.state, [], intent.reason))
-    const zeroG = yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY')
+    // The brain the owner picked with this message (null = ZG_MODEL); nav_turns.model records what each turn used.
+    const zeroG = brainFor(yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY'), intent.model)
     const merchant = yield* need(findMerchant(MERCHANT_ID), 500, 'merchant catalogue is missing')
     const pending = yield* checkResults(deps.database, intent, request.results)
     const step = yield* takeTurn(deps.database, intent)
