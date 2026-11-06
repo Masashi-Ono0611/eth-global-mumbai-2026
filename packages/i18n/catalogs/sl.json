@@ -65,6 +65,31 @@
     "storage": "Epizoda na 0G Storage",
     "title": "Konzola robota"
   },
+  "episode": {
+    "action": "{action, select, verify {Preveri} verifying {Preverjam…} replay {Ponovi odločitev (nezavezujoče)} replaying {Ponavljam…} other {{action}}}",
+    "card": "{card, select, decision {Odločitev} chip {Čip} payment {Plačilo na Arc} approval {Odobritev World} evidence {Dokazi na 0G} timeline {Časovnica} other {{card}}}",
+    "event": "{kind, select, errand_started {Opravek se je začel} decision {Možgani so odločili} chip_requested {Zahteva za podpis poslana čipu} chip_delivered {Čip jo je prevzel} chip_signed {Čip je podpisal} chip_refused {Čip je zavrnil} payment_submitted {Plačilo oddano na Arc} payment_settled {Poravnano na Arc} approval_requested {Zahtevana lastnikova odobritev} approval_answered {Lastnik je odgovoril} evidence_uploaded {Dokazi shranjeni na 0G} state {Stanje opravka} other {{kind}}}",
+    "field": "{field, select, requestId {ID zahteve} brain {Možgani} latency {Zakasnitev} promptHash {SHA-256 poziva} outcome {Izid} error {Napaka} leafHash {Zgoščena vrednost lista} status {Stanje} gas {Porabljen plin} payer {Plačnik} reason {Razlog} acr {Raven zaupanja (acr)} amr {Metode (amr)} rootHash {Korenska zgoščena vrednost} requestIdsHash {Zgoščena vrednost ID-jev zahtev} recorder {Zapisal} recordedAt {Zapisano} other {{field}}}",
+    "input": "Vhod, poslan možganom (natančen JSON)",
+    "meta": "{robot} · začetek {started}",
+    "none": "{card, select, decision {Odločitev ni bila zapisana.} chip {Čipu ni bila poslana zahteva za podpis.} payment {Za ta opravek ni bilo nič plačano.} approval {Odobritev ni bila potrebna.} evidence {Zapisa dokazov še ni.} other {—}}",
+    "notOnChain": "Na 0G Chain še ni zapisa EpisodeLog.",
+    "replayNote": "Ponovitev pošlje možganom isti vhod. Je nezavezujoča: nikoli ne plača in nikoli ne spremeni opravka.",
+    "replayResult": "Ponovitev: {brain} bi {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {odnehati} safe_stop {varno ustaviti} other {{action}}}: {reason}",
+    "replaySame": "{same, select, yes {Enako dejanje kot prvotno.} other {Drugačno dejanje od prvotnega.}}",
+    "title": "Opravek: {item}",
+    "verifyMatch": "{field, select, rootHash {Korenska zgoščena vrednost} other {Zgoščena vrednost ID-jev zahtev}}: {matches, select, yes {se ujema z zapisom EpisodeLog na 0G Chain} other {se ne ujema z zapisom EpisodeLog}}"
+  },
+  "episodes": {
+    "allRobots": "Vsi roboti",
+    "column": "{column, select, when {Kdaj} robot {Robot} item {Izdelek} state {Stanje} decision {Odločitev} payment {Plačilo} world {World} evidence {Dokazi} open {Podrobnosti} other {{column}}}",
+    "decision": "{brain}: {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {odnehati} safe_stop {varno ustaviti} other {{action}}}",
+    "empty": "Opravkov še ni.",
+    "explainer": "Vsi opravki vaših robotov: kaj je odločilo, kaj je bilo plačano na Arc, kaj je odobril World in kje so dokazi na 0G.",
+    "filter": "Robot",
+    "inspect": "Preglej",
+    "title": "Epizode"
+  },
   "gate": {
     "badSignature": "Podpis stanja ni veljaven; vrata ostanejo zaprta.",
     "closed": "ZAPRTO",

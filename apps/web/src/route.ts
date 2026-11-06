@@ -8,6 +8,9 @@ export const AppRoute = defineRouteUnion({
   Robots: {},
   RobotConsole: { robotId: Schema.String },
   Approval: { approvalId: Schema.String },
+  Episodes: {},
+  RobotEpisodes: { robotId: Schema.String },
+  Episode: { episodeId: Schema.String },
   Merchant: {},
   Gate: { merchantId: Schema.String },
   NotFound: { path: Schema.String },
@@ -18,6 +21,19 @@ export const homeRouter = pipe(root, mapTo(AppRoute.Home))
 export const walletRouter = pipe(literal('wallet'), mapTo(AppRoute.Wallet))
 export const robotsRouter = pipe(literal('wallet'), slash(literal('robots')), mapTo(AppRoute.Robots))
 export const robotConsoleRouter = pipe(literal('robot'), slash(string('robotId')), mapTo(AppRoute.RobotConsole))
+export const episodesRouter = pipe(literal('wallet'), slash(literal('episodes')), mapTo(AppRoute.Episodes))
+export const episodeRouter = pipe(
+  literal('wallet'),
+  slash(literal('episodes')),
+  slash(string('episodeId')),
+  mapTo(AppRoute.Episode),
+)
+export const robotEpisodesRouter = pipe(
+  literal('robot'),
+  slash(string('robotId')),
+  slash(literal('episodes')),
+  mapTo(AppRoute.RobotEpisodes),
+)
 
 const approvalRouter = pipe(
   literal('wallet'),
@@ -31,6 +47,9 @@ export const gateRouter = pipe(literal('gate'), slash(string('merchantId')), map
 const parser = oneOf(
   robotsRouter,
   approvalRouter,
+  episodeRouter,
+  episodesRouter,
+  robotEpisodesRouter,
   walletRouter,
   robotConsoleRouter,
   merchantRouter,

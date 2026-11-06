@@ -64,6 +64,39 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'console.starting': "Asking the robot's brain about {item}...",
   'console.storage': 'Episode on 0G Storage',
   'console.title': 'Robot console',
+  'episode.action':
+    '{action, select, verify {Verify} verifying {Verifying…} replay {Replay decision (non-binding)} replaying {Replaying…} other {{action}}}',
+  'episode.card':
+    '{card, select, decision {Decision} chip {Chip} payment {Payment on Arc} approval {World approval} evidence {Evidence on 0G} timeline {Timeline} other {{card}}}',
+  'episode.event':
+    '{kind, select, errand_started {Errand started} decision {The brain decided} chip_requested {Sign request sent to the chip} chip_delivered {The chip picked it up} chip_signed {The chip signed} chip_refused {The chip refused} payment_submitted {Payment submitted to Arc} payment_settled {Settled on Arc} approval_requested {Owner approval requested} approval_answered {Owner approval answered} evidence_uploaded {Evidence stored on 0G} state {Errand state} other {{kind}}}',
+  'episode.field':
+    '{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} other {{field}}}',
+  'episode.input': 'Input sent to the brain (exact JSON)',
+  'episode.meta': '{robot} · started {started}',
+  'episode.none':
+    '{card, select, decision {No decision was recorded.} chip {No sign request was sent to the chip.} payment {Nothing was paid for this errand.} approval {No approval was needed.} evidence {No evidence record yet.} other {—}}',
+  'episode.notOnChain': 'No EpisodeLog record on 0G Chain yet.',
+  'episode.replayNote':
+    'A replay sends the same input to the brain again. It is non-binding: it never pays and never changes the errand.',
+  'episode.replayResult':
+    'Replay: {brain} would {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
+  'episode.replaySame':
+    '{same, select, yes {Same action as the original.} other {A different action from the original.}}',
+  'episode.title': 'Errand: {item}',
+  'episode.verifyMatch':
+    '{field, select, rootHash {Root hash} other {Request-ids hash}}: {matches, select, yes {matches the EpisodeLog record on 0G Chain} other {does not match the EpisodeLog record}}',
+  'episodes.allRobots': 'All robots',
+  'episodes.column':
+    '{column, select, when {When} robot {Robot} item {Item} state {State} decision {Decision} payment {Payment} world {World} evidence {Evidence} open {Details} other {{column}}}',
+  'episodes.decision':
+    '{brain}: {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}',
+  'episodes.empty': 'No errands yet.',
+  'episodes.explainer':
+    'Every errand your robots ran: what decided it, what was paid on Arc, what World approved and where the evidence is on 0G.',
+  'episodes.filter': 'Robot',
+  'episodes.inspect': 'Inspect',
+  'episodes.title': 'Episodes',
   'gate.badSignature': 'The status signature did not verify; the gate stays closed.',
   'gate.closed': 'CLOSED',
   'gate.invoice': 'Invoice',
@@ -202,6 +235,38 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'console.starting': 'Robotove možgane sprašujemo o: {item}...',
   'console.storage': 'Epizoda na 0G Storage',
   'console.title': 'Konzola robota',
+  'episode.action':
+    '{action, select, verify {Preveri} verifying {Preverjam…} replay {Ponovi odločitev (nezavezujoče)} replaying {Ponavljam…} other {{action}}}',
+  'episode.card':
+    '{card, select, decision {Odločitev} chip {Čip} payment {Plačilo na Arc} approval {Odobritev World} evidence {Dokazi na 0G} timeline {Časovnica} other {{card}}}',
+  'episode.event':
+    '{kind, select, errand_started {Opravek se je začel} decision {Možgani so odločili} chip_requested {Zahteva za podpis poslana čipu} chip_delivered {Čip jo je prevzel} chip_signed {Čip je podpisal} chip_refused {Čip je zavrnil} payment_submitted {Plačilo oddano na Arc} payment_settled {Poravnano na Arc} approval_requested {Zahtevana lastnikova odobritev} approval_answered {Lastnik je odgovoril} evidence_uploaded {Dokazi shranjeni na 0G} state {Stanje opravka} other {{kind}}}',
+  'episode.field':
+    '{field, select, requestId {ID zahteve} brain {Možgani} latency {Zakasnitev} promptHash {SHA-256 poziva} outcome {Izid} error {Napaka} leafHash {Zgoščena vrednost lista} status {Stanje} gas {Porabljen plin} payer {Plačnik} reason {Razlog} acr {Raven zaupanja (acr)} amr {Metode (amr)} rootHash {Korenska zgoščena vrednost} requestIdsHash {Zgoščena vrednost ID-jev zahtev} recorder {Zapisal} recordedAt {Zapisano} other {{field}}}',
+  'episode.input': 'Vhod, poslan možganom (natančen JSON)',
+  'episode.meta': '{robot} · začetek {started}',
+  'episode.none':
+    '{card, select, decision {Odločitev ni bila zapisana.} chip {Čipu ni bila poslana zahteva za podpis.} payment {Za ta opravek ni bilo nič plačano.} approval {Odobritev ni bila potrebna.} evidence {Zapisa dokazov še ni.} other {—}}',
+  'episode.notOnChain': 'Na 0G Chain še ni zapisa EpisodeLog.',
+  'episode.replayNote':
+    'Ponovitev pošlje možganom isti vhod. Je nezavezujoča: nikoli ne plača in nikoli ne spremeni opravka.',
+  'episode.replayResult':
+    'Ponovitev: {brain} bi {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {odnehati} safe_stop {varno ustaviti} other {{action}}}: {reason}',
+  'episode.replaySame': '{same, select, yes {Enako dejanje kot prvotno.} other {Drugačno dejanje od prvotnega.}}',
+  'episode.title': 'Opravek: {item}',
+  'episode.verifyMatch':
+    '{field, select, rootHash {Korenska zgoščena vrednost} other {Zgoščena vrednost ID-jev zahtev}}: {matches, select, yes {se ujema z zapisom EpisodeLog na 0G Chain} other {se ne ujema z zapisom EpisodeLog}}',
+  'episodes.allRobots': 'Vsi roboti',
+  'episodes.column':
+    '{column, select, when {Kdaj} robot {Robot} item {Izdelek} state {Stanje} decision {Odločitev} payment {Plačilo} world {World} evidence {Dokazi} open {Podrobnosti} other {{column}}}',
+  'episodes.decision':
+    '{brain}: {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {odnehati} safe_stop {varno ustaviti} other {{action}}}',
+  'episodes.empty': 'Opravkov še ni.',
+  'episodes.explainer':
+    'Vsi opravki vaših robotov: kaj je odločilo, kaj je bilo plačano na Arc, kaj je odobril World in kje so dokazi na 0G.',
+  'episodes.filter': 'Robot',
+  'episodes.inspect': 'Preglej',
+  'episodes.title': 'Epizode',
   'gate.badSignature': 'Podpis stanja ni veljaven; vrata ostanejo zaprta.',
   'gate.closed': 'ZAPRTO',
   'gate.invoice': 'Račun',
@@ -340,6 +405,37 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'console.starting': 'ロボットの頭脳に {item} について問い合わせています...',
   'console.storage': '0G Storage 上のエピソード',
   'console.title': 'ロボットコンソール',
+  'episode.action':
+    '{action, select, verify {検証} verifying {検証中…} replay {判断を再実行（拘束力なし）} replaying {再実行中…} other {{action}}}',
+  'episode.card':
+    '{card, select, decision {判断} chip {チップ} payment {Arc での支払い} approval {World の承認} evidence {0G 上の証拠} timeline {タイムライン} other {{card}}}',
+  'episode.event':
+    '{kind, select, errand_started {用事を開始} decision {頭脳が判断} chip_requested {チップに署名依頼を送信} chip_delivered {チップが受け取った} chip_signed {チップが署名} chip_refused {チップが拒否} payment_submitted {Arc に支払いを送信} payment_settled {Arc で決済完了} approval_requested {オーナーの承認を依頼} approval_answered {オーナーが回答} evidence_uploaded {証拠を 0G に保存} state {用事の状態} other {{kind}}}',
+  'episode.field':
+    '{field, select, requestId {リクエスト ID} brain {頭脳} latency {応答時間} promptHash {プロンプト SHA-256} outcome {結果} error {エラー} leafHash {リーフハッシュ} status {状態} gas {使用ガス} payer {支払者} reason {理由} acr {保証レベル (acr)} amr {認証方法 (amr)} rootHash {ルートハッシュ} requestIdsHash {リクエスト ID ハッシュ} recorder {記録者} recordedAt {記録日時} other {{field}}}',
+  'episode.input': '頭脳に送った入力（正確な JSON）',
+  'episode.meta': '{robot} · 開始 {started}',
+  'episode.none':
+    '{card, select, decision {判断は記録されていません。} chip {チップに署名依頼は送られていません。} payment {この用事では何も支払われていません。} approval {承認は不要でした。} evidence {証拠の記録はまだありません。} other {—}}',
+  'episode.notOnChain': '0G Chain にはまだ EpisodeLog の記録がありません。',
+  'episode.replayNote': '再実行は同じ入力を頭脳にもう一度送ります。拘束力はなく、支払いも用事の変更も行いません。',
+  'episode.replayResult':
+    '再実行：{brain} なら{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {見送る} safe_stop {安全に停止する} other {{action}}}：{reason}',
+  'episode.replaySame': '{same, select, yes {元の判断と同じです。} other {元の判断と異なります。}}',
+  'episode.title': '用事：{item}',
+  'episode.verifyMatch':
+    '{field, select, rootHash {ルートハッシュ} other {リクエスト ID ハッシュ}}：{matches, select, yes {0G Chain の EpisodeLog 記録と一致} other {EpisodeLog 記録と一致しません}}',
+  'episodes.allRobots': 'すべてのロボット',
+  'episodes.column':
+    '{column, select, when {日時} robot {ロボット} item {品目} state {状態} decision {判断} payment {支払い} world {World} evidence {証拠} open {詳細} other {{column}}}',
+  'episodes.decision':
+    '{brain}：{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {見送る} safe_stop {安全に停止する} other {{action}}}',
+  'episodes.empty': 'まだ用事はありません。',
+  'episodes.explainer':
+    'ロボットが行ったすべての用事：何が決めたか、Arc で何を支払ったか、World が何を承認したか、0G のどこに証拠があるか。',
+  'episodes.filter': 'ロボット',
+  'episodes.inspect': '詳しく見る',
+  'episodes.title': 'エピソード',
   'gate.badSignature': 'ステータスの署名を確認できません。ゲートは閉じたままです。',
   'gate.closed': '閉',
   'gate.invoice': '請求書',
@@ -478,6 +574,38 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'console.starting': 'रोबोट के ब्रेन से {item} के बारे में पूछ रहे हैं...',
   'console.storage': '0G Storage पर एपिसोड',
   'console.title': 'रोबोट कंसोल',
+  'episode.action':
+    '{action, select, verify {सत्यापित करें} verifying {सत्यापित हो रहा है…} replay {फ़ैसला दोहराएँ (बाध्यकारी नहीं)} replaying {दोहराया जा रहा है…} other {{action}}}',
+  'episode.card':
+    '{card, select, decision {फ़ैसला} chip {चिप} payment {Arc पर भुगतान} approval {World मंज़ूरी} evidence {0G पर सबूत} timeline {समयरेखा} other {{card}}}',
+  'episode.event':
+    '{kind, select, errand_started {काम शुरू हुआ} decision {ब्रेन ने फ़ैसला किया} chip_requested {चिप को हस्ताक्षर अनुरोध भेजा गया} chip_delivered {चिप ने उसे लिया} chip_signed {चिप ने हस्ताक्षर किए} chip_refused {चिप ने मना किया} payment_submitted {भुगतान Arc को भेजा गया} payment_settled {Arc पर निपटा} approval_requested {मालिक की मंज़ूरी माँगी गई} approval_answered {मालिक ने जवाब दिया} evidence_uploaded {सबूत 0G पर रखा गया} state {काम की स्थिति} other {{kind}}}',
+  'episode.field':
+    '{field, select, requestId {अनुरोध आईडी} brain {ब्रेन} latency {विलंब} promptHash {प्रॉम्प्ट SHA-256} outcome {परिणाम} error {त्रुटि} leafHash {लीफ़ हैश} status {स्थिति} gas {इस्तेमाल हुई गैस} payer {भुगतानकर्ता} reason {कारण} acr {आश्वासन स्तर (acr)} amr {तरीके (amr)} rootHash {रूट हैश} requestIdsHash {अनुरोध-आईडी हैश} recorder {दर्ज करने वाला} recordedAt {दर्ज करने का समय} other {{field}}}',
+  'episode.input': 'ब्रेन को भेजा गया इनपुट (सटीक JSON)',
+  'episode.meta': '{robot} · शुरू {started}',
+  'episode.none':
+    '{card, select, decision {कोई फ़ैसला दर्ज नहीं हुआ।} chip {चिप को हस्ताक्षर का अनुरोध नहीं भेजा गया।} payment {इस काम के लिए कोई भुगतान नहीं हुआ।} approval {मंज़ूरी की ज़रूरत नहीं थी।} evidence {अभी तक सबूत का रिकॉर्ड नहीं।} other {—}}',
+  'episode.notOnChain': '0G Chain पर अभी तक EpisodeLog रिकॉर्ड नहीं।',
+  'episode.replayNote':
+    'दोहराव वही इनपुट ब्रेन को फिर भेजता है। यह बाध्यकारी नहीं है: यह कभी भुगतान नहीं करता और काम को नहीं बदलता।',
+  'episode.replayResult':
+    'दोहराव: {brain} {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {छोड़ देना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}} चुनता: {reason}',
+  'episode.replaySame': '{same, select, yes {मूल जैसा ही फ़ैसला।} other {मूल से अलग फ़ैसला।}}',
+  'episode.title': 'काम: {item}',
+  'episode.verifyMatch':
+    '{field, select, rootHash {रूट हैश} other {अनुरोध-आईडी हैश}}: {matches, select, yes {0G Chain पर EpisodeLog रिकॉर्ड से मेल खाता है} other {EpisodeLog रिकॉर्ड से मेल नहीं खाता}}',
+  'episodes.allRobots': 'सभी रोबोट',
+  'episodes.column':
+    '{column, select, when {कब} robot {रोबोट} item {वस्तु} state {स्थिति} decision {फ़ैसला} payment {भुगतान} world {World} evidence {सबूत} open {विवरण} other {{column}}}',
+  'episodes.decision':
+    '{brain}: {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {छोड़ देना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}}',
+  'episodes.empty': 'अभी तक कोई काम नहीं।',
+  'episodes.explainer':
+    'आपके रोबोटों के सभी काम: किसने फ़ैसला किया, Arc पर क्या भुगतान हुआ, World ने क्या मंज़ूर किया और 0G पर सबूत कहाँ है।',
+  'episodes.filter': 'रोबोट',
+  'episodes.inspect': 'जाँचें',
+  'episodes.title': 'एपिसोड',
   'gate.badSignature': 'स्थिति का हस्ताक्षर सत्यापित नहीं हुआ; गेट बंद रहेगा।',
   'gate.closed': 'बंद',
   'gate.invoice': 'इनवॉइस',
@@ -615,6 +743,37 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'console.starting': 'रोबोटच्या ब्रेनला {item} बद्दल विचारत आहे...',
   'console.storage': '0G Storage वरील एपिसोड',
   'console.title': 'रोबोट कन्सोल',
+  'episode.action':
+    '{action, select, verify {पडताळा} verifying {पडताळत आहे…} replay {निर्णय पुन्हा चालवा (बंधनकारक नाही)} replaying {पुन्हा चालवत आहे…} other {{action}}}',
+  'episode.card':
+    '{card, select, decision {निर्णय} chip {चिप} payment {Arc वरील पेमेंट} approval {World मंजुरी} evidence {0G वरील पुरावा} timeline {कालरेषा} other {{card}}}',
+  'episode.event':
+    '{kind, select, errand_started {काम सुरू झाले} decision {ब्रेनने निर्णय घेतला} chip_requested {चिपला स्वाक्षरी विनंती पाठवली} chip_delivered {चिपने ती घेतली} chip_signed {चिपने स्वाक्षरी केली} chip_refused {चिपने नाकारले} payment_submitted {पेमेंट Arc ला पाठवले} payment_settled {Arc वर पूर्ण झाले} approval_requested {मालकाची मंजुरी मागितली} approval_answered {मालकाने उत्तर दिले} evidence_uploaded {पुरावा 0G वर ठेवला} state {कामाची स्थिती} other {{kind}}}',
+  'episode.field':
+    '{field, select, requestId {विनंती आयडी} brain {ब्रेन} latency {विलंब} promptHash {प्रॉम्प्ट SHA-256} outcome {निकाल} error {त्रुटी} leafHash {लीफ हॅश} status {स्थिती} gas {वापरलेला गॅस} payer {पैसे भरणारा} reason {कारण} acr {खात्री पातळी (acr)} amr {पद्धती (amr)} rootHash {रूट हॅश} requestIdsHash {विनंती-आयडी हॅश} recorder {नोंद करणारा} recordedAt {नोंदीची वेळ} other {{field}}}',
+  'episode.input': 'ब्रेनला पाठवलेले इनपुट (नेमके JSON)',
+  'episode.meta': '{robot} · सुरू {started}',
+  'episode.none':
+    '{card, select, decision {कोणताही निर्णय नोंदलेला नाही.} chip {चिपला स्वाक्षरीची विनंती पाठवली नाही.} payment {या कामासाठी काहीही भरले नाही.} approval {मंजुरीची गरज नव्हती.} evidence {अजून पुराव्याची नोंद नाही.} other {—}}',
+  'episode.notOnChain': '0G Chain वर अजून EpisodeLog नोंद नाही.',
+  'episode.replayNote': 'पुनरावृत्ती तेच इनपुट ब्रेनला पुन्हा पाठवते. ती बंधनकारक नाही: ती कधीही पैसे भरत नाही आणि काम बदलत नाही.',
+  'episode.replayResult':
+    'पुनरावृत्ती: {brain} {action, select, pay {पैसे भरणे} ask_human {आधी तुम्हाला विचारणे} walk_away {सोडून देणे} safe_stop {सुरक्षितपणे थांबणे} other {{action}}} निवडेल: {reason}',
+  'episode.replaySame': '{same, select, yes {मूळसारखाच निर्णय.} other {मूळपेक्षा वेगळा निर्णय.}}',
+  'episode.title': 'काम: {item}',
+  'episode.verifyMatch':
+    '{field, select, rootHash {रूट हॅश} other {विनंती-आयडी हॅश}}: {matches, select, yes {0G Chain वरील EpisodeLog नोंदीशी जुळतो} other {EpisodeLog नोंदीशी जुळत नाही}}',
+  'episodes.allRobots': 'सर्व रोबोट',
+  'episodes.column':
+    '{column, select, when {केव्हा} robot {रोबोट} item {वस्तू} state {स्थिती} decision {निर्णय} payment {पेमेंट} world {World} evidence {पुरावा} open {तपशील} other {{column}}}',
+  'episodes.decision':
+    '{brain}: {action, select, pay {पैसे भरणे} ask_human {आधी तुम्हाला विचारणे} walk_away {सोडून देणे} safe_stop {सुरक्षितपणे थांबणे} other {{action}}}',
+  'episodes.empty': 'अजून कोणतेही काम नाही.',
+  'episodes.explainer':
+    'तुमच्या रोबोटनी केलेली सर्व कामे: काय ठरले, Arc वर काय भरले, World ने काय मंजूर केले आणि 0G वर पुरावा कुठे आहे.',
+  'episodes.filter': 'रोबोट',
+  'episodes.inspect': 'तपासा',
+  'episodes.title': 'एपिसोड',
   'gate.badSignature': 'स्थितीची स्वाक्षरी पडताळली नाही; गेट बंदच राहील.',
   'gate.closed': 'बंद',
   'gate.invoice': 'बीजक',

@@ -65,6 +65,31 @@
     "storage": "0G Storage 上のエピソード",
     "title": "ロボットコンソール"
   },
+  "episode": {
+    "action": "{action, select, verify {検証} verifying {検証中…} replay {判断を再実行（拘束力なし）} replaying {再実行中…} other {{action}}}",
+    "card": "{card, select, decision {判断} chip {チップ} payment {Arc での支払い} approval {World の承認} evidence {0G 上の証拠} timeline {タイムライン} other {{card}}}",
+    "event": "{kind, select, errand_started {用事を開始} decision {頭脳が判断} chip_requested {チップに署名依頼を送信} chip_delivered {チップが受け取った} chip_signed {チップが署名} chip_refused {チップが拒否} payment_submitted {Arc に支払いを送信} payment_settled {Arc で決済完了} approval_requested {オーナーの承認を依頼} approval_answered {オーナーが回答} evidence_uploaded {証拠を 0G に保存} state {用事の状態} other {{kind}}}",
+    "field": "{field, select, requestId {リクエスト ID} brain {頭脳} latency {応答時間} promptHash {プロンプト SHA-256} outcome {結果} error {エラー} leafHash {リーフハッシュ} status {状態} gas {使用ガス} payer {支払者} reason {理由} acr {保証レベル (acr)} amr {認証方法 (amr)} rootHash {ルートハッシュ} requestIdsHash {リクエスト ID ハッシュ} recorder {記録者} recordedAt {記録日時} other {{field}}}",
+    "input": "頭脳に送った入力（正確な JSON）",
+    "meta": "{robot} · 開始 {started}",
+    "none": "{card, select, decision {判断は記録されていません。} chip {チップに署名依頼は送られていません。} payment {この用事では何も支払われていません。} approval {承認は不要でした。} evidence {証拠の記録はまだありません。} other {—}}",
+    "notOnChain": "0G Chain にはまだ EpisodeLog の記録がありません。",
+    "replayNote": "再実行は同じ入力を頭脳にもう一度送ります。拘束力はなく、支払いも用事の変更も行いません。",
+    "replayResult": "再実行：{brain} なら{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {見送る} safe_stop {安全に停止する} other {{action}}}：{reason}",
+    "replaySame": "{same, select, yes {元の判断と同じです。} other {元の判断と異なります。}}",
+    "title": "用事：{item}",
+    "verifyMatch": "{field, select, rootHash {ルートハッシュ} other {リクエスト ID ハッシュ}}：{matches, select, yes {0G Chain の EpisodeLog 記録と一致} other {EpisodeLog 記録と一致しません}}"
+  },
+  "episodes": {
+    "allRobots": "すべてのロボット",
+    "column": "{column, select, when {日時} robot {ロボット} item {品目} state {状態} decision {判断} payment {支払い} world {World} evidence {証拠} open {詳細} other {{column}}}",
+    "decision": "{brain}：{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {見送る} safe_stop {安全に停止する} other {{action}}}",
+    "empty": "まだ用事はありません。",
+    "explainer": "ロボットが行ったすべての用事：何が決めたか、Arc で何を支払ったか、World が何を承認したか、0G のどこに証拠があるか。",
+    "filter": "ロボット",
+    "inspect": "詳しく見る",
+    "title": "エピソード"
+  },
   "gate": {
     "badSignature": "ステータスの署名を確認できません。ゲートは閉じたままです。",
     "closed": "閉",

@@ -65,6 +65,31 @@
     "storage": "0G Storage वरील एपिसोड",
     "title": "रोबोट कन्सोल"
   },
+  "episode": {
+    "action": "{action, select, verify {पडताळा} verifying {पडताळत आहे…} replay {निर्णय पुन्हा चालवा (बंधनकारक नाही)} replaying {पुन्हा चालवत आहे…} other {{action}}}",
+    "card": "{card, select, decision {निर्णय} chip {चिप} payment {Arc वरील पेमेंट} approval {World मंजुरी} evidence {0G वरील पुरावा} timeline {कालरेषा} other {{card}}}",
+    "event": "{kind, select, errand_started {काम सुरू झाले} decision {ब्रेनने निर्णय घेतला} chip_requested {चिपला स्वाक्षरी विनंती पाठवली} chip_delivered {चिपने ती घेतली} chip_signed {चिपने स्वाक्षरी केली} chip_refused {चिपने नाकारले} payment_submitted {पेमेंट Arc ला पाठवले} payment_settled {Arc वर पूर्ण झाले} approval_requested {मालकाची मंजुरी मागितली} approval_answered {मालकाने उत्तर दिले} evidence_uploaded {पुरावा 0G वर ठेवला} state {कामाची स्थिती} other {{kind}}}",
+    "field": "{field, select, requestId {विनंती आयडी} brain {ब्रेन} latency {विलंब} promptHash {प्रॉम्प्ट SHA-256} outcome {निकाल} error {त्रुटी} leafHash {लीफ हॅश} status {स्थिती} gas {वापरलेला गॅस} payer {पैसे भरणारा} reason {कारण} acr {खात्री पातळी (acr)} amr {पद्धती (amr)} rootHash {रूट हॅश} requestIdsHash {विनंती-आयडी हॅश} recorder {नोंद करणारा} recordedAt {नोंदीची वेळ} other {{field}}}",
+    "input": "ब्रेनला पाठवलेले इनपुट (नेमके JSON)",
+    "meta": "{robot} · सुरू {started}",
+    "none": "{card, select, decision {कोणताही निर्णय नोंदलेला नाही.} chip {चिपला स्वाक्षरीची विनंती पाठवली नाही.} payment {या कामासाठी काहीही भरले नाही.} approval {मंजुरीची गरज नव्हती.} evidence {अजून पुराव्याची नोंद नाही.} other {—}}",
+    "notOnChain": "0G Chain वर अजून EpisodeLog नोंद नाही.",
+    "replayNote": "पुनरावृत्ती तेच इनपुट ब्रेनला पुन्हा पाठवते. ती बंधनकारक नाही: ती कधीही पैसे भरत नाही आणि काम बदलत नाही.",
+    "replayResult": "पुनरावृत्ती: {brain} {action, select, pay {पैसे भरणे} ask_human {आधी तुम्हाला विचारणे} walk_away {सोडून देणे} safe_stop {सुरक्षितपणे थांबणे} other {{action}}} निवडेल: {reason}",
+    "replaySame": "{same, select, yes {मूळसारखाच निर्णय.} other {मूळपेक्षा वेगळा निर्णय.}}",
+    "title": "काम: {item}",
+    "verifyMatch": "{field, select, rootHash {रूट हॅश} other {विनंती-आयडी हॅश}}: {matches, select, yes {0G Chain वरील EpisodeLog नोंदीशी जुळतो} other {EpisodeLog नोंदीशी जुळत नाही}}"
+  },
+  "episodes": {
+    "allRobots": "सर्व रोबोट",
+    "column": "{column, select, when {केव्हा} robot {रोबोट} item {वस्तू} state {स्थिती} decision {निर्णय} payment {पेमेंट} world {World} evidence {पुरावा} open {तपशील} other {{column}}}",
+    "decision": "{brain}: {action, select, pay {पैसे भरणे} ask_human {आधी तुम्हाला विचारणे} walk_away {सोडून देणे} safe_stop {सुरक्षितपणे थांबणे} other {{action}}}",
+    "empty": "अजून कोणतेही काम नाही.",
+    "explainer": "तुमच्या रोबोटनी केलेली सर्व कामे: काय ठरले, Arc वर काय भरले, World ने काय मंजूर केले आणि 0G वर पुरावा कुठे आहे.",
+    "filter": "रोबोट",
+    "inspect": "तपासा",
+    "title": "एपिसोड"
+  },
   "gate": {
     "badSignature": "स्थितीची स्वाक्षरी पडताळली नाही; गेट बंदच राहील.",
     "closed": "बंद",

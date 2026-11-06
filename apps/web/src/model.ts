@@ -3,12 +3,7 @@ import { SessionView } from '@ethmumbai/auth/config'
 import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { Locale } from './Locale.ts'
-import * as Approval from './pages/Approval.ts'
-import * as Gate from './pages/gate/Gate.ts'
-import * as Merchant from './pages/merchant/Merchant.ts'
-import * as RobotConsole from './pages/RobotConsole.ts'
-import * as Robots from './pages/Robots.ts'
-import * as Wallet from './pages/Wallet.ts'
+import { Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Robots, Wallet } from './pageModules.ts'
 import { AppRoute } from './route.ts'
 
 /** What the server rendered with; serialized into the page and read back unchanged when the browser hydrates. */
@@ -48,6 +43,8 @@ export const Model = Schema.Struct({
   maybeRobots: Schema.Option(Robots.Model),
   maybeConsole: Schema.Option(RobotConsole.Model),
   maybeApproval: Schema.Option(Approval.Model),
+  maybeEpisodes: Schema.Option(Episodes.Model),
+  maybeEpisode: Schema.Option(Episode.Model),
   maybeMerchant: Schema.Option(Merchant.Model),
   maybeGate: Schema.Option(Gate.Model),
 })

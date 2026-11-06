@@ -3,15 +3,13 @@ import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { type ConsoleRobot, type Decision, type ErrandDetail, invoiceIdFrom, isZeroGDecision } from '../api/Robot.ts'
+import { chainScan, storageScan } from '../api/Episodes.ts'
 import { type Catalogue, explorerTx, usdc } from '../api/Wallet.ts'
 import { ConsoleState, Errand, isLive, Message, type Model } from './RobotConsole.ts'
-import { robotsRouter } from '../route.ts'
+import { robotEpisodesRouter, robotsRouter } from '../route.ts'
 import { failedView, signedOutView } from './Shared.ts'
 
 // VIEW
-
-const storageScan = (rootHash: string) => `https://storagescan-galileo.0g.ai/file/${rootHash}`
-const chainScan = (hash: string) => `https://chainscan-galileo.0g.ai/tx/${hash}`
 
 const robotHeader = (view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.section(
@@ -197,6 +195,10 @@ export const robotConsoleView = Submodel.defineView<Model, Message, { readonly l
             [format(locale, 'common.refresh', {})],
           ),
           h.a([h.Href(robotsRouter()), h.Class('secondary-action')], [format(locale, 'robots.title', {})]),
+          h.a(
+            [h.Href(robotEpisodesRouter({ robotId: model.robotId })), h.Class('secondary-action')],
+            [format(locale, 'episodes.title', {})],
+          ),
         ],
       }),
     ),

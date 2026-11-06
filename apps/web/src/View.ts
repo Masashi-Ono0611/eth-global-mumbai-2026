@@ -5,12 +5,14 @@ import { Message } from './message.ts'
 import { AuthState, LocaleSave, type Model } from './model.ts'
 import { homeView } from './pages/Home.ts'
 import * as Approval from './pages/Approval.ts'
+import { episodeView } from './pages/EpisodeView.ts'
+import * as Episodes from './pages/Episodes.ts'
 import * as Gate from './pages/gate/Gate.ts'
 import * as Merchant from './pages/merchant/Merchant.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { robotsView } from './pages/RobotsView.ts'
 import * as Wallet from './pages/Wallet.ts'
-import { AppRoute, homeRouter, robotsRouter, walletRouter } from './route.ts'
+import { AppRoute, episodesRouter, homeRouter, robotsRouter, walletRouter } from './route.ts'
 const languages: ReadonlyArray<Readonly<{ locale: Locale; label: string }>> = [
   { locale: 'en', label: 'English' },
   { locale: 'sl', label: 'Slovenščina' },
@@ -54,6 +56,7 @@ const ownerNav = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           h.a([h.Href(walletRouter())], [format(locale, 'wallet.title', {})]),
           h.a([h.Href(robotsRouter())], [format(locale, 'robots.title', {})]),
+          h.a([h.Href(episodesRouter())], [format(locale, 'episodes.title', {})]),
         ],
       )
     : h.empty
@@ -147,6 +150,41 @@ const approvalPage = (model: Model, h: HtmlBuilder<Message>): Page =>
     h,
   )
 
+/** The audit pages render times, so they also get the page's time zone. */
+const auditInputs = (model: Model) => ({ locale: model.context.locale, timeZone: model.context.timeZone })
+
+const episodesPage = (model: Model, h: HtmlBuilder<Message>): Page =>
+  childPage(
+    model,
+    format(model.context.locale, 'episodes.title', {}),
+    model.maybeEpisodes,
+    (episodes) =>
+      h.submodel({
+        slotId: 'episodes',
+        model: episodes,
+        view: Episodes.view,
+        viewInputs: auditInputs(model),
+        toParentMessage: (message) => Message.GotEpisodesMessage({ message }),
+      }),
+    h,
+  )
+
+const episodePage = (model: Model, h: HtmlBuilder<Message>): Page =>
+  childPage(
+    model,
+    format(model.context.locale, 'episodes.title', {}),
+    model.maybeEpisode,
+    (episode) =>
+      h.submodel({
+        slotId: 'episode',
+        model: episode,
+        view: episodeView,
+        viewInputs: auditInputs(model),
+        toParentMessage: (message) => Message.GotEpisodeMessage({ message }),
+      }),
+    h,
+  )
+
 const merchantPage = (model: Model, h: HtmlBuilder<Message>): Page =>
   childPage(
     model,
@@ -188,6 +226,9 @@ const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
     Robots: () => robotsPage(model, h),
     RobotConsole: () => consolePage(model, h),
     Approval: () => approvalPage(model, h),
+    Episodes: () => episodesPage(model, h),
+    RobotEpisodes: () => episodesPage(model, h),
+    Episode: () => episodePage(model, h),
     Merchant: () => merchantPage(model, h),
     Gate: () => gatePage(model, h),
   })

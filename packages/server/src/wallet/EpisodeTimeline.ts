@@ -1,3 +1,4 @@
+import { AuditDecision } from '@ethmumbai/protocol/Audit'
 import { TerminalEpisodeState } from '@ethmumbai/protocol/Errand'
 import { Option, Schema } from 'effect'
 
@@ -36,23 +37,7 @@ export const InvoiceAuditRow = Schema.Struct({
   expires_at: Time,
   created_at: Schema.Finite,
 })
-export const DecisionAuditRow = Schema.Struct({
-  id: Schema.String,
-  step: Time,
-  model: Text,
-  request_id: Text,
-  chat_id: Text,
-  provider: Text,
-  latency_ms: Time,
-  prompt_sha256: Text,
-  input_json: Text,
-  action: Schema.String,
-  reason: Text,
-  outcome: Text,
-  outcome_ref: Text,
-  error: Text,
-  created_at: Schema.Finite,
-})
+export const DecisionAuditRow = AuditDecision
 export const ChipAuditRow = Schema.Struct({
   id: Schema.String,
   kind: Schema.String,

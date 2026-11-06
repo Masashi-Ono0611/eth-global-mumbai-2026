@@ -5,7 +5,17 @@ import { CreatePasskeyWallet, ReadSession, SaveLocale, SignInWithPasskey, SignOu
 import { parseLocale } from './Locale.ts'
 import { Message } from './message.ts'
 import { AuthState, type Flags, LocaleSave, type Model } from './model.ts'
-import { foldApproval, foldConsole, foldGate, foldMerchant, foldRobots, foldWallet, initPages } from './pages.ts'
+import {
+  foldApproval,
+  foldConsole,
+  foldEpisode,
+  foldEpisodes,
+  foldGate,
+  foldMerchant,
+  foldRobots,
+  foldWallet,
+  initPages,
+} from './pages.ts'
 import { routeFromPathname } from './route.ts'
 
 type UpdateReturn = Update.Return<Model, Message, Services>
@@ -29,18 +39,21 @@ export const init = (context: Flags): UpdateReturn => {
 /** A passkey ceremony may start only from a signed-out page that is not already running one. */
 const canStartCeremony = (auth: AuthState) => AuthState.guards.SignedOut(auth) || AuthState.guards.Refused(auth)
 
+/** A language change saves once at a time; an unknown value is ignored. */
+const selectLocale = (model: Model, value: string): UpdateReturn => {
+  const locale = parseLocale(value)
+  if (locale === undefined || LocaleSave.guards.Saving(model.localeSave)) {
+    return { model }
+  }
+  return {
+    model: modifyFields(model, { localeSave: () => LocaleSave.Saving({ locale }) }),
+    commands: [SaveLocale({ locale })],
+  }
+}
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SelectedLocale: ({ value }) => {
-      const locale = parseLocale(value)
-      if (locale === undefined || LocaleSave.guards.Saving(model.localeSave)) {
-        return { model }
-      }
-      return {
-        model: modifyFields(model, { localeSave: () => LocaleSave.Saving({ locale }) }),
-        commands: [SaveLocale({ locale })],
-      }
-    },
+    SelectedLocale: ({ value }) => selectLocale(model, value),
     SucceededSaveLocale: ({ locale }) => ({
       model: modifyFields(model, {
         context: () => modifyFields(model.context, { locale: () => locale }),
@@ -104,6 +117,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     GotRobotsMessage: ({ message: robotsMessage }) => foldRobots(model, robotsMessage),
     GotConsoleMessage: ({ message: consoleMessage }) => foldConsole(model, consoleMessage),
     GotApprovalMessage: ({ message: approvalMessage }) => foldApproval(model, approvalMessage),
+    GotEpisodesMessage: ({ message: episodesMessage }) => foldEpisodes(model, episodesMessage),
+    GotEpisodeMessage: ({ message: episodeMessage }) => foldEpisode(model, episodeMessage),
     GotMerchantMessage: ({ message: merchantMessage }) => foldMerchant(model, merchantMessage),
     GotGateMessage: ({ message: gateMessage }) => foldGate(model, gateMessage),
     FailedSignOut: () => ({ model: modifyFields(model, { auth: () => AuthState.Unavailable() }) }),

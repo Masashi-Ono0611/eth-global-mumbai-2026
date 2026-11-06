@@ -65,6 +65,31 @@
     "storage": "0G Storage पर एपिसोड",
     "title": "रोबोट कंसोल"
   },
+  "episode": {
+    "action": "{action, select, verify {सत्यापित करें} verifying {सत्यापित हो रहा है…} replay {फ़ैसला दोहराएँ (बाध्यकारी नहीं)} replaying {दोहराया जा रहा है…} other {{action}}}",
+    "card": "{card, select, decision {फ़ैसला} chip {चिप} payment {Arc पर भुगतान} approval {World मंज़ूरी} evidence {0G पर सबूत} timeline {समयरेखा} other {{card}}}",
+    "event": "{kind, select, errand_started {काम शुरू हुआ} decision {ब्रेन ने फ़ैसला किया} chip_requested {चिप को हस्ताक्षर अनुरोध भेजा गया} chip_delivered {चिप ने उसे लिया} chip_signed {चिप ने हस्ताक्षर किए} chip_refused {चिप ने मना किया} payment_submitted {भुगतान Arc को भेजा गया} payment_settled {Arc पर निपटा} approval_requested {मालिक की मंज़ूरी माँगी गई} approval_answered {मालिक ने जवाब दिया} evidence_uploaded {सबूत 0G पर रखा गया} state {काम की स्थिति} other {{kind}}}",
+    "field": "{field, select, requestId {अनुरोध आईडी} brain {ब्रेन} latency {विलंब} promptHash {प्रॉम्प्ट SHA-256} outcome {परिणाम} error {त्रुटि} leafHash {लीफ़ हैश} status {स्थिति} gas {इस्तेमाल हुई गैस} payer {भुगतानकर्ता} reason {कारण} acr {आश्वासन स्तर (acr)} amr {तरीके (amr)} rootHash {रूट हैश} requestIdsHash {अनुरोध-आईडी हैश} recorder {दर्ज करने वाला} recordedAt {दर्ज करने का समय} other {{field}}}",
+    "input": "ब्रेन को भेजा गया इनपुट (सटीक JSON)",
+    "meta": "{robot} · शुरू {started}",
+    "none": "{card, select, decision {कोई फ़ैसला दर्ज नहीं हुआ।} chip {चिप को हस्ताक्षर का अनुरोध नहीं भेजा गया।} payment {इस काम के लिए कोई भुगतान नहीं हुआ।} approval {मंज़ूरी की ज़रूरत नहीं थी।} evidence {अभी तक सबूत का रिकॉर्ड नहीं।} other {—}}",
+    "notOnChain": "0G Chain पर अभी तक EpisodeLog रिकॉर्ड नहीं।",
+    "replayNote": "दोहराव वही इनपुट ब्रेन को फिर भेजता है। यह बाध्यकारी नहीं है: यह कभी भुगतान नहीं करता और काम को नहीं बदलता।",
+    "replayResult": "दोहराव: {brain} {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {छोड़ देना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}} चुनता: {reason}",
+    "replaySame": "{same, select, yes {मूल जैसा ही फ़ैसला।} other {मूल से अलग फ़ैसला।}}",
+    "title": "काम: {item}",
+    "verifyMatch": "{field, select, rootHash {रूट हैश} other {अनुरोध-आईडी हैश}}: {matches, select, yes {0G Chain पर EpisodeLog रिकॉर्ड से मेल खाता है} other {EpisodeLog रिकॉर्ड से मेल नहीं खाता}}"
+  },
+  "episodes": {
+    "allRobots": "सभी रोबोट",
+    "column": "{column, select, when {कब} robot {रोबोट} item {वस्तु} state {स्थिति} decision {फ़ैसला} payment {भुगतान} world {World} evidence {सबूत} open {विवरण} other {{column}}}",
+    "decision": "{brain}: {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {छोड़ देना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}}",
+    "empty": "अभी तक कोई काम नहीं।",
+    "explainer": "आपके रोबोटों के सभी काम: किसने फ़ैसला किया, Arc पर क्या भुगतान हुआ, World ने क्या मंज़ूर किया और 0G पर सबूत कहाँ है।",
+    "filter": "रोबोट",
+    "inspect": "जाँचें",
+    "title": "एपिसोड"
+  },
   "gate": {
     "badSignature": "स्थिति का हस्ताक्षर सत्यापित नहीं हुआ; गेट बंद रहेगा।",
     "closed": "बंद",

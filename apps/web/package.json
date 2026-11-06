@@ -15,6 +15,7 @@
     "@ethmumbai/auth": "workspace:*",
     "@ethmumbai/i18n": "workspace:*",
     "@ethmumbai/observability": "workspace:*",
+    "@ethmumbai/protocol": "workspace:*",
     "effect": "catalog:",
     "foldkit": "catalog:",
     "zyzz": "catalog:"

@@ -67,6 +67,31 @@ export interface MessageArgumentsByKey<T = string> {
   'console.starting': { readonly item: string | number }
   'console.storage': Readonly<Record<string, never>>
   'console.title': Readonly<Record<string, never>>
+  'episode.action': { readonly action: string | number }
+  'episode.card': { readonly card: string | number }
+  'episode.event': { readonly kind: string | number }
+  'episode.field': { readonly field: string | number }
+  'episode.input': Readonly<Record<string, never>>
+  'episode.meta': { readonly robot: string | number; readonly started: string | number }
+  'episode.none': { readonly card: string | number }
+  'episode.notOnChain': Readonly<Record<string, never>>
+  'episode.replayNote': Readonly<Record<string, never>>
+  'episode.replayResult': {
+    readonly brain: string | number
+    readonly action: string | number
+    readonly reason: string | number
+  }
+  'episode.replaySame': { readonly same: string | number }
+  'episode.title': { readonly item: string | number }
+  'episode.verifyMatch': { readonly field: string | number; readonly matches: string | number }
+  'episodes.allRobots': Readonly<Record<string, never>>
+  'episodes.column': { readonly column: string | number }
+  'episodes.decision': { readonly brain: string | number; readonly action: string | number }
+  'episodes.empty': Readonly<Record<string, never>>
+  'episodes.explainer': Readonly<Record<string, never>>
+  'episodes.filter': Readonly<Record<string, never>>
+  'episodes.inspect': Readonly<Record<string, never>>
+  'episodes.title': Readonly<Record<string, never>>
   'gate.badSignature': Readonly<Record<string, never>>
   'gate.closed': Readonly<Record<string, never>>
   'gate.invoice': Readonly<Record<string, never>>
@@ -145,4 +170,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'b8d458176b28e8ee423f2683fa93295188068c3639cf5c53f49dfd1bd07d7e71'
+export const catalogVersion = '0b2cee9c1e31588af41f5a682f9fd3545f72ee372d8d9e240cc38330acb9695c'
