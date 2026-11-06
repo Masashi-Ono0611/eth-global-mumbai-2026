@@ -126,13 +126,18 @@ derived from `AUTH_ORIGIN` at runtime (the native test stack has a different hos
 passkey can be the on-chain signer.
 
 Chain signing with the same credential: `POST /api/wallet/grants/options {robotId, dailyCap, perPaymentCap, allowlist,
-expiresAt}` → builds the unsigned grant (§5), stores it `unsigned`, returns `{grantId, challenge = delegationHash
-bytes}`; `POST /api/wallet/grants/:id/sign {credentialId, authenticatorData, clientDataJSON, signature}` → the server
-verifies the assertion exactly as a login (challenge = the hash) and encodes the DeleGator signature
-`abi.encode(bytes32 keyIdHash, uint256 r, uint256 lowS, bytes authData, bool UV, string cdjPrefix, string cdjSuffix,
-uint256 typeIdx)` (prefix/suffix split around the base64url challenge; `keyIdHash = keccak256(utf8(keyId))`), marks
-the grant `active`. Revoke is the same pair under `/api/wallet/grants/:id/revoke/{options,sign}` (the challenge is the
-hash of a one-time delegation whose execution is `DelegationManager.disableDelegation(grant)`). The relayer deploys the
+expiresAt}` → builds the unsigned grant (§5), stores it `unsigned`, returns `{grantId, challenge = delegationDigest
+bytes}`. **The challenge is the EIP-712 typed-data digest** `keccak256(0x1901 ‖ domainSeparator(DelegationManager,
+5042) ‖ hashDelegation(grant))` (`delegationDigest` in `@ethmumbai/protocol/Delegation`), not the struct hash:
+`DelegationManager` calls `isValidSignature(toTypedDataHash(getDomainHash(), delegationHash), sig)` and the Hybrid
+account's P-256 verifier uses that hash as the WebAuthn challenge. `delegation_hash` in D1 stays the struct hash
+(unique key, `revoke:<delegationHash>`). `POST /api/wallet/grants/:id/sign {credentialId, authenticatorData,
+clientDataJSON, signature}` → the server verifies the assertion exactly as a login (challenge = the digest), encodes the
+DeleGator signature `abi.encode(bytes32 keyIdHash, uint256 r, uint256 lowS, bytes authData, bool UV, string cdjPrefix,
+string cdjSuffix, uint256 typeIdx)` (prefix/suffix split around the base64url challenge; `keyIdHash =
+keccak256(utf8(keyId))`), checks it with an `isValidSignature(digest, sig)` `eth_call` on the deployed account, and
+marks the grant `active`. Revoke is the same pair under `/api/wallet/grants/:id/revoke/{options,sign}` (the challenge is
+the digest of a one-time delegation whose execution is `DelegationManager.disableDelegation(grant)`). The relayer deploys the
 account (`relayer_txs` key `deploy:<smartAccount>`, `SimpleFactory` via `getFactoryArgs()`) inside the first grant
 `sign` request, before the grant can be redeemed.
 
