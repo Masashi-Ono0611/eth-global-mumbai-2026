@@ -36,7 +36,9 @@ servers can undo that." For the budget, use the card analogy: "It's like giving 
 limit." The new part is that the chain enforces the limit instead of a bank. Keep the duck on the table as a prop, even
 when the chip runs on the laptop, and say so.
 
-`/story/` (the four cute-duck screens, <https://vitaquack.com/plan/story/>) is the short, sponsor-light version.
+The stage deck is <https://vitaquack.com/pitch/> (§7). `/story/` (the four cute-duck screens,
+<https://vitaquack.com/plan/story/>) is the short, sponsor-light version for a booth; it is not the stage look, which is
+the landing's white robot and the real duck.
 
 Which claims are safe:
 
@@ -111,3 +113,57 @@ client at the booth.
   are chip-signed evidence on 0G Storage, and the owner can pick `glm-5.3` in a TEE instead.
 - "How do I check an errand myself?" Open its public proof at <https://vitaquack.com/app/proofs> and press **Verify
   against 0G**. Your browser reads the record from 0G Chain's public RPC and the files from 0G Storage, not from us.
+
+## 7. The pitch page
+
+<https://vitaquack.com/pitch/> is the deck: seven screens in the landing's look, one per keypress (space, arrows,
+PageUp/Down, Home, End; a clicker sends PageDown), dots at the bottom left to jump. The landing stays as it is (Kris,
+7 Nov 03:30: no slides mode on the landing). The screens: the budget line with the hero film; the key belongs on the
+robot; How it works, the landing's rail running its three scenarios, with **Open the wallet** (new tab) as the way into
+the demo; the three cards with their credits (enforced on Arc, decided by 0G, a real person with World ID); **Now,
+live** with the three beats ("Get me a chai · it pays", "Get me a thali · it asks you", "Stop · Arc refuses the next
+one"); the eight build photos; the close ("Arc holds the rules. 0G is the brain and the memory. World is the human.",
+vitaquack.com, links to the app, the public proofs, the architecture and GitHub).
+
+Source: `~/code/vitaquack-film/landing/pitch.html`, rendered by `python3 build.py pitch` to
+`docs/site/pitch/pitch/index.html`. The render lifts the styles, the sprite, the app-screen wall, the cards, the photos
+and the rail's scenarios from the rendered landing (`docs/site/pitch/index.html`, which is ahead of the template since
+b6e938e), so the deck follows the landing's copy: re-render it after every landing change. The Edge answers `/pitch/`
+with it like `/shop/` (`tools/copy-landing.ts`, `packages/server/src/EdgeLanding.ts`); on the scratch site it is
+<https://vitaquack.com/plan/pitch/pitch/>.
+
+## 8. Stage run
+
+The finalist judging session is 7 minutes, 4 of demo and 3 of judges' questions (ETHGlobal's event page); the top 10
+demo again at the closing ceremony. Judged on technicality, originality, practicality, usability and wow factor. The 4
+minutes stay non-technical; the questions (§6) are where the depth goes.
+
+Open with the duck in hand and one question: "Would any of you give a robot your credit card?" Pause. "This one is
+about to buy me a chai with my money. I never gave it my wallet. I gave it a budget." Set it down; screen 1 says the
+same sentence. Then one line of vision: "Robots are about to run errands for us, and errands cost money." A cold open
+(the duck paying before a word) gets the biggest reaction and has the highest variance, since the scan is the least
+proven beat.
+
+| Clock | On screen | Said |
+| --- | --- | --- |
+| 0:00 | Pitch screen 1 | The opening |
+| 0:25 | Screens 3 and 4 | "You set a budget. It shops. For big things it asks you." One clause per card |
+| 1:00 | Screen 5, then the wallet (Duck already paired): the allowance, passkey | Read the sentence aloud. "One signature, and Arc checks every payment against it" |
+| 1:20 | "Get me a chai", Duck scans, the till shows Paid | "It decided, its chip signed, Arc settled. Real money, under a second" |
+| 1:55 | "Get me a thali", the yellow bubble, the mirrored phone buzzes, World ID approve, paid | "Over its limit, so it asks me. A real human saying yes, verified with World ID" |
+| 2:45 | Thali again, No, nothing paid | "Say no and nothing is signed" |
+| 3:00 | Stop the allowance, the next chai refused | "One tap and it's cut off. Not even our servers can undo that" |
+| 3:25 | Proofs on 0G, one errand | "Every errand, its decision and its receipt, public on 0G" |
+| 3:40 | Screens 6 and 7 | "We printed this duck at the table on Thursday. The first 20 ship in January. Give your robot a budget, not your wallet" |
+
+If it runs long, cut the revoke beat to one sentence, then the proofs page; never the chai or the thali. The third
+thali that walks away is verbal only. Sign-up and pairing are staged before the slot; grant once earlier in the day and
+revoke it, so the stage grant skips the account deploy. Sponsors stay as credit lines (the landing's labels), the rail
+as the one picture with all three, and the closing line; Studio, TEE signatures, the OIDC nonce and the enforcer are
+for the booths and the questions.
+
+Before the slot: decide the scan fallback (the pay-now path is gone from the app, so a camera miss has no in-app
+fallback: the simulator duck tab, or a hidden pay-now for the stage); mirror the phone (QuickTime over USB) so the
+Telegram buzz and the World ID approve are seen; put the till (cafe.vitaquack.com) on the big screen, since the
+counter's own screen is tiny; check 0G five minutes before (one safe stop is a story, then switch the brain in the
+dock; two is not); and don't say "restricted", the demo is spending limits only.
