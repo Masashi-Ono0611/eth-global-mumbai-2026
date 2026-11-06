@@ -25,7 +25,6 @@ export default defineConfig({
     'apps/web/public/landing/**',
     'apps/web/public/media/**',
     // Design mocks on the scratch site (hand-written page scripts for Kris to pick from), not product code.
-    'docs/site/flow-mocks/**',
   ],
   options: { typeAware: true, reportUnusedDisableDirectives: 'error' },
   categories: { correctness: 'error', suspicious: 'error' },
