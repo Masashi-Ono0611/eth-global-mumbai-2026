@@ -197,6 +197,19 @@ const replayed: ReplayResult = {
   same: true,
 }
 
+/** The audit with its chip request still queued, in an errand that is in `state`. */
+const queuedIn = (state: string) =>
+  Episode.update(
+    Episode.init('ep1').model,
+    Episode.Message.SucceededLoadAudit({
+      audit: {
+        ...audit,
+        episode: { ...audit.episode, state },
+        chipRequests: audit.chipRequests.map((request) => ({ ...request, status: 'queued' })),
+      },
+    }),
+  ).model
+
 describe('/wallet/episodes/:id', () => {
   const view = withViewInputs(episodeView, inputs)()
   const loaded = Episode.update(Episode.init('ep1').model, Episode.Message.SucceededLoadAudit({ audit })).model
@@ -222,6 +235,20 @@ describe('/wallet/episodes/:id', () => {
       ),
       expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', '/app/robot/r1'),
       expect(role('link', { name: 'All payment records' })).toHaveAttr('href', '/app/wallet/episodes'),
+    )
+  })
+
+  test('a chip request still queued says waiting while the errand runs, and never picked up once it has ended', () => {
+    scene(
+      { update: Episode.update, view },
+      given(queuedIn('signing')),
+      expect(text('Waiting for the chip to poll')).toExist(),
+    )
+    scene(
+      { update: Episode.update, view },
+      given(queuedIn('expired')),
+      expect(text('The chip never picked this up')).toExist(),
+      expect(text('Waiting for the chip to poll')).not.toExist(),
     )
   })
 

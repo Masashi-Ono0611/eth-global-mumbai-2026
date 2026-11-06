@@ -305,10 +305,7 @@ const rules = (model: Model, grant: ActiveGrant, inputs: ViewInputs, h: HtmlBuil
   )
 }
 
-/** Four-character groups, so an address can be read aloud and checked by eye. */
-const grouped = (value: string) => `${value.slice(0, 6)} ${(value.slice(6).match(/.{1,4}/g) ?? []).join(' ')}`
-
-/** Robot details, folded away: the chip's address (the grant's delegate), the payee, the signed grant's hash and when
+/** Robot details, folded away, with addresses printed whole as wallets print them: the chip's address (the grant's delegate), the payee, the signed grant's hash and when
  *  the robot paired. There is no grant transaction to link: the grant is a signed delegation that Arc checks on use. */
 const robotDetails = (inputs: ViewInputs, h: HtmlBuilder<Message>): Html => {
   const { locale, robot, grant } = inputs
@@ -323,8 +320,8 @@ const robotDetails = (inputs: ViewInputs, h: HtmlBuilder<Message>): Html => {
       h.dl(
         [h.Class(detailListClassName)],
         [
-          ...row(format(locale, 'allowance.chip', {}), robot.chipAddress === null ? null : grouped(robot.chipAddress)),
-          ...row(inputs.payeeName, payee === null ? null : grouped(payee)),
+          ...row(format(locale, 'allowance.chip', {}), robot.chipAddress),
+          ...row(inputs.payeeName, payee),
           ...row(format(locale, 'allowance.grantHash', {}), grant?.delegationHash ?? null),
           ...row(
             format(locale, 'allowance.paired', {}),

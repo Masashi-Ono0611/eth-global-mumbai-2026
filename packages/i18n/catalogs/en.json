@@ -45,7 +45,7 @@
   "console": {
     "brainRehearsal": "The rehearsal brain (not 0G)",
     "brainZeroG": "0G",
-    "chipState": "{status, select, queued {Waiting for the chip to poll} delivered {The chip is checking the invoice and signing} signed {The chip signed the payment} refused {The chip refused: {refusal}} expired {The chip did not answer in time} other {{status}}}",
+    "chipState": "{status, select, queued {Waiting for the chip to poll} unclaimed {The chip never picked this up} delivered {The chip is checking the invoice and signing} signed {The chip signed the payment} refused {The chip refused: {refusal}} expired {The chip did not answer in time} other {{status}}}",
     "decision": "{brain} decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}",
     "episodeLog": "EpisodeLog record on 0G Chain",
     "gateInvoice": "Invoice from the gate (optional)",
@@ -90,7 +90,7 @@
     "inspect": "Show proof",
     "title": "Payment records",
     "backToWallet": "Back to wallet",
-    "state": "{state, select, paid {Paid} walked_away {Walked away, nothing paid} safe_stop {Stopped safely, nothing paid} denied {You said no, nothing paid} refused {The chip refused, nothing paid} failed {Failed, nothing paid} expired {Expired, nothing paid} awaiting_approval {Waiting for you} other {In progress}}",
+    "state": "{state, select, paid {Paid} walked_away {Walked away, nothing paid} safe_stop {Stopped safely, nothing paid} denied {You said no, nothing paid} refused {The chip refused, nothing paid} failed {Failed, nothing paid} expired {Timed out, nothing paid} awaiting_approval {Waiting for you} other {In progress}}",
     "world": "{status, select, consumed {World approved it} approved {World approved it} denied {You said no in World App} failed {World approval failed} expired {World approval expired} other {Waiting for World}}{level, select, orb { (Orb-verified)} other {}}",
     "inspectFor": "Show proof: {item} by {robot}"
   },

@@ -8,7 +8,7 @@ import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { type EpisodeActivity, leftToday, type RobotView, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
 import { receiveBody } from '../Receive.ts'
-import { robotConsoleRouter, robotsRouter, welcomeRouter } from '../route.ts'
+import { episodeRouter, episodesRouter, robotConsoleRouter, robotsRouter, welcomeRouter } from '../route.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
 import { walletSkeleton } from '../Skeleton.ts'
 import { failedView, signedOutView } from './Shared.ts'
@@ -51,7 +51,10 @@ const rowLineClassName = 'block truncate text-[0.94rem] text-muted'
 const badgeClassName =
   'grid h-[22px] min-w-[22px] place-items-center rounded-full bg-duck px-1.5 text-[0.8rem] font-bold'
 const addFaceClassName = 'grid size-[52px] place-items-center rounded-full bg-paper text-2xl text-ink'
-const paymentRowClassName = 'flex justify-between gap-3 px-4 py-3 [&>span:first-child]:min-w-0'
+const paymentRowClassName =
+  'flex min-h-11 justify-between gap-3 px-4 py-3 text-ink no-underline [&>span:first-child]:min-w-0'
+const sectionHeadClassName = 'flex items-baseline justify-between gap-3 pr-2'
+const sectionLinkClassName = 'inline-flex min-h-11 items-center text-[0.94rem] font-semibold text-muted'
 const paymentSubClassName = 'block text-[0.92rem] text-muted'
 const onZeroGClassName = 'ml-1.5 rounded-full bg-paid/10 px-1.5 text-[0.75rem] font-semibold text-paid'
 const paymentAmountClassName = 'shrink-0 text-right font-semibold whitespace-nowrap'
@@ -256,30 +259,36 @@ const paymentRow = (episode: EpisodeActivity, onZeroG: boolean, locale: Locale, 
   const paid = episode.state === 'paid'
   const live = !terminalStates.has(episode.state)
   const amount = episode.amount === null ? '—' : usdc(episode.amount)
+  // The whole row opens the errand's proof (DESIGN.md: the proof stays one tap away).
   return h.keyed('li')(
     episode.id,
-    [h.Class(paymentRowClassName)],
+    [],
     [
-      h.span(
-        [],
+      h.a(
+        [h.Href(episodeRouter({ episodeId: episode.id })), h.Class(paymentRowClassName)],
         [
-          h.span([h.Class('font-semibold')], [itemName(episode.item)]),
           h.span(
-            [h.Class(paymentSubClassName)],
+            [],
             [
-              format(locale, 'home.paymentBy', { robot: episode.robotName, state: episode.state }),
-              onZeroG ? h.span([h.Class(onZeroGClassName)], [format(locale, 'proof.onZeroG', {})]) : h.empty,
+              h.span([h.Class('font-semibold')], [itemName(episode.item)]),
+              h.span(
+                [h.Class(paymentSubClassName)],
+                [
+                  format(locale, 'home.paymentBy', { robot: episode.robotName, state: episode.state }),
+                  onZeroG ? h.span([h.Class(onZeroGClassName)], [format(locale, 'proof.onZeroG', {})]) : h.empty,
+                ],
+              ),
             ],
           ),
-        ],
-      ),
-      h.span(
-        [h.Class(paymentAmountClassName)],
-        [
-          paid ? h.span([], [`−${amount}`]) : live ? h.span([], [amount]) : h.s([h.Class('text-muted')], [amount]),
           h.span(
-            [h.Class(clsx(paid ? paidClassName : paymentSubClassName))],
-            [format(locale, paid ? 'home.paid' : live ? 'home.pending' : 'home.notPaid', {})],
+            [h.Class(paymentAmountClassName)],
+            [
+              paid ? h.span([], [`−${amount}`]) : live ? h.span([], [amount]) : h.s([h.Class('text-muted')], [amount]),
+              h.span(
+                [h.Class(clsx(paid ? paidClassName : paymentSubClassName))],
+                [format(locale, paid ? 'home.paid' : live ? 'home.pending' : 'home.notPaid', {})],
+              ),
+            ],
           ),
         ],
       ),
@@ -423,7 +432,18 @@ const loadedView = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<Mes
       h.section(
         [h.AriaLabelledBy('payments')],
         [
-          h.h2([h.Id('payments'), h.Class(sectionTitleClassName)], [format(locale, 'home.payments', {})]),
+          h.div(
+            [h.Class(sectionHeadClassName)],
+            [
+              h.h2([h.Id('payments'), h.Class(sectionTitleClassName)], [format(locale, 'home.payments', {})]),
+              home.activity.episodes.length === 0
+                ? h.empty
+                : h.a(
+                    [h.Href(episodesRouter()), h.Class(sectionLinkClassName)],
+                    [format(locale, 'episode.allRecords', {})],
+                  ),
+            ],
+          ),
           home.activity.episodes.length === 0
             ? h.p([h.Class(emptyClassName)], [format(locale, 'home.noPayments', {})])
             : h.ul(

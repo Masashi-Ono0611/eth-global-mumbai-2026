@@ -10,7 +10,7 @@ import {
   storageScan,
   type VerifyResult,
 } from '../api/Episodes.ts'
-import { isZeroGDecision } from '../api/Robot.ts'
+import { isZeroGDecision, terminalStates } from '../api/Robot.ts'
 import { explorerTx } from '../api/Wallet.ts'
 import { episodesRouter, robotConsoleRouter, walletRouter } from '../route.ts'
 import { AuditState, Message, type Model, Replay, Verify } from './Episode.ts'
@@ -161,6 +161,10 @@ const decisionCard = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: Html
   )
 }
 
+/** A request still queued when the errand has ended was never picked up: say that, not that it is still waiting. */
+const chipStatus = (status: string, episodeState: string) =>
+  status === 'queued' && terminalStates.has(episodeState) ? 'unclaimed' : status
+
 const chipCard = (audit: EpisodeAudit, locale: Locale, h: HtmlBuilder<Message>): Html =>
   card(
     'chip',
@@ -173,7 +177,12 @@ const chipCard = (audit: EpisodeAudit, locale: Locale, h: HtmlBuilder<Message>):
             [
               h.p(
                 [],
-                [format(locale, 'console.chipState', { status: request.status, refusal: request.refusal_code ?? '—' })],
+                [
+                  format(locale, 'console.chipState', {
+                    status: chipStatus(request.status, audit.episode.state),
+                    refusal: request.refusal_code ?? '—',
+                  }),
+                ],
               ),
               fields([['leafHash', request.leaf_hash]], locale, h),
             ],

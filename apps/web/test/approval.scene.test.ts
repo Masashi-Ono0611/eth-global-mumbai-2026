@@ -51,6 +51,21 @@ const commandNames = (commands: ReturnType<typeof tick>['commands']) => (command
 describe('/wallet/approvals/:id', () => {
   const view = withViewInputs(Approval.view, { locale: 'en' })()
 
+  test('an approval that cannot be read offers a retry and a way back to the wallet', () => {
+    scene(
+      { update: Approval.update, view },
+      given(
+        Approval.update(
+          Approval.init('ap1').model,
+          Approval.Message.FailedLoadApproval({ error: 'approval not found', signedOut: false }),
+        ).model,
+      ),
+      expect(role('alert')).toHaveText('Something went wrong: approval not found'),
+      expect(role('button', { name: 'Retry' })).toExist(),
+      expect(role('link', { name: 'Back to wallet' })).toHaveAttr('href', '/app/wallet'),
+    )
+  })
+
   test('a restricted item asks for World approval; the owner can deny it and the page ends on the denial', () => {
     scene(
       { update: Approval.update, view },

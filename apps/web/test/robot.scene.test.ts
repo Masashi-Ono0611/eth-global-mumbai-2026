@@ -313,7 +313,7 @@ describe('/robot/:id', () => {
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       expect(text('Robot details')).toExist(),
       expect(text('Chip (signs every payment)')).toExist(),
-      expect(text('0x0000 0000 0000 0000 0000 0000 0000 0000 000c 41f0')).toExist(),
+      expect(text('0x00000000000000000000000000000000000c41f0')).toExist(),
       expect(text('0xfeed')).toExist(),
     )
   })

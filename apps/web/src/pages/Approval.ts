@@ -9,7 +9,7 @@ import type * as HttpClient from 'effect/http/HttpClient'
 import { getJson, isSignedOut, postJson } from '../api/Http.ts'
 import { loadErrand, terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { explorerTx, usdc } from '../api/Wallet.ts'
-import { robotConsoleRouter } from '../route.ts'
+import { robotConsoleRouter, walletRouter } from '../route.ts'
 import { failedView, loadingView, signedOutView } from './Shared.ts'
 import { duck } from '../Duck.ts'
 import { busyLabel } from '../Busy.ts'
@@ -368,7 +368,18 @@ export const view = Submodel.defineView<Model, Message, { readonly locale: Local
       ApprovalState.match(model.state, {
         Loading: () => loadingView(locale, h),
         SignedOut: () => signedOutView(locale, h),
-        Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
+        // A failed read has no robot to go back to (an approval that is not there): the wallet is the way out.
+        Failed: ({ error }) =>
+          h.div(
+            [h.Class('contents')],
+            [
+              failedView(error, Message.ClickedReload(), locale, h),
+              h.a(
+                [h.Href(walletRouter()), h.Class(backClassName)],
+                [h.span([h.AriaHidden(true)], ['‹']), format(locale, 'episodes.backToWallet', {})],
+              ),
+            ],
+          ),
         Loaded: ({ approval }) => approvalView(model, approval, locale, h),
       }),
     ],
