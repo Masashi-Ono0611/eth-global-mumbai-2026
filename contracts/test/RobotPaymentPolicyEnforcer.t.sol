@@ -429,7 +429,9 @@ contract RobotPaymentPolicyEnforcerTest is Test {
 
     ////////////////////////////// Gas //////////////////////////////
 
-    /// @dev Execution gas of the hook call as the DelegationManager makes it (cold enforcer storage), logged with -vv.
+    /// @dev Gas of one hook call from a caller, logged with -vv. forge 1.8 isolates top-level calls (`isolate = true`),
+    /// so the figure then includes a transaction's 21k intrinsic gas and calldata; `FOUNDRY_ISOLATE=false forge test
+    /// -vvvv --match-test test_gas` shows the hook frame alone, as inside the DelegationManager's redemption.
     function test_gas_policyPath() public {
         bytes memory execution_ = _transfer(cafe, 100_000);
         ModeCode mode_ = ModeLib.encodeSimpleSingle();
