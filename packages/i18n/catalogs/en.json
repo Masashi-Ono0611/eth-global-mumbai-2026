@@ -121,6 +121,7 @@
     "fundInstructions": "Send USDC on Arc mainnet to the address above. Keep it small: robots spend from it within the limits you grant.",
     "fundTitle": "Add USDC",
     "noActivity": "No errands yet.",
+    "open": "Open wallet",
     "signedInAs": "Signed in as {name}",
     "signInFirst": "Sign in with your passkey to see this page.",
     "title": "Wallet",

@@ -3,6 +3,7 @@ import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Message } from '../message.ts'
 import { type AuthFailure, AuthState, type Model } from '../model.ts'
+import { walletRouter } from '../route.ts'
 
 // VIEW
 
@@ -62,6 +63,7 @@ const walletView = (session: SessionView, signingOut: boolean, locale: Locale, h
       h.h2([], [format(locale, 'wallet.address', {})]),
       h.code([h.Class('smart-account')], [session.smartAccount]),
       h.p([h.Class('hint')], [format(locale, 'wallet.addressNote', {})]),
+      h.a([h.Href(walletRouter()), h.Class('primary-action')], [format(locale, 'wallet.open', {})]),
       h.button(
         [h.Type('button'), h.Class('secondary-action'), h.Disabled(signingOut), h.OnClick(Message.ClickedSignOut())],
         [format(locale, 'auth.signOut', {})],

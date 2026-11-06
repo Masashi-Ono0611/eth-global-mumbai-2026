@@ -121,6 +121,7 @@
     "fundInstructions": "上のアドレスに Arc メインネットで USDC を送ってください。少額にしてください。ロボットはあなたが許可した上限の範囲で使います。",
     "fundTitle": "USDC を追加",
     "noActivity": "まだおつかいはありません。",
+    "open": "ウォレットを開く",
     "signedInAs": "{name} としてサインイン中",
     "signInFirst": "このページを見るにはパスキーでサインインしてください。",
     "title": "ウォレット",

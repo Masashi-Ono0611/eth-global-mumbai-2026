@@ -112,6 +112,7 @@ export interface MessageArgumentsByKey<T = string> {
   'wallet.fundInstructions': Readonly<Record<string, never>>
   'wallet.fundTitle': Readonly<Record<string, never>>
   'wallet.noActivity': Readonly<Record<string, never>>
+  'wallet.open': Readonly<Record<string, never>>
   'wallet.signInFirst': Readonly<Record<string, never>>
   'wallet.signedInAs': { readonly name: string | number }
   'wallet.title': Readonly<Record<string, never>>
@@ -119,4 +120,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'dd41b42fab4483d1c4b24fbfa9c16c057aba2b273c9477f9068f63ce5232bdd0'
+export const catalogVersion = 'df398feef79050526303b92ac4036b17161bf8fd8d98ea4d84652ab5aa900fa2'

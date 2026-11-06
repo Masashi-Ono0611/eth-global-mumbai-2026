@@ -121,6 +121,7 @@
     "fundInstructions": "Pošljite USDC na omrežju Arc mainnet na zgornji naslov. Naj bo znesek majhen: roboti iz njega porabljajo v mejah, ki jih odobrite.",
     "fundTitle": "Dodajte USDC",
     "noActivity": "Še ni opravkov.",
+    "open": "Odpri denarnico",
     "signedInAs": "Prijavljeni kot {name}",
     "signInFirst": "Za ogled te strani se prijavite s ključem za dostop.",
     "title": "Denarnica",

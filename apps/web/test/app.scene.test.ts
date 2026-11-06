@@ -87,6 +87,8 @@ describe('passkey wallet', () => {
       expect(text('Signed in as Ana')).toExist(),
       expect(role('heading', { name: 'Your smart account on Arc' })).toExist(),
       expect(text(session.smartAccount)).toExist(),
+      expect(role('link', { name: 'Open wallet' })).toHaveAttr('href', '/wallet'),
+      expect(role('link', { name: 'Robots' })).toHaveAttr('href', '/wallet/robots'),
       click(role('button', { name: 'Sign out' })),
       Command.expectExact(SignOut()),
       Command.resolve(SignOut, Message.SucceededSignOut()),
