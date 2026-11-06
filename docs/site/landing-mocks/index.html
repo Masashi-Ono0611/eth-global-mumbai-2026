@@ -227,18 +227,6 @@
       .lightbox .lb-bar button:focus-visible, .lightbox .close:focus-visible { outline: 3px solid #ffe7b0; }
       .lightbox .close { position: fixed; top: calc(1rem + env(safe-area-inset-top)); right: 1rem; }
 
-      /* Questions. */
-      .faq { padding-block: clamp(3rem, 8vh, 6rem); border-top: 1px solid var(--rule); }
-      .faq { padding-block: clamp(2.5rem, 6vh, 4rem); }
-      .faq .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: clamp(1.5rem, 4vw, 4rem); align-items: start; }
-      .faq details { border-top: 1px solid var(--rule); }
-      .faq details:last-child { border-bottom: 1px solid var(--rule); }
-      .faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.1rem 0; font: 700 1.15rem/1.3 var(--display); min-height: 3rem; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-      .faq summary::-webkit-details-marker { display: none; }
-      .faq summary::after { content: '+'; font: 500 1.6rem/1 var(--display); color: var(--muted); transition-property: rotate; transition-duration: 0.2s; }
-      .faq details[open] summary::after { rotate: 45deg; }
-      .faq details p { padding: 0 0 1.2rem; color: var(--soft); max-width: 40rem; }
-      @media (max-width: 48rem) { .faq .grid { grid-template-columns: 1fr; } }
 
       /* The final band and the footer. */
       .band { display: grid; align-items: center; min-height: 56svh; overflow: hidden; isolation: isolate; text-align: center; }
@@ -441,19 +429,6 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         </div>
       </section>
 
-
-      <section class="faq" aria-labelledby="h-faq">
-        <div class="wrap">
-          <div class="grid">
-            <h2 id="h-faq">Questions</h2>
-            <div>
-              <details><summary>Is this real money?</summary><p>Yes. The wallet holds USDC on Arc mainnet, and every payment in the demo is a real transaction.</p></details>
-              <details><summary>Where is my money?</summary><p>In your own wallet, opened with a passkey. The robot only gets permission to spend a little of it.</p></details>
-              <details><summary>How do I stop it?</summary><p>Tap Stop in the wallet. From then on Arc refuses the robot's payments, and not even our servers can undo that.</p></details>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section class="band" id="try" aria-labelledby="h-try">
         <div class="media"><img src="/pitch/media/rv5.webp" alt="" loading="lazy" /></div>
