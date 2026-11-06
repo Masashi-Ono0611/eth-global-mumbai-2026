@@ -9,9 +9,14 @@ export interface MessageArgumentsByKey<T = string> {
   'addRobot.expired': Readonly<Record<string, never>>
   'addRobot.giveCode': { readonly name: string | number }
   'addRobot.hello': Readonly<Record<string, never>>
+  'addRobot.kindChip': Readonly<Record<string, never>>
+  'addRobot.kindLegend': Readonly<Record<string, never>>
+  'addRobot.kindSim': Readonly<Record<string, never>>
   'addRobot.nameLabel': Readonly<Record<string, never>>
   'addRobot.namePlaceholder': Readonly<Record<string, never>>
   'addRobot.next': Readonly<Record<string, never>>
+  'addRobot.openSimulator': Readonly<Record<string, never>>
+  'addRobot.simCode': { readonly name: string | number }
   'addRobot.startOver': Readonly<Record<string, never>>
   'addRobot.stepAllowance': Readonly<Record<string, never>>
   'addRobot.stepPair': Readonly<Record<string, never>>
@@ -237,11 +242,19 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.empty': { readonly name: string | number }
   'thread.expired': Readonly<Record<string, never>>
   'thread.failed': { readonly reason: string | number }
+  'thread.instructionFor': { readonly item: string | number }
+  'thread.instructionLabel': { readonly name: string | number }
+  'thread.instructionPlaceholder': Readonly<Record<string, never>>
+  'thread.intentExpired': Readonly<Record<string, never>>
+  'thread.intentFailed': { readonly message: string | number }
+  'thread.intentStopped': { readonly reason: string | number }
+  'thread.intentStoppedNoReason': Readonly<Record<string, never>>
   'thread.invoice': { readonly item: string | number; readonly amount: string | number }
   'thread.needsOk': Readonly<Record<string, never>>
   'thread.noAllowance': Readonly<Record<string, never>>
   'thread.offline': Readonly<Record<string, never>>
   'thread.onArc': Readonly<Record<string, never>>
+  'thread.openSimulator': Readonly<Record<string, never>>
   'thread.paidWithChip': Readonly<Record<string, never>>
   'thread.perDay': Readonly<Record<string, never>>
   'thread.proof': Readonly<Record<string, never>>
@@ -249,10 +262,16 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.refused': { readonly reason: string | number }
   'thread.rehearsalDecided': { readonly action: string | number }
   'thread.safeStop': { readonly reason: string | number }
+  'thread.send': Readonly<Record<string, never>>
   'thread.settling': Readonly<Record<string, never>>
   'thread.signing': Readonly<Record<string, never>>
   'thread.specificQr': Readonly<Record<string, never>>
+  'thread.step': { readonly tool: string | number; readonly place: string | number }
+  'thread.stop': { readonly name: string | number }
+  'thread.stopping': Readonly<Record<string, never>>
+  'thread.turnError': { readonly error: string | number }
   'thread.walkedAway': Readonly<Record<string, never>>
+  'thread.walking': { readonly name: string | number }
   'thread.zeroGDecided': { readonly action: string | number }
   'wallet.open': Readonly<Record<string, never>>
   'wallet.signInFirst': Readonly<Record<string, never>>
@@ -260,4 +279,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '1fda65755a22f6770181fea3504c9ce7325d37fcba093095fd066aa42f2a2c9e'
+export const catalogVersion = 'd9ccbae85b40cc21f0945de3530e22eabe1c67f7bba001dc92220574cc95f08d'

@@ -1,4 +1,5 @@
 import { AssertionOptions, type AssertionRequest } from '@ethmumbai/auth/config'
+import { RobotKind } from '@ethmumbai/protocol/Intent'
 import { Schema } from 'effect'
 import { getJson, postJson } from './Http.ts'
 
@@ -51,6 +52,7 @@ export type ActivityView = typeof ActivityView.Type
 export const RobotView = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
+  kind: Schema.optionalKey(RobotKind),
   status: Schema.String,
   chipAddress: Nullable(Schema.String),
   pairingCode: Nullable(Schema.String),
@@ -63,6 +65,7 @@ export type RobotView = typeof RobotView.Type
 export const AddedRobot = Schema.Struct({
   robotId: Schema.String,
   name: Schema.String,
+  kind: Schema.optionalKey(RobotKind),
   pairingCode: Schema.String,
   pairingExpiresAt: Schema.Number,
 })
@@ -78,7 +81,7 @@ const OwnerPrompt = Schema.Struct({
 export const loadWallet = getJson('/api/wallet', WalletView)
 export const loadActivity = getJson('/api/wallet/activity', ActivityView)
 export const listRobots = getJson('/api/robots', Schema.Struct({ robots: Schema.Array(RobotView) }))
-export const addRobot = (name: string) => postJson('/api/robots', { name }, AddedRobot)
+export const addRobot = (name: string, kind: RobotKind) => postJson('/api/robots', { name, kind }, AddedRobot)
 
 export type GrantTerms = {
   readonly robotId: string

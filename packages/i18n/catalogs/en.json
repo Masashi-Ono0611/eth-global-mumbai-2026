@@ -218,7 +218,21 @@
     "dockNoAllowance": "{name} has no allowance yet, so it can't buy anything.",
     "specificQr": "Pay a specific QR code",
     "records": "All of {name}'s errands, with their proof",
-    "dockStopped": "{name}'s allowance is stopped. Send it anyway and Arc refuses the payment on-chain."
+    "dockStopped": "{name}'s allowance is stopped. Send it anyway and Arc refuses the payment on-chain.",
+    "instructionFor": "Get me a {item}",
+    "openSimulator": "Open simulator",
+    "instructionLabel": "Tell {name} what to get",
+    "instructionPlaceholder": "Get me a chai",
+    "send": "Send",
+    "walking": "{name} is on its way. 0G drives it in the simulator.",
+    "stop": "Stop {name}",
+    "stopping": "Stopping...",
+    "intentStopped": "I stopped: {reason}",
+    "intentStoppedNoReason": "I stopped. Nothing was paid.",
+    "intentExpired": "I could not finish in time. Nothing was paid.",
+    "intentFailed": "I could not set off: {message}",
+    "step": "{tool, select, go_to {{place, select, entrance {Walking to the entrance} chai_stall {Walking to the chai stall} samosa_stall {Walking to the samosa stall} thali_stall {Walking to the thali stall} gate {Walking to the gate} other {Walking}}} look {Looking around} scan_qr {Scanning the QR code} wait {Waiting} finish {Done} other {{tool}}}",
+    "turnError": "0G's turn failed: {error}"
   },
   "allowance": {
     "title": "{name}'s allowance",
@@ -249,7 +263,7 @@
     "close": "Back to the wallet",
     "stepPair": "Pairing",
     "stepAllowance": "Allowance",
-    "askName": "What's your robot called?",
+    "askName": "Is it a real robot or the simulator, and what's it called?",
     "nameLabel": "Robot name",
     "namePlaceholder": "Duck",
     "next": "Next",
@@ -258,7 +272,12 @@
     "expired": "The code expired before the robot connected. Start again for a new one.",
     "startOver": "Start again",
     "connected": "{name} connected",
-    "hello": "Hello! My chip made its own key, and it stays on me. How much can I spend?"
+    "hello": "Hello! My chip made its own key, and it stays on me. How much can I spend?",
+    "kindLegend": "Kind of robot",
+    "kindChip": "Real robot",
+    "kindSim": "Simulator",
+    "simCode": "{name} runs in the simulator. Open it in a new tab and it pairs itself with this code (works once, 10 minutes):",
+    "openSimulator": "Open simulator"
   },
   "telegram": {
     "title": "Telegram",

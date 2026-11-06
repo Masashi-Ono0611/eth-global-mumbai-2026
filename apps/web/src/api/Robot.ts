@@ -1,3 +1,4 @@
+import { IntentView, RobotKind } from '@ethmumbai/protocol/Intent'
 import { Schema } from 'effect'
 import { getJson, postJson } from './Http.ts'
 import { GrantView } from './Wallet.ts'
@@ -8,9 +9,13 @@ export const ConsoleRobot = Schema.Struct({
   robot: Schema.Struct({
     id: Schema.String,
     name: Schema.String,
+    /** `sim`: a simulator duck in the browser (/sim/); absent on Workers before the sim. */
+    kind: Schema.optionalKey(RobotKind),
     status: Schema.String,
     chipAddress: Schema.NullOr(Schema.String),
   }),
+  /** The errand intent still running for this robot, to resume after a reload. */
+  openIntentId: Schema.optionalKey(Schema.NullOr(Schema.String)),
   lease: Schema.Struct({ until: Schema.NullOr(Schema.Number), online: Schema.Boolean }),
   grant: Schema.NullOr(GrantView),
 })
@@ -112,3 +117,20 @@ export const terminalStates: ReadonlySet<string> = new Set([
 /** World IdP's sign-in for one approval: a full navigation, so the browser follows the 302 to World (spec §9). */
 export const worldAuthorizeUrl = (approvalId: string) =>
   `/api/world/authorize?${new URLSearchParams({ approval: approvalId }).toString()}`
+
+/** An owner's instruction for a robot ("get me a chai"); a simulator duck walks, scans and pays it (sim-plan.md S3). */
+export const createIntent = (robotId: string, instruction: string, item: string | null) =>
+  postJson(
+    `/api/robots/${encodeURIComponent(robotId)}/intents`,
+    item === null ? { instruction } : { instruction, item },
+    IntentView,
+  )
+export const loadIntent = (robotId: string, intentId: string) =>
+  getJson(`/api/robots/${encodeURIComponent(robotId)}/intents/${encodeURIComponent(intentId)}`, IntentView)
+export const stopIntent = (robotId: string, intentId: string) =>
+  postJson(`/api/robots/${encodeURIComponent(robotId)}/intents/${encodeURIComponent(intentId)}/stop`, {}, IntentView)
+
+/** The simulator page for a robot; with a pairing code its software chip pairs itself (the code stays in the fragment,
+ *  so it never reaches a server log). */
+export const simulatorUrl = (robotId: string, pairingCode: string | null) =>
+  `/sim/?${new URLSearchParams({ robot: robotId }).toString()}${pairingCode === null ? '' : `#pair=${encodeURIComponent(pairingCode)}`}`

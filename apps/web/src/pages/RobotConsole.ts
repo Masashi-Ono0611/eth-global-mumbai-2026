@@ -11,13 +11,18 @@ import {
   ErrandDetail,
   invoiceIdFrom,
   loadConsoleRobot,
+  createIntent,
   loadEpisodeApproval,
+  loadIntent,
+  stopIntent,
   loadErrand,
   startErrand,
   terminalStates,
 } from '../api/Robot.ts'
 import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
 import { Catalogue, denyApproval, loadActivity, loadCatalogue } from '../api/Wallet.ts'
+import { format } from '@ethmumbai/i18n'
+import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
 import { sheetFolds } from '../Sheet.ts'
@@ -38,6 +43,14 @@ export const ConsoleState = defineTaggedUnion({
   Failed: { error: Schema.String },
 })
 export const Decline = defineTaggedUnion({ Idle: {}, Declining: {}, Failed: { error: Schema.String } })
+/** A simulator robot's errand intent: the owner's instruction, while 0G walks the duck to the counter (sim-plan.md). */
+export const Intent = defineTaggedUnion({
+  Idle: {},
+  Sending: { instruction: Schema.String },
+  Open: { intent: IntentView, stopping: Schema.Boolean },
+  Failed: { error: Schema.String },
+})
+export type Intent = typeof Intent.Type
 export const Errand = defineTaggedUnion({
   Idle: {},
   Starting: { item: Schema.String },
@@ -57,6 +70,8 @@ export const Model = Schema.Struct({
   decline: Decline,
   allowance: Allowance.Model,
   allowanceSheet: Dialog.Model,
+  intent: Intent,
+  instruction: Schema.String,
 })
 export type Model = typeof Model.Type
 
@@ -83,6 +98,15 @@ export const Message = defineMessageUnion({
   SucceededDecline: {},
   FailedDecline: { error: Schema.String },
   ClickedAllowance: {},
+  UpdatedInstruction: { value: Schema.String },
+  SubmittedInstruction: {},
+  SucceededCreateIntent: { intent: IntentView },
+  FailedCreateIntent: { error: Schema.String },
+  SucceededLoadIntent: { intent: IntentView },
+  FailedLoadIntent: { intentId: Schema.String },
+  ClickedStopIntent: { intentId: Schema.String },
+  SucceededStopIntent: { intent: IntentView },
+  FailedStopIntent: { error: Schema.String },
   GotAllowanceSheetMessage: { message: Dialog.Message },
   GotAllowanceMessage: { message: Allowance.Message },
 })
@@ -185,6 +209,40 @@ export const DeclineInThread = Command.define('DeclineInThread', {
     }),
 })
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
+export const SendIntent = Command.define('SendIntent', {
+  args: { robotId: Schema.String, instruction: Schema.String, item: Schema.NullOr(Schema.String) },
+  messages: [Message.SucceededCreateIntent, Message.FailedCreateIntent],
+  execute: ({ robotId, instruction, item }) =>
+    Effect.match(createIntent(robotId, instruction, item), {
+      onSuccess: (intent) => Message.SucceededCreateIntent({ intent }),
+      onFailure: (failure) => Message.FailedCreateIntent({ error: failure.error }),
+    }),
+})
+
+/** Reads the intent after `delayMillis`, while the duck walks. @internal Exported for the scene tests. */
+export const PollIntent = Command.define('PollIntent', {
+  args: { robotId: Schema.String, intentId: Schema.String, delayMillis: Schema.Number },
+  messages: [Message.SucceededLoadIntent, Message.FailedLoadIntent],
+  execute: ({ robotId, intentId, delayMillis }) =>
+    Effect.sleep(delayMillis).pipe(
+      Effect.andThen(loadIntent(robotId, intentId)),
+      Effect.map((intent) => Message.SucceededLoadIntent({ intent })),
+      Effect.catch(() => Effect.succeed(Message.FailedLoadIntent({ intentId }))),
+    ),
+})
+
+/** The owner stops the duck; the sim halts on its next turn. @internal Exported for the scene tests. */
+export const HaltIntent = Command.define('HaltIntent', {
+  args: { robotId: Schema.String, intentId: Schema.String },
+  messages: [Message.SucceededStopIntent, Message.FailedStopIntent],
+  execute: ({ robotId, intentId }) =>
+    Effect.match(stopIntent(robotId, intentId), {
+      onSuccess: (intent) => Message.SucceededStopIntent({ intent }),
+      onFailure: (failure) => Message.FailedStopIntent({ error: failure.error }),
+    }),
+})
+
 type Services = HttpClient.HttpClient | Passkeys
 
 // INIT
@@ -201,6 +259,8 @@ export const init = (robotId: string): UpdateReturn => ({
     decline: Decline.Idle(),
     allowance: Allowance.init(robotId, Option.none(), false),
     allowanceSheet: Dialog.init({ id: 'allowance' }),
+    intent: Intent.Idle(),
+    instruction: '',
   },
   commands: [LoadConsole({ robotId })],
 })
@@ -214,6 +274,55 @@ export const isLive = (errand: Errand) =>
       onNone: () => true,
       onSome: (detail) => !terminalStates.has(detail.episode.state),
     }))
+
+/** The duck is out on an instruction (it has not ended), so no new errand starts. */
+export const isIntentOpen = (intent: Intent) =>
+  Intent.guards.Sending(intent) || (Intent.guards.Open(intent) && isOpenIntent(intent.intent.state))
+
+/** A catalogue item's display name, for the instruction a Buy chip sends. */
+const itemNameOf = (model: Model, itemId: string): string =>
+  ConsoleState.guards.Loaded(model.state)
+    ? (model.state.catalogue.items.find((entry) => entry.itemId === itemId)?.name ?? itemId)
+    : itemId
+
+const isSim = (model: Model) => ConsoleState.guards.Loaded(model.state) && model.state.robot.robot.kind === 'sim'
+
+const INTENT_POLL_MILLIS = 2000
+
+/** A simulator robot gets an intent (the owner's words, and the item from a Buy chip); the duck walks and scans. */
+const sendIntent = (model: Model, instruction: string, item: string | null): UpdateReturn =>
+  isLive(model.errand) || isIntentOpen(model.intent) || instruction.trim().length === 0
+    ? { model }
+    : {
+        model: modifyFields(model, { intent: () => Intent.Sending({ instruction }), instruction: () => '' }),
+        commands: [SendIntent({ robotId: model.robotId, instruction: instruction.trim(), item })],
+      }
+
+/** A fresh read of the intent: once the duck's scan made an errand, the errand's own messages take over. */
+const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
+  const stopping = Intent.guards.Open(model.intent) && model.intent.stopping && isOpenIntent(intent.state)
+  const next = modifyFields(model, { intent: () => Intent.Open({ intent, stopping }) })
+  const poll = isOpenIntent(intent.state)
+    ? [PollIntent({ robotId: model.robotId, intentId: intent.id, delayMillis: INTENT_POLL_MILLIS })]
+    : []
+  const episodeId = intent.episodeId
+  const following = Errand.guards.Running(model.errand) && model.errand.episodeId === episodeId
+  if (episodeId === null || following) return { model: next, commands: poll }
+  return {
+    model: modifyFields(next, { errand: () => running(episodeId, Option.none()) }),
+    commands: [...poll, PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
+  }
+}
+
+/** Stop the duck once; its next turn sees the stopped intent and halts. */
+const haltIntent = (model: Model, intentId: string): UpdateReturn => {
+  const { intent } = model
+  if (!Intent.guards.Open(intent) || intent.stopping) return { model }
+  return {
+    model: modifyFields(model, { intent: () => Intent.Open({ intent: intent.intent, stopping: true }) }),
+    commands: [HaltIntent({ robotId: model.robotId, intentId })],
+  }
+}
 
 const running = (episodeId: string, maybeApprovalUrl: Option.Option<string>) =>
   Errand.Running({ episodeId, maybeDetail: Option.none(), maybeApprovalUrl })
@@ -273,6 +382,56 @@ const configureAllowance = (model: Model, catalogue: Catalogue, robot: ConsoleRo
     ...allowanceChild,
   })(model)
 
+type Of<Tag extends Message['_tag']> = Extract<Message, { readonly _tag: Tag }>
+
+/** The owner's answers in the conversation: No to a waiting approval, and the allowance sheet. */
+const ownerHandlers = (model: Model) => ({
+  ClickedDecline: ({ approvalId }: Of<'ClickedDecline'>) =>
+    Decline.guards.Declining(model.decline)
+      ? { model }
+      : {
+          model: modifyFields(model, { decline: () => Decline.Declining() }),
+          commands: [DeclineInThread({ approvalId })],
+        },
+  SucceededDecline: () => {
+    const { errand } = model
+    return {
+      model: modifyFields(model, { decline: () => Decline.Idle() }),
+      commands: Errand.guards.Running(errand)
+        ? [PollErrand({ robotId: model.robotId, episodeId: errand.episodeId, delayMillis: 0 })]
+        : [],
+    }
+  },
+  FailedDecline: ({ error }: Of<'FailedDecline'>) => ({
+    model: modifyFields(model, { decline: () => Decline.Failed({ error }) }),
+  }),
+  ClickedAllowance: () => allowanceSheet.open(model),
+})
+
+/** The simulator's intent: the owner's instruction, its polling while the duck walks, and Stop. */
+const intentHandlers = (model: Model) => ({
+  UpdatedInstruction: ({ value }: Of<'UpdatedInstruction'>) => ({
+    model: modifyFields(model, { instruction: () => value }),
+  }),
+  SubmittedInstruction: () => sendIntent(model, model.instruction, null),
+  SucceededCreateIntent: ({ intent }: Of<'SucceededCreateIntent'>) => intentRead(model, intent),
+  FailedCreateIntent: ({ error }: Of<'FailedCreateIntent'>) => ({
+    model: modifyFields(model, { intent: () => Intent.Failed({ error }) }),
+  }),
+  SucceededLoadIntent: ({ intent }: Of<'SucceededLoadIntent'>) => intentRead(model, intent),
+  FailedLoadIntent: ({ intentId }: Of<'FailedLoadIntent'>) =>
+    Intent.guards.Open(model.intent) && model.intent.intent.id === intentId
+      ? { model, commands: [PollIntent({ robotId: model.robotId, intentId, delayMillis: INTENT_POLL_MILLIS * 2 })] }
+      : { model },
+  ClickedStopIntent: ({ intentId }: Of<'ClickedStopIntent'>) => haltIntent(model, intentId),
+  SucceededStopIntent: ({ intent }: Of<'SucceededStopIntent'>) => ({
+    model: modifyFields(model, { intent: () => Intent.Open({ intent, stopping: false }) }),
+  }),
+  FailedStopIntent: ({ error }: Of<'FailedStopIntent'>) => ({
+    model: modifyFields(model, { intent: () => Intent.Failed({ error }) }),
+  }),
+})
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
     SucceededLoadConsole: ({ robot, catalogue, history, amounts, maybeLatestEpisode }) => {
@@ -283,6 +442,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         robot,
       ).model
       const resume = Errand.guards.Idle(model.errand) ? maybeLatestEpisode : Option.none()
+      const openIntentId = Intent.guards.Idle(model.intent) ? (robot.openIntentId ?? null) : null
+      if (openIntentId !== null && Option.isNone(resume)) {
+        return {
+          model: loaded,
+          commands: [PollIntent({ robotId: model.robotId, intentId: openIntentId, delayMillis: 0 })],
+        }
+      }
       return Option.match(resume, {
         onNone: () => ({ model: loaded }),
         onSome: (episodeId) => ({
@@ -297,12 +463,18 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       }),
     }),
     ClickedStartErrand: ({ item }) =>
-      isLive(model.errand)
-        ? { model }
-        : {
-            model: modifyFields(model, { errand: () => Errand.Starting({ item }) }),
-            commands: [StartErrand({ robotId: model.robotId, item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
-          },
+      isSim(model)
+        ? sendIntent(
+            model,
+            format('en', 'thread.instructionFor', { item: itemNameOf(model, item).toLowerCase() }),
+            item,
+          )
+        : isLive(model.errand)
+          ? { model }
+          : {
+              model: modifyFields(model, { errand: () => Errand.Starting({ item }) }),
+              commands: [StartErrand({ robotId: model.robotId, item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
+            },
     UpdatedInvoiceInput: ({ value }) => ({ model: modifyFields(model, { invoiceInput: () => value }) }),
     SucceededStartErrand: ({ episodeId, maybeApprovalUrl }) => ({
       model: modifyFields(model, { errand: () => running(episodeId, maybeApprovalUrl), invoiceInput: () => '' }),
@@ -322,24 +494,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         ? { model, commands: [PollErrand({ robotId: model.robotId, episodeId, delayMillis: POLL_MILLIS * 2 })] }
         : { model },
     ClickedRefresh: () => ({ model, commands: [LoadConsole({ robotId: model.robotId })] }),
-    ClickedDecline: ({ approvalId }) =>
-      Decline.guards.Declining(model.decline)
-        ? { model }
-        : {
-            model: modifyFields(model, { decline: () => Decline.Declining() }),
-            commands: [DeclineInThread({ approvalId })],
-          },
-    SucceededDecline: () => {
-      const { errand } = model
-      return {
-        model: modifyFields(model, { decline: () => Decline.Idle() }),
-        commands: Errand.guards.Running(errand)
-          ? [PollErrand({ robotId: model.robotId, episodeId: errand.episodeId, delayMillis: 0 })]
-          : [],
-      }
-    },
-    FailedDecline: ({ error }) => ({ model: modifyFields(model, { decline: () => Decline.Failed({ error }) }) }),
-    ClickedAllowance: () => allowanceSheet.open(model),
+    ...ownerHandlers(model),
+    ...intentHandlers(model),
     GotAllowanceSheetMessage: ({ message: sheetMessage }) => allowanceSheet.fold(model, sheetMessage),
     GotAllowanceMessage: ({ message: allowanceMessage }) => foldAllowance(model, allowanceMessage),
   })

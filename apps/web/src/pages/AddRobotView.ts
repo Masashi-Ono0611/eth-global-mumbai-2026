@@ -1,6 +1,7 @@
 import { format, type Locale } from '@ethmumbai/i18n'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
+import { simulatorUrl } from '../api/Robot.ts'
 import type { AddedRobot } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
 import { walletRouter } from '../route.ts'
@@ -31,6 +32,11 @@ const inputClassName =
 const sendClassName =
   'min-h-12 cursor-pointer rounded-control bg-ink px-5 font-semibold text-surface transition-transform active:scale-[0.96] disabled:opacity-60'
 const cardClassName = 'grid gap-3 self-stretch rounded-card bg-surface p-4'
+const kindsClassName = 'grid grid-cols-2 gap-1 self-stretch rounded-2xl bg-surface p-1'
+const kindClassName =
+  'grid min-h-12 cursor-pointer place-items-center rounded-xl font-semibold text-muted has-[:checked]:bg-ink has-[:checked]:text-surface has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus'
+const simButtonClassName =
+  'mt-2 inline-flex min-h-11 items-center justify-center rounded-control bg-ink px-4 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const linkButtonClassName =
   'min-h-11 cursor-pointer self-start rounded-full bg-surface px-4 font-semibold transition-transform active:scale-[0.96]'
 
@@ -76,13 +82,64 @@ const nameForm = (model: Model, busy: boolean, locale: Locale, h: HtmlBuilder<Me
     ],
   )
 
+const code = (robot: AddedRobot, h: HtmlBuilder<Message>): Html =>
+  h.span([h.Class(codeClassName)], [`${robot.pairingCode.slice(0, 4)} ${robot.pairingCode.slice(4)}`])
+
+/** A real robot gets the command to run on its chip; a simulator duck pairs itself in its own tab. */
 const codeBubble = (robot: AddedRobot, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class(robotBubbleClassName)],
+  robot.kind === 'sim'
+    ? h.div(
+        [h.Class(robotBubbleClassName)],
+        [
+          h.span([h.Class(labelClassName)], [format(locale, 'addRobot.simCode', { name: robot.name })]),
+          code(robot, h),
+          h.a(
+            [
+              h.Href(simulatorUrl(robot.robotId, robot.pairingCode)),
+              h.Target('_blank'),
+              h.Rel('noopener'),
+              h.Class(simButtonClassName),
+            ],
+            [format(locale, 'addRobot.openSimulator', {})],
+          ),
+        ],
+      )
+    : h.div(
+        [h.Class(robotBubbleClassName)],
+        [
+          h.span([h.Class(labelClassName)], [format(locale, 'addRobot.giveCode', { name: robot.name })]),
+          code(robot, h),
+          h.code([h.Class(commandClassName)], [`./vitaquack-chip --pair ${robot.pairingCode}`]),
+        ],
+      )
+
+/** Real robot or simulator, as two radio segments (keyboard and screen readers get a native radio group). */
+const kindChoice = (model: Model, busy: boolean, locale: Locale, h: HtmlBuilder<Message>): Html =>
+  h.fieldset(
+    [h.Class('grid gap-1.5 self-stretch'), h.Disabled(busy)],
     [
-      h.span([h.Class(labelClassName)], [format(locale, 'addRobot.giveCode', { name: robot.name })]),
-      h.span([h.Class(codeClassName)], [`${robot.pairingCode.slice(0, 4)} ${robot.pairingCode.slice(4)}`]),
-      h.code([h.Class(commandClassName)], [`./vitaquack-chip --pair ${robot.pairingCode}`]),
+      h.legend([h.Class('sr-only')], [format(locale, 'addRobot.kindLegend', {})]),
+      h.div(
+        [h.Class(kindsClassName)],
+        (['chip', 'sim'] as const).map((kind) =>
+          h.keyed('label')(
+            kind,
+            [h.Class(kindClassName), h.For(`robot-kind-${kind}`)],
+            [
+              h.input([
+                h.Id(`robot-kind-${kind}`),
+                h.Type('radio'),
+                h.Name('robot-kind'),
+                h.Value(kind),
+                h.Checked(model.kind === kind),
+                h.Class('sr-only'),
+                h.OnClick(Message.SelectedKind({ kind })),
+              ]),
+              format(locale, kind === 'sim' ? 'addRobot.kindSim' : 'addRobot.kindChip', {}),
+            ],
+          ),
+        ),
+      ),
     ],
   )
 
@@ -94,8 +151,8 @@ const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
     Loading: () => [h.p([h.Role('status'), h.Class(systemClassName)], [format(locale, 'common.loading', {})])],
     SignedOut: () => [signedOutView(locale, h)],
     Failed: ({ error }) => [failedView(error, Message.ClickedStartOver(), locale, h)],
-    Naming: () => [askName(locale, h), nameForm(model, false, locale, h)],
-    Adding: () => [askName(locale, h), nameForm(model, true, locale, h)],
+    Naming: () => [askName(locale, h), kindChoice(model, false, locale, h), nameForm(model, false, locale, h)],
+    Adding: () => [askName(locale, h), kindChoice(model, true, locale, h), nameForm(model, true, locale, h)],
     Pairing: ({ robot }) => [
       askName(locale, h),
       h.p([h.Class(ownerBubbleClassName)], [robot.name]),

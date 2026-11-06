@@ -5,6 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import * as Navigation from 'foldkit/navigation'
 import { modifyFields } from 'foldkit/struct'
+import { RobotKind } from '@ethmumbai/protocol/Intent'
 import { isSignedOut } from '../api/Http.ts'
 import { AddedRobot, addRobot, listRobots, loadCatalogue } from '../api/Wallet.ts'
 import type { Passkeys } from '../Passkey.ts'
@@ -31,6 +32,8 @@ export const Stage = defineTaggedUnion({
 export const Model = Schema.Struct({
   stage: Stage,
   name: Schema.String,
+  /** A real robot's chip (`./vitaquack-chip`) or a simulator duck in the browser (`/sim/`). */
+  kind: RobotKind,
   /** The merchant a new grant allowlists, by name. */
   merchantName: Schema.String,
   allowance: Allowance.Model,
@@ -47,6 +50,7 @@ export const Message = defineMessageUnion({
   },
   FailedLoad: { error: Schema.String, signedOut: Schema.Boolean },
   UpdatedName: { value: Schema.String },
+  SelectedKind: { kind: RobotKind },
   SubmittedName: {},
   SucceededAddRobot: { robot: AddedRobot },
   FailedAddRobot: { error: Schema.String },
@@ -79,6 +83,7 @@ const LoadAddRobot = Command.define('LoadAddRobot', {
             : Option.some({
                 robotId: robot.id,
                 name: robot.name,
+                ...(robot.kind === undefined ? {} : { kind: robot.kind }),
                 pairingCode: robot.pairingCode,
                 pairingExpiresAt: robot.pairingExpiresAt,
               }),
@@ -94,10 +99,10 @@ const LoadAddRobot = Command.define('LoadAddRobot', {
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const AddNamedRobot = Command.define('AddNamedRobot', {
-  args: { name: Schema.String },
+  args: { name: Schema.String, kind: RobotKind },
   messages: [Message.SucceededAddRobot, Message.FailedAddRobot],
-  execute: ({ name }) =>
-    Effect.match(addRobot(name), {
+  execute: ({ name, kind }) =>
+    Effect.match(addRobot(name, kind), {
       onSuccess: (robot) => Message.SucceededAddRobot({ robot }),
       onFailure: (failure) => Message.FailedAddRobot({ error: failure.error }),
     }),
@@ -137,6 +142,7 @@ export const init = (): UpdateReturn => ({
   model: {
     stage: Stage.Loading(),
     name: '',
+    kind: 'chip',
     merchantName: 'Duck Café',
     allowance: Allowance.init('', Option.none(), true),
   },
@@ -198,10 +204,14 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       model: modifyFields(model, { stage: () => (signedOut ? Stage.SignedOut() : Stage.Failed({ error })) }),
     }),
     UpdatedName: ({ value }) => ({ model: modifyFields(model, { name: () => value }) }),
+    SelectedKind: ({ kind }) => ({ model: modifyFields(model, { kind: () => kind }) }),
     SubmittedName: () => {
       const name = String.trim(model.name)
       if (String.isEmpty(name) || !Stage.guards.Naming(model.stage)) return { model }
-      return { model: modifyFields(model, { stage: () => Stage.Adding() }), commands: [AddNamedRobot({ name })] }
+      return {
+        model: modifyFields(model, { stage: () => Stage.Adding() }),
+        commands: [AddNamedRobot({ name, kind: model.kind })],
+      }
     },
     SucceededAddRobot: ({ robot }) => pairing(modifyFields(model, { name: () => '' }), robot),
     FailedAddRobot: ({ error }) => ({ model: modifyFields(model, { stage: () => Stage.Failed({ error }) }) }),

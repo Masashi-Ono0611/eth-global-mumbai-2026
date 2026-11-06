@@ -1,5 +1,4 @@
 import { format, type Locale } from '@ethmumbai/i18n'
-import { clsx } from 'clsx'
 import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -8,7 +7,6 @@ import {
   type ConsoleRobot,
   type Decision,
   type ErrandDetail,
-  invoiceIdFrom,
   isZeroGDecision,
   worldAuthorizeUrl,
 } from '../api/Robot.ts'
@@ -18,7 +16,9 @@ import { duck } from '../Duck.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
 import { allowanceView } from './AllowanceView.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
-import { ConsoleState, Decline, Errand, isLive, Message, type Model } from './RobotConsole.ts'
+import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
+import { dock } from './RobotDockView.ts'
+import { fromIntent, intentMessages, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 
 // STYLES
@@ -53,18 +53,6 @@ const approveClassName =
   'inline-flex min-h-12 items-center justify-center rounded-control bg-black px-3 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const declineClassName =
   'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
-const dockClassName =
-  'sticky bottom-0 grid gap-2 bg-gradient-to-b from-paper/0 via-paper to-paper px-1 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
-const dockHintClassName = 'pl-1.5 text-[0.85rem] text-muted'
-const chipsClassName = 'grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-1.5'
-const chipClassName =
-  'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-transform active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
-const chipPriceClassName = 'text-[0.8rem] font-medium text-muted'
-const askChipClassName = 'text-[0.75rem] font-semibold text-duck-deep'
-const detailsClassName = 'px-1.5 text-sm text-muted [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-2.5'
-const invoiceInputClassName =
-  'mt-1 min-h-11 w-full rounded-control border border-rule bg-surface px-3 text-base text-ink placeholder:text-muted'
-
 // VIEW
 
 const itemName = (item: string) => item.slice(0, 1).toUpperCase() + item.slice(1)
@@ -284,7 +272,7 @@ const liveMessages = (
   const step = liveStep(episode.state, locale)
   const approvalId = Option.map(maybeApprovalUrl, (url) => url.split('/').at(-1) ?? url)
   return [
-    ownerBubble(episodeId, episode.item, locale, h),
+    fromIntent(model, episodeId) ? h.empty : ownerBubble(episodeId, episode.item, locale, h),
     detail.payment === null
       ? h.empty
       : h.keyed('p')(
@@ -341,89 +329,6 @@ const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): 
         onSome: (detail) => liveMessages(model, episodeId, detail, maybeApprovalUrl, locale, h),
       }),
   })
-
-const dock = (
-  model: Model,
-  view: ConsoleRobot,
-  catalogue: Catalogue,
-  locale: Locale,
-  h: HtmlBuilder<Message>,
-): Html => {
-  // Never granted: nothing can be paid. Stopped (revoked, expired): the errand still runs and Arc refuses it on-chain,
-  // which is the proof the revoke worked (spec §0 "done").
-  const noAllowance = view.grant === null
-  const stopped = view.grant !== null && view.grant.status !== 'active'
-  const busy = isLive(model.errand)
-  const invoiceInvalid = model.invoiceInput.trim().length > 0 && invoiceIdFrom(model.invoiceInput) === null
-  return h.div(
-    [h.Class(dockClassName)],
-    [
-      h.p(
-        [h.Class(dockHintClassName), h.Id('dock-hint')],
-        [
-          format(
-            locale,
-            noAllowance
-              ? 'thread.dockNoAllowance'
-              : busy
-                ? 'thread.dockBusy'
-                : stopped
-                  ? 'thread.dockStopped'
-                  : 'thread.dockReady',
-            {
-              name: view.robot.name,
-            },
-          ),
-        ],
-      ),
-      h.div(
-        [h.Class(chipsClassName)],
-        catalogue.items.map((item) =>
-          h.keyed('button')(
-            item.itemId,
-            [
-              h.Type('button'),
-              h.Class(chipClassName),
-              h.Disabled(busy || noAllowance),
-              h.AriaDescribedBy('dock-hint'),
-              h.AriaLabel(format(locale, 'thread.buyChip', { item: item.name, amount: usdc(item.amount) })),
-              h.OnClick(Message.ClickedStartErrand({ item: item.itemId })),
-            ],
-            [
-              item.name,
-              item.restricted
-                ? h.span([h.Class(askChipClassName)], [format(locale, 'thread.asksYou', {})])
-                : h.span([h.Class(chipPriceClassName)], [usdc(item.amount)]),
-            ],
-          ),
-        ),
-      ),
-      h.details(
-        [h.Class(detailsClassName)],
-        [
-          h.summary([], [format(locale, 'thread.specificQr', {})]),
-          h.label([h.For('gate-invoice')], [format(locale, 'console.gateInvoice', {})]),
-          h.input([
-            h.Id('gate-invoice'),
-            h.Type('text'),
-            h.Class(clsx(invoiceInputClassName, { 'border-invalid': invoiceInvalid })),
-            h.Value(model.invoiceInput),
-            h.Placeholder(format(locale, 'console.gateInvoiceHint', {})),
-            h.AriaInvalid(invoiceInvalid),
-            h.AriaDescribedBy('gate-invoice-error'),
-            h.OnInput((value) => Message.UpdatedInvoiceInput({ value })),
-          ]),
-          invoiceInvalid
-            ? h.p(
-                [h.Id('gate-invoice-error'), h.Role('alert'), h.Class('mt-1 text-error')],
-                [format(locale, 'console.gateInvoiceInvalid', {})],
-              )
-            : h.empty,
-        ],
-      ),
-    ],
-  )
-}
 
 const allowanceSheet = (
   model: Model,
@@ -488,13 +393,15 @@ const loadedView = (
           h.AriaLive('polite'),
         ],
         [
-          past.length === 0 && Errand.guards.Idle(model.errand)
+          view.robot.kind === 'sim' ? simulatorLink(view.robot.id, locale, h) : h.empty,
+          past.length === 0 && Errand.guards.Idle(model.errand) && Intent.guards.Idle(model.intent)
             ? h.p([h.Class(systemClassName)], [format(locale, 'thread.empty', { name: view.robot.name })])
             : h.a(
                 [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, locale, h)),
+          ...intentMessages(model, view.robot.name, locale, h),
           ...errandMessages(model, locale, h),
         ],
       ),

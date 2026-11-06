@@ -32,10 +32,10 @@ describe('/wallet/robots (add a robot)', () => {
     scene(
       { update: AddRobot.update, view },
       given(loaded(Option.none()).model),
-      expect(text("What's your robot called?")).toExist(),
+      expect(text("Is it a real robot or the simulator, and what's it called?")).toExist(),
       type(label('Robot name'), 'Duck'),
       submit(selector('form')),
-      Command.expectExact(AddRobot.AddNamedRobot({ name: 'Duck' })),
+      Command.expectExact(AddRobot.AddNamedRobot({ name: 'Duck', kind: 'chip' })),
       Command.resolve(AddRobot.AddNamedRobot, AddRobot.Message.SucceededAddRobot({ robot: added })),
       expect(text('K7Q2 M9XZ')).toExist(),
       expect(text('./vitaquack-chip --pair K7Q2M9XZ')).toExist(),
@@ -75,7 +75,25 @@ describe('/wallet/robots (add a robot)', () => {
       given(expired),
       expect(role('alert')).toHaveText('The code expired before the robot connected. Start again for a new one.'),
       click(role('button', { name: 'Start again' })),
-      expect(text("What's your robot called?")).toExist(),
+      expect(text("Is it a real robot or the simulator, and what's it called?")).toExist(),
+    )
+  })
+
+  test('a simulator duck gets an Open simulator button that carries its pairing code', () => {
+    scene(
+      { update: AddRobot.update, view },
+      given(loaded(Option.none()).model),
+      click(role('radio', { name: 'Simulator' })),
+      type(label('Robot name'), 'Sim duck'),
+      submit(selector('form')),
+      Command.expectExact(AddRobot.AddNamedRobot({ name: 'Sim duck', kind: 'sim' })),
+      Command.resolve(
+        AddRobot.AddNamedRobot,
+        AddRobot.Message.SucceededAddRobot({ robot: { ...added, name: 'Sim duck', kind: 'sim' } }),
+      ),
+      expect(role('link', { name: 'Open simulator' })).toHaveAttr('href', `/sim/?robot=${added.robotId}#pair=K7Q2M9XZ`),
+      expect(text('./vitaquack-chip --pair K7Q2M9XZ')).not.toExist(),
+      Command.resolve(AddRobot.WatchPairing, AddRobot.Message.FailedWatch({ robotId: 'other' })),
     )
   })
 })
