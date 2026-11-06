@@ -69,17 +69,22 @@ export interface ZeroGCall {
   readonly latencyMs: number
   readonly promptSha256: string
   readonly inputJson: string
+  /** The router's HTTP status; null when no answer arrived (transport error, timeout). */
+  readonly httpStatus: number | null
 }
 
 export type ZeroGOutcome =
   | { readonly ok: true; readonly call: ZeroGCall; readonly result: DecideToolResult }
-  | { readonly ok: false; readonly call: ZeroGCall; readonly error: string }
+  | {
+      readonly ok: false
+      readonly call: ZeroGCall
+      readonly error: string
+      /** At most 300 characters of what the router answered (never the request), for diagnosis. */
+      readonly detail: string | null
+    }
 
-const toolResult = (completion: typeof Completion.Type) =>
-  Option.flatMap(
-    Option.fromNullishOr(completion.choices[0]?.message.tool_calls?.find((tool) => tool.function.name === 'decide')),
-    (call) => decideArguments(call.function.arguments),
-  )
+const decideCall = (completion: typeof Completion.Type) =>
+  Option.fromNullishOr(completion.choices[0]?.message.tool_calls?.find((tool) => tool.function.name === 'decide'))
 
 /**
  * One 0G decision. It never fails: a transport error, a non-2xx, a timeout (10 s) or arguments that do not decode are
@@ -95,7 +100,7 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
     promptSha256: yield* sha256Hex(bodyJson),
     inputJson: JSON.stringify(input),
   }
-  const exchange = client
+  const reply = yield* client
     .execute(
       HttpClientRequest.post(`${config.baseUrl.replace(/\/+$/, '')}/chat/completions`).pipe(
         HttpClientRequest.bearerToken(Redacted.value(config.apiKey)),
@@ -104,51 +109,83 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
     )
     .pipe(
       Effect.flatMap((response) =>
-        Effect.map(response.json, (json) => ({
+        Effect.map(response.text, (text) => ({
           status: response.status,
-          json,
+          text,
           chatId: response.headers['zg-res-key'],
         })),
       ),
       Effect.timeout(ZEROG_TIMEOUT),
       Effect.result,
     )
-  const reply = yield* exchange
   const latencyMs = (yield* Clock.currentTimeMillis) - started
-  const call = (requestId: string | null, chatId: string | null, provider: string | null): ZeroGCall => ({
+  return outcomeOf({ ...base, latencyMs }, reply)
+})
+
+type Reply = { readonly status: number; readonly text: string; readonly chatId: string | undefined }
+const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown))
+
+/** Classify the router's answer; every way it can be wrong is a failure with a reason, never a guessed decision. */
+const outcomeOf = (
+  base: Omit<ZeroGCall, 'requestId' | 'chatId' | 'provider' | 'httpStatus'>,
+  reply: Result.Result<Reply, unknown>,
+): ZeroGOutcome => {
+  const call = (
+    requestId: string | null,
+    chatId: string | null,
+    provider: string | null,
+    httpStatus: number | null,
+  ) => ({
     ...base,
     requestId,
     chatId,
     provider,
-    latencyMs,
+    httpStatus,
   })
   if (Result.isFailure(reply))
-    return { ok: false, call: call(null, null, null), error: errorText(reply.failure) } as const
-  const { status, json, chatId } = reply.success
+    return { ok: false, call: call(null, null, null, null), error: errorText(reply.failure), detail: null }
+  const { status, text, chatId } = reply.success
+  const detail = text.slice(0, 300)
+  const json = Option.getOrUndefined(parseJson(text))
   if (status < 200 || status >= 300) {
     const failed = Option.getOrUndefined(Schema.decodeUnknownOption(ErrorBody)(json))
     return {
       ok: false,
-      call: call(failed?.request_id ?? null, chatId ?? null, null),
+      call: call(failed?.request_id ?? null, chatId ?? null, null, status),
       error: `0G answered ${status}`,
-    } as const
+      detail,
+    }
   }
   const completion = Schema.decodeUnknownOption(Completion)(json)
   if (Option.isNone(completion))
-    return { ok: false, call: call(null, chatId ?? null, null), error: 'reply is not a chat completion' } as const
+    return {
+      ok: false,
+      call: call(null, chatId ?? null, null, status),
+      error: 'reply is not a chat completion',
+      detail,
+    }
   const trace = completion.value.x_0g_trace
-  const logged = call(trace?.request_id ?? null, chatId ?? completion.value.id ?? null, trace?.provider ?? null)
-  const result = toolResult(completion.value)
+  const logged = call(trace?.request_id ?? null, chatId ?? completion.value.id ?? null, trace?.provider ?? null, status)
+  const tool = decideCall(completion.value)
+  if (Option.isNone(tool)) return { ok: false, call: logged, error: 'no decide tool call in the reply', detail }
+  const result = decideArguments(tool.value.function.arguments)
   return Option.isSome(result)
-    ? ({ ok: true, call: logged, result: result.value } as const)
-    : ({ ok: false, call: logged, error: 'decide arguments are not {action, reason}' } as const)
-})
+    ? { ok: true, call: logged, result: result.value }
+    : { ok: false, call: logged, error: 'decide arguments are not {action, reason}', detail }
+}
 
-const Tagged = Schema.Struct({ _tag: Schema.String })
+const Tagged = Schema.Struct({
+  _tag: Schema.String,
+  reason: Schema.optionalKey(Schema.Struct({ _tag: Schema.String })),
+})
+const tagOf = ({ _tag }: { readonly _tag: string }) => _tag
 const errorText = (error: unknown) =>
   Option.match(Schema.decodeUnknownOption(Tagged)(error), {
     onNone: () => '0G call failed',
-    onSome: ({ _tag }) => (_tag === 'TimeoutError' ? '0G call timed out (10 s)' : `0G call failed: ${_tag}`),
+    onSome: ({ _tag, reason }) =>
+      _tag === 'TimeoutError'
+        ? '0G call timed out (10 s)'
+        : `0G call failed: ${reason === undefined ? _tag : `${_tag}/${tagOf(reason)}`}`,
   })
 
 /** Optional bindings: without all three, errands answer 503 "not configured" instead of deciding. */
