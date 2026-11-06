@@ -1,6 +1,6 @@
 # Deployment
 
-Two Alchemy stacks, both on the personal Cloudflare account (`bceaeae4788dce3493514fde194b4a7e`), both deployed from
+Three Alchemy stacks, all on the personal Cloudflare account (`bceaeae4788dce3493514fde194b4a7e`), all deployed from
 GitHub-hosted runners (the repo is public; no self-hosted runner on this box).
 
 | Stack | File | Stage | Live | Deployed by |
@@ -10,16 +10,21 @@ GitHub-hosted runners (the repo is public; no self-hosted runner on this box).
 | `EthMumbaiMerchant` (merchant till) | `apps/merchant/alchemy.run.ts` | `prod` | https://eth-mumbai-merchant.kristjan-grm11775.workers.dev | `merchant.yml`, every push to `main` touching `apps/merchant/**` (its own tests, then deploy); its Worker forwards the five public merchant routes to the app's edge |
 
 The app is one public edge Worker (`Edge`, owns the workers.dev URL) in front of the API Worker (`Api`) and the Foldkit
-SSR Worker (`Website`), which have no public URLs; plus D1 `Database` and R2 `Media`.
+SSR Worker (`Website`), which have no public URLs; plus D1 `Database` and R2 `Media`. The merchant till is one
+static-site Worker (`Till`, physical name pinned to `eth-mumbai-merchant`): it serves its Vite build and forwards only
+the till's merchant routes (`/api/merchants/<id>/{items,invoices,gate-key}`, `/api/invoices/<id>/status`) to the app's
+edge (`APP_ORIGIN`), never cookies; it has no D1, R2 or secrets of its own.
 
 ## State
 
-Both stacks keep Alchemy state in the **named** Cloudflare state store `alchemy-state-store-ethmumbai` (its own
-Worker and its own suffixed secrets in the account's Secrets Store), so any checkout and CI plan against the same
-resources. Never point this project at the account's default `alchemy-state-store`: it is v7 and shared with other
-projects. Alchemy stays at **2.0.0-beta.84** (state store v7) for the same reason: beta.85 bootstraps stores to v8,
-and beta.84 in turn holds Effect at 4.0.x (it imports `effect/Crypto`, removed in 4.1). Upgrading means checking first
-that a v8 bootstrap of the named store leaves the default store alone.
+All three stacks keep Alchemy state in the **named** Cloudflare state store `alchemy-state-store-ethmumbai` (its own
+Worker and its own suffixed secrets in the account's Secrets Store), under `EthMumbai/main`, `EthMumbaiSite/prod` and
+`EthMumbaiMerchant/prod`, so any checkout and CI plan against the same resources. Each stack's file passes
+`Cloudflare.state({ name: 'ethmumbai' })`; a new stack must too. Never point this project at the account's default
+`alchemy-state-store`: it is v7 and shared with other projects. Alchemy stays at **2.0.0-beta.84** (state store v7)
+for the same reason: beta.85 bootstraps stores to v8, and beta.84 in turn holds Effect at 4.0.x (it imports
+`effect/Crypto`, removed in 4.1). Upgrading means checking first that a v8 bootstrap of the named store leaves the
+default store alone.
 
 ### Incident 6 Nov 2026: the state store re-keyed itself, and the guard
 
@@ -42,20 +47,26 @@ write-only secret. Every deploy then failed with `getState (RpcCallError)`. The 
 
 **Guard.** `patches/@alchemy.run%2Fcloudflare@2.0.0-beta.84.patch`: when the store's Worker script exists, a failed
 probe now fails the deploy ("refusing to re-bootstrap it") instead of bootstrapping, and a failure of the existence
-check fails too. A retry finds the store serving.
+check fails too. A retry finds the store serving. The root `patchedDependencies` applies it to every install of that
+version, so all three workflows (each runs `bun install --frozen-lockfile` at the root) deploy through the guard.
 
 **Rules.**
 - Never bootstrap or upgrade the state store from CI. Only a person runs `alchemy state bootstrap`, by hand.
-- Keep the pinned names. Without them, a lost state would mint a second app instead of adopting this one.
+- Keep the pinned names: the app's in `packages/server/src/ProductionNames.ts` (stage `main`), the site's comments D1
+  (`prod`), the till's Worker `eth-mumbai-merchant`. Without them, a lost state would mint a second copy instead of
+  adopting the live one. The till came after the incident (first deploy 10:55Z) and was pinned from the start.
 - Before a deploy with `--adopt`, dry-run it and read the plan: only `adopted`/`update`, and `create` only where
   Apply adopts it by name.
 
 ## Secrets
 
-GitHub Actions secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `APP_AUTH_SECRET`, `APP_AUTH_SESSION_KEYS`.
-Locally the app's two live in the ignored `.env.main.local` (mode 600; never print or commit it). `APP_AUTH_SECRET` is
-at least 32 characters. `APP_AUTH_SESSION_KEYS` is JSON `{ "activeKeyId": "k1", "keys": [{ "id": "k1", "material": … }] }`,
-material at least 32 random bytes as unpadded base64url. `APP_RELEASE` is the commit, set by CI or on the command line.
+GitHub Actions secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (all three stacks), and for the app only
+`APP_AUTH_SESSION_KEYS` plus the feature bindings `alchemy.run.ts` lists (`APP_RELAYER_PRIVATE_KEY` …
+`APP_SCANS_ENABLED`). A feature binding left unset defaults to `pending`, and then only its routes answer 503 "not
+configured"; `/api/health` reports which are set, as booleans. The site and the till take no app secrets. Locally the
+app's live in the ignored `.env.main.local` (mode 600; never print or commit it). `APP_AUTH_SESSION_KEYS` is JSON
+`{ "activeKeyId": "k1", "keys": [{ "id": "k1", "material": … }] }`, material at least 32 random bytes as unpadded
+base64url. `APP_RELEASE` is the commit, set by CI or on the command line.
 
 ## Deploy by hand
 
@@ -73,4 +84,14 @@ Then check `/api/health` (its `release` is the commit) and run the browser accep
 ```sh
 APP_PREVIEW_URL=https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev \
   heavy --wait bun test tools/preview.native.test.ts
+```
+
+The scratch site and the till have their own deploy scripts. Dry-run first, from the stack's directory, and read the
+plan: an `update` of the existing Workers, no `create` of a second one.
+
+```sh
+export CLOUDFLARE_ACCOUNT_ID=bceaeae4788dce3493514fde194b4a7e
+(cd docs/site && bunx alchemy deploy alchemy.run.ts --stage prod --dry-run --no-input)
+(cd apps/merchant && bunx alchemy deploy alchemy.run.ts --stage prod --dry-run --no-input)
+bun run --cwd docs/site deploy && bun run --cwd apps/merchant deploy
 ```
