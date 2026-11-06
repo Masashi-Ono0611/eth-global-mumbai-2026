@@ -11,13 +11,15 @@ import { changes, firstRow } from '../Sql.ts'
 export const CLAIM_MARGIN_SECONDS = 60
 
 /**
- * An invoice is free when every errand that took it ended unpaid and no chip ever signed it (a signed invoice is in
- * the chip's replay list, so a second errand on it would only be refused).
+ * An invoice is free when every errand that took it ended unpaid, no chip ever signed it (a signed invoice is in the
+ * chip's replay list, so a second errand on it would only be refused), and no owner was ever asked about it. An
+ * approval's nonce is derived from the invoice, so a second approval for a denied one could not be recorded.
  */
 const RELEASING_STATES = `('refused', 'failed', 'walked_away', 'safe_stop', 'denied', 'expired')`
 const UNCLAIMED = `NOT EXISTS (SELECT 1 FROM episodes e WHERE e.invoice_id = invoices.id AND e.state NOT IN ${RELEASING_STATES})
   AND NOT EXISTS (SELECT 1 FROM episodes e JOIN chip_requests c ON c.episode_id = e.id
-    WHERE e.invoice_id = invoices.id AND c.status = 'signed')`
+    WHERE e.invoice_id = invoices.id AND c.status = 'signed')
+  AND NOT EXISTS (SELECT 1 FROM approvals a WHERE a.invoice_id = invoices.id)`
 
 /** The newest open invoice for this item, or exactly `invoiceId` when the caller names one. */
 export const findOpenInvoice = (
