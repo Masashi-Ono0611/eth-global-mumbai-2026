@@ -1,5 +1,6 @@
 import { Effect, Option, Schema } from 'effect'
-import { Command, type Update } from 'foldkit'
+import { Command, Update } from 'foldkit'
+import { Dialog } from '@foldkit/ui'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -17,6 +18,9 @@ import {
 } from '../api/Robot.ts'
 import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
 import { Catalogue, denyApproval, loadActivity, loadCatalogue } from '../api/Wallet.ts'
+import type { Passkeys } from '../Passkey.ts'
+import * as Allowance from './Allowance.ts'
+import { sheetFolds } from '../Sheet.ts'
 
 // MODEL
 
@@ -51,6 +55,8 @@ export const Model = Schema.Struct({
   errand: Errand,
   invoiceInput: Schema.String,
   decline: Decline,
+  allowance: Allowance.Model,
+  allowanceSheet: Dialog.Model,
 })
 export type Model = typeof Model.Type
 
@@ -76,6 +82,9 @@ export const Message = defineMessageUnion({
   ClickedDecline: { approvalId: Schema.String },
   SucceededDecline: {},
   FailedDecline: { error: Schema.String },
+  ClickedAllowance: {},
+  GotAllowanceSheetMessage: { message: Dialog.Message },
+  GotAllowanceMessage: { message: Allowance.Message },
 })
 export type Message = typeof Message.Type
 
@@ -176,7 +185,7 @@ export const DeclineInThread = Command.define('DeclineInThread', {
     }),
 })
 
-type Services = HttpClient.HttpClient
+type Services = HttpClient.HttpClient | Passkeys
 
 // INIT
 
@@ -184,7 +193,15 @@ type UpdateReturn = Update.Return<Model, Message, Services>
 const POLL_MILLIS = 1500
 
 export const init = (robotId: string): UpdateReturn => ({
-  model: { robotId, state: ConsoleState.Loading(), errand: Errand.Idle(), invoiceInput: '', decline: Decline.Idle() },
+  model: {
+    robotId,
+    state: ConsoleState.Loading(),
+    errand: Errand.Idle(),
+    invoiceInput: '',
+    decline: Decline.Idle(),
+    allowance: Allowance.init(robotId, Option.none(), false),
+    allowanceSheet: Dialog.init({ id: 'allowance' }),
+  },
   commands: [LoadConsole({ robotId })],
 })
 
@@ -222,12 +239,49 @@ const loadedErrand = (model: Model, episodeId: string, detail: ErrandDetail): Up
   }
 }
 
+const allowanceSheet = sheetFolds<Model, Message>({
+  read: (model) => model.allowanceSheet,
+  write: (model, sheet) => modifyFields(model, { allowanceSheet: () => sheet }),
+  toParentMessage: (message) => Message.GotAllowanceSheetMessage({ message }),
+})
+
+/** Arc took the grant or the revoke: close the sheet and re-read the robot. */
+const afterAllowance = Allowance.OutMessage.match<Update.Step<Model, Message, Services>>({
+  Granted: () => (model) => {
+    const closed = allowanceSheet.close(model)
+    return { ...closed, commands: [...(closed.commands ?? []), LoadConsole({ robotId: model.robotId })] }
+  },
+  Stopped: () => (model) => {
+    const closed = allowanceSheet.close(model)
+    return { ...closed, commands: [...(closed.commands ?? []), LoadConsole({ robotId: model.robotId })] }
+  },
+})
+
+const allowanceChild = {
+  read: (model: Model) => Option.some(model.allowance),
+  write: (model: Model, next: Allowance.Model) => modifyFields(model, { allowance: () => next }),
+  toParentMessage: (message: Allowance.Message) => Message.GotAllowanceMessage({ message }),
+  foldOutMessage: afterAllowance,
+}
+const foldAllowance = Update.foldChild({ update: Allowance.update, ...allowanceChild })
+const configureAllowance = (model: Model, catalogue: Catalogue, robot: ConsoleRobot) =>
+  Update.foldChildStep({
+    update: Allowance.configure(
+      Option.fromNullishOr(catalogue.payTo),
+      robot.grant !== null && robot.grant.status === 'active',
+    ),
+    ...allowanceChild,
+  })(model)
+
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
     SucceededLoadConsole: ({ robot, catalogue, history, amounts, maybeLatestEpisode }) => {
-      const loaded = modifyFields(model, {
-        state: () => ConsoleState.Loaded({ robot, catalogue, history, amounts }),
-      })
+      // The allowance's step returns only a model (no Commands), so the load's own Commands stay as they are.
+      const loaded = configureAllowance(
+        modifyFields(model, { state: () => ConsoleState.Loaded({ robot, catalogue, history, amounts }) }),
+        catalogue,
+        robot,
+      ).model
       const resume = Errand.guards.Idle(model.errand) ? maybeLatestEpisode : Option.none()
       return Option.match(resume, {
         onNone: () => ({ model: loaded }),
@@ -285,4 +339,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       }
     },
     FailedDecline: ({ error }) => ({ model: modifyFields(model, { decline: () => Decline.Failed({ error }) }) }),
+    ClickedAllowance: () => allowanceSheet.open(model),
+    GotAllowanceSheetMessage: ({ message: sheetMessage }) => allowanceSheet.fold(model, sheetMessage),
+    GotAllowanceMessage: ({ message: allowanceMessage }) => foldAllowance(model, allowanceMessage),
   })

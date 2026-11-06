@@ -13,7 +13,10 @@ import {
   worldAuthorizeUrl,
 } from '../api/Robot.ts'
 import { type Catalogue, explorerTx, usdc } from '../api/Wallet.ts'
+import { Dialog } from '@foldkit/ui'
 import { duck } from '../Duck.ts'
+import { sheetTitleClassName, sheetView } from '../Sheet.ts'
+import { allowanceView } from './AllowanceView.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, isLive, Message, type Model } from './RobotConsole.ts'
 import { failedView, signedOutView } from './Shared.ts'
@@ -29,7 +32,8 @@ const faceClassName = 'relative grid size-11 place-items-center rounded-full bg-
 const faceAsleepClassName = 'relative grid size-11 place-items-center rounded-full bg-rule'
 const nameClassName = 'block truncate pt-1 font-display text-xl leading-none font-bold'
 const statusClassName = 'text-sm text-muted'
-const allowanceClassName = 'grid justify-items-end rounded-[14px] bg-surface px-3 pt-1.5 pb-1 leading-tight'
+const allowanceClassName =
+  'grid min-h-11 cursor-pointer justify-items-end rounded-[14px] bg-surface px-3 pt-1.5 pb-1 leading-tight transition-transform active:scale-[0.96]'
 const allowanceAmountClassName = 'font-display text-lg leading-none font-extrabold'
 const allowanceLabelClassName = 'text-xs text-muted'
 const threadClassName = 'flex flex-1 flex-col gap-2 px-1 pt-3 pb-4'
@@ -86,12 +90,22 @@ const header = (view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Ht
         ],
       ),
       view.grant === null || view.grant.status !== 'active'
-        ? h.span(
-            [h.Class(allowanceClassName)],
+        ? h.button(
+            [
+              h.Type('button'),
+              h.Class(allowanceClassName),
+              h.AriaLabel(format(locale, 'allowance.openNone', {})),
+              h.OnClick(Message.ClickedAllowance()),
+            ],
             [h.span([h.Class(allowanceLabelClassName)], [format(locale, 'thread.noAllowance', {})])],
           )
-        : h.span(
-            [h.Class(allowanceClassName)],
+        : h.button(
+            [
+              h.Type('button'),
+              h.Class(allowanceClassName),
+              h.AriaLabel(format(locale, 'allowance.open', { amount: usdc(view.grant.dailyCap) })),
+              h.OnClick(Message.ClickedAllowance()),
+            ],
             [
               h.span([h.Class(allowanceAmountClassName)], [usdc(view.grant.dailyCap)]),
               h.span([h.Class(allowanceLabelClassName)], [format(locale, 'thread.perDay', {})]),
@@ -398,6 +412,46 @@ const dock = (
   )
 }
 
+const allowanceSheet = (
+  model: Model,
+  view: ConsoleRobot,
+  catalogue: Catalogue,
+  locale: Locale,
+  timeZone: string,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const name = view.robot.name
+  const active = view.grant !== null && view.grant.status === 'active'
+  return h.submodel({
+    slotId: model.allowanceSheet.id,
+    model: model.allowanceSheet,
+    view: Dialog.view,
+    viewInputs: {
+      hasDescription: false,
+      toView: (render: Dialog.RenderInfo) =>
+        sheetView(
+          render,
+          [
+            h.h2(
+              [...render.title, h.Class(sheetTitleClassName)],
+              [format(locale, active ? 'allowance.title' : 'allowance.give', { name })],
+            ),
+            h.submodel({
+              slotId: `allowance-${view.robot.id}`,
+              model: model.allowance,
+              view: allowanceView,
+              viewInputs: { locale, timeZone, robotName: name, payeeName: catalogue.name, grant: view.grant },
+              toParentMessage: (message) => Message.GotAllowanceMessage({ message }),
+            }),
+          ],
+          format(locale, 'allowance.close', {}),
+          h,
+        ),
+    },
+    toParentMessage: (message) => Message.GotAllowanceSheetMessage({ message }),
+  })
+}
+
 const loadedView = (
   model: Model,
   view: ConsoleRobot,
@@ -405,6 +459,7 @@ const loadedView = (
   history: ReadonlyArray<EpisodeSummary>,
   amounts: Readonly<Record<string, string>>,
   locale: Locale,
+  timeZone: string,
   h: HtmlBuilder<Message>,
 ): Html => {
   const liveId = Errand.guards.Running(model.errand) ? model.errand.episodeId : null
@@ -431,24 +486,28 @@ const loadedView = (
         ],
       ),
       dock(model, view, catalogue, locale, h),
+      allowanceSheet(model, view, catalogue, locale, timeZone, h),
     ],
   )
 }
 
 /** `/robot/:id`: the robot as a conversation (DESIGN.md "Components"): its errands as messages, buy chips as the
  *  keyboard, the approval asked inline. */
-export const robotConsoleView = Submodel.defineView<Model, Message, { readonly locale: Locale }>(
-  (model, { locale }, h) =>
-    h.main(
-      [h.Id('main')],
-      [
-        ConsoleState.match(model.state, {
-          Loading: () => h.p([h.Role('status'), h.Class('p-4')], [format(locale, 'common.loading', {})]),
-          SignedOut: () => signedOutView(locale, h),
-          Failed: ({ error }) => failedView(error, Message.ClickedRefresh(), locale, h),
-          Loaded: ({ robot, catalogue, history, amounts }) =>
-            loadedView(model, robot, catalogue, history, amounts, locale, h),
-        }),
-      ],
-    ),
+export const robotConsoleView = Submodel.defineView<
+  Model,
+  Message,
+  { readonly locale: Locale; readonly timeZone: string }
+>((model, { locale, timeZone }, h) =>
+  h.main(
+    [h.Id('main')],
+    [
+      ConsoleState.match(model.state, {
+        Loading: () => h.p([h.Role('status'), h.Class('p-4')], [format(locale, 'common.loading', {})]),
+        SignedOut: () => signedOutView(locale, h),
+        Failed: ({ error }) => failedView(error, Message.ClickedRefresh(), locale, h),
+        Loaded: ({ robot, catalogue, history, amounts }) =>
+          loadedView(model, robot, catalogue, history, amounts, locale, timeZone, h),
+      }),
+    ],
+  ),
 )

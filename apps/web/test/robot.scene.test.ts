@@ -1,14 +1,16 @@
 import { Option } from 'effect'
-import { Command, click, expect, given, label, role, scene, text, type, withViewInputs } from 'foldkit/scene'
+import { Command, Mount, click, expect, given, label, role, scene, text, type, withViewInputs } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 import type { EpisodeSummary } from '../src/api/Episodes.ts'
 import type { ConsoleRobot } from '../src/api/Robot.ts'
 import * as RobotConsole from '../src/pages/RobotConsole.ts'
 import { robotConsoleView } from '../src/pages/RobotConsoleView.ts'
-import { detail, grant, pairedRobot, summary, txHash } from './Fixtures.ts'
+import { detail, grant, pairedRobot, payee, summary, txHash } from './Fixtures.ts'
+import { Dialog } from '@foldkit/ui'
+import * as Allowance from '../src/pages/Allowance.ts'
 
 describe('/robot/:id', () => {
-  const view = withViewInputs(robotConsoleView, { locale: 'en' })()
+  const view = withViewInputs(robotConsoleView, { locale: 'en', timeZone: 'UTC' })()
   const robotId = pairedRobot.id
   const consoleRobot: ConsoleRobot = {
     robot: { id: robotId, name: 'Duck', status: 'paired', chipAddress: pairedRobot.chipAddress },
@@ -18,6 +20,7 @@ describe('/robot/:id', () => {
   const catalogue = {
     merchantId: 'duck-cafe',
     name: 'Duck Café',
+    payTo: payee,
     items: [
       { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false },
       { itemId: 'samosa', name: 'Samosa', amount: '250000', restricted: false },
@@ -197,6 +200,54 @@ describe('/robot/:id', () => {
         RobotConsole.LoadConsole,
         RobotConsole.Message.FailedLoadConsole({ error: 'x', signedOut: false }),
       ),
+    )
+  })
+
+  test('the allowance pill opens the sheet: Stop revokes with the passkey, then the robot is re-read', () => {
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole()),
+      click(role('button', { name: 'Allowance: 1.00 a day' })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(role('heading', { name: "Duck's allowance" })).toExist(),
+      expect(text('At most 0.30 for one purchase')).toExist(),
+      expect(text('Only at Duck Café')).toExist(),
+      click(role('button', { name: "Stop Duck's allowance" })),
+      Command.expectExact(Allowance.StopAllowance({ grantId: grant.id })),
+      expect(role('button', { name: 'Stopping on Arc...' })).toBeDisabled(),
+      Command.resolve(Allowance.StopAllowance, Allowance.Message.SucceededStop()),
+      Command.resolve(Dialog.CloseDialog, Dialog.Message.CompletedCloseDialog()),
+      Command.expectExact(RobotConsole.LoadConsole({ robotId })),
+      Command.resolve(
+        RobotConsole.LoadConsole,
+        RobotConsole.Message.FailedLoadConsole({ error: 'x', signedOut: false }),
+      ),
+      Mount.expectEnded(Dialog.AcquireResources),
+    )
+  })
+
+  test('a robot without an allowance gets one from presets, signed with the passkey', () => {
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([], { ...consoleRobot, grant: null })),
+      click(role('button', { name: 'No allowance: give one' })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(role('heading', { name: 'Give Duck an allowance' })).toExist(),
+      click(role('radio', { name: '10.00' })),
+      click(role('radio', { name: '1 week' })),
+      expect(
+        text(
+          'Duck can spend up to 10.00 USDC a day, at most 1.00 at a time, only at Duck Café, for the next week. Anything else asks you first. Arc enforces this, so not even our server can go past it.',
+        ),
+      ).toExist(),
+      click(role('button', { name: 'Confirm with passkey' })),
+      Command.expectExact(
+        Allowance.GrantAllowance({ robotId, dailyCap: '10.00', perPaymentCap: '1.00', allowlist: [payee], hours: 168 }),
+      ),
+      Command.resolve(Allowance.GrantAllowance, Allowance.Message.FailedGrant({ failure: { _tag: 'Passkey' } })),
+      expect(role('alert')).toHaveText('The passkey step did not finish. Please try again.'),
     )
   })
 })

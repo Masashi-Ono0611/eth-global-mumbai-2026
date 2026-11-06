@@ -3,6 +3,48 @@
 import type { FormatXMLElementFn } from 'intl-messageformat'
 export type RichTextValue<T = string> = FormatXMLElementFn<T>
 export interface MessageArgumentsByKey<T = string> {
+  'addRobot.askName': Readonly<Record<string, never>>
+  'addRobot.close': Readonly<Record<string, never>>
+  'addRobot.connected': { readonly name: string | number }
+  'addRobot.expired': Readonly<Record<string, never>>
+  'addRobot.giveCode': { readonly name: string | number }
+  'addRobot.hello': Readonly<Record<string, never>>
+  'addRobot.nameLabel': Readonly<Record<string, never>>
+  'addRobot.namePlaceholder': Readonly<Record<string, never>>
+  'addRobot.next': Readonly<Record<string, never>>
+  'addRobot.startOver': Readonly<Record<string, never>>
+  'addRobot.stepAllowance': Readonly<Record<string, never>>
+  'addRobot.stepPair': Readonly<Record<string, never>>
+  'addRobot.title': Readonly<Record<string, never>>
+  'addRobot.waiting': { readonly name: string | number }
+  'allowance.aDay': Readonly<Record<string, never>>
+  'allowance.arcNote': Readonly<Record<string, never>>
+  'allowance.change': Readonly<Record<string, never>>
+  'allowance.close': Readonly<Record<string, never>>
+  'allowance.confirm': Readonly<Record<string, never>>
+  'allowance.for': Readonly<Record<string, never>>
+  'allowance.give': { readonly name: string | number }
+  'allowance.hours': { readonly hours: number }
+  'allowance.open': { readonly amount: string | number }
+  'allowance.openNone': Readonly<Record<string, never>>
+  'allowance.perDay': Readonly<Record<string, never>>
+  'allowance.perPurchase': Readonly<Record<string, never>>
+  'allowance.ruleAsks': Readonly<Record<string, never>>
+  'allowance.rulePerPurchase': { readonly amount: string | number }
+  'allowance.ruleUntil': { readonly time: string | number }
+  'allowance.ruleWhere': { readonly payee: string | number }
+  'allowance.signing': Readonly<Record<string, never>>
+  'allowance.stop': { readonly name: string | number }
+  'allowance.stopping': Readonly<Record<string, never>>
+  'allowance.summary': {
+    readonly name: string | number
+    readonly daily: string | number
+    readonly perPayment: string | number
+    readonly payee: string | number
+    readonly hours: number
+  }
+  'allowance.title': { readonly name: string | number }
+  'allowance.where': Readonly<Record<string, never>>
   'approval.amount': Readonly<Record<string, never>>
   'approval.approveWithWorld': Readonly<Record<string, never>>
   'approval.back': { readonly robot: string | number }
@@ -266,4 +308,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '0c48201101d29d918ed5c977b074cc26b11731103eb175d20fb1424a3f789de3'
+export const catalogVersion = '0ecdf019937dcf6304158d9796b5ba6d7deb1708106c89583034203188069339'

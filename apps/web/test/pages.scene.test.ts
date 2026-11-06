@@ -1,34 +1,9 @@
-import { Option } from 'effect'
-import {
-  Command,
-  Mount,
-  click,
-  expect,
-  given,
-  label,
-  role,
-  scene,
-  selector,
-  submit,
-  text,
-  type,
-  withViewInputs,
-} from 'foldkit/scene'
+import { Command, Mount, click, expect, given, role, scene, text, withViewInputs } from 'foldkit/scene'
 import { describe, expect as vitestExpect, test } from 'vitest'
 import { Dialog } from '@foldkit/ui'
-import { ActionFailure } from '../src/api/OwnerAction.ts'
-import type { RobotView } from '../src/api/Wallet.ts'
-import * as Robots from '../src/pages/Robots.ts'
-import { robotsView } from '../src/pages/RobotsView.ts'
 import * as Wallet from '../src/pages/Wallet.ts'
 import { walletView } from '../src/pages/WalletView.ts'
-import { activityRow, address, grant, pairedRobot, payee, summary, txHash } from './Fixtures.ts'
-
-const loadedRobots = (robots: ReadonlyArray<RobotView>) =>
-  Robots.update(
-    Robots.init().model,
-    Robots.Message.SucceededLoadRobots({ robots, maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }) }),
-  ).model
+import { activityRow, address, grant, pairedRobot, summary, txHash } from './Fixtures.ts'
 
 const loadedHome = (value: Wallet.Home) =>
   Wallet.update(Wallet.init().model, Wallet.Message.SucceededLoadWallet({ home: value })).model
@@ -146,115 +121,6 @@ describe('/wallet', () => {
           .model,
       ),
       expect(role('alert')).toHaveText('Sign in with your passkey to see this page.'),
-    )
-  })
-})
-
-describe('/wallet/robots', () => {
-  const view = withViewInputs(robotsView, { locale: 'en' })()
-
-  test('adding a robot shows its single-use pairing code', () => {
-    scene(
-      { update: Robots.update, view },
-      given(loadedRobots([])),
-      expect(text('No robots yet. Add one and pair its chip.')).toExist(),
-      type(label('Robot name'), 'Duck'),
-      submit(selector('form')),
-      Command.expectExact(Robots.AddRobot({ name: 'Duck' })),
-      Command.resolve(
-        Robots.AddRobot,
-        Robots.Message.SucceededAddRobot({
-          robot: { robotId: pairedRobot.id, name: 'Duck', pairingCode: 'K7Q2M9XZ', pairingExpiresAt: 0 },
-        }),
-      ),
-      expect(text('Pair Duck with this code:')).toExist(),
-      expect(text('K7Q2M9XZ')).toExist(),
-      Command.resolve(
-        Robots.LoadRobots,
-        Robots.Message.SucceededLoadRobots({
-          robots: [
-            {
-              ...pairedRobot,
-              status: 'unpaired',
-              chipAddress: null,
-              pairingCode: 'K7Q2M9XZ',
-              pairingExpiresAt: 1,
-              lease: { until: null, online: false },
-            },
-          ],
-          maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }),
-        }),
-      ),
-      expect(text('not paired yet · offline')).toExist(),
-      Command.expectExact(Robots.LoadRobots({ delayMillis: 3000 })),
-      Command.resolve(
-        Robots.LoadRobots,
-        Robots.Message.SucceededLoadRobots({
-          robots: [pairedRobot],
-          maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }),
-        }),
-      ),
-      expect(text('paired · online')).toExist(),
-      Command.expectNone(),
-    )
-  })
-
-  test('granting a budget signs with the passkey using the form terms and the merchant as the payee', () => {
-    scene(
-      { update: Robots.update, view },
-      given(loadedRobots([pairedRobot])),
-      expect(text('paired · online')).toExist(),
-      click(role('button', { name: 'Grant a budget' })),
-      expect(label('Allowed payees (addresses)')).toHaveValue(payee),
-      expect(
-        text(
-          'Vitaquack may spend up to 5.00 USDC a day, at most 1.00 USDC per payment, only at Duck Café, for the next 24 hours. Anything over 1.00 USDC, and any restricted item, waits for your approval in World App. You sign this with your passkey; Arc enforces it.',
-        ),
-      ).toExist(),
-      type(label('Per-payment cap (USDC)'), '0.25'),
-      submit(selector('form.grant-form')),
-      expect(role('button', { name: 'Signing and activating on Arc...' })).toBeDisabled(),
-      Command.expectExact(
-        Robots.GrantBudget({
-          robotId: pairedRobot.id,
-          dailyCap: '5.00',
-          perPaymentCap: '0.25',
-          allowlist: [payee],
-          hours: 24,
-        }),
-      ),
-      Command.resolve(
-        Robots.GrantBudget,
-        Robots.Message.FailedGrantBudget({
-          failure: ActionFailure.Server({ error: 'not configured: ENFORCER_ADDRESS' }),
-        }),
-      ),
-      expect(role('alert')).toHaveText('Something went wrong: not configured: ENFORCER_ADDRESS'),
-      submit(selector('form.grant-form')),
-      Command.resolve(Robots.GrantBudget, Robots.Message.SucceededGrantBudget()),
-      Command.resolve(
-        Robots.LoadRobots,
-        Robots.Message.SucceededLoadRobots({
-          robots: [{ ...pairedRobot, grant }],
-          maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }),
-        }),
-      ),
-      expect(role('button', { name: 'Revoke grant' })).toExist(),
-    )
-  })
-
-  test('an active grant shows its terms and can be revoked; a dismissed passkey says so', () => {
-    scene(
-      { update: Robots.update, view },
-      given(loadedRobots([{ ...pairedRobot, grant }])),
-      expect(text('Budget: 1.00 USDC a day, at most 0.30 USDC per payment (active)')).toExist(),
-      expect(role('button', { name: 'Grant a budget' })).toBeAbsent(),
-      click(role('button', { name: 'Revoke grant' })),
-      expect(role('button', { name: 'Revoking on Arc...' })).toBeDisabled(),
-      Command.expectExact(Robots.RevokeGrant({ grantId: grant.id })),
-      Command.resolve(Robots.RevokeGrant, Robots.Message.FailedRevokeGrant({ failure: ActionFailure.Passkey() })),
-      expect(role('alert')).toHaveText('The passkey step did not finish. Please try again.'),
-      expect(role('link', { name: 'Open console' })).toHaveAttr('href', `/robot/${pairedRobot.id}`),
     )
   })
 })

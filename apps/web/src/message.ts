@@ -3,7 +3,7 @@ import { SessionView } from '@ethmumbai/auth/config'
 import { defineMessageUnion } from 'foldkit/message'
 import { Dialog } from '@foldkit/ui'
 import { AuthFailure } from './model.ts'
-import { Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Robots, Wallet } from './pageModules.ts'
+import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
 
 export const Message = defineMessageUnion({
   UpdatedDisplayName: { value: Schema.String },
@@ -23,7 +23,7 @@ export const Message = defineMessageUnion({
   SucceededSignOut: {},
   FailedSignOut: {},
   GotWalletMessage: { message: Wallet.Message },
-  GotRobotsMessage: { message: Robots.Message },
+  GotAddRobotMessage: { message: AddRobot.Message },
   GotConsoleMessage: { message: RobotConsole.Message },
   GotApprovalMessage: { message: Approval.Message },
   GotEpisodesMessage: { message: Episodes.Message },

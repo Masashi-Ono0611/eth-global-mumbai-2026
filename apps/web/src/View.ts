@@ -13,7 +13,7 @@ import * as Episodes from './pages/Episodes.ts'
 import * as Gate from './pages/gate/Gate.ts'
 import * as Merchant from './pages/merchant/Merchant.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
-import { robotsView } from './pages/RobotsView.ts'
+import { addRobotView } from './pages/AddRobotView.ts'
 import { walletView } from './pages/WalletView.ts'
 import { AppRoute, episodesRouter, homeRouter, walletRouter } from './route.ts'
 // STYLES
@@ -163,18 +163,21 @@ const walletPage = (model: Model, h: HtmlBuilder<Message>): Page =>
 const robotsPage = (model: Model, h: HtmlBuilder<Message>): Page =>
   childPage(
     model,
-    format(model.context.locale, 'robots.title', {}),
-    model.maybeRobots,
+    format(model.context.locale, 'addRobot.title', {}),
+    model.maybeAddRobot,
     (robots) =>
       h.submodel({
         slotId: 'robots',
         model: robots,
-        view: robotsView,
+        view: addRobotView,
         viewInputs: { locale: model.context.locale },
-        toParentMessage: (message) => Message.GotRobotsMessage({ message }),
+        toParentMessage: (message) => Message.GotAddRobotMessage({ message }),
       }),
     h,
   )
+
+/** Pages that render clock times also get the page's time zone. */
+const auditInputs = (model: Model) => ({ locale: model.context.locale, timeZone: model.context.timeZone })
 
 const consolePage = (model: Model, h: HtmlBuilder<Message>): Page =>
   childPage(
@@ -186,7 +189,7 @@ const consolePage = (model: Model, h: HtmlBuilder<Message>): Page =>
         slotId: 'robot-console',
         model: robotConsole,
         view: robotConsoleView,
-        viewInputs: { locale: model.context.locale },
+        viewInputs: auditInputs(model),
         toParentMessage: (message) => Message.GotConsoleMessage({ message }),
       }),
     h,
@@ -207,9 +210,6 @@ const approvalPage = (model: Model, h: HtmlBuilder<Message>): Page =>
       }),
     h,
   )
-
-/** The audit pages render times, so they also get the page's time zone. */
-const auditInputs = (model: Model) => ({ locale: model.context.locale, timeZone: model.context.timeZone })
 
 const episodesPage = (model: Model, h: HtmlBuilder<Message>): Page =>
   childPage(

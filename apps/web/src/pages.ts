@@ -3,14 +3,14 @@ import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Message } from './message.ts'
 import type { Model } from './model.ts'
-import { Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Robots, Wallet } from './pageModules.ts'
+import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
 import { AppRoute } from './route.ts'
 
 /** The owner pages' state lives beside the session in the root Model: only the current route's page is present. */
 type Pages = Pick<
   Model,
   | 'maybeWallet'
-  | 'maybeRobots'
+  | 'maybeAddRobot'
   | 'maybeConsole'
   | 'maybeApproval'
   | 'maybeEpisodes'
@@ -20,7 +20,7 @@ type Pages = Pick<
 >
 const noPages: Pages = {
   maybeWallet: Option.none(),
-  maybeRobots: Option.none(),
+  maybeAddRobot: Option.none(),
   maybeConsole: Option.none(),
   maybeApproval: Option.none(),
   maybeEpisodes: Option.none(),
@@ -30,7 +30,7 @@ const noPages: Pages = {
 }
 
 const toWallet = (message: Wallet.Message) => Message.GotWalletMessage({ message })
-const toRobots = (message: Robots.Message) => Message.GotRobotsMessage({ message })
+const toAddRobot = (message: AddRobot.Message) => Message.GotAddRobotMessage({ message })
 const toConsole = (message: RobotConsole.Message) => Message.GotConsoleMessage({ message })
 const toApproval = (message: Approval.Message) => Message.GotApprovalMessage({ message })
 const toEpisodes = (message: Episodes.Message) => Message.GotEpisodesMessage({ message })
@@ -59,10 +59,10 @@ export const initPages = (route: AppRoute) =>
       }
     },
     Robots: () => {
-      const robots = Robots.init()
+      const addRobot = AddRobot.init()
       return {
-        pages: { ...noPages, maybeRobots: Option.some(robots.model) },
-        commands: Command.mapMessages(robots.commands, toRobots),
+        pages: { ...noPages, maybeAddRobot: Option.some(addRobot.model) },
+        commands: Command.mapMessages(addRobot.commands, toAddRobot),
       }
     },
     Approval: ({ approvalId }) => {
@@ -112,12 +112,11 @@ export const foldWallet = Update.foldChild({
   toParentMessage: toWallet,
 })
 
-export const foldRobots = Update.foldChild({
-  update: Robots.update,
-  read: (model: Model) => model.maybeRobots,
-  write: (model: Model, nextRobots: Robots.Model) =>
-    modifyFields(model, { maybeRobots: () => Option.some(nextRobots) }),
-  toParentMessage: toRobots,
+export const foldAddRobot = Update.foldChild({
+  update: AddRobot.update,
+  read: (model: Model) => model.maybeAddRobot,
+  write: (model: Model, next: AddRobot.Model) => modifyFields(model, { maybeAddRobot: () => Option.some(next) }),
+  toParentMessage: toAddRobot,
 })
 
 export const foldConsole = Update.foldChild({

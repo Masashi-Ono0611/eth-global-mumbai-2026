@@ -58,7 +58,7 @@ describe('routes', () => {
         referenceTime: 0,
         pathname: '/wallet/robots',
       }).commands?.map((command) => command.name),
-    ).toEqual(['ReadSession', 'LoadRobots'])
+    ).toEqual(['ReadSession', 'LoadAddRobot'])
     scene({ update, view }, given(signedOut('/gate/duck-cafe')), expect(role('status')).toHaveText('CLOSED'))
     scene(
       { update, view },

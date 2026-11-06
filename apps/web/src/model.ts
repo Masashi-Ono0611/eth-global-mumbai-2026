@@ -4,7 +4,7 @@ import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { Dialog } from '@foldkit/ui'
 import { Locale } from './Locale.ts'
-import { Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Robots, Wallet } from './pageModules.ts'
+import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
 import { AppRoute } from './route.ts'
 
 /** What the server rendered with; serialized into the page and read back unchanged when the browser hydrates. */
@@ -41,7 +41,7 @@ export const Model = Schema.Struct({
   profileSheet: Dialog.Model,
   /** The owner pages keep their own state; only the current route's is present. */
   maybeWallet: Schema.Option(Wallet.Model),
-  maybeRobots: Schema.Option(Robots.Model),
+  maybeAddRobot: Schema.Option(AddRobot.Model),
   maybeConsole: Schema.Option(RobotConsole.Model),
   maybeApproval: Schema.Option(Approval.Model),
   maybeEpisodes: Schema.Option(Episodes.Model),

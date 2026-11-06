@@ -1,5 +1,32 @@
-import type { Dialog } from '@foldkit/ui'
+import { Dialog } from '@foldkit/ui'
+import { Option } from 'effect'
+import { Update } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
+
+// UPDATE
+
+/** The fold, open and close steps of a sheet kept in a field of a parent Model. */
+export const sheetFolds = <Model, Message>(config: {
+  readonly read: (model: Model) => Dialog.Model
+  readonly write: (model: Model, sheet: Dialog.Model) => Model
+  readonly toParentMessage: (message: Dialog.Message) => Message
+}) => {
+  const foldOutMessage = Dialog.OutMessage.match<Update.Step<Model, Message>>({
+    Opened: () => (model) => ({ model }),
+    Closed: () => (model) => ({ model }),
+  })
+  const child = {
+    read: (model: Model) => Option.some(config.read(model)),
+    write: config.write,
+    toParentMessage: config.toParentMessage,
+    foldOutMessage,
+  }
+  return {
+    fold: Update.foldChild({ update: Dialog.update, ...child }),
+    open: Update.foldChildStep({ update: Dialog.open, ...child }),
+    close: Update.foldChildStep({ update: Dialog.close, ...child }),
+  }
+}
 
 // STYLES
 

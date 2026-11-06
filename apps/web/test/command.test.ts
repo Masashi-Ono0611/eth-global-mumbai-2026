@@ -7,7 +7,7 @@ import { describe, expect, test } from 'vitest'
 import { CreatePasskeyWallet, SignInWithPasskey } from '../src/command.ts'
 import { Message } from '../src/message.ts'
 import { fixturePasskeysLayer, PasskeyFailed, Passkeys } from '../src/Passkey.ts'
-import { GrantBudget, Message as RobotsMessage, RevokeGrant } from '../src/pages/Robots.ts'
+import { GrantAllowance, Message as AllowanceMessage, StopAllowance } from '../src/pages/Allowance.ts'
 
 type Call = { readonly method: string; readonly path: string; readonly body: unknown }
 
@@ -118,7 +118,7 @@ describe('passkey commands', () => {
       calls,
     )
     const result = await Effect.runPromise(
-      GrantBudget({
+      GrantAllowance({
         robotId: 'r1',
         dailyCap: '1.00',
         perPaymentCap: '0.30',
@@ -126,7 +126,7 @@ describe('passkey commands', () => {
         hours: 24,
       }).effect.pipe(Effect.provide(Layer.merge(http, fixturePasskeysLayer))),
     )
-    expect(result).toEqual(RobotsMessage.SucceededGrantBudget())
+    expect(result).toEqual(AllowanceMessage.SucceededGrant())
     expect(calls[0]?.body).toMatchObject({
       robotId: 'r1',
       dailyCap: '1.00',
@@ -145,8 +145,8 @@ describe('passkey commands', () => {
       [],
     )
     const result = await Effect.runPromise(
-      RevokeGrant({ grantId: 'g1' }).effect.pipe(Effect.provide(Layer.merge(http, fixturePasskeysLayer))),
+      StopAllowance({ grantId: 'g1' }).effect.pipe(Effect.provide(Layer.merge(http, fixturePasskeysLayer))),
     )
-    expect(result).toEqual(RobotsMessage.SucceededRevokeGrant())
+    expect(result).toEqual(AllowanceMessage.SucceededStop())
   })
 })

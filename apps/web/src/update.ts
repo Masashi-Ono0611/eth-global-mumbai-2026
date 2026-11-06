@@ -1,6 +1,7 @@
 import { Option, String } from 'effect'
 import { Update } from 'foldkit'
 import { Dialog } from '@foldkit/ui'
+import { sheetFolds } from './Sheet.ts'
 import type { SessionView } from '@ethmumbai/auth/config'
 import { modifyFields } from 'foldkit/struct'
 import { CreatePasskeyWallet, OpenWallet, ReadSession, SignInWithPasskey, SignOut, type Services } from './command.ts'
@@ -13,7 +14,7 @@ import {
   foldEpisodes,
   foldGate,
   foldMerchant,
-  foldRobots,
+  foldAddRobot,
   foldWallet,
   initPages,
 } from './pages.ts'
@@ -37,33 +38,10 @@ export const init = (context: Flags): UpdateReturn => {
   }
 }
 
-const foldSheetOutMessage = Dialog.OutMessage.match<Update.Step<Model, Message>>({
-  Opened: () => (model) => ({ model }),
-  Closed: () => (model) => ({ model }),
-})
-
-const foldProfileSheet = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.profileSheet),
-  write: (model: Model, nextSheet: Dialog.Model) => modifyFields(model, { profileSheet: () => nextSheet }),
-  toParentMessage: (message: Dialog.Message) => Message.GotProfileSheetMessage({ message }),
-  foldOutMessage: foldSheetOutMessage,
-})
-
-const foldProfileSheetOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: (model: Model) => Option.some(model.profileSheet),
-  write: (model: Model, nextSheet: Dialog.Model) => modifyFields(model, { profileSheet: () => nextSheet }),
-  toParentMessage: (message: Dialog.Message) => Message.GotProfileSheetMessage({ message }),
-  foldOutMessage: foldSheetOutMessage,
-})
-
-const foldProfileSheetClose = Update.foldChildStep({
-  update: Dialog.close,
-  read: (model: Model) => Option.some(model.profileSheet),
-  write: (model: Model, nextSheet: Dialog.Model) => modifyFields(model, { profileSheet: () => nextSheet }),
-  toParentMessage: (message: Dialog.Message) => Message.GotProfileSheetMessage({ message }),
-  foldOutMessage: foldSheetOutMessage,
+const profileSheet = sheetFolds<Model, Message>({
+  read: (model) => model.profileSheet,
+  write: (model, sheet) => modifyFields(model, { profileSheet: () => sheet }),
+  toParentMessage: (message) => Message.GotProfileSheetMessage({ message }),
 })
 
 /**
@@ -129,12 +107,12 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       }
     },
     // Close the sheet through the Dialog so it releases its modal resources (focus, scroll lock) before it unmounts.
-    SucceededSignOut: () => foldProfileSheetClose(modifyFields(model, { auth: () => AuthState.SignedOut() })),
-    ClickedProfile: () => foldProfileSheetOpen(model),
-    GotProfileSheetMessage: ({ message: sheetMessage }) => foldProfileSheet(model, sheetMessage),
+    SucceededSignOut: () => profileSheet.close(modifyFields(model, { auth: () => AuthState.SignedOut() })),
+    ClickedProfile: () => profileSheet.open(model),
+    GotProfileSheetMessage: ({ message: sheetMessage }) => profileSheet.fold(model, sheetMessage),
     CompletedOpenWallet: () => ({ model }),
     GotWalletMessage: ({ message: walletMessage }) => foldWallet(model, walletMessage),
-    GotRobotsMessage: ({ message: robotsMessage }) => foldRobots(model, robotsMessage),
+    GotAddRobotMessage: ({ message: addRobotMessage }) => foldAddRobot(model, addRobotMessage),
     GotConsoleMessage: ({ message: consoleMessage }) => foldConsole(model, consoleMessage),
     GotApprovalMessage: ({ message: approvalMessage }) => foldApproval(model, approvalMessage),
     GotEpisodesMessage: ({ message: episodesMessage }) => foldEpisodes(model, episodesMessage),

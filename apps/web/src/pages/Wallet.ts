@@ -19,6 +19,7 @@ import {
   WalletView,
 } from '../api/Wallet.ts'
 import { Clipboard } from '../Clipboard.ts'
+import { sheetFolds } from '../Sheet.ts'
 
 // MODEL
 
@@ -187,25 +188,10 @@ const isLive = (home: Home): boolean =>
   home.episodes.some((episode) => !terminalStates.has(episode.state)) ||
   home.robots.some((robot) => robot.status === 'unpaired' && robot.pairingCode !== null)
 
-const foldSheetOutMessage = Dialog.OutMessage.match<Update.Step<Model, Message>>({
-  Opened: () => (model) => ({ model }),
-  Closed: () => (model) => ({ model }),
-})
-
-const foldReceiveSheet = Update.foldChild({
-  update: Dialog.update,
-  read: (model: Model) => Option.some(model.receiveSheet),
-  write: (model: Model, next: Dialog.Model) => modifyFields(model, { receiveSheet: () => next }),
-  toParentMessage: (message: Dialog.Message) => Message.GotReceiveSheetMessage({ message }),
-  foldOutMessage: foldSheetOutMessage,
-})
-
-const foldReceiveSheetOpen = Update.foldChildStep({
-  update: Dialog.open,
-  read: (model: Model) => Option.some(model.receiveSheet),
-  write: (model: Model, next: Dialog.Model) => modifyFields(model, { receiveSheet: () => next }),
-  toParentMessage: (message: Dialog.Message) => Message.GotReceiveSheetMessage({ message }),
-  foldOutMessage: foldSheetOutMessage,
+const receiveSheet = sheetFolds<Model, Message>({
+  read: (model) => model.receiveSheet,
+  write: (model, sheet) => modifyFields(model, { receiveSheet: () => sheet }),
+  toParentMessage: (message) => Message.GotReceiveSheetMessage({ message }),
 })
 
 export const update = (model: Model, message: Message): UpdateReturn =>
@@ -223,8 +209,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       model: modifyFields(model, { state: () => WalletState.Loading() }),
       commands: [LoadWallet({ delayMillis: 0 })],
     }),
-    ClickedReceive: () => foldReceiveSheetOpen(model),
-    GotReceiveSheetMessage: ({ message: sheetMessage }) => foldReceiveSheet(model, sheetMessage),
+    ClickedReceive: () => receiveSheet.open(model),
+    GotReceiveSheetMessage: ({ message: sheetMessage }) => receiveSheet.fold(model, sheetMessage),
     ClickedCopyAddress: ({ address }) => ({ model, commands: [CopyAddress({ address })] }),
     CompletedCopyAddress: ({ copied }) => ({
       model: modifyFields(model, { copy: () => (copied ? Copy.Copied() : Copy.Failed()) }),
