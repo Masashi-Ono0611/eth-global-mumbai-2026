@@ -26,7 +26,8 @@ import { changes } from '../Sql.ts'
 
 // `POST /api/chips/:robotId/scans` (spec rule 4, behind SCANS_ENABLED): the robot's camera read an invoice QR, the chip
 // hashed and signed the JPEG crop, and this starts the errand for exactly that invoice, as the owner's console would.
-// The crop is stored owner-private in R2 before the 0G decision and never sent to 0G; the evidence carries its hash.
+// The crop is stored in R2 before the 0G decision and never sent to it; the evidence carries its hash, and the evidence
+// uploader later puts the same bytes on 0G Storage as proof of work (robot/EvidenceFrames.ts).
 
 /** How far the chip's `capturedAt` may be from the Worker's clock. */
 const CAPTURE_WINDOW_MS = 120_000

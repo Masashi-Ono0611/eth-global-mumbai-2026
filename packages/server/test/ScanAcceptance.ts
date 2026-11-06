@@ -11,7 +11,7 @@ import { type Caps, freshConnections, grantRow, randomId, randomPairingCode, sam
 import { readLines } from './ChipAcceptance.ts'
 import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
-import { errandView, mintInvoice, postTo, seedRobot, type ZeroGStub } from './RobotAcceptance.ts'
+import { errandView, mintInvoice, postTo, seedRobot, TEST_EVIDENCE_TOKEN, type ZeroGStub } from './RobotAcceptance.ts'
 
 // Scan-initiated errands (`POST /api/chips/:robotId/scans`, spec rule 4). The native stack turns SCANS_ENABLED on only
 // for its second generation (after the restart test), so the flag-off 404 runs first and everything else after it.
@@ -85,10 +85,111 @@ export const scanErrand = (input: ScanInput) =>
     ),
   )
 
+const FrameOnZeroG = Schema.Struct({
+  rootHash: Schema.String,
+  storageTx: Schema.NullOr(Schema.String),
+  downloaded: Schema.Boolean,
+  hashMatches: Schema.Boolean,
+  inEvidence: Schema.Boolean,
+})
+
 const Observations = Schema.Struct({
   observations: Schema.Array(
-    Schema.Struct({ sha256: Schema.String, hashMatches: Schema.Boolean, signerMatches: Schema.Boolean }),
+    Schema.Struct({
+      sha256: Schema.String,
+      hashMatches: Schema.Boolean,
+      signerMatches: Schema.Boolean,
+      zeroG: Schema.NullOr(FrameOnZeroG),
+    }),
   ),
+})
+
+/** 0G Storage's indexer as Verify reads it (`GET /file?root=`): the frames the test put there, 404 for any other root. */
+export const startStorageStub = () => {
+  const files = new Map<string, ArrayBuffer>()
+  const server = Bun.serve({
+    hostname: '127.0.0.1',
+    port: 0,
+    fetch: (request) => {
+      const root = new URL(request.url).searchParams.get('root') ?? ''
+      const file = files.get(root)
+      return file === undefined ? Response.json({ code: 101 }, { status: 404 }) : new Response(file)
+    },
+  })
+  return {
+    url: `http://127.0.0.1:${server.port}`,
+    put: (root: string, bytes: Uint8Array) => {
+      files.set(root, bytes.slice().buffer)
+    },
+  }
+}
+export type StorageStub = ReturnType<typeof startStorageStub>
+
+const uploader = { authorization: `Bearer ${TEST_EVIDENCE_TOKEN}` }
+
+const FrameReported = Schema.Struct({ payloadJson: Schema.NullOr(Schema.String) })
+const PendingFrames = Schema.Struct({
+  frames: Schema.Array(Schema.Struct({ episodeId: Schema.String, sha256: Schema.String })),
+})
+const ListedObservation = Schema.Struct({
+  episodes: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      observation: Schema.NullOr(Schema.Struct({ sha256: Schema.String, rootHash: Schema.NullOr(Schema.String) })),
+    }),
+  ),
+})
+const DetailObservations = Schema.Struct({
+  observations: Schema.Array(Schema.Struct({ sha256: Schema.String, rootHash: Schema.NullOr(Schema.String) })),
+})
+
+const getJson = (url: string, headers: Readonly<Record<string, string>>) =>
+  HttpClient.get(url, { headers }).pipe(Effect.flatMap((response) => response.json))
+
+/** The uploader's frame round trip: the frame is pending, its exact bytes come from R2 behind the evidence token, its
+ *  0G root lands on the observation and in the not-yet-uploaded evidence, and the owner's views show it. */
+const frameToZeroG = Effect.fnUntraced(function* (
+  urls: Urls,
+  cookie: string,
+  storage: StorageStub,
+  started: { readonly episodeId: string; readonly sha256: string },
+) {
+  const framePath = `${urls.appUrl}/api/evidence/${started.episodeId}/frames/${started.sha256}`
+  expect((yield* HttpClient.get(framePath, { headers: { authorization: 'Bearer nope' } })).status).toBe(401)
+  const pending = yield* Schema.decodeUnknownEffect(PendingFrames)(
+    yield* getJson(`${urls.appUrl}/api/evidence/frames/pending`, uploader),
+  )
+  expect(pending.frames).toContainEqual({ episodeId: started.episodeId, sha256: started.sha256 })
+  const bytes = new Uint8Array(yield* (yield* HttpClient.get(framePath, { headers: uploader })).arrayBuffer)
+  expect<string>(sha256(bytes)).toBe(started.sha256)
+
+  const rootHash = `0x${'7a'.repeat(32)}`
+  storage.put(rootHash, bytes)
+  const report = (root: string) =>
+    HttpClient.post(framePath, {
+      headers: uploader,
+      body: HttpBody.text(JSON.stringify({ rootHash: root, storageTx: `0x${'7b'.repeat(32)}` }), 'application/json'),
+    })
+  const reported = yield* report(rootHash)
+  expect(reported.status).toBe(200)
+  const { payloadJson } = yield* Schema.decodeUnknownEffect(FrameReported)(yield* reported.json)
+  expect(JSON.parse(payloadJson ?? '{}')).toMatchObject({ observations: [{ sha256: started.sha256, rootHash }] })
+  expect((yield* report(rootHash)).status).toBe(200)
+  expect((yield* report(`0x${'7c'.repeat(32)}`)).status).toBe(409)
+  const { payload } = yield* Schema.decodeUnknownEffect(EvidenceObservations)(
+    yield* (yield* HttpClient.get(`${urls.appUrl}/api/evidence/${started.episodeId}`)).json,
+  )
+  expect(payload.observations[0]).toMatchObject({ sha256: started.sha256, rootHash })
+
+  const listed = yield* Schema.decodeUnknownEffect(ListedObservation)(
+    yield* getJson(`${urls.appUrl}/api/wallet/episodes`, { cookie }),
+  )
+  expect(listed.episodes.find((episode) => episode.id === started.episodeId)?.observation).toMatchObject({ rootHash })
+  const detail = yield* Schema.decodeUnknownEffect(DetailObservations)(
+    yield* getJson(`${urls.appUrl}/api/wallet/episodes/${started.episodeId}`, { cookie }),
+  )
+  expect(detail.observations).toMatchObject([{ sha256: started.sha256, rootHash }])
+  return rootHash
 })
 
 const EvidenceObservations = Schema.Struct({
@@ -152,9 +253,14 @@ export const registerScansOffAcceptance = (test: TestApi['test'], stack: Effect.
     { timeout: 60000 },
   )
 
-export const registerScanAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>, stub: ZeroGStub) =>
+export const registerScanAcceptance = (
+  test: TestApi['test'],
+  stack: Effect.Effect<Urls>,
+  stub: ZeroGStub,
+  storage: StorageStub,
+) =>
   test(
-    'scans: a chip-signed QR crop starts the errand for that invoice, repeats are idempotent, refusals, evidence, verify',
+    'scans: a chip-signed QR crop starts the errand for that invoice, repeats are idempotent, refusals, evidence, the frame on 0G, verify',
     Effect.gen(function* () {
       const urls = yield* stack
       const { appUrl, url, apiUrl } = urls
@@ -202,11 +308,28 @@ export const registerScanAcceptance = (test: TestApi['test'], stack: Effect.Effe
       expect(payload.observations[0]).toMatchObject({ sha256: started.sha256, bytes: 96 })
 
       expect(yield* verifiedObservations(urls, cookie, started.episodeId)).toEqual([
-        { sha256: started.sha256, hashMatches: true, signerMatches: true },
+        { sha256: started.sha256, hashMatches: true, signerMatches: true, zeroG: null },
       ])
+      // The frame to 0G Storage (plain, proof of work): Verify downloads it by root and re-hashes it.
+      const rootHash = yield* frameToZeroG(urls, cookie, storage, started)
+      const onZeroG = {
+        rootHash,
+        storageTx: `0x${'7b'.repeat(32)}`,
+        downloaded: true,
+        hashMatches: true,
+        inEvidence: true,
+      }
+      expect(yield* verifiedObservations(urls, cookie, started.episodeId)).toEqual([
+        { sha256: started.sha256, hashMatches: true, signerMatches: true, zeroG: onZeroG },
+      ])
+      storage.put(rootHash, new TextEncoder().encode('not the frame the chip signed'))
+      expect((yield* verifiedObservations(urls, cookie, started.episodeId))[0]?.zeroG).toMatchObject({
+        downloaded: true,
+        hashMatches: false,
+      })
       const key = `observations/${robot.robotId}/${started.episodeId}/${started.sha256}.jpg`
       expect((yield* postTo(url)('/test/vq/media', { key, text: 'not the crop the chip signed' })).status).toBe(204)
-      expect(yield* verifiedObservations(urls, cookie, started.episodeId)).toEqual([
+      expect(yield* verifiedObservations(urls, cookie, started.episodeId)).toMatchObject([
         { sha256: started.sha256, hashMatches: false, signerMatches: true },
       ])
     }).pipe(Effect.provide(freshConnections)),

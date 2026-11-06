@@ -123,12 +123,17 @@ export const EvidenceDecision = Schema.Struct({
   tee: Schema.optionalKey(TeeProof),
 })
 
-/** A chip-signed scan the episode carries: the crop's digest and size, when it was taken, the chip's signature. */
+/**
+ * A chip-signed scan the episode carries: the crop's digest and size, when it was taken, the chip's signature, and the
+ * 0G Storage root of the same bytes once the uploader has put the frame there (proof of the robot's work: anyone can
+ * download it by root and re-hash it against `sha256`). Absent in evidence enqueued before the frame was uploaded.
+ */
 export const EvidenceObservation = Schema.Struct({
   sha256: Sha256Hex,
   bytes: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
   capturedAt: UnixMs,
   chipSig: EcdsaSignature,
+  rootHash: Schema.optionalKey(Bytes32),
 })
 export type EvidenceObservation = typeof EvidenceObservation.Type
 

@@ -46,7 +46,8 @@ clock is used when it is absent, and the Worker accepts ±120 s. Local 400s (nev
 `expected {"invoiceId", "jpegBase64", "capturedAt"?}`, `jpegBase64 is not base64`, `crop is larger than 64 KB`,
 `crop is not a JPEG`. Answers 502 when the Worker does not answer within 60 s. Every other status is the Worker's own
 (`docs/hardware-handoff.md`). Repeating a scan of the same invoice gets 200 with the same errand. The crop is stored
-owner-private in R2 and never sent to 0G; the episode evidence carries only its hash and the chip's signature.
+in R2 and uploaded plain to 0G Storage as proof of the robot's work; it never reaches the 0G decision, and the episode
+evidence carries its hash, the chip's signature and its 0G Storage root.
 
 ## Log lines (one per event)
 

@@ -54,3 +54,26 @@ describe('evidence uploader ↔ Worker', () => {
     )
   })
 })
+
+describe('evidence uploader ↔ Worker: frames', () => {
+  test('pending frames keep only well-formed entries', async () => {
+    const good = { episodeId: 'ep5', sha256: `0x${'05'.repeat(32)}` }
+    const { sent, api } = worker({ frames: [good, { episodeId: 'ep6' }] })
+    expect(await api.pendingFrames()).toEqual([good])
+    expect(sent[0]).toMatchObject({ url: 'https://app.test/api/evidence/frames/pending', method: 'GET' })
+  })
+
+  test("a frame's root is reported as {rootHash, storageTx} and the patched evidence JSON comes back", async () => {
+    const sha = `0x${'06'.repeat(32)}`
+    const stored = { rootHash: `0x${'07'.repeat(32)}`, storageTx: `0x${'08'.repeat(32)}` }
+    const { sent, api } = worker({ payloadJson: '{"observations":[]}' })
+    expect(await api.markFrameUploaded('ep7', sha, stored)).toBe('{"observations":[]}')
+    expect(sent[0]).toMatchObject({
+      url: `https://app.test/api/evidence/ep7/frames/${sha}`,
+      method: 'POST',
+      authorization: 'Bearer test-token-0123456789',
+      body: stored,
+    })
+    expect(await worker({ payloadJson: null }).api.markFrameUploaded('ep8', sha, stored)).toBeNull()
+  })
+})

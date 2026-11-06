@@ -1,10 +1,13 @@
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { Indexer, MemData } from '@0gfoundation/0g-storage-ts-sdk'
 import { Contract, JsonRpcProvider, keccak256, toUtf8Bytes, Wallet } from 'ethers'
 import { makeEvidenceApi, type Pending } from './api.ts'
 
 // Drains the Worker's pending episode evidence to 0G Storage (Galileo, turbo indexer) and records each upload in
-// EpisodeLog on 0G Chain 16602 (spec §6). Runs on netcup, outside Cloudflare:
+// EpisodeLog on 0G Chain 16602 (spec §6). Each episode's chip-signed camera frames go to 0G Storage first, as plain
+// JPEG bytes (proof of the robot's work), so the episode JSON names their roots; frames of episodes uploaded earlier
+// are backfilled on every pass. Runs on netcup, outside Cloudflare:
 //   bun tools/evidence-uploader/main.ts [--once] [--server https://…] [--interval 15]
 // Configuration comes from the repo's `.env.main.local`, then the process environment. Keys and the token are never
 // printed. Without a storage key the uploader stops with "not configured", it never fakes an upload.
@@ -73,9 +76,9 @@ const indexer = new Indexer(config.indexer)
 
 const evidence = makeEvidenceApi(config.server, config.token)
 
-/** The episode JSON to 0G Storage; the storage SDK returns the Merkle root and the flow submission tx. */
-const store = async (payloadJson: string) => {
-  const data = new MemData(new TextEncoder().encode(payloadJson))
+/** Bytes to 0G Storage; the storage SDK returns the Merkle root and the flow submission tx. */
+const store = async (bytes: Uint8Array) => {
+  const data = new MemData(bytes)
   const [, treeError] = await data.merkleTree()
   if (treeError !== null) throw new Error(`merkle tree: ${treeError.message}`)
   const [result, uploadError] = await indexer.upload(data, config.rpc, signer)
@@ -127,9 +130,46 @@ const record = async (episode: Pending, rootHash: string) => {
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).slice(0, 400)
 
+const sha256Hex = (bytes: Uint8Array) => `0x${createHash('sha256').update(bytes).digest('hex')}`
+
+/** One frame: its exact bytes from R2, checked against the signed digest, to 0G Storage, then its root reported. */
+const uploadFrame = async (episodeId: string, sha256: string) => {
+  const bytes = await evidence.readFrame(episodeId, sha256)
+  if (sha256Hex(bytes) !== sha256.toLowerCase()) throw new Error(`frame ${sha256} does not hash to its digest`)
+  const stored = await store(bytes)
+  const payloadJson = await evidence.markFrameUploaded(episodeId, sha256, stored)
+  console.log(`frame ${episodeId}/${sha256} rootHash ${stored.rootHash} storageTx ${stored.storageTx}`)
+  return payloadJson
+}
+
+type FrameRef = { readonly sha256: string; readonly rootHash?: string }
+
+const isFrameRef = (entry: unknown): entry is FrameRef =>
+  typeof entry === 'object' && entry !== null && 'sha256' in entry && typeof entry.sha256 === 'string'
+
+/** The frames an episode's evidence JSON names, with their 0G root once they have one. */
+const frameRefs = (payloadJson: string): FrameRef[] => {
+  const parsed: unknown = JSON.parse(payloadJson)
+  const observations: unknown =
+    typeof parsed === 'object' && parsed !== null && 'observations' in parsed ? parsed.observations : []
+  const entries: unknown[] = Array.isArray(observations) ? observations : []
+  return entries.filter(isFrameRef)
+}
+
+/** The episode's frames not yet on 0G go first; the JSON to store is the one that names every frame's root. */
+const withFramesOnZeroG = async (episode: Pending) => {
+  let payloadJson = episode.payloadJson
+  for (const frame of frameRefs(payloadJson).filter((entry) => entry.rootHash === undefined)) {
+    const patched = await uploadFrame(episode.episodeId, frame.sha256)
+    if (patched !== null) payloadJson = patched
+  }
+  return payloadJson
+}
+
 const uploadOne = async (episode: Pending) => {
   try {
-    const { rootHash, storageTx } = await store(episode.payloadJson)
+    const payloadJson = await withFramesOnZeroG(episode)
+    const { rootHash, storageTx } = await store(new TextEncoder().encode(payloadJson))
     const logTx = await record(episode, rootHash)
     await evidence.markUploaded(episode.episodeId, { rootHash, storageTx, logTx })
     console.log(`episode ${episode.episodeId} rootHash ${rootHash} storageTx ${storageTx} logTx ${logTx}`)
@@ -146,11 +186,29 @@ const uploadOne = async (episode: Pending) => {
   }
 }
 
+/** Frames still without a root: errands from before frames went to 0G, or one whose frame upload failed. */
+const backfillFrames = async () => {
+  const frames = await evidence.pendingFrames()
+  const results = []
+  for (const frame of frames)
+    results.push(
+      await uploadFrame(frame.episodeId, frame.sha256).then(
+        () => true,
+        (error: unknown) => {
+          console.error(`frame ${frame.episodeId}/${frame.sha256} failed: ${errorText(error)}`)
+          return false
+        },
+      ),
+    )
+  return results.every(Boolean)
+}
+
 const drain = async () => {
   const pending = await evidence.claimPending()
   if (pending.length === 0) console.log('no pending evidence')
   const results = []
   for (const episode of pending) results.push(await uploadOne(episode))
+  results.push(await backfillFrames())
   return results.every(Boolean)
 }
 

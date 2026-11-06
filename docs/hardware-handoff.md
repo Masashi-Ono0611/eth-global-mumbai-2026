@@ -126,7 +126,7 @@ workaround: invoice links carry the public origin, so such a chip refuses every 
 
 The camera reads the gate's QR (`vq1:<invoiceId>`) and keeps only a JPEG crop of the QR, at most 64 KB (no scene
 frames: spec rule 4). The chip hashes and signs the crop, and the Worker starts the errand for exactly that invoice,
-as the conversation's **Chai** button would (0G decides, then the chip signs the payment). The crop is stored owner-private in R2.
+as the conversation's **Chai** button would (0G decides, then the chip signs the payment). The crop is stored in R2 and uploaded to 0G Storage as proof of the robot's work.
 It is never sent to 0G; the episode evidence (and so the `EpisodeLog` anchor) carries only
 `{sha256, bytes, capturedAt, chipSig}`. The route exists only while `APP_SCANS_ENABLED` is `true`. Until then it
 answers 404, and `GET $APP/api/health` shows `features.scans: false`.

@@ -132,7 +132,7 @@ const sameSecret = (left: string, right: string) =>
   })
 
 /** `Authorization: Bearer <EVIDENCE_TOKEN>`: 503 without a configured token, 401 for any other token. */
-const withUploaderToken = <E, R>(
+export const withUploaderToken = <E, R>(
   token: Option.Option<Redacted.Redacted>,
   handler: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
 ) =>

@@ -35,6 +35,7 @@ import RuntimeWorker from './RuntimeWorker.ts'
 import {
   registerChipScanListenerAcceptance,
   registerScanAcceptance,
+  startStorageStub,
   registerScansOffAcceptance,
 } from './ScanAcceptance.ts'
 import {
@@ -54,6 +55,7 @@ const zeroG = startZeroGStub()
 // The Telegram Bot API stand-in: records every call; the acceptance can take it down (spec §14).
 const telegram = startTelegramStub()
 const chainStub = startChainStub({ url: zeroG.serviceUrl, model: TEST_ZG_MODEL, signer: TEST_TEE_SIGNER })
+const storageStub = startStorageStub()
 
 const makeStack = (generation: string) =>
   Alchemy.Stack(
@@ -101,6 +103,7 @@ const makeStack = (generation: string) =>
           ZG_MODEL: TEST_ZG_MODEL,
           EPISODE_LOG_ADDRESS: TEST_EPISODE_LOG,
           ZG_CHAIN_RPC: chainStub.url,
+          ZG_STORAGE_INDEXER: storageStub.url,
           // The stub chain also plays 0G Compute's provider registry, for decisions' TEE proofs.
           ZG_COMPUTE_RPC: chainStub.url,
           ZG_INFERENCE_CONTRACT: TEST_INFERENCE,
@@ -374,7 +377,7 @@ registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
 registerLimitsAcceptance(test, stack, zeroG)
 registerAuditAcceptance(test, stack, zeroG, chainStub)
-registerScanAcceptance(test, stack, zeroG)
+registerScanAcceptance(test, stack, zeroG, storageStub)
 registerCounterAcceptance(test, stack)
 registerChipIntentAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)

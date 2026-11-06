@@ -8,7 +8,7 @@ Styld's product is not part of this project.
 
 Product rules: Arc contracts are the only spending authority (D1 mirrors, never authorises); the robot's chip signs
 every payment and the Robot Agent never holds a spending key; never fake a 0G decision (a failed call ends the errand
-in `safe_stop`); camera frames are evidence, not decision input: the chip may attach chip-signed frames or clips to an episode (owner-private in R2, served only to the owner, hash anchored), while the 0G decision stays over structured input and never receives an image (the no-frames rule was dropped by Kris on 6 Nov 21:00 IST); restricted items need a human approval, never an "age check"; no
+in `safe_stop`); camera frames are evidence, not decision input: the chip may attach chip-signed frames or clips to an episode (R2 is the fast copy; each chip-signed frame is also uploaded plain to 0G Storage as proof of the robot's work, its root recorded next to its sha256 in the episode JSON that `EpisodeLog` anchors, and Verify re-checks it), while the 0G decision stays over structured input and never receives an image (the no-frames rule was dropped by Kris on 6 Nov 21:00 IST); restricted items need a human approval, never an "age check"; no
 keys, tokens, signatures' private inputs or prompts in logs, commits or tool output.
 
 ## Ownership and workflow

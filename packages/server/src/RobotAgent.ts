@@ -7,8 +7,9 @@ import { scansEnabled } from './Features.ts'
 import { merchantPayees, merchantRoutes } from './merchant/Routes.ts'
 import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
-import { auditRoutes, ZG_CHAIN_RPC_DEFAULT } from './robot/Audit.ts'
+import { auditRoutes, ZG_CHAIN_RPC_DEFAULT, ZG_STORAGE_INDEXER_DEFAULT } from './robot/Audit.ts'
 import { evidenceRoutes } from './robot/Evidence.ts'
+import { evidenceFrameRoutes } from './robot/EvidenceFrames.ts'
 import { intentRoutes } from './robot/Intents.ts'
 import { navRoutes } from './robot/Nav.ts'
 import { ZG_COMPUTE_RPC_DEFAULT, ZG_INFERENCE_CONTRACT_DEFAULT } from './robot/TeeProof.ts'
@@ -47,6 +48,10 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
   const chainRpc = isUnset(env.ZG_CHAIN_RPC)
     ? Option.some(ZG_CHAIN_RPC_DEFAULT)
     : yield* optionalBinding(env, 'ZG_CHAIN_RPC', ZeroGBindings.baseUrl)
+  // Where Verify downloads frames from 0G Storage: Galileo's turbo indexer unless the stack points elsewhere.
+  const storageIndexer = isUnset(env.ZG_STORAGE_INDEXER)
+    ? Option.some(ZG_STORAGE_INDEXER_DEFAULT)
+    : yield* optionalBinding(env, 'ZG_STORAGE_INDEXER', ZeroGBindings.baseUrl)
   // The 0G Compute provider registry for decisions' TEE proofs: mainnet unless the stack points elsewhere.
   const computeRpc = isUnset(env.ZG_COMPUTE_RPC)
     ? Option.none()
@@ -76,7 +81,13 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     chipRoutes(database, errandChipHooks(errands)),
     robotRoutes(errands),
     evidenceRoutes(database, Option.map(evidenceToken, Redacted.make)),
-    auditRoutes(errands, media, Option.all({ address: episodeLogAddress, rpcUrl: chainRpc })),
+    evidenceFrameRoutes(database, media, Option.map(evidenceToken, Redacted.make)),
+    auditRoutes(
+      errands,
+      media,
+      Option.all({ address: episodeLogAddress, rpcUrl: chainRpc }),
+      Option.getOrElse(storageIndexer, () => ZG_STORAGE_INDEXER_DEFAULT),
+    ),
     // Scan-initiated errands, the owner's errand intents and the simulator's 0G navigation exist only while
     // SCANS_ENABLED is `true`; otherwise their paths are not mounted (404).
     scansEnabled(env)

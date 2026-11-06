@@ -308,8 +308,9 @@ export const usedNonces = sqliteTable('used_nonces', {
 })
 
 // A chip-signed scan (packages/protocol Scan.ts): the JPEG crop of the invoice QR the robot read, kept in R2 under
-// `r2_key` (`observations/<robotId>/<episodeId>/<sha256>.jpg`). One scan per robot and invoice; `captured_at` is unix
-// milliseconds as the chip signed it; `frame_sha256` is 0x + 64 lowercase hex; `chip_sig` the 65-byte EIP-191 signature.
+// `r2_key` (`observations/<robotId>/<episodeId>/<sha256>.jpg`, the fast copy; the uploader also puts it on 0G Storage).
+// One scan per robot and invoice; `captured_at` is unix milliseconds as the chip signed it; `frame_sha256` is 0x + 64
+// lowercase hex; `chip_sig` the 65-byte EIP-191 signature.
 export const observations = sqliteTable(
   'observations',
   {
@@ -322,6 +323,10 @@ export const observations = sqliteTable(
     capturedAt: integer('captured_at').notNull(),
     chipSig: text('chip_sig').notNull(),
     r2Key: text('r2_key').notNull(),
+    // The same bytes on 0G Storage (proof of the robot's work, public): the Merkle root and the flow submission tx the
+    // evidence uploader reported; null until it has uploaded the frame.
+    zgRootHash: text('zg_root_hash'),
+    zgStorageTx: text('zg_storage_tx'),
     createdAt: createdAt(),
   },
   (table) => [

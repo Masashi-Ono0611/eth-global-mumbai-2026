@@ -16,14 +16,24 @@ Per pending episode it prints one line: `episode <id> rootHash <0x…> storageTx
 
 1. `GET /api/evidence/pending` (bearer `APP_EVIDENCE_TOKEN`) claims up to 10 episodes (`pending`, retryable `failed`,
    or `uploading` for more than 5 minutes).
-2. Uploads the episode JSON (`{episodeId, robotId, item, decisions[], outcome, requestIds[]}`) with
+2. Uploads each of the episode's chip-signed camera frames that has no 0G root yet: `GET
+   /api/evidence/<id>/frames/<sha256>` (the exact JPEG bytes from R2, re-hashed against the signed digest), the bytes
+   to 0G Storage as they are (plain, public by root: proof of the robot's work), then `POST
+   /api/evidence/<id>/frames/<sha256> {rootHash, storageTx}`; the Worker answers the episode JSON with that root in its
+   `observations[]`, and that JSON is what step 3 uploads.
+3. Uploads the episode JSON (`{episodeId, robotId, item, decisions[], outcome, requestIds[]}`) with
    `@0gfoundation/0g-storage-ts-sdk` 1.2.13 (`MemData` → `Indexer.upload`, turbo indexer) and keeps the Merkle root and
    the flow submission tx.
-3. Calls `EpisodeLog.record(episodeId, rootHash, requestIdsHash)`, unless `records(keccak256(episodeId))` already holds
+4. Calls `EpisodeLog.record(episodeId, rootHash, requestIdsHash)`, unless `records(keccak256(episodeId))` already holds
    it (then the earlier tx is looked up from its `EpisodeRecorded` event; a different root is an error, never a second
    record).
-4. `POST /api/evidence/<id>/uploaded {rootHash, storageTx, logTx}`; on any error `POST /api/evidence/<id>/failed
+5. `POST /api/evidence/<id>/uploaded {rootHash, storageTx, logTx}`; on any error `POST /api/evidence/<id>/failed
    {error}` (retried up to 5 attempts).
+6. Backfill: `GET /api/evidence/frames/pending` lists frames still without a root (errands from before frames went to
+   0G, or a failed frame upload) and uploads them the same way; an episode already on 0G keeps its anchored JSON, the
+   root goes onto the frame only. Per frame it prints `frame <episodeId>/<sha256> rootHash <0x…> storageTx <0x…>`.
+
+Anyone can download a frame by root: `https://indexer-storage-testnet-turbo.0g.ai/file?root=<rootHash>`.
 
 ## Configuration
 

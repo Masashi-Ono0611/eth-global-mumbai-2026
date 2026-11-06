@@ -48,6 +48,8 @@ const ListRow = Schema.Struct({
   evidence_error: Text,
   observation_sha256: Text,
   observation_captured_at: Time,
+  observation_root_hash: Text,
+  observation_storage_tx: Text,
 })
 
 const ListQuery = Schema.Struct({
@@ -62,7 +64,8 @@ const LIST_SQL = `SELECT e.id, e.robot_id, r.name AS robot_name, e.item, e.state
     COALESCE(p.tx_hash, i.paid_tx) AS tx_hash, COALESCE(p.status, CASE WHEN i.paid_tx IS NULL THEN NULL ELSE 'settled' END) AS payment_status,
     a.status AS approval_status, a.amr_json,
     u.status AS evidence_status, u.root_hash, u.storage_tx, u.log_tx, u.error AS evidence_error,
-    o.frame_sha256 AS observation_sha256, o.captured_at AS observation_captured_at
+    o.frame_sha256 AS observation_sha256, o.captured_at AS observation_captured_at,
+    o.zg_root_hash AS observation_root_hash, o.zg_storage_tx AS observation_storage_tx
   FROM episodes e JOIN robots r ON r.id = e.robot_id
     LEFT JOIN invoices i ON i.id = e.invoice_id
     LEFT JOIN decisions d ON d.id = (SELECT id FROM decisions WHERE episode_id = e.id ORDER BY step DESC, created_at DESC LIMIT 1)
@@ -110,11 +113,17 @@ const listView = (row: typeof ListRow.Type) => ({
           logTx: row.log_tx,
           error: row.evidence_error,
         },
-  // What the robot saw: the errand's first chip-signed QR crop (metadata; the image is behind the owner-only route).
+  // What the robot saw: the errand's first chip-signed QR crop (metadata; the R2 copy is behind the owner-only route,
+  // the 0G Storage copy is public by `rootHash`, null until the uploader has put it there).
   observation:
     row.observation_sha256 === null || row.observation_captured_at === null
       ? null
-      : { sha256: row.observation_sha256, capturedAt: row.observation_captured_at },
+      : {
+          sha256: row.observation_sha256,
+          capturedAt: row.observation_captured_at,
+          rootHash: row.observation_root_hash,
+          storageTx: row.observation_storage_tx,
+        },
 })
 
 /** `GET /api/wallet/episodes?robotId=&limit=50` → the owner's errands, newest first, one row each with its latest

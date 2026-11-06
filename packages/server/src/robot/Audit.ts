@@ -1,9 +1,11 @@
 import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWriteBucket'
-import { DecideInput, requestIdsHash } from '@ethmumbai/protocol/Errand'
+import { DecideInput, EpisodeEvidence, requestIdsHash } from '@ethmumbai/protocol/Errand'
 import { keccak256Utf8 } from '@ethmumbai/protocol/Keccak'
 import { scanMessage } from '@ethmumbai/protocol/Scan'
 import { Effect, Option, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
+import * as HttpClient from 'effect/http/HttpClient'
+import * as HttpClientResponse from 'effect/http/HttpClientResponse'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import { createPublicClient, http, parseAbi } from 'viem'
 import { decisionsOf } from './Decide.ts'
@@ -21,6 +23,8 @@ import { json, jsonError, notConfigured } from '../Respond.ts'
 // decide the same today? Both are read-only: nothing here writes a decision, an errand or a payment.
 
 export const ZG_CHAIN_RPC_DEFAULT = 'https://evmrpc-testnet.0g.ai'
+/** Where frames are downloaded from 0G Storage by root (`GET /file?root=`): Galileo's turbo indexer by default. */
+export const ZG_STORAGE_INDEXER_DEFAULT = 'https://indexer-storage-testnet-turbo.0g.ai'
 
 /** Where the anchors live: `EPISODE_LOG_ADDRESS` on 0G Chain (`ZG_CHAIN_RPC`, Galileo by default). */
 export interface EpisodeLogConfig {
@@ -74,6 +78,37 @@ const storedFor = Effect.fnUntraced(function* (deps: ErrandDeps, episode: Episod
   }
 })
 
+/** The frame's bytes from 0G Storage by root; `None` when the indexer does not answer with them in 10 s. */
+const downloadFrame = (indexer: string, rootHash: string) =>
+  HttpClient.get(`${indexer}/file?root=${rootHash}`).pipe(
+    Effect.flatMap(HttpClientResponse.filterStatusOk),
+    Effect.flatMap((response) => response.arrayBuffer),
+    Effect.map((buffer) => new Uint8Array(buffer)),
+    Effect.timeout('10 seconds'),
+    Effect.provide(FetchHttpClient.layer),
+    Effect.option,
+  )
+
+/**
+ * The frame's 0G Storage copy: downloaded by root and re-hashed against the signed digest, and is that root the one
+ * the anchored episode names (`inEvidence`; false for an episode uploaded before its frame). `null` before upload.
+ */
+const checkFrameOnZeroG = Effect.fnUntraced(function* (
+  indexer: string,
+  row: ObservationRow,
+  anchoredRoots: ReadonlyMap<string, string>,
+) {
+  if (row.zg_root_hash === null) return null
+  const bytes = yield* downloadFrame(indexer, row.zg_root_hash)
+  return {
+    rootHash: row.zg_root_hash,
+    storageTx: row.zg_storage_tx,
+    downloaded: Option.isSome(bytes),
+    hashMatches: Option.exists(bytes, (frame) => frameSha256(frame) === row.frame_sha256),
+    inEvidence: sameHex(anchoredRoots.get(row.frame_sha256), row.zg_root_hash),
+  }
+})
+
 /** One scan re-checked from R2: do the stored bytes still hash to the signed digest, and did the chip sign it? */
 const checkObservation = Effect.fnUntraced(function* (
   media: ReadWriteBucketClient,
@@ -90,15 +125,37 @@ const checkObservation = Effect.fnUntraced(function* (
   }
 })
 
+const decodeEvidence = Schema.decodeUnknownOption(EpisodeEvidence)
+
+/** Each frame's root as the stored episode evidence names it (the JSON EpisodeLog anchors once it is on 0G). */
+const anchoredFrameRoots = (payload: unknown) =>
+  new Map(
+    Option.match(decodeEvidence(payload), {
+      onNone: () => [],
+      onSome: (evidence) =>
+        (evidence.observations ?? []).flatMap((entry): Array<[string, string]> =>
+          entry.rootHash === undefined ? [] : [[entry.sha256, entry.rootHash]],
+        ),
+    }),
+  )
+
 const checkObservations = Effect.fnUntraced(function* (
   deps: ErrandDeps,
   media: ReadWriteBucketClient,
+  indexer: string,
   episode: EpisodeRow,
 ) {
   const robot = yield* readRobot(deps.database, episode.robot_id)
   const chipAddress = Option.getOrNull(Option.flatMapNullishOr(robot, (row) => row.chip_address))
   const rows = yield* observationsOf(deps.database, episode.id)
-  return yield* Effect.forEach(rows, (row) => checkObservation(media, chipAddress, row))
+  const evidence = yield* readEvidence(deps.database, episode.id)
+  const anchoredRoots = anchoredFrameRoots(Option.getOrNull(Option.map(evidence, (row) => row.payload)))
+  return yield* Effect.forEach(rows, (row) =>
+    Effect.map(
+      Effect.all([checkObservation(media, chipAddress, row), checkFrameOnZeroG(indexer, row, anchoredRoots)]),
+      ([fromR2, zeroG]) => ({ ...fromR2, zeroG }),
+    ),
+  )
 })
 
 /** Each stored TEE proof re-checked: does its signature over `text` recover to the signer the registry named? */
@@ -114,7 +171,12 @@ const checkTee = Effect.fnUntraced(function* (deps: ErrandDeps, episode: Episode
   }
 })
 
-const verify = (deps: ErrandDeps, media: ReadWriteBucketClient, config: Option.Option<EpisodeLogConfig>) =>
+const verify = (
+  deps: ErrandDeps,
+  media: ReadWriteBucketClient,
+  config: Option.Option<EpisodeLogConfig>,
+  indexer: string,
+) =>
   Effect.gen(function* () {
     const episode = yield* ownEpisode(deps)
     if (Option.isNone(episode)) return yield* jsonError(404, 'unknown episode')
@@ -139,8 +201,9 @@ const verify = (deps: ErrandDeps, media: ReadWriteBucketClient, config: Option.O
       },
       // The Worker cannot run the 0G Storage SDK (it needs Node); the uploader downloads and compares each root.
       downloadCheckedBy: 'uploader',
-      // Each scan's crop re-read from R2 and re-hashed, and its chip signature recovered (`[]` without scans).
-      observations: yield* checkObservations(deps, media, episode.value),
+      // Each scan's crop re-read from R2 and re-hashed, its chip signature recovered, and its 0G Storage copy
+      // downloaded by root and re-hashed (`zeroG: null` until uploaded; `[]` without scans).
+      observations: yield* checkObservations(deps, media, indexer, episode.value),
       // The decision's provider TEE signature recovered again (`present: false` without a proof).
       tee: yield* checkTee(deps, episode.value),
     })
@@ -187,8 +250,13 @@ export const auditRoutes = (
   deps: ErrandDeps,
   media: ReadWriteBucketClient,
   episodeLog: Option.Option<EpisodeLogConfig>,
+  storageIndexer: string,
 ) =>
   HttpRouter.addAll([
-    HttpRouter.route('POST', '/api/wallet/episodes/:episodeId/verify', requireSession(verify(deps, media, episodeLog))),
+    HttpRouter.route(
+      'POST',
+      '/api/wallet/episodes/:episodeId/verify',
+      requireSession(verify(deps, media, episodeLog, storageIndexer)),
+    ),
     HttpRouter.route('POST', '/api/wallet/episodes/:episodeId/replay', requireSession(replay(deps))),
   ])

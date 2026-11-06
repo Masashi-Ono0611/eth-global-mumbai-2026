@@ -100,7 +100,7 @@ workers build from <code>docs/spec.md</code> while Kris does the prerequisites a
 </tr>
 <tr>
 <td>Robot evidence (scans)</td>
-<td><strong>Live, flag on</strong> (<code>features.scans: true</code>): <code>POST /api/chips/:robotId/scans</code> starts the errand for the scanned invoice with a chip-signed ≤ 64 KB QR crop (owner-private R2, hash anchored on 0G); <code>/wallet/episodes/:id</code> shows &quot;What the robot saw&quot; with a verify badge; the chip&#39;s <code>--local-port</code> listener and <code>docs/hardware-handoff.md</code> §5 are ready for the Radxa</td>
+<td><strong>Live, flag on</strong> (<code>features.scans: true</code>): <code>POST /api/chips/:robotId/scans</code> starts the errand for the scanned invoice with a chip-signed ≤ 64 KB QR crop (R2 copy plus a plain copy on 0G Storage as proof of work, root and hash anchored on 0G); <code>/wallet/episodes/:id</code> shows &quot;What the robot saw&quot; with a verify badge; the chip&#39;s <code>--local-port</code> listener and <code>docs/hardware-handoff.md</code> §5 are ready for the Radxa</td>
 <td>the hardware team wires the Radxa scanner</td>
 </tr>
 <tr>

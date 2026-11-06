@@ -4,18 +4,18 @@ import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { jsonError, notConfigured } from '../Respond.ts'
-import { evidenceObservation, observationsOf } from '../robot/Observations.ts'
+import { evidenceObservation, frameOnZeroG, observationsOf } from '../robot/Observations.ts'
 import { firstRow } from '../Sql.ts'
 import type { WalletDeps } from './Deps.ts'
 
 /**
  * What the robot saw: the chip-signed JPEG crop of the QR it scanned to start an errand (`observations`, written by the
- * chip's scan route in `robot/Observations.ts`). The image is owner-private in R2; only its hash and the chip's
- * signature go into the episode evidence.
+ * chip's scan route in `robot/Observations.ts`). R2 holds the fast copy, served to the owner here; the evidence
+ * uploader puts the same bytes on 0G Storage (`rootHash`, `storageTx`: null until it has).
  */
 export const observationsOfEpisode = (database: QueryDatabaseClient, episodeId: string) =>
   Effect.map(observationsOf(database, episodeId), (rows) =>
-    rows.map((row) => ({ kind: 'qr_crop' as const, ...evidenceObservation(row) })),
+    rows.map((row) => ({ kind: 'qr_crop' as const, ...evidenceObservation(row), ...frameOnZeroG(row) })),
   )
 
 export type ObservationView = Effect.Success<ReturnType<typeof observationsOfEpisode>>[number]
