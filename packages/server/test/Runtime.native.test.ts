@@ -13,7 +13,7 @@ import { registerAuditAcceptance, startChainStub, TEST_EPISODE_LOG, TEST_INFEREN
 import { verifyBrowser } from './BrowserAcceptance.ts'
 import { registerChainAcceptance } from './ChainAcceptance.ts'
 import { registerChipAcceptance, registerMockChipAcceptance } from './ChipAcceptance.ts'
-import { registerCounterAcceptance } from './CounterAcceptance.ts'
+import { registerChipIntentAcceptance, registerCounterAcceptance } from './CounterAcceptance.ts'
 import {
   registerMerchantAcceptance,
   TEST_GATE_SEED,
@@ -376,6 +376,7 @@ registerLimitsAcceptance(test, stack, zeroG)
 registerAuditAcceptance(test, stack, zeroG, chainStub)
 registerScanAcceptance(test, stack, zeroG)
 registerCounterAcceptance(test, stack)
+registerChipIntentAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)

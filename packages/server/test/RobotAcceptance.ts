@@ -30,6 +30,8 @@ const teeSignature = async (chatId: string) => {
 
 const ASK_OWNER = { action: 'ask_human', reason: 'over the per-payment limit; the owner approves it in World App' }
 const SentInput = Schema.Struct({
+  requested: Schema.String,
+  catalogue: Schema.Struct({ itemId: Schema.String }),
   invoice: Schema.Struct({ amount: Schema.String }),
   budget: Schema.Struct({ remainingToday: Schema.String }),
   policy: Schema.Struct({ approvalRequired: Schema.Boolean }),
@@ -42,7 +44,8 @@ export const SentDecide = Schema.Struct({
 /** The prompt's decision table applied to the input the Worker sent (a deterministic brain for the limits test). */
 const byDecisionTable = (body: unknown) => {
   const sent = Schema.decodeUnknownSync(SentDecide)(body).messages[1].content
-  const { invoice, budget, policy } = Schema.decodeUnknownSync(SentInput)(sent)
+  const { requested, catalogue, invoice, budget, policy } = Schema.decodeUnknownSync(SentInput)(sent)
+  if (requested !== catalogue.itemId) return { action: 'walk_away', reason: 'Not the item the owner asked for.' }
   if (BigInt(invoice.amount) > BigInt(budget.remainingToday))
     return { action: 'walk_away', reason: "over today's allowance; the owner can raise it" }
   return policy.approvalRequired ? ASK_OWNER : { action: 'pay', reason: 'as asked, within both limits' }

@@ -7,7 +7,7 @@ import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { type Hex, sha256 } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { freshConnections, grantRow, randomId, randomPairingCode, sampleGrant } from './AgentSamples.ts'
+import { type Caps, freshConnections, grantRow, randomId, randomPairingCode, sampleGrant } from './AgentSamples.ts'
 import { readLines } from './ChipAcceptance.ts'
 import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
@@ -30,11 +30,11 @@ const sampleCrop = (size = 96) => {
   return bytes
 }
 
-/** A paired robot of `accountId` with a signed grant, and the throwaway key its chip signs with. */
-export const seedScanningRobot = (url: string, accountId: string) =>
+/** A paired robot of `accountId` with a signed grant (the spec's caps unless given), and the key its chip signs with. */
+export const seedScanningRobot = (url: string, accountId: string, caps?: Caps) =>
   Effect.gen(function* () {
     const chipKey = generatePrivateKey()
-    const robotId = yield* seedRobot(url, accountId, privateKeyToAccount(chipKey).address)
+    const robotId = yield* seedRobot(url, accountId, privateKeyToAccount(chipKey).address, caps)
     return { robotId, chipKey }
   })
 

@@ -39,8 +39,8 @@ const LIVE = LIVE_STATES.map((state) => `'${state}'`).join(', ')
 
 /**
  * Lazy timeouts, like `tickRobot`'s: an open intent idle for 10 minutes (no navigation turn since it began or since its
- * last turn) ends `expired`; a real robot's scanned intent ends `finished` once its errand ended (it has no navigation
- * turn to finish it).
+ * last turn) ends `expired`; a real robot's intent expires only while no scan claimed it (it never gets a navigation
+ * turn), and its scanned intent ends `finished` once its errand ended (it has no navigation turn to finish it).
  */
 export const settleIntents = Effect.fn('EthMumbai.Robot.settleIntents')(function* (
   database: QueryDatabaseClient,
@@ -51,8 +51,11 @@ export const settleIntents = Effect.fn('EthMumbai.Robot.settleIntents')(function
   yield* database.batch([
     database
       .prepare(
-        `UPDATE intents SET state = 'expired', ended_at = ?, busy_until = NULL, reason = 'no navigation turn for 10 minutes'
+        `UPDATE intents SET state = 'expired', ended_at = ?, busy_until = NULL, reason = CASE
+            WHEN (SELECT kind FROM robots WHERE robots.id = intents.robot_id) = 'chip' THEN 'no scan within 10 minutes'
+            ELSE 'no navigation turn for 10 minutes' END
           WHERE robot_id = ? AND state IN ('running', 'scanned')
+          AND (state = 'running' OR (SELECT kind FROM robots WHERE robots.id = intents.robot_id) != 'chip')
           AND COALESCE((SELECT MAX(created_at) FROM nav_turns WHERE nav_turns.intent_id = intents.id), created_at) < ?`,
       )
       .bind(now, robotId, now - INTENT_IDLE_MS),

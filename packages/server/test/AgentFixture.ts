@@ -151,6 +151,24 @@ const expireInvoiceRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
+const Age = Schema.Struct({ millis: Schema.Finite })
+
+/** An errand intent that began `millis` earlier, as one left waiting that long would have. */
+const ageIntentRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/intents/:intentId/age',
+    Effect.gen(function* () {
+      const { intentId } = yield* HttpRouter.params
+      const { millis } = yield* body(Age)
+      const aged = yield* database
+        .prepare('UPDATE intents SET created_at = created_at - ? WHERE id = ?')
+        .bind(millis, intentId ?? '')
+        .run()
+      return HttpServerResponse.empty({ status: aged.meta.changes === 1 ? 204 : 404 })
+    }),
+  )
+
 const MediaObject = Schema.Struct({ key: Schema.String, text: Schema.String })
 
 /** Overwrite an R2 object, as someone with bucket access tampering with a stored scan crop would. */
@@ -335,6 +353,7 @@ export const agentFixtureRoutes = (database: QueryDatabaseClient, media: ReadWri
   HttpRouter.addAll([
     robotRoute(database),
     expireInvoiceRoute(database),
+    ageIntentRoute(database),
     tamperMediaRoute(media),
     grantRoute(database),
     queueRoute(database),
