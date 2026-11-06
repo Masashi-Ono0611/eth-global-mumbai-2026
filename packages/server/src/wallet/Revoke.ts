@@ -142,7 +142,8 @@ const revokeSign = (deps: WalletDeps) =>
       ? yield* Effect.as(setStatus(deps, row.id, 'revoking', 'revoked', sent.value.txHash), 'revoked' as const)
       : yield* finalizeRevoke(deps, row)
     yield* Effect.logInfo('grant revoke').pipe(Effect.annotateLogs({ grantId: row.id, status }))
-    return yield* json({ grantId: row.id, status }, status === 'revoked' ? 200 : 202)
+    const revokeTx = Option.isSome(sent) ? sent.value.txHash : null
+    return yield* json({ grantId: row.id, status, revokeTx }, status === 'revoked' ? 200 : 202)
   })
 
 export const revokeRoutes = (deps: WalletDeps) =>

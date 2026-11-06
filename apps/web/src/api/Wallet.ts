@@ -100,7 +100,12 @@ export const signRevoke = (grantId: string, assertion: AssertionRequest) =>
   postJson(
     `/api/wallet/grants/${grantId}/revoke/sign`,
     assertion,
-    Schema.Struct({ grantId: Schema.String, status: Schema.String, revokeTx: Schema.String }),
+    // 200 revoked (with the tx when this request saw it) or 202 still revoking, settled later from Arc.
+    Schema.Struct({
+      grantId: Schema.String,
+      status: Schema.String,
+      revokeTx: Schema.optionalKey(Schema.NullOr(Schema.String)),
+    }),
   )
 
 export const Catalogue = Schema.Struct({

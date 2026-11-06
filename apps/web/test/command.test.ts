@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vitest'
 import { CreatePasskeyWallet, SignInWithPasskey } from '../src/command.ts'
 import { Message } from '../src/message.ts'
 import { fixturePasskeysLayer, PasskeyFailed, Passkeys } from '../src/Passkey.ts'
+import { GrantBudget, Message as RobotsMessage, RevokeGrant } from '../src/pages/Robots.ts'
 
 type Call = { readonly method: string; readonly path: string; readonly body: unknown }
 
@@ -96,5 +97,56 @@ describe('passkey commands', () => {
         ),
       ),
     ).toEqual(Message.FailedCreatePasskeyWallet({ failure: 'server' }))
+  })
+
+  const prompt = {
+    grantId: 'g1',
+    challenge: 'Y2g',
+    rpId: 'app.test',
+    userVerification: 'required',
+    timeout: 1,
+    allowCredentials: ['Zml4dHVyZS1jcmVkZW50aWFs'],
+  }
+
+  test('a grant runs options, the passkey over the challenge, then sign; the Worker answers are decoded', async () => {
+    const calls: Array<Call> = []
+    const http = worker(
+      {
+        '/api/wallet/grants/options': [201, prompt],
+        '/api/wallet/grants/g1/sign': [200, { grantId: 'g1', status: 'active', deployTx: null }],
+      },
+      calls,
+    )
+    const result = await Effect.runPromise(
+      GrantBudget({
+        robotId: 'r1',
+        dailyCap: '1.00',
+        perPaymentCap: '0.30',
+        allowlist: ['0xabc'],
+        hours: 24,
+      }).effect.pipe(Effect.provide(Layer.merge(http, fixturePasskeysLayer))),
+    )
+    expect(result).toEqual(RobotsMessage.SucceededGrantBudget())
+    expect(calls[0]?.body).toMatchObject({
+      robotId: 'r1',
+      dailyCap: '1.00',
+      perPaymentCap: '0.30',
+      allowlist: ['0xabc'],
+    })
+    expect(calls[1]?.body).toMatchObject({ credentialId: 'Zml4dHVyZS1jcmVkZW50aWFs' })
+  })
+
+  test.each([
+    [200, { grantId: 'g1', status: 'revoked', revokeTx: '0xab' }],
+    [202, { grantId: 'g1', status: 'revoking', revokeTx: null }],
+  ])('a revoke answered %i is a success (revoked now, or settled later from Arc)', async (status, body) => {
+    const http = worker(
+      { '/api/wallet/grants/g1/revoke/options': [200, prompt], '/api/wallet/grants/g1/revoke/sign': [status, body] },
+      [],
+    )
+    const result = await Effect.runPromise(
+      RevokeGrant({ grantId: 'g1' }).effect.pipe(Effect.provide(Layer.merge(http, fixturePasskeysLayer))),
+    )
+    expect(result).toEqual(RobotsMessage.SucceededRevokeGrant())
   })
 })
