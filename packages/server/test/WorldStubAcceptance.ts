@@ -37,7 +37,7 @@ const AuditApprovals = Schema.Struct({
 
 const unescape = (html: string) => html.replaceAll('&amp;', '&').replaceAll('&quot;', '"')
 
-/** One restricted errand answered through the stub's page: `approve` or `deny`. Returns the callback URL it used. */
+/** One over-the-cap thali answered through the stub's page: `approve` or `deny`. Returns the callback URL it used. */
 const answer = async (
   urls: Urls,
   owner: { readonly accountId: string; readonly cookie: string },
@@ -48,7 +48,7 @@ const answer = async (
   const started = await fetch(`${urls.apiUrl}/api/robots/${robotId}/errands`, {
     method: 'POST',
     headers: { origin, cookie: owner.cookie, 'content-type': 'application/json' },
-    body: JSON.stringify({ item: 'cigarettes' }),
+    body: JSON.stringify({ item: 'thali' }),
   })
   expect(started.status).toBe(201)
   const errand = Schema.decodeUnknownSync(Created)(await started.json())

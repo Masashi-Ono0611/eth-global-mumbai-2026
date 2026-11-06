@@ -21,8 +21,9 @@ export interface Merchant {
 }
 
 /**
- * The merchant catalogue is a constant (spec §3): chai 0.10, samosa 0.25, cigarettes 0.50 restricted, and thali 2.00,
- * a counter item above a small grant's per-payment cap, so it needs the owner's World approval without being restricted.
+ * The merchant catalogue is a constant (spec §3): chai 0.10, samosa 0.25 and thali 2.00, the counter item above the
+ * demo grant's 1.00 per-payment cap, so it needs the owner's World approval. The demo's approval story is spending
+ * limits only (6 Nov, Kris): no restricted item is sold, though `restricted` items and their separate payee still work.
  */
 export const merchants: ReadonlyArray<Merchant> = [
   {
@@ -32,7 +33,6 @@ export const merchants: ReadonlyArray<Merchant> = [
     items: [
       { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false, payee: 'merchant' },
       { itemId: 'samosa', name: 'Samosa', amount: '250000', restricted: false, payee: 'merchant' },
-      { itemId: 'cigarettes', name: 'Cigarettes', amount: '500000', restricted: true, payee: 'restricted' },
       { itemId: 'thali', name: 'Thali', amount: '2000000', restricted: false, payee: 'merchant' },
     ],
   },
