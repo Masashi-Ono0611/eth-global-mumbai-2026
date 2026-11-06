@@ -211,7 +211,8 @@ export const mountPanel = (robotId: string, stop: (intentId: string) => void): P
   const panel = el('aside', panelClassName, [
     el('header', 'grid gap-1', [el('div', titleClassName, [name, el('span', 'flex gap-1', [chip, lease])]), allowance]),
     section('Errand', [form, el('div', 'flex items-center justify-between gap-2', [navStatus, stopButton]), outcome]),
-    section('0G brain · glm-5.3', [turns]),
+    // Each turn card names the model that answered it: never a hard-coded one here.
+    section('0G brain', [turns]),
     section('Chip', [chipLines]),
   ])
   panel.setAttribute('aria-label', 'Vitaquack simulator')

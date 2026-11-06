@@ -22,8 +22,8 @@ import { changes, firstRow } from '../Sql.ts'
 
 /** How far the chip's `capturedAt` may be from the Worker's clock. */
 const CAPTURE_WINDOW_MS = 120_000
-/** The fastest a robot may post frames: one per 400 ms (2.5/s); a faster frame is 429 and not stored. */
-export const MIN_FRAME_INTERVAL_MS = 400
+/** The fastest a robot may post frames: one per 200 ms (5/s); a faster frame is 429 and not stored. */
+export const MIN_FRAME_INTERVAL_MS = 200
 /** A frame older than this is not "live" any more: the owner's view answers 404 and stops showing it. */
 export const LIVE_FOR_MS = 30_000
 
@@ -54,7 +54,9 @@ const checkedFrame = (body: FrameRequest, now: number): Result.Result<Uint8Array
 
 /**
  * `POST /api/chips/:robotId/frames` (chip token): the frame signed by this robot's chip becomes its latest frame. The
- * rate cap is one write: the row only moves when the previous frame arrived at least 400 ms ago (else 429).
+ * rate cap is one write: the row only moves when the previous frame arrived at least 200 ms ago (else 429). A
+ * frame while the robot has no open intent is checked but not stored (202): the chat shows frames only while the duck
+ * is out, so nothing is written for a camera that streams all day.
  */
 const postFrame = (deps: ErrandDeps, media: ReadWriteBucketClient) =>
   Effect.gen(function* () {
@@ -72,6 +74,14 @@ const postFrame = (deps: ErrandDeps, media: ReadWriteBucketClient) =>
     const now = yield* Clock.currentTimeMillis
     const frame = checkedFrame(body.value, now)
     if (Result.isFailure(frame)) return yield* jsonError(400, frame.failure)
+    const out = yield* firstRow(
+      deps.database
+        .prepare(`SELECT id FROM intents WHERE robot_id = ? AND state IN ('running', 'scanned') LIMIT 1`)
+        .bind(robot.value.id),
+      Schema.Struct({ id: Schema.String }),
+    )
+    if (Option.isNone(out))
+      return yield* json({ stored: false, reason: 'the robot has no open errand, so the frame is not kept' }, 202)
     const moved = yield* changes(
       deps.database
         .prepare(
@@ -89,7 +99,7 @@ const postFrame = (deps: ErrandDeps, media: ReadWriteBucketClient) =>
           now - MIN_FRAME_INTERVAL_MS,
         ),
     )
-    if (moved === 0) return yield* jsonError(429, 'too many frames: at most one per 400 ms per robot')
+    if (moved === 0) return yield* jsonError(429, 'too many frames: at most one per 200 ms per robot')
     const stored = yield* media
       .put(liveKey(robot.value.id), frame.success, { httpMetadata: { contentType: 'image/jpeg' } })
       .pipe(Effect.option)

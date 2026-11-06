@@ -229,11 +229,12 @@ curl -s -w ' %{http_code}\n' http://127.0.0.1:8787/frame -H 'content-type: appli
 {"sha256":"0x…","capturedAt":1793990000000} 201
 ```
 
-- **201**: stored as the robot's latest frame. **429** `too many frames: at most one per 400 ms per robot` (no
+- **201**: stored as the robot's latest frame. **202** `{"stored": false, …}`: checked but not kept, because the robot has no open request (the chat only shows frames while the duck is out). **429** `too many frames: at most one per 200 ms per robot` (no
   `Retry-After`; nothing is stored). **404**: `APP_LIVE_ENABLED` is not `true` on this deploy. **400**: local checks
   (`jpegBase64 is not base64`, `frame is not a JPEG`, `frame is larger than 64 KB`) or the Worker's (`capturedAt`
   ±120 s). **401**: wrong chip. **502**: the Worker or R2 did not answer (chip timeout 10 s).
-- A JPEG of at most 64 KB. 640×360 at quality 50–60 is right for the chat, which shows it 256 px wide at its own aspect.
+- A JPEG of at most 64 KB. The chat shows it up to 384 px wide at its own aspect, so 800×450 at quality ~55 is crisp. The chat reads the latest frame every 500 ms while a request is open, and the Worker accepts up to 5 frames a second.
+- The chip reuses its connection for `/frame` (every other chip call still opens a fresh one), so a frame does not pay a new TLS handshake.
 - Extra keys (such as `keep`) are ignored. No keyframes are kept today.
 - `/frame` never gates `/scan`, and nothing in pairing, polling or `/scan` changed.
 - Only the latest frame per robot exists: R2 `live/<robotId>.jpg` is overwritten each time. Only the owner can read it

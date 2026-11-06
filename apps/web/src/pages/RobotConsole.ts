@@ -1,8 +1,7 @@
 import { Effect, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
-import { Dialog } from '@foldkit/ui'
+import { Dialog, RadioGroup } from '@foldkit/ui'
 import { defineMessageUnion } from 'foldkit/message'
-import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import type * as HttpClient from 'effect/http/HttpClient'
 import { isSignedOut } from '../api/Http.ts'
@@ -14,6 +13,7 @@ import {
   createIntent,
   loadEpisodeApproval,
   loadIntent,
+  loadLive,
   stopIntent,
   loadErrand,
   startErrand,
@@ -22,47 +22,18 @@ import {
 import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
 import { Catalogue, denyApproval, loadActivity, loadCatalogue } from '../api/Wallet.ts'
 import { format } from '@ethmumbai/i18n'
+import { LiveFrame } from '@ethmumbai/protocol/Frame'
 import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
 import * as RobotVoice from './RobotVoice.ts'
 import { sheetFolds } from '../Sheet.ts'
+import { BrainRadioGroup, initBrainPicker, RequestModel, requestModel } from './RobotBrain.ts'
 
 // MODEL
 
-export const ConsoleState = defineTaggedUnion({
-  Loading: {},
-  SignedOut: {},
-  Loaded: {
-    robot: ConsoleRobot,
-    catalogue: Catalogue,
-    /** The robot's errands, oldest first: the conversation's history. */
-    history: Schema.Array(EpisodeSummary),
-    /** What each errand paid or asked for (USDC base units), by errand id. */
-    amounts: Schema.Record(Schema.String, Schema.String),
-  },
-  Failed: { error: Schema.String },
-})
-export const Decline = defineTaggedUnion({ Idle: {}, Declining: {}, Failed: { error: Schema.String } })
-/** A simulator robot's errand intent: the owner's instruction, while 0G walks the duck to the counter (sim-plan.md). */
-export const Intent = defineTaggedUnion({
-  Idle: {},
-  Sending: { instruction: Schema.String },
-  Open: { intent: IntentView, stopping: Schema.Boolean },
-  Failed: { error: Schema.String },
-})
-export type Intent = typeof Intent.Type
-export const Errand = defineTaggedUnion({
-  Idle: {},
-  Starting: { item: Schema.String },
-  Running: {
-    episodeId: Schema.String,
-    maybeDetail: Schema.Option(ErrandDetail),
-    maybeApprovalUrl: Schema.Option(Schema.String),
-  },
-  Refused: { error: Schema.String },
-})
-export type Errand = typeof Errand.Type
+export { ConsoleState, Decline, Errand, Intent } from './RobotConsoleState.ts'
+import { ConsoleState, Decline, Errand, Intent } from './RobotConsoleState.ts'
 export const Model = Schema.Struct({
   robotId: Schema.String,
   state: ConsoleState,
@@ -74,6 +45,11 @@ export const Model = Schema.Struct({
   intent: Intent,
   instruction: Schema.String,
   voice: RobotVoice.Model,
+  /** The open intent whose live camera loop is running, so one intent never gets two loops. */
+  maybeLiveIntentId: Schema.Option(Schema.String),
+  /** The 0G brain the owner picked for the next messages (RobotBrain.ts); none = the Worker's ZG_MODEL. */
+  maybeBrain: Schema.Option(Schema.String),
+  brainPicker: RadioGroup.Model,
 })
 export type Model = typeof Model.Type
 
@@ -108,12 +84,15 @@ export const Message = defineMessageUnion({
   FailedCreateIntent: { error: Schema.String },
   SucceededLoadIntent: { intent: IntentView },
   FailedLoadIntent: { intentId: Schema.String },
+  SucceededLoadLive: { intentId: Schema.String, maybeLive: Schema.Option(LiveFrame) },
+  FailedLoadLive: { intentId: Schema.String },
   ClickedStopIntent: { intentId: Schema.String },
   SucceededStopIntent: { intent: IntentView },
   FailedStopIntent: { error: Schema.String },
   GotAllowanceSheetMessage: { message: Dialog.Message },
   GotAllowanceMessage: { message: Allowance.Message },
   GotVoiceMessage: { message: RobotVoice.Message },
+  GotBrainPickerMessage: { message: RadioGroup.Message },
 })
 export type Message = typeof Message.Type
 
@@ -157,10 +136,10 @@ export const LoadConsole = Command.define('LoadConsole', {
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const StartErrand = Command.define('StartErrand', {
-  args: { robotId: Schema.String, item: Schema.String, invoiceId: Schema.NullOr(Schema.String) },
+  args: { robotId: Schema.String, item: Schema.String, invoiceId: Schema.NullOr(Schema.String), model: RequestModel },
   messages: [Message.SucceededStartErrand, Message.FailedStartErrand],
-  execute: ({ robotId, item, invoiceId }) =>
-    startErrand(robotId, item, invoiceId).pipe(
+  execute: ({ robotId, item, invoiceId, model }) =>
+    startErrand(robotId, item, invoiceId, model).pipe(
       Effect.map((created) =>
         Message.SucceededStartErrand({
           episodeId: created.episodeId,
@@ -216,10 +195,10 @@ export const DeclineInThread = Command.define('DeclineInThread', {
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const SendIntent = Command.define('SendIntent', {
-  args: { robotId: Schema.String, instruction: Schema.String, item: Schema.NullOr(Schema.String) },
+  args: { robotId: Schema.String, instruction: Schema.String, item: Schema.NullOr(Schema.String), model: RequestModel },
   messages: [Message.SucceededCreateIntent, Message.FailedCreateIntent],
-  execute: ({ robotId, instruction, item }) =>
-    Effect.match(createIntent(robotId, instruction, item), {
+  execute: ({ robotId, instruction, item, model }) =>
+    Effect.match(createIntent(robotId, instruction, item, model), {
       onSuccess: (intent) => Message.SucceededCreateIntent({ intent }),
       onFailure: (failure) => Message.FailedCreateIntent({ error: failure.error }),
     }),
@@ -234,6 +213,19 @@ export const PollIntent = Command.define('PollIntent', {
       Effect.andThen(loadIntent(robotId, intentId)),
       Effect.map((intent) => Message.SucceededLoadIntent({ intent })),
       Effect.catch(() => Effect.succeed(Message.FailedLoadIntent({ intentId }))),
+    ),
+})
+
+/** The robot's latest live frame, read every ~500 ms while its intent is open (the intent poll is only every 2 s).
+ * @internal Exported for the scene tests. */
+export const PollLive = Command.define('PollLive', {
+  args: { robotId: Schema.String, intentId: Schema.String, delayMillis: Schema.Number },
+  messages: [Message.SucceededLoadLive, Message.FailedLoadLive],
+  execute: ({ robotId, intentId, delayMillis }) =>
+    Effect.sleep(delayMillis).pipe(
+      Effect.andThen(loadLive(robotId)),
+      Effect.map((maybeLive) => Message.SucceededLoadLive({ intentId, maybeLive })),
+      Effect.catch(() => Effect.succeed(Message.FailedLoadLive({ intentId }))),
     ),
 })
 
@@ -267,6 +259,9 @@ export const init = (robotId: string): UpdateReturn => ({
     intent: Intent.Idle(),
     instruction: '',
     voice: RobotVoice.init(robotId),
+    maybeLiveIntentId: Option.none(),
+    maybeBrain: Option.none(),
+    brainPicker: initBrainPicker(),
   },
   commands: [LoadConsole({ robotId }), ...Command.mapMessages([RobotVoice.CheckVoice()], toVoice)],
 })
@@ -293,7 +288,29 @@ const itemNameOf = (model: Model, itemId: string): string =>
 
 const isSim = (model: Model) => ConsoleState.guards.Loaded(model.state) && model.state.robot.robot.kind === 'sim'
 
+/** Who a message goes to and which brain answers it (the owner's pick, else the Worker's ZG_MODEL). */
+const addressed = (model: Model) => ({ robotId: model.robotId, model: requestModel(model.maybeBrain) })
+
 const INTENT_POLL_MILLIS = 2000
+/** How often the open intent's live frame is read: about two frames a second at most reach the chat. */
+const LIVE_POLL_MILLIS = 500
+
+/** A live read for the open intent: show the frame, and read again while the intent stays open; else stop the loop. */
+const liveRead = (
+  model: Model,
+  intentId: string,
+  maybeLive: Option.Option<LiveFrame>,
+  delayMillis: number,
+): UpdateReturn => {
+  const { intent } = model
+  if (!Intent.guards.Open(intent) || intent.intent.id !== intentId || !isOpenIntent(intent.intent.state))
+    return { model: modifyFields(model, { maybeLiveIntentId: () => Option.none() }) }
+  const live = Option.isSome(maybeLive) ? maybeLive.value : (intent.intent.live ?? null)
+  return {
+    model: modifyFields(model, { intent: () => Intent.Open({ ...intent, intent: { ...intent.intent, live } }) }),
+    commands: [PollLive({ robotId: model.robotId, intentId, delayMillis })],
+  }
+}
 
 /** A simulator robot gets an intent (the owner's words, and the item from a Buy chip); the duck walks and scans. */
 const sendIntent = (model: Model, instruction: string, item: string | null): UpdateReturn =>
@@ -301,15 +318,28 @@ const sendIntent = (model: Model, instruction: string, item: string | null): Upd
     ? { model }
     : {
         model: modifyFields(model, { intent: () => Intent.Sending({ instruction }), instruction: () => '' }),
-        commands: [SendIntent({ robotId: model.robotId, instruction: instruction.trim(), item })],
+        commands: [SendIntent({ ...addressed(model), instruction: instruction.trim(), item })],
       }
 
 /** A fresh read of the intent: once the duck's scan made an errand, the errand's own messages take over. */
 const intentStep = (model: Model, intent: IntentView): UpdateReturn => {
   const stopping = Intent.guards.Open(model.intent) && model.intent.stopping && isOpenIntent(intent.state)
-  const next = modifyFields(model, { intent: () => Intent.Open({ intent, stopping }) })
+  // The first read that carries a live frame starts the faster live loop for this intent (once).
+  const startLive =
+    isOpenIntent(intent.state) &&
+    (intent.live ?? null) !== null &&
+    !Option.exists(model.maybeLiveIntentId, (id) => id === intent.id)
+  const next = modifyFields(model, {
+    intent: () => Intent.Open({ intent, stopping }),
+    maybeLiveIntentId: () => (startLive ? Option.some(intent.id) : model.maybeLiveIntentId),
+  })
   const poll = isOpenIntent(intent.state)
-    ? [PollIntent({ robotId: model.robotId, intentId: intent.id, delayMillis: INTENT_POLL_MILLIS })]
+    ? [
+        PollIntent({ robotId: model.robotId, intentId: intent.id, delayMillis: INTENT_POLL_MILLIS }),
+        ...(startLive
+          ? [PollLive({ robotId: model.robotId, intentId: intent.id, delayMillis: LIVE_POLL_MILLIS })]
+          : []),
+      ]
     : []
   const episodeId = intent.episodeId
   const following = Errand.guards.Running(model.errand) && model.errand.episodeId === episodeId
@@ -401,6 +431,19 @@ const allowanceChild = {
   foldOutMessage: afterAllowance,
 }
 const foldAllowance = Update.foldChild({ update: Allowance.update, ...allowanceChild })
+
+/** The owner's pick goes with every next message (a Buy chip, Get me, typed words) until changed. */
+const foldBrainPicker = Update.foldChild({
+  update: BrainRadioGroup.update,
+  read: (model: Model) => Option.some(model.brainPicker),
+  write: (model: Model, next: RadioGroup.Model) => modifyFields(model, { brainPicker: () => next }),
+  toParentMessage: (message: RadioGroup.Message) => Message.GotBrainPickerMessage({ message }),
+  foldOutMessage:
+    ({ value }: RadioGroup.Selected) =>
+    (model: Model) => ({
+      model: modifyFields(model, { maybeBrain: () => Option.some(value) }),
+    }),
+})
 const configureAllowance = (model: Model, catalogue: Catalogue, robot: ConsoleRobot) =>
   Update.foldChildStep({
     update: Allowance.configure(
@@ -453,6 +496,10 @@ const intentHandlers = (model: Model) => ({
     Intent.guards.Open(model.intent) && model.intent.intent.id === intentId
       ? { model, commands: [PollIntent({ robotId: model.robotId, intentId, delayMillis: INTENT_POLL_MILLIS * 2 })] }
       : { model },
+  SucceededLoadLive: ({ intentId, maybeLive }: Of<'SucceededLoadLive'>) =>
+    liveRead(model, intentId, maybeLive, LIVE_POLL_MILLIS),
+  FailedLoadLive: ({ intentId }: Of<'FailedLoadLive'>) =>
+    liveRead(model, intentId, Option.none(), LIVE_POLL_MILLIS * 4),
   ClickedStopIntent: ({ intentId }: Of<'ClickedStopIntent'>) => haltIntent(model, intentId),
   SucceededStopIntent: ({ intent }: Of<'SucceededStopIntent'>) => ({
     model: modifyFields(model, { intent: () => Intent.Open({ intent, stopping: false }) }),
@@ -503,7 +550,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           ? { model }
           : {
               model: modifyFields(model, { errand: () => Errand.Starting({ item }) }),
-              commands: [StartErrand({ robotId: model.robotId, item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
+              commands: [StartErrand({ ...addressed(model), item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
             },
     UpdatedInvoiceInput: ({ value }) => ({ model: modifyFields(model, { invoiceInput: () => value }) }),
     SucceededStartErrand: ({ episodeId, maybeApprovalUrl }) => ({
@@ -529,4 +576,5 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     GotAllowanceSheetMessage: ({ message: sheetMessage }) => allowanceSheet.fold(model, sheetMessage),
     GotAllowanceMessage: ({ message: allowanceMessage }) => foldAllowance(model, allowanceMessage),
     GotVoiceMessage: ({ message: voiceMessage }) => foldVoice(model, voiceMessage),
+    GotBrainPickerMessage: ({ message: pickerMessage }) => foldBrainPicker(model, pickerMessage),
   })

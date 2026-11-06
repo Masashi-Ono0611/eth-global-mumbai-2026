@@ -1,5 +1,5 @@
 import { DecideInput, DecideToolResult } from '@ethmumbai/protocol/Errand'
-import { Clock, type Duration, Effect, Option, Redacted, Result, Schema } from 'effect'
+import { Clock, Duration, Effect, Option, Redacted, Result, Schema } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import { parseDecision, ReplyMessage } from './DecideReply.ts'
@@ -14,7 +14,29 @@ export interface ZeroGConfig {
   readonly extraBody?: Readonly<Record<string, unknown>>
 }
 
+/**
+ * The models an owner may pick per message besides `ZG_MODEL` (Kris, 7 Nov, after glm-5.3's TeeML provider answered 429
+ * for 20 minutes): the router's qwen3-vl-plus answers faster but its provider publishes no TEE proof. Never a fallback:
+ * the owner picks it by hand.
+ */
+export const BRAIN_ALTERNATIVES: ReadonlyArray<string> = ['qwen3-vl-plus']
+
+/** The brains the owner may pick, `ZG_MODEL` first (the router's TeeML provider), then the alternatives (no TEE). */
+export const brainChoices = (config: ZeroGConfig) => [
+  { model: config.model, tee: true },
+  ...BRAIN_ALTERNATIVES.filter((model) => model !== config.model).map((model) => ({ model, tee: false })),
+]
+
+/** One message's brain: its model, and `ZG_EXTRA_JSON` only for `ZG_MODEL` (those fields are per model). */
+export const brainFor = (config: ZeroGConfig, model: string | null): ZeroGConfig =>
+  model === null || model === config.model ? config : { baseUrl: config.baseUrl, apiKey: config.apiKey, model }
+
 export const ZEROG_TIMEOUT = '10 seconds'
+const ZEROG_BUDGET_MS = 10_000
+/** A `429` (the provider's `model_overloaded`) is asked once more after this pause, inside the same 10 s budget. */
+const RETRY_429_AFTER_MS = 1_000
+/** A retry is sent only when at least this much of the budget is left for it (its own, shorter, timeout). */
+const RETRY_429_MIN_MS = 2_000
 
 /**
  * Spec §6's prompt with the approval rule spelled out (6 Nov): an over-the-cap item the owner asked for goes to the
@@ -139,8 +161,9 @@ export type ZeroGOutcome =
     }
 
 /**
- * One 0G decision. It never fails: a transport error, a non-2xx, a timeout (10 s) or arguments that do not decode are
- * an `ok: false` outcome, which the errand turns into `safe_stop` (never a local fallback decision).
+ * One 0G decision. It never fails: a transport error, a non-2xx (a `429` after its one retry), a timeout (10 s in all)
+ * or arguments that do not decode are an `ok: false` outcome, which the errand turns into `safe_stop` (never a local
+ * fallback decision).
  */
 export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: ZeroGConfig, input: DecideInput) {
   const body = decideRequestBody(config.model, input, config.extraBody)
@@ -152,13 +175,27 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
     inputJson: yield* recordedInput(input),
     brain: `${new URL(config.baseUrl).host}/${config.model}`,
   }
-  const reply = yield* postChat(config, bodyJson, ZEROG_TIMEOUT)
+  const reply = yield* retriedOnce429(config, bodyJson, started)
   const latencyMs = (yield* Clock.currentTimeMillis) - started
   const outcome = outcomeOf({ ...base, latencyMs }, reply)
   // The reason names the reply's shape (tool calls, text length), never its text or the prompt.
   if (!outcome.ok)
     yield* Effect.logWarning(`0G decide failed: ${outcome.error}`).pipe(Effect.annotateLogs({ brain: base.brain }))
   return outcome
+})
+
+/**
+ * The first attempt has the whole 10 s; a `429` is asked once more after a 1 s pause with what is left of the budget as
+ * its timeout (none when under 2 s is left), so the decision never takes longer than 10 s. A second `429` is the answer.
+ */
+const retriedOnce429 = Effect.fnUntraced(function* (config: ZeroGConfig, bodyJson: string, started: number) {
+  const first = yield* postChat(config, bodyJson, ZEROG_TIMEOUT)
+  if (!Result.isSuccess(first) || first.success.status !== 429) return first
+  const left = ZEROG_BUDGET_MS - ((yield* Clock.currentTimeMillis) - started) - RETRY_429_AFTER_MS
+  if (left < RETRY_429_MIN_MS) return first
+  yield* Effect.logInfo('0G decide answered 429, retrying once').pipe(Effect.annotateLogs({ leftMs: left }))
+  yield* Effect.sleep(RETRY_429_AFTER_MS)
+  return yield* postChat(config, bodyJson, Duration.millis(left))
 })
 
 /** The router's raw answer: status, body text and the TEE-signed chat id (`ZG-Res-Key`). */

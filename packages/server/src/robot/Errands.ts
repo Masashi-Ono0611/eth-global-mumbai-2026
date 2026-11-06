@@ -38,6 +38,8 @@ export const EpisodeRow = Schema.Struct({
   result: Schema.NullOr(Schema.String),
   request_ids_hash: Schema.NullOr(Schema.String),
   state_changed_at: Schema.NullOr(Schema.Finite),
+  /** The model the owner picked for this errand; null = ZG_MODEL. */
+  model: Schema.NullOr(Schema.String),
   created_at: Schema.Finite,
 })
 export type EpisodeRow = typeof EpisodeRow.Type
@@ -371,18 +373,32 @@ export const denyErrand = Effect.fn('EthMumbai.Robot.deny')(function* (
 /** Insert a `queued` episode unless this robot already has a live errand (the check and insert are one statement). */
 export const insertEpisode = Effect.fnUntraced(function* (
   database: QueryDatabaseClient,
-  input: { readonly robotId: string; readonly accountId: string; readonly item: string },
+  input: {
+    readonly robotId: string
+    readonly accountId: string
+    readonly item: string
+    readonly model: string | null
+  },
 ) {
   const id = yield* generateId
   const createdAt = yield* Clock.currentTimeMillis
   const inserted = yield* changes(
     database
       .prepare(
-        `INSERT INTO episodes (id, robot_id, account_id, item, state, decision_count, state_changed_at, created_at)
-          SELECT ?, ?, ?, ?, 'queued', 0, ?, ?
+        `INSERT INTO episodes (id, robot_id, account_id, item, state, decision_count, state_changed_at, model, created_at)
+          SELECT ?, ?, ?, ?, 'queued', 0, ?, ?, ?
           WHERE NOT EXISTS (SELECT 1 FROM episodes WHERE robot_id = ? AND state IN (${LIVE_STATES.map((state) => `'${state}'`).join(', ')}))`,
       )
-      .bind(id, input.robotId, input.accountId, input.item, Math.floor(createdAt / 1000), createdAt, input.robotId),
+      .bind(
+        id,
+        input.robotId,
+        input.accountId,
+        input.item,
+        Math.floor(createdAt / 1000),
+        input.model,
+        createdAt,
+        input.robotId,
+      ),
   )
   return inserted === 1 ? Option.some(id) : Option.none()
 })

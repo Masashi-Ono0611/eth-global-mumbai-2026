@@ -16,7 +16,7 @@ const liveClassName = 'grid max-w-[86%] gap-1.5 self-start rounded-[20px_20px_20
 /** Inner radius = the bubble's 20 px minus its 8 px padding, like the scan crop. The frame keeps its own aspect: the
  *  simulator sends 4:3 (320×240), the Radxa 16:9 (640×360). */
 const liveImageClassName =
-  'block h-auto w-64 max-w-full rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
+  'block h-auto w-[24rem] max-w-full rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
 const liveCaptionClassName = 'px-1.5 text-[0.8rem] text-muted'
 const stopClassName =
   'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-11 cursor-pointer rounded-full bg-error-soft px-5 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'

@@ -100,9 +100,21 @@ export const registerLiveAcceptance = (test: TestApi['test'], stack: Effect.Effe
         error: 'frame is larger than 64 KB',
       })
 
+      // Before the duck is out, a valid frame is checked but not kept (202): nothing is written for an idle camera.
+      expect((yield* postFrame(base)).body).toMatchObject({ stored: false })
+      expect((yield* ownerGet(appUrl, alice.cookie, `/api/robots/${robot.robotId}/live`)).status).toBe(404)
+      const created = yield* HttpClient.post(`${apiUrl}/api/robots/${robot.robotId}/intents`, {
+        headers: { origin: new URL(appUrl).origin, cookie: alice.cookie },
+        body: HttpBody.text(JSON.stringify({ instruction: 'Get me a chai', item: 'chai' }), 'application/json'),
+      })
+      expect(created.status).toBe(201)
+      const { id: intentId } = yield* Schema.decodeUnknownEffect(Schema.Struct({ id: Schema.String }))(
+        yield* created.json,
+      )
+
       const first = yield* postFrame(base)
       expect(first.status).toBe(201)
-      // The second frame within 400 ms is refused and does not replace the first.
+      // The second frame within 200 ms is refused and does not replace the first.
       expect((yield* postFrame(base)).status).toBe(429)
       const meta = yield* Schema.decodeUnknownEffect(LiveMeta)(
         yield* (yield* ownerGet(appUrl, alice.cookie, `/api/robots/${robot.robotId}/live`)).json,
@@ -119,20 +131,12 @@ export const registerLiveAcceptance = (test: TestApi['test'], stack: Effect.Effe
       expect((yield* HttpClient.get(`${appUrl}/api/robots/${robot.robotId}/live`)).status).toBe(401)
 
       // The owner's intent poll carries the same frame while the duck is out, with its age.
-      const created = yield* HttpClient.post(`${apiUrl}/api/robots/${robot.robotId}/intents`, {
-        headers: { origin: new URL(appUrl).origin, cookie: alice.cookie },
-        body: HttpBody.text(JSON.stringify({ instruction: 'Get me a chai', item: 'chai' }), 'application/json'),
-      })
-      expect(created.status).toBe(201)
-      const { id: intentId } = yield* Schema.decodeUnknownEffect(Schema.Struct({ id: Schema.String }))(
-        yield* created.json,
-      )
       const polled = yield* (yield* ownerGet(appUrl, alice.cookie, `/api/robots/${robot.robotId}/intents/${intentId}`))
         .json
       expect(polled).toMatchObject({ id: intentId, live: { sha256: first.sha256, bytes: 2048 } })
 
       // After the interval the next frame replaces it.
-      yield* Effect.sleep('450 millis')
+      yield* Effect.sleep('250 millis')
       const second = yield* postFrame(base)
       expect(second.status).toBe(201)
       expect(yield* (yield* ownerGet(appUrl, alice.cookie, `/api/robots/${robot.robotId}/live`)).json).toMatchObject({

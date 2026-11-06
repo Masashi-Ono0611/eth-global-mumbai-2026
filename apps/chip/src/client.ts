@@ -4,6 +4,7 @@ import { FRAME_MAX_BYTES, frameMessage, type FrameRequest } from '@ethmumbai/pro
 import { scanMessage, type ScanRequest } from '@ethmumbai/protocol/Scan'
 import { Clock, Data, Effect, Ref, Schema } from 'effect'
 import * as Base64 from 'effect/encoding/Base64'
+import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import { sha256 } from 'viem'
@@ -254,8 +255,13 @@ export const signFrame = Effect.fnUntraced(function* (
   } satisfies FrameRequest
 })
 
-/** Forward a signed live frame to the Worker; the caller reads the status and JSON. */
+/**
+ * Forward a signed live frame to the Worker; the caller reads the status and JSON. Unlike every other chip call it
+ * reuses the connection: frames come about once a second, so the socket never idles long enough for a hotspot to drop
+ * it, and a new TLS handshake per frame was most of its ~2 s. A reset socket costs one frame; the next one reconnects.
+ */
 export const postFrame = (pairing: PairingFile, body: FrameRequest) =>
   postJson(`${pairing.server}/api/chips/${pairing.robotId}/frames`, body, pairing.chipToken).pipe(
     Effect.timeout('10 seconds'),
+    Effect.provideService(FetchHttpClient.RequestInit, {}),
   )

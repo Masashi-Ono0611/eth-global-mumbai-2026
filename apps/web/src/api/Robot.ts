@@ -1,5 +1,6 @@
+import { LiveFrame } from '@ethmumbai/protocol/Frame'
 import { IntentView, RobotKind } from '@ethmumbai/protocol/Intent'
-import { Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { SeenCrop } from './Episodes.ts'
 import { getJson, postJson } from './Http.ts'
 import { GrantView } from './Wallet.ts'
@@ -18,6 +19,8 @@ export const ConsoleRobot = Schema.Struct({
   }),
   /** The errand intent still running for this robot, to resume after a reload. */
   openIntentId: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  /** The 0G brains the owner may pick per message, the Worker's ZG_MODEL first; `tee`: its provider is a TEE. */
+  brains: Schema.optionalKey(Schema.Array(Schema.Struct({ model: Schema.String, tee: Schema.Boolean }))),
   lease: Schema.Struct({ until: Schema.NullOr(Schema.Number), online: Schema.Boolean }),
   grant: Schema.NullOr(GrantView),
 })
@@ -87,9 +90,19 @@ export const ErrandDetail = Schema.Struct({
 export type ErrandDetail = typeof ErrandDetail.Type
 
 export const loadConsoleRobot = (robotId: string) => getJson(`/api/robots/${robotId}`, ConsoleRobot)
-/** Starts an errand; `invoiceId` pays that pending invoice (the one the gate shows) instead of the counter's default. */
-export const startErrand = (robotId: string, item: string, invoiceId: string | null) =>
-  postJson(`/api/robots/${robotId}/errands`, invoiceId === null ? { item } : { item, invoiceId }, ErrandCreated)
+/** The brain the owner picked for one message, as the request's `model`; none = the Worker's ZG_MODEL. */
+const brainField = (model: string | null) => (model === null ? {} : { model })
+
+/**
+ * Starts an errand; `invoiceId` pays that pending invoice (the one the gate shows) instead of the counter's default, and
+ * `model` is the brain the owner picked for it.
+ */
+export const startErrand = (robotId: string, item: string, invoiceId: string | null, model: string | null) =>
+  postJson(
+    `/api/robots/${robotId}/errands`,
+    { item, ...(invoiceId === null ? {} : { invoiceId }), ...brainField(model) },
+    ErrandCreated,
+  )
 
 /** A 26-character invoice id, typed or pasted as the gate's payment URL (`…/api/i/<id>`). */
 export const invoiceIdFrom = (text: string): string | null => {
@@ -128,14 +141,23 @@ export const worldAuthorizeUrl = (approvalId: string) =>
   `/api/world/authorize?${new URLSearchParams({ approval: approvalId }).toString()}`
 
 /** An owner's instruction for a robot ("get me a chai"); a simulator duck walks, scans and pays it (sim-plan.md S3). */
-export const createIntent = (robotId: string, instruction: string, item: string | null) =>
+export const createIntent = (robotId: string, instruction: string, item: string | null, model: string | null) =>
   postJson(
     `/api/robots/${encodeURIComponent(robotId)}/intents`,
-    item === null ? { instruction } : { instruction, item },
+    { instruction, ...(item === null ? {} : { item }), ...brainField(model) },
     IntentView,
   )
 export const loadIntent = (robotId: string, intentId: string) =>
   getJson(`/api/robots/${encodeURIComponent(robotId)}/intents/${encodeURIComponent(intentId)}`, IntentView)
+/** The robot's latest live frame (`None` while there is no fresh one: the Worker answers 404). */
+export const loadLive = (robotId: string) =>
+  getJson(`/api/robots/${encodeURIComponent(robotId)}/live`, LiveFrame).pipe(
+    Effect.map(Option.some),
+    Effect.catchIf(
+      (failure) => failure.status === 404,
+      () => Effect.succeed(Option.none<LiveFrame>()),
+    ),
+  )
 export const stopIntent = (robotId: string, intentId: string) =>
   postJson(`/api/robots/${encodeURIComponent(robotId)}/intents/${encodeURIComponent(intentId)}/stop`, {}, IntentView)
 

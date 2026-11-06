@@ -89,7 +89,38 @@ describe('0G decide call', () => {
       call: { httpStatus: 200 },
     })
   })
+
+  test('a 429 is asked once more inside the 10 s budget; a second 429 is the answer, never a decision', async () => {
+    const recovered = overloaded(1)
+    const outcome = await run(recovered)
+    expect(outcome).toMatchObject({ ok: true, result: { action: 'pay' }, call: { httpStatus: 200 } })
+    expect(recovered.sent).toHaveLength(2)
+    expect(recovered.sent[1]?.body).toEqual(recovered.sent[0]?.body)
+    const stillBusy = overloaded(5)
+    const failed = await run(stillBusy)
+    expect(failed).toMatchObject({ ok: false, error: '0G answered 429', call: { httpStatus: 429 } })
+    expect(stillBusy.sent).toHaveLength(2)
+    expect(failed.call.latencyMs).toBeLessThan(10_000)
+  })
 })
+
+/** A router that answers `429 model_overloaded` `times` times, then the decide tool call. */
+const overloaded = (times: number) => {
+  const sent: Array<{ readonly url: string; readonly body: unknown }> = []
+  const client = HttpClient.make((request) =>
+    Effect.sync(() => {
+      sent.push({ url: request.url, body: request.body.toJSON() })
+      const busy = sent.length <= times
+      return HttpClientResponse.fromWeb(
+        request,
+        busy
+          ? Response.json({ error: { code: 'model_overloaded' } }, { status: 429 })
+          : Response.json({ id: 'after-429', choices: [{ message: toolCall }] }),
+      )
+    }),
+  )
+  return { sent, layer: Layer.succeed(HttpClient.HttpClient, client) }
+}
 
 const decision = (message: unknown) =>
   run(answering({ id: 'x', choices: [{ message }] })).then((outcome) =>
