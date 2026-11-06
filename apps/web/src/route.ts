@@ -15,6 +15,8 @@ export const AppRoute = defineRouteUnion({
   Episode: { episodeId: Schema.String },
   Merchant: {},
   Gate: { merchantId: Schema.String },
+  Proofs: {},
+  Proof: { episodeId: Schema.String },
   NotFound: { path: Schema.String },
 })
 export type AppRoute = typeof AppRoute.Type
@@ -56,6 +58,9 @@ const approvalRouter = pipe(
   mapTo(AppRoute.Approval),
 )
 const merchantRouter = pipe(app, slash(literal('merchant')), mapTo(AppRoute.Merchant))
+/** The public proofs on 0G: no sign-in, for anyone (judges included). */
+export const proofsRouter = pipe(app, slash(literal('proofs')), mapTo(AppRoute.Proofs))
+export const proofRouter = pipe(app, slash(literal('proofs')), slash(string('episodeId')), mapTo(AppRoute.Proof))
 export const gateRouter = pipe(app, slash(literal('gate')), slash(string('merchantId')), mapTo(AppRoute.Gate))
 
 const parser = oneOf(
@@ -69,6 +74,8 @@ const parser = oneOf(
   robotConsoleRouter,
   merchantRouter,
   gateRouter,
+  proofRouter,
+  proofsRouter,
   homeRouter,
 )
 

@@ -10,6 +10,7 @@ import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Err
 import { auditRoutes, ZG_CHAIN_RPC_DEFAULT, ZG_STORAGE_INDEXER_DEFAULT } from './robot/Audit.ts'
 import { evidenceRoutes } from './robot/Evidence.ts'
 import { evidenceFrameRoutes } from './robot/EvidenceFrames.ts'
+import { proofRoutes } from './robot/Proofs.ts'
 import { intentRoutes } from './robot/Intents.ts'
 import { liveRoutes } from './robot/Live.ts'
 import { navRoutes } from './robot/Nav.ts'
@@ -83,6 +84,12 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     robotRoutes(errands),
     evidenceRoutes(database, Option.map(evidenceToken, Redacted.make)),
     evidenceFrameRoutes(database, media, Option.map(evidenceToken, Redacted.make)),
+    proofRoutes(database, {
+      chainId: 16602,
+      episodeLog: Option.getOrNull(episodeLogAddress),
+      rpcUrl: Option.getOrElse(chainRpc, () => ZG_CHAIN_RPC_DEFAULT),
+      indexerUrl: Option.getOrElse(storageIndexer, () => ZG_STORAGE_INDEXER_DEFAULT),
+    }),
     auditRoutes(
       errands,
       media,
