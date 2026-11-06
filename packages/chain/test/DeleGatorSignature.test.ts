@@ -3,6 +3,7 @@ import { hashDelegation } from '@metamask/smart-accounts-kit/utils'
 import { decodeAbiParameters, hexToBytes, keccak256, parseAbiParameters, sha256, toHex, zeroAddress } from 'viem'
 import { toWebAuthnAccount } from 'viem/account-abstraction'
 import { expect, test } from 'vitest'
+import { delegationDigest } from '@ethmumbai/protocol/Delegation'
 import {
   buildGrant,
   challengeOf,
@@ -106,6 +107,9 @@ test('encodeDeleGatorSignature equals the kit’s passkey signature for the same
   expect(encodeDeleGatorSignature({ keyId, ...assertion })).toBe(kitSignature)
   // The passkey signed the EIP-712 digest of the delegation, and the challenge split carries it verbatim.
   const [prefix, suffix] = splitClientData(assertion.clientDataJSON)
+  // The WebAuthn challenge is the EIP-712 digest (0x1901 ‖ domain ‖ struct hash), not the struct hash.
+  const challenge = assertion.clientDataJSON.slice(prefix.length, assertion.clientDataJSON.length - suffix.length)
+  expect(challenge).toBe(challengeOf(delegationDigest(grant)))
   expect(prefix).toBe('{"type":"webauthn.get","challenge":"')
   expect(suffix).toBe(`","origin":"https://${rpId}","crossOrigin":false}`)
   const decoded = decodeAbiParameters(

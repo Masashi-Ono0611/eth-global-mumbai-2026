@@ -136,3 +136,34 @@ export const makeRelayer = (config: {
   return { address: account.address, send }
 }
 export type Relayer = ReturnType<typeof makeRelayer>
+
+/** An in-process `RelayerStore` (scripts and tests); the Worker uses the D1 store over `relayer_txs`. */
+export const makeMemoryRelayerStore = (): RelayerStore => {
+  const rows = new Map<string, RelayerTxRecord & { nonce: number | null }>()
+  const update = (key: string, patch: Partial<RelayerTxRecord & { nonce: number | null }>) =>
+    Effect.sync(() => {
+      const row = rows.get(key)
+      if (row !== undefined) rows.set(key, { ...row, ...patch })
+    })
+  return {
+    claim: (tx) =>
+      Effect.sync(() => {
+        const existing = rows.get(tx.key)
+        if (existing !== undefined && !(existing.status === 'failed' && existing.txHash === null))
+          return { claimed: false as const, existing }
+        rows.set(tx.key, { key: tx.key, status: 'pending', txHash: null, error: null, nonce: null })
+        return { claimed: true as const }
+      }),
+    reserveNonce: (key, nonce) =>
+      Effect.sync(() => {
+        if ([...rows.values()].some((row) => row.nonce === nonce && row.key !== key)) return false
+        const row = rows.get(key)
+        if (row !== undefined) rows.set(key, { ...row, nonce })
+        return true
+      }),
+    markSent: (key, txHash) => update(key, { status: 'sent', txHash }),
+    markConfirmed: (key) => update(key, { status: 'confirmed' }),
+    markFailed: (key, error, releaseNonce) =>
+      update(key, releaseNonce ? { status: 'failed', error, nonce: null } : { status: 'failed', error }),
+  }
+}

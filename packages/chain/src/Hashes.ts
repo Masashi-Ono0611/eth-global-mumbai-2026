@@ -26,7 +26,8 @@ export const fromKitDelegation = (delegation: KitDelegation): Delegation => ({
   signature: delegation.signature,
 })
 
-/** The kit's `hashDelegation` over a wire delegation (signature and args are not hashed). */
+/** The kit's `hashDelegation` (EIP-712 struct hash, the delegation's id) over a wire delegation. The signer signs
+ * `delegationDigest` (protocol) instead: `0x1901 ‖ domain ‖ this hash`. */
 export const delegationHashOf = (delegation: UnsignedDelegation): Hex =>
   hashDelegation(toKitDelegation({ ...delegation, signature: '0x' }))
 

@@ -1,7 +1,16 @@
 import { createDelegation, Implementation, ScopeType, toMetaMaskSmartAccount } from '@metamask/smart-accounts-kit'
 import { hashDelegation } from '@metamask/smart-accounts-kit/utils'
 import { approvalDigest, approvalNonce } from '@ethmumbai/protocol/Approval'
-import { ARC_DELEGATION_MANAGER, buildLeaf, delegationHash, LEAF_ENFORCERS } from '@ethmumbai/protocol/Delegation'
+import {
+  ARC_DELEGATION_MANAGER,
+  buildLeaf,
+  DELEGATION_TYPES,
+  delegationDigest,
+  delegationDomain,
+  delegationHash,
+  delegationMessage,
+  LEAF_ENFORCERS,
+} from '@ethmumbai/protocol/Delegation'
 import { hashTypedData as protocolTypedData } from '@ethmumbai/protocol/Eip712'
 import { INVOICE_DOMAIN, INVOICE_TYPE } from '@ethmumbai/protocol/Invoice'
 import { keccak256 as protocolKeccak } from '@ethmumbai/protocol/Keccak'
@@ -102,6 +111,14 @@ describe('protocol hashes against viem and the kit (random inputs)', () => {
       )
       const grant = buildGrant(grantInput())
       expect(delegationHash(grant)).toBe(delegationHashOf(grant))
+      expect(delegationDigest(grant)).toBe(
+        hashTypedData({
+          domain: delegationDomain(),
+          types: DELEGATION_TYPES,
+          primaryType: 'Delegation',
+          message: delegationMessage(grant),
+        }),
+      )
     },
   )
 })

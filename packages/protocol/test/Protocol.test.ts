@@ -8,6 +8,7 @@ import {
   canonicalJson,
   ChipResponse,
   decodeBase32,
+  delegationDigest,
   delegationHash,
   encodeBase32,
   generateId,
@@ -134,6 +135,7 @@ describe('chip leaf', () => {
     expect(sameDelegation(leaf, goldenLeaf)).toBe(true)
     expect(leaf.caveats.map((caveat) => hexToBytes(caveat.terms).length)).toEqual([120, 32, 32, 20])
     expect(delegationHash(leaf)).toBe(golden.leaf.hash)
+    expect(delegationDigest(leaf)).toBe(golden.leaf.digest)
   })
 
   test('a changed caveat or salt is a different leaf', () => {

@@ -11,6 +11,7 @@ import {
   UintString,
   utf8ToBytes,
 } from './Hex.ts'
+import { domainSeparator } from './Eip712.ts'
 import { ARC_CHAIN_ID, ARC_USDC } from './Invoice.ts'
 import { keccak256, keccak256Bytes } from './Keccak.ts'
 
@@ -97,6 +98,23 @@ export const delegationHash = (delegation: UnsignedDelegation): Hex => {
     ),
   )
 }
+
+/**
+ * The EIP-712 digest a delegator signs and the DelegationManager verifies:
+ * `keccak256(0x1901 ‖ domainSeparator(DelegationManager, 5042) ‖ delegationHash)`. A passkey signs this as its WebAuthn
+ * challenge; `delegationHash` (the struct hash) stays the delegation's id (D1 key, `authority` of children).
+ */
+export const delegationDigest = (
+  delegation: UnsignedDelegation,
+  delegationManager: Hex = ARC_DELEGATION_MANAGER,
+): Hex =>
+  keccak256(
+    concatBytes(
+      new Uint8Array([0x19, 0x01]),
+      domainSeparator(delegationDomain(delegationManager)),
+      hexToBytes(delegationHash(delegation)),
+    ),
+  )
 
 /** `transfer(to, amount)` calldata (68 bytes). */
 export const transferCalldata = (to: Hex, amount: bigint): Uint8Array<ArrayBuffer> =>
