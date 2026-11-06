@@ -3,7 +3,19 @@ import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Message } from './message.ts'
 import type { Model } from './model.ts'
-import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet, Welcome } from './pageModules.ts'
+import {
+  AddRobot,
+  Approval,
+  Episode,
+  Episodes,
+  Gate,
+  Merchant,
+  Proof,
+  Proofs,
+  RobotConsole,
+  Wallet,
+  Welcome,
+} from './pageModules.ts'
 import { AppRoute } from './route.ts'
 
 /** The owner pages' state lives beside the session in the root Model: only the current route's page is present. */
@@ -18,6 +30,8 @@ type Pages = Pick<
   | 'maybeEpisode'
   | 'maybeMerchant'
   | 'maybeGate'
+  | 'maybeProofs'
+  | 'maybeProof'
 >
 const noPages: Pages = {
   maybeWallet: Option.none(),
@@ -29,6 +43,8 @@ const noPages: Pages = {
   maybeEpisode: Option.none(),
   maybeMerchant: Option.none(),
   maybeGate: Option.none(),
+  maybeProofs: Option.none(),
+  maybeProof: Option.none(),
 }
 
 const toWallet = (message: Wallet.Message) => Message.GotWalletMessage({ message })
@@ -48,6 +64,8 @@ const episodesPage = (maybeRobotId: Option.Option<string>) => {
 }
 const toMerchant = (message: Merchant.Message) => Message.GotMerchantMessage({ message })
 const toGate = (message: Gate.Message) => Message.GotGateMessage({ message })
+const toProofs = (message: Proofs.Message) => Message.GotProofsMessage({ message })
+const toProof = (message: Proof.Message) => Message.GotProofMessage({ message })
 
 /** Each page loads its own data on start (in the browser; the server renders the loading state). */
 export const initPages = (route: AppRoute) =>
@@ -103,6 +121,20 @@ export const initPages = (route: AppRoute) =>
       return {
         pages: { ...noPages, maybeGate: Option.some(gate.model) },
         commands: Command.mapMessages(gate.commands, toGate),
+      }
+    },
+    Proofs: () => {
+      const proofs = Proofs.init()
+      return {
+        pages: { ...noPages, maybeProofs: Option.some(proofs.model) },
+        commands: Command.mapMessages(proofs.commands, toProofs),
+      }
+    },
+    Proof: ({ episodeId }) => {
+      const proof = Proof.init(episodeId)
+      return {
+        pages: { ...noPages, maybeProof: Option.some(proof.model) },
+        commands: Command.mapMessages(proof.commands, toProof),
       }
     },
     RobotConsole: ({ robotId }) => {
@@ -179,4 +211,18 @@ export const foldEpisode = Update.foldChild({
   read: (model: Model) => model.maybeEpisode,
   write: (model: Model, next: Episode.Model) => modifyFields(model, { maybeEpisode: () => Option.some(next) }),
   toParentMessage: toEpisode,
+})
+
+export const foldProofs = Update.foldChild({
+  update: Proofs.update,
+  read: (model: Model) => model.maybeProofs,
+  write: (model: Model, next: Proofs.Model) => modifyFields(model, { maybeProofs: () => Option.some(next) }),
+  toParentMessage: toProofs,
+})
+
+export const foldProof = Update.foldChild({
+  update: Proof.update,
+  read: (model: Model) => model.maybeProof,
+  write: (model: Model, next: Proof.Model) => modifyFields(model, { maybeProof: () => Option.some(next) }),
+  toParentMessage: toProof,
 })

@@ -76,7 +76,8 @@
     "verifyMatch": "{field, select, rootHash {Root hash} other {Request-ids hash}}: {matches, select, yes {matches the EpisodeLog record on 0G Chain} other {does not match the EpisodeLog record}}",
     "back": "Back to {robot}",
     "allRecords": "All payment records",
-    "frameCheck": "{check, select, matches {Downloaded back from 0G Storage and re-hashed: it matches} differs {The copy on 0G Storage does not match this hash} other {Could not download the frame from 0G Storage}}"
+    "frameCheck": "{check, select, matches {Downloaded back from 0G Storage and re-hashed: it matches} differs {The copy on 0G Storage does not match this hash} other {Could not download the frame from 0G Storage}}",
+    "publicProof": "Public proof: anyone can check it on 0G"
   },
   "episodes": {
     "allRobots": "All robots",
@@ -376,5 +377,35 @@
     "pending": "listening",
     "empty": "Nothing yet. Ask {name} below, or hold the mic.",
     "sent": "sent"
+  },
+  "proofs": {
+    "title": "Proofs on 0G",
+    "explainer": "Every errand a Vitaquack robot has finished, as it is stored on 0G Storage and anchored in the EpisodeLog contract on 0G Chain. Open one to check it yourself.",
+    "empty": "Nothing has been published to 0G yet.",
+    "decided": "{model}: {action, select, pay {pay} ask_human {ask the owner first} walk_away {walk away} safe_stop {stop safely} other {{action}}}",
+    "noDecision": "No 0G decision",
+    "frames": "{count, plural, one {# camera frame} other {# camera frames}}",
+    "teeAttached": "TEE proof attached",
+    "state": "{state, select, paid {Paid on Arc} walked_away {Walked away, nothing paid} safe_stop {Stopped safely, nothing paid} denied {The owner said no, nothing paid} refused {The chip refused, nothing paid} failed {Failed, nothing paid} expired {Expired, nothing paid} other {Ended}}",
+    "published": "Published {time}",
+    "open": "Check this proof",
+    "openFor": "Check the proof: {item}",
+    "more": "Older proofs",
+    "back": "All proofs",
+    "pageTitle": "Proof: {item}",
+    "source": "Downloaded from 0G Storage by its root. Everything below is that file as 0G holds it; this site only told your browser where to look.",
+    "card": "{card, select, decision {What 0G decided} payment {Payment on Arc} frames {What the robot saw} anchor {Where it is on 0G} other {{card}}}",
+    "field": "{field, select, model {Model} requestId {0G request id} action {Action} reason {Reason} tee {TEE proof} rootHash {Root on 0G Storage} episodeLog {EpisodeLog contract} logTx {EpisodeLog record} storageTx {Storage upload} sha256 {SHA-256 the chip signed} capturedAt {Taken} recordedAt {Recorded} recorder {Recorded by} other {{field}}}",
+    "action": "{action, select, pay {pay} ask_human {ask the owner first} walk_away {walk away} safe_stop {stop safely} other {{action}}}",
+    "teeYes": "Attached: signed by {signer}",
+    "noPayment": "Nothing was paid on this errand.",
+    "paymentTx": "Payment on Arc",
+    "noFrames": "No camera frame was published with this errand.",
+    "frameAlt": "The QR code the robot's camera read, as its chip signed it",
+    "verify": "{running, select, yes {Checking on 0G…} other {Verify against 0G}}",
+    "verifyNote": "Runs in your browser. It reads the EpisodeLog record from 0G Chain's public RPC and downloads each frame from 0G Storage. Nothing goes through vitaquack.com.",
+    "check": "{check, select, recorded {EpisodeLog on 0G Chain has a record for this errand} rootMatches {The record's root is the root this file was downloaded by} requestIdsMatch {The record's request-ids hash matches the 0G request ids in this file} sameEpisode {The file on 0G Storage is this errand's} other {{check}}}",
+    "frameCheck": "{result, select, matches {Frame downloaded from 0G Storage: its SHA-256 matches what the chip signed} differs {Frame downloaded from 0G Storage: its SHA-256 does not match what the chip signed} other {Frame did not download from 0G Storage}}",
+    "allPassed": "{passed, select, yes {Every check passed.} other {Some checks failed.}}"
   }
 }

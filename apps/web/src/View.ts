@@ -13,11 +13,13 @@ import { episodeView } from './pages/EpisodeView.ts'
 import * as Episodes from './pages/Episodes.ts'
 import * as Gate from './pages/gate/Gate.ts'
 import * as Merchant from './pages/merchant/Merchant.ts'
+import * as Proofs from './pages/Proofs.ts'
+import { proofView } from './pages/ProofView.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { addRobotView } from './pages/AddRobotView.ts'
 import { walletView } from './pages/WalletView.ts'
 import { welcomeView } from './pages/WelcomeView.ts'
-import { AppRoute, episodesRouter, homeRouter, walletRouter } from './route.ts'
+import { AppRoute, episodesRouter, homeRouter, proofsRouter, walletRouter } from './route.ts'
 import * as Telegram from './Telegram.ts'
 // STYLES
 
@@ -72,6 +74,7 @@ const profileSheet = (model: Model, session: SessionView, signingOut: boolean, h
               [h.Class(profileListClassName)],
               [
                 h.a([h.Href(episodesRouter())], [format(locale, 'profile.records', {})]),
+                h.a([h.Href(proofsRouter())], [format(locale, 'proofs.title', {})]),
                 h.a([h.Href(architectureUrl)], [format(locale, 'profile.howItWorks', {})]),
               ],
             ),
@@ -301,6 +304,38 @@ const gatePage = (model: Model, h: HtmlBuilder<Message>): Page =>
     h,
   )
 
+const proofsPage = (model: Model, h: HtmlBuilder<Message>): Page =>
+  childPage(
+    model,
+    format(model.context.locale, 'proofs.title', {}),
+    model.maybeProofs,
+    (proofs) =>
+      h.submodel({
+        slotId: 'proofs',
+        model: proofs,
+        view: Proofs.view,
+        viewInputs: auditInputs(model),
+        toParentMessage: (message) => Message.GotProofsMessage({ message }),
+      }),
+    h,
+  )
+
+const proofPage = (model: Model, h: HtmlBuilder<Message>): Page =>
+  childPage(
+    model,
+    format(model.context.locale, 'proofs.title', {}),
+    model.maybeProof,
+    (proof) =>
+      h.submodel({
+        slotId: 'proof',
+        model: proof,
+        view: proofView,
+        viewInputs: auditInputs(model),
+        toParentMessage: (message) => Message.GotProofMessage({ message }),
+      }),
+    h,
+  )
+
 const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
   const { locale } = model.context
   return AppRoute.match(model.route, {
@@ -316,6 +351,8 @@ const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
     Episode: () => episodePage(model, h),
     Merchant: () => merchantPage(model, h),
     Gate: () => gatePage(model, h),
+    Proofs: () => proofsPage(model, h),
+    Proof: () => proofPage(model, h),
   })
 }
 
@@ -333,8 +370,13 @@ const isOwnerRoute = (route: AppRoute): boolean =>
     Episode: () => true,
     Merchant: () => false,
     Gate: () => false,
+    Proofs: () => false,
+    Proof: () => false,
     NotFound: () => false,
   })
+
+/** The public proofs: the phone column like the owner's pages, but nobody signs in to read them. */
+const isPublicColumnRoute = (route: AppRoute): boolean => AppRoute.guards.Proofs(route) || AppRoute.guards.Proof(route)
 
 /** Without a session an owner page shows the passkey sign-in in its place; it reloads its data once signed in. */
 const needsSignIn = (auth: AuthState): boolean =>
@@ -354,6 +396,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { locale } = model.context
   const page = pageOf(model, h)
   const base = { title: `${page.title} | Vitaquack`, lang: locale, dir: 'Ltr' as const }
+  if (isPublicColumnRoute(model.route)) {
+    return { ...base, body: h.div([h.Class(appShellClassName)], [page.body]) }
+  }
   if (isOwnerRoute(model.route)) {
     return { ...base, body: h.div([h.Class(appShellClassName)], [ownerBody(model, page, h)]) }
   }

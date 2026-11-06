@@ -127,6 +127,7 @@ export interface MessageArgumentsByKey<T = string> {
   'episode.observationAlt': Readonly<Record<string, never>>
   'episode.observationCheck': { readonly check: string | number }
   'episode.observationNote': Readonly<Record<string, never>>
+  'episode.publicProof': Readonly<Record<string, never>>
   'episode.replayNote': Readonly<Record<string, never>>
   'episode.replayResult': {
     readonly brain: string | number
@@ -244,6 +245,34 @@ export interface MessageArgumentsByKey<T = string> {
   'proof.seenBySim': Readonly<Record<string, never>>
   'proof.storage': Readonly<Record<string, never>>
   'proof.tee': Readonly<Record<string, never>>
+  'proofs.action': { readonly action: string | number }
+  'proofs.allPassed': { readonly passed: string | number }
+  'proofs.back': Readonly<Record<string, never>>
+  'proofs.card': { readonly card: string | number }
+  'proofs.check': { readonly check: string | number }
+  'proofs.decided': { readonly model: string | number; readonly action: string | number }
+  'proofs.empty': Readonly<Record<string, never>>
+  'proofs.explainer': Readonly<Record<string, never>>
+  'proofs.field': { readonly field: string | number }
+  'proofs.frameAlt': Readonly<Record<string, never>>
+  'proofs.frameCheck': { readonly result: string | number }
+  'proofs.frames': { readonly count: number }
+  'proofs.more': Readonly<Record<string, never>>
+  'proofs.noDecision': Readonly<Record<string, never>>
+  'proofs.noFrames': Readonly<Record<string, never>>
+  'proofs.noPayment': Readonly<Record<string, never>>
+  'proofs.open': Readonly<Record<string, never>>
+  'proofs.openFor': { readonly item: string | number }
+  'proofs.pageTitle': { readonly item: string | number }
+  'proofs.paymentTx': Readonly<Record<string, never>>
+  'proofs.published': { readonly time: string | number }
+  'proofs.source': Readonly<Record<string, never>>
+  'proofs.state': { readonly state: string | number }
+  'proofs.teeAttached': Readonly<Record<string, never>>
+  'proofs.teeYes': { readonly signer: string | number }
+  'proofs.title': Readonly<Record<string, never>>
+  'proofs.verify': { readonly running: string | number }
+  'proofs.verifyNote': Readonly<Record<string, never>>
   'receive.copied': Readonly<Record<string, never>>
   'receive.copy': Readonly<Record<string, never>>
   'receive.copyFailed': Readonly<Record<string, never>>
@@ -356,4 +385,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '677046539e819f7a08a239cd97ccd4aa178e5104ac33f9d85465d921b0ef3df2'
+export const catalogVersion = 'ba51d6d1034c8dbbe6bb84077bf32926e80360fa07ff8b22a8fc5f404b5885a4'

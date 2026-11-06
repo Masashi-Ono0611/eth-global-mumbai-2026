@@ -4,7 +4,19 @@ import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { Dialog } from '@foldkit/ui'
 import { Locale } from './Locale.ts'
-import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet, Welcome } from './pageModules.ts'
+import {
+  AddRobot,
+  Approval,
+  Episode,
+  Episodes,
+  Gate,
+  Merchant,
+  Proof,
+  Proofs,
+  RobotConsole,
+  Wallet,
+  Welcome,
+} from './pageModules.ts'
 import { AppRoute } from './route.ts'
 import * as Telegram from './Telegram.ts'
 
@@ -52,5 +64,7 @@ export const Model = Schema.Struct({
   maybeEpisode: Schema.Option(Episode.Model),
   maybeMerchant: Schema.Option(Merchant.Model),
   maybeGate: Schema.Option(Gate.Model),
+  maybeProofs: Schema.Option(Proofs.Model),
+  maybeProof: Schema.Option(Proof.Model),
 })
 export type Model = typeof Model.Type

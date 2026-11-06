@@ -38,6 +38,8 @@ const pageReads = (route: AppRoute): ReadonlyArray<string> =>
     RobotEpisodes: ({ robotId }) => withId(robotId, (id) => [episodesOf(id), '/api/robots']),
     Episode: ({ episodeId }) => withId(episodeId, (id) => [`/api/wallet/episodes/${id}`]),
     Merchant: () => [],
+    Proofs: () => ['/api/proofs'],
+    Proof: ({ episodeId }) => withId(episodeId, (id) => [`/api/proofs/${id}`]),
     Gate: ({ merchantId }) => withId(merchantId, (id) => [`/api/merchants/${id}/gate-key`]),
   })
 

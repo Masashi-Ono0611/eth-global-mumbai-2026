@@ -89,6 +89,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episode.allRecords': 'All payment records',
   'episode.frameCheck':
     '{check, select, matches {Downloaded back from 0G Storage and re-hashed: it matches} differs {The copy on 0G Storage does not match this hash} other {Could not download the frame from 0G Storage}}',
+  'episode.publicProof': 'Public proof: anyone can check it on 0G',
   'episodes.allRobots': 'All robots',
   'episodes.decision':
     '{brain}: {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}',
@@ -376,4 +377,42 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'voice.pending': 'listening',
   'voice.empty': 'Nothing yet. Ask {name} below, or hold the mic.',
   'voice.sent': 'sent',
+  'proofs.title': 'Proofs on 0G',
+  'proofs.explainer':
+    'Every errand a Vitaquack robot has finished, as it is stored on 0G Storage and anchored in the EpisodeLog contract on 0G Chain. Open one to check it yourself.',
+  'proofs.empty': 'Nothing has been published to 0G yet.',
+  'proofs.decided':
+    '{model}: {action, select, pay {pay} ask_human {ask the owner first} walk_away {walk away} safe_stop {stop safely} other {{action}}}',
+  'proofs.noDecision': 'No 0G decision',
+  'proofs.frames': '{count, plural, one {# camera frame} other {# camera frames}}',
+  'proofs.teeAttached': 'TEE proof attached',
+  'proofs.state':
+    '{state, select, paid {Paid on Arc} walked_away {Walked away, nothing paid} safe_stop {Stopped safely, nothing paid} denied {The owner said no, nothing paid} refused {The chip refused, nothing paid} failed {Failed, nothing paid} expired {Expired, nothing paid} other {Ended}}',
+  'proofs.published': 'Published {time}',
+  'proofs.open': 'Check this proof',
+  'proofs.openFor': 'Check the proof: {item}',
+  'proofs.more': 'Older proofs',
+  'proofs.back': 'All proofs',
+  'proofs.pageTitle': 'Proof: {item}',
+  'proofs.source':
+    'Downloaded from 0G Storage by its root. Everything below is that file as 0G holds it; this site only told your browser where to look.',
+  'proofs.card':
+    '{card, select, decision {What 0G decided} payment {Payment on Arc} frames {What the robot saw} anchor {Where it is on 0G} other {{card}}}',
+  'proofs.field':
+    '{field, select, model {Model} requestId {0G request id} action {Action} reason {Reason} tee {TEE proof} rootHash {Root on 0G Storage} episodeLog {EpisodeLog contract} logTx {EpisodeLog record} storageTx {Storage upload} sha256 {SHA-256 the chip signed} capturedAt {Taken} recordedAt {Recorded} recorder {Recorded by} other {{field}}}',
+  'proofs.action':
+    '{action, select, pay {pay} ask_human {ask the owner first} walk_away {walk away} safe_stop {stop safely} other {{action}}}',
+  'proofs.teeYes': 'Attached: signed by {signer}',
+  'proofs.noPayment': 'Nothing was paid on this errand.',
+  'proofs.paymentTx': 'Payment on Arc',
+  'proofs.noFrames': 'No camera frame was published with this errand.',
+  'proofs.frameAlt': "The QR code the robot's camera read, as its chip signed it",
+  'proofs.verify': '{running, select, yes {Checking on 0G…} other {Verify against 0G}}',
+  'proofs.verifyNote':
+    "Runs in your browser. It reads the EpisodeLog record from 0G Chain's public RPC and downloads each frame from 0G Storage. Nothing goes through vitaquack.com.",
+  'proofs.check':
+    "{check, select, recorded {EpisodeLog on 0G Chain has a record for this errand} rootMatches {The record's root is the root this file was downloaded by} requestIdsMatch {The record's request-ids hash matches the 0G request ids in this file} sameEpisode {The file on 0G Storage is this errand's} other {{check}}}",
+  'proofs.frameCheck':
+    '{result, select, matches {Frame downloaded from 0G Storage: its SHA-256 matches what the chip signed} differs {Frame downloaded from 0G Storage: its SHA-256 does not match what the chip signed} other {Frame did not download from 0G Storage}}',
+  'proofs.allPassed': '{passed, select, yes {Every check passed.} other {Some checks failed.}}',
 }

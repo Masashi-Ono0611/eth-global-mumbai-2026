@@ -21,6 +21,8 @@ import {
   foldEpisode,
   foldEpisodes,
   foldGate,
+  foldProof,
+  foldProofs,
   foldMerchant,
   foldAddRobot,
   foldWallet,
@@ -147,5 +149,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     GotEpisodeMessage: ({ message: episodeMessage }) => foldEpisode(model, episodeMessage),
     GotMerchantMessage: ({ message: merchantMessage }) => foldMerchant(model, merchantMessage),
     GotGateMessage: ({ message: gateMessage }) => foldGate(model, gateMessage),
+    GotProofsMessage: ({ message: proofsMessage }) => foldProofs(model, proofsMessage),
+    GotProofMessage: ({ message: proofMessage }) => foldProof(model, proofMessage),
     FailedSignOut: () => ({ model: modifyFields(model, { auth: () => AuthState.Unavailable() }) }),
   })

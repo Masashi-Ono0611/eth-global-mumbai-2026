@@ -12,12 +12,13 @@ import {
 } from '../api/Episodes.ts'
 import { isZeroGDecision } from '../api/Robot.ts'
 import { explorerTx } from '../api/Wallet.ts'
-import { episodesRouter, robotConsoleRouter, walletRouter } from '../route.ts'
+import { episodesRouter, proofRouter, robotConsoleRouter, walletRouter } from '../route.ts'
 import { AuditState, Message, type Model, Replay, Verify } from './Episode.ts'
 import { observationCard } from './ObservationCard.ts'
 import { teeView } from './TeeBadge.ts'
 import { failedView, loadingView, signedOutView } from './Shared.ts'
 import {
+  alertLine,
   alertTextClassName,
   auditButtonClassName,
   auditLayoutClassName,
@@ -53,8 +54,7 @@ const replayView = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html
   Replay.match(model.replay, {
     Idle: () => h.empty,
     Running: () => h.p([h.Role('status')], [format(locale, 'episode.action', { action: 'replaying' })]),
-    Failed: ({ error }) =>
-      h.p([h.Role('alert'), h.Class(alertTextClassName)], [format(locale, 'common.errorDetail', { message: error })]),
+    Failed: ({ error }) => alertLine(error, locale, h),
     Done: ({ result }) => replayResultView(result, locale, h),
   })
 
@@ -297,6 +297,9 @@ const evidenceCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
           evidence.log_tx === null
             ? h.empty
             : link(chainScan(evidence.log_tx), format(locale, 'console.episodeLog', {}), h),
+          evidence.status === 'uploaded'
+            ? link(proofRouter({ episodeId: model.episodeId }), format(locale, 'episode.publicProof', {}), h)
+            : h.empty,
           h.button(
             [
               h.Type('button'),
@@ -315,11 +318,7 @@ const evidenceCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
           Verify.match(model.verify, {
             Idle: () => h.empty,
             Running: () => h.empty,
-            Failed: ({ error }) =>
-              h.p(
-                [h.Role('alert'), h.Class(alertTextClassName)],
-                [format(locale, 'common.errorDetail', { message: error })],
-              ),
+            Failed: ({ error }) => alertLine(error, locale, h),
             Done: ({ result }) => verifyResultView(result, locale, h),
           }),
         ],

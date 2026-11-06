@@ -4,7 +4,19 @@ import { defineMessageUnion } from 'foldkit/message'
 import { Dialog } from '@foldkit/ui'
 import { AuthFailure } from './model.ts'
 import * as Telegram from './Telegram.ts'
-import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet, Welcome } from './pageModules.ts'
+import {
+  AddRobot,
+  Approval,
+  Episode,
+  Episodes,
+  Gate,
+  Merchant,
+  Proof,
+  Proofs,
+  RobotConsole,
+  Wallet,
+  Welcome,
+} from './pageModules.ts'
 
 export const Message = defineMessageUnion({
   UpdatedDisplayName: { value: Schema.String },
@@ -34,5 +46,7 @@ export const Message = defineMessageUnion({
   GotEpisodeMessage: { message: Episode.Message },
   GotMerchantMessage: { message: Merchant.Message },
   GotGateMessage: { message: Gate.Message },
+  GotProofsMessage: { message: Proofs.Message },
+  GotProofMessage: { message: Proof.Message },
 })
 export type Message = typeof Message.Type
