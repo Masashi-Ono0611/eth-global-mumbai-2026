@@ -58,6 +58,14 @@ const foldProfileSheetOpen = Update.foldChildStep({
   foldOutMessage: foldSheetOutMessage,
 })
 
+const foldProfileSheetClose = Update.foldChildStep({
+  update: Dialog.close,
+  read: (model: Model) => Option.some(model.profileSheet),
+  write: (model: Model, nextSheet: Dialog.Model) => modifyFields(model, { profileSheet: () => nextSheet }),
+  toParentMessage: (message: Dialog.Message) => Message.GotProfileSheetMessage({ message }),
+  foldOutMessage: foldSheetOutMessage,
+})
+
 /**
  * Signed in: the sign-in page hands over to the wallet; any other page reloads its data, which it first read
  * without a session.
@@ -120,12 +128,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         commands: [SignOut()],
       }
     },
-    SucceededSignOut: () => ({
-      model: modifyFields(model, {
-        auth: () => AuthState.SignedOut(),
-        profileSheet: () => Dialog.init({ id: 'profile' }),
-      }),
-    }),
+    // Close the sheet through the Dialog so it releases its modal resources (focus, scroll lock) before it unmounts.
+    SucceededSignOut: () => foldProfileSheetClose(modifyFields(model, { auth: () => AuthState.SignedOut() })),
     ClickedProfile: () => foldProfileSheetOpen(model),
     GotProfileSheetMessage: ({ message: sheetMessage }) => foldProfileSheet(model, sheetMessage),
     CompletedOpenWallet: () => ({ model }),

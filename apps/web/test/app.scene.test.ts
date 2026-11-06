@@ -112,6 +112,7 @@ describe('passkey wallet', () => {
       click(role('button', { name: 'Sign out' })),
       Command.expectExact(SignOut()),
       Command.resolve(SignOut, Message.SucceededSignOut()),
+      Command.resolve(Dialog.CloseDialog, Dialog.Message.CompletedCloseDialog()),
       Mount.expectEnded(Dialog.AcquireResources),
       expect(role('button', { name: 'Create passkey wallet' })).toExist(),
     )
