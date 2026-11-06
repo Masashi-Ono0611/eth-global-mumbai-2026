@@ -398,15 +398,29 @@ const speech = (deps: VoiceDeps) =>
     return HttpServerResponse.uint8Array(bytes, { contentType: 'audio/mpeg', headers: audioHeaders })
   }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
 
-/** One fixed line's speech in the bucket: already there, made now, or not made (the line still shows as text). */
+/**
+ * The fixed lines this isolate is making right now: a second warm-up while the cache is still cold (two tabs, a reload)
+ * skips them instead of paying for the same speech again.
+ */
+const warming = new Set<string>()
+
+/**
+ * One fixed line's speech in the bucket: already there, made now, being made by another warm-up in this isolate, or not
+ * made (the line still shows as text and is made on its first play).
+ */
 const ensureSpeech = Effect.fnUntraced(function* (media: ReadWriteBucketClient, zeroG: ZeroGConfig, text: string) {
   const path = audioPath(yield* speechKey(text))
   const there = yield* media.head(path).pipe(Effect.option)
   if (Option.isSome(there) && there.value !== null) return 'ready' as const
-  const bytes = yield* speak(zeroG, text, SPEECH_TIMEOUT)
-  if (bytes === null) return 'failed' as const
-  const saved = yield* media.put(path, bytes, { httpMetadata: { contentType: 'audio/mpeg' } }).pipe(Effect.result)
-  return Result.isSuccess(saved) ? ('made' as const) : ('failed' as const)
+  if (warming.has(path)) return 'pending' as const
+  warming.add(path)
+  const made = yield* Effect.gen(function* () {
+    const bytes = yield* speak(zeroG, text, SPEECH_TIMEOUT)
+    if (bytes === null) return 'failed' as const
+    const saved = yield* media.put(path, bytes, { httpMetadata: { contentType: 'audio/mpeg' } }).pipe(Effect.result)
+    return Result.isSuccess(saved) ? ('made' as const) : ('failed' as const)
+  }).pipe(Effect.ensuring(Effect.sync(() => warming.delete(path))))
+  return made
 })
 
 /**
@@ -425,7 +439,13 @@ const warm = (deps: VoiceDeps) =>
       concurrency: WARM_CONCURRENCY,
     })
     const count = (result: (typeof results)[number]) => results.filter((each) => each === result).length
-    const answer = { lines: lines.length, ready: count('ready'), made: count('made'), failed: count('failed') }
+    const answer = {
+      lines: lines.length,
+      ready: count('ready'),
+      made: count('made'),
+      pending: count('pending'),
+      failed: count('failed'),
+    }
     yield* Effect.logInfo('voice warm').pipe(Effect.annotateLogs(answer))
     return yield* json(answer satisfies VoiceWarm)
   }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))

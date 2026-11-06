@@ -7,8 +7,9 @@ import { hear } from '../src/robot/Voice.ts'
 // One real 0G hearing, exactly as a voice turn makes it: the clip to whisper, its transcript to 0GM, the reply parsed.
 // Usage: APP_ZG_BASE_URL=… APP_ZG_API_KEY=… bun packages/server/scripts/voice-probe.ts <clip.wav> [<intent>[:<item or topic>]]
 // e.g. `clip.wav buy:chai`, `clip.wav question:limits`, `clip.wav stop`. Prints the transcript, the turn, both request
-// ids, the providers (for a TEE check with 0G's SDK) and the latencies; never the key. Exit 0 on the expected turn (or
-// any turn without an expectation), 3 on another, 1 when the hearing failed, 2 when not configured.
+// ids, the providers (for a TEE check with 0G's SDK) and the latencies; never the key. The transcript goes to the
+// operator's own terminal for the operator's own clip (the Worker still never logs one). Exit 0 on the expected turn
+// (or any turn without an expectation), 3 on another, 1 when the hearing failed, 2 when not configured.
 
 const [clipPath, expectation] = process.argv.slice(2)
 const baseUrl = process.env['APP_ZG_BASE_URL']

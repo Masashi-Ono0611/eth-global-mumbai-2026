@@ -69,6 +69,7 @@ const decisionFor = (mode: StubMode, body: unknown) =>
 export type StubHearing =
   | { readonly heard: string; readonly intent: string; readonly item: string | null; readonly topic?: string | null }
   | 'down'
+  | 'unclassified'
 
 /** A few bytes that start like an MP3 (ID3): the speech stand-in's answer. */
 export const STUB_SPEECH = new Uint8Array([0x49, 0x44, 0x33, 0x04, 0x00, 0x00])
@@ -80,18 +81,20 @@ const ROUTER_PATHS = new Set(['/v1/audio/speech', '/v1/audio/transcriptions', '/
 
 /**
  * What the stub keeps of a request: the JSON body, or for the multipart transcription (as OpenAI's) the form's text
- * fields and the file's type, name and size.
+ * fields and the file's type, name and bytes (as base64, to compare with the clip's data URI).
  */
 const bodyOf = async (request: Request, path: string): Promise<unknown> => {
   if (path !== '/v1/audio/transcriptions') return request.json()
   const form = await request.formData()
   const file = form.get('file')
   const fields = Object.fromEntries([...form.entries()].filter(([, value]) => typeof value === 'string'))
-  return { ...fields, file: file instanceof File ? { type: file.type, name: file.name, size: file.size } : null }
+  if (!(file instanceof File)) return { ...fields, file: null }
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(await file.arrayBuffer())))
+  return { ...fields, file: { type: file.type, name: file.name, base64 } }
 }
 
 /** Whisper's transcript (`heard`), or the classifier's JSON for the hearing. */
-const hearingReply = (hearing: Exclude<StubHearing, 'down'>, path: string, count: number) =>
+const hearingReply = (hearing: Exclude<StubHearing, 'down' | 'unclassified'>, path: string, count: number) =>
   path === '/v1/audio/transcriptions'
     ? Response.json({
         text: hearing.heard,
@@ -109,6 +112,7 @@ export const startZeroGStub = () => {
   let calls = 0
   let hearing: StubHearing = 'down'
   let speech = true
+  let speechDelayMs = 0
   const seen: Array<{ readonly authorization: string | null; readonly body: unknown }> = []
   /** The voice route's calls (transcription, classifier, speech), apart from `decide`'s, so decision counts stay exact. */
   const voiceSeen: Array<{ readonly path: string; readonly authorization: string | null; readonly body: unknown }> = []
@@ -116,14 +120,20 @@ export const startZeroGStub = () => {
    * Whisper's transcript, the classifier's JSON for the current hearing, or the speech bytes; 'down' fails the
    * transcription and speech off the speech, as provider errors.
    */
-  const voiceReply = (path: string, count: number) => {
-    if (path === '/v1/audio/speech')
+  const voiceReply = async (path: string, count: number) => {
+    if (path === '/v1/audio/speech') {
+      if (speechDelayMs > 0) await Bun.sleep(speechDelayMs)
       return speech
         ? new Response(STUB_SPEECH, { headers: { 'content-type': 'audio/mpeg' } })
         : Response.json({ error: 'speech provider down' }, { status: 503 })
-    return hearing === 'down'
-      ? Response.json({ error: 'provider_error' }, { status: 502 })
-      : hearingReply(hearing, path, count)
+    }
+    if (hearing === 'down') return Response.json({ error: 'provider_error' }, { status: 502 })
+    // Whisper hears the clip, then the classifier fails.
+    if (hearing === 'unclassified')
+      return path === '/v1/audio/transcriptions'
+        ? Response.json({ text: 'Get me a chai.' })
+        : Response.json({ error: 'provider_error' }, { status: 502 })
+    return hearingReply(hearing, path, count)
   }
   const server = Bun.serve({
     hostname: '127.0.0.1',
@@ -173,6 +183,10 @@ export const startZeroGStub = () => {
     },
     setSpeech: (on: boolean) => {
       speech = on
+    },
+    /** How long each speech answer takes, so two warm-ups overlap. */
+    setSpeechDelay: (ms: number) => {
+      speechDelayMs = ms
     },
     seen,
     voiceSeen,

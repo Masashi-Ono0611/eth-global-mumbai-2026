@@ -88,6 +88,16 @@ const hearingRefusals = (me: Owner, robotId: string, stub: ZeroGStub) =>
     const nothing = yield* me.call(`/api/robots/${robotId}/voice`, { audio: CLIP })
     expect(nothing).toMatchObject({ status: 502, json: { error: 'Vita did not catch that' } })
     expect(stub.voiceSeen.slice(silent).map((call) => call.path)).toEqual(['/v1/audio/transcriptions'])
+    // Whisper hears "Get me a chai." but the classifier fails: a visible 502, and no intent (the next buy still starts).
+    stub.setHearing('unclassified')
+    const heard = stub.voiceSeen.length
+    const unclassified = yield* me.call(`/api/robots/${robotId}/voice`, { audio: CLIP })
+    expect(unclassified.status).toBe(502)
+    expect(JSON.stringify(unclassified.json)).toContain('0G did not answer')
+    expect(stub.voiceSeen.slice(heard).map((call) => call.path)).toEqual([
+      '/v1/audio/transcriptions',
+      '/v1/chat/completions',
+    ])
   })
 
 /**
@@ -98,19 +108,20 @@ const expectSentToZeroG = (calls: ZeroGStub['voiceSeen'], transcript: string, li
   Effect.gen(function* () {
     const [transcribed, heardCall, spokenCall, ...again] = calls
     expect(again).toEqual([])
-    expect(transcribed).toMatchObject({
+    // workerd sends the part as audio/x-wav (the router takes either, checked 7 Nov); everything else is exact, and the
+    // file is the clip's own bytes.
+    const { body } = yield* Schema.decodeUnknownEffect(TranscriptionFile)(transcribed)
+    expect(['audio/wav', 'audio/x-wav']).toContain(body.file.type)
+    expect(transcribed).toEqual({
       path: '/v1/audio/transcriptions',
       authorization: `Bearer ${TEST_ZG_API_KEY}`,
       body: {
         model: TRANSCRIBE_MODEL,
         language: 'en',
         response_format: 'json',
-        file: { name: 'clip.wav', size: atob(CLIP.slice(CLIP.indexOf(',') + 1)).length },
+        file: { type: body.file.type, name: 'clip.wav', base64: CLIP.slice(CLIP.indexOf(',') + 1) },
       },
     })
-    // workerd sends the part as audio/x-wav (the router takes either, checked 7 Nov).
-    const { body } = yield* Schema.decodeUnknownEffect(TranscriptionFile)(transcribed)
-    expect(['audio/wav', 'audio/x-wav']).toContain(body.file.type)
     expect(heardCall?.authorization).toBe(`Bearer ${TEST_ZG_API_KEY}`)
     const sent = yield* Schema.decodeUnknownEffect(ClassifierCall)(heardCall?.body)
     expect(sent.messages[1].content).toBe(transcript)
@@ -310,7 +321,13 @@ export const registerVoiceStopAcceptance = (test: TestApi['test'], stack: Effect
     { timeout: 60000 },
   )
 
-const Warm = Schema.Struct({ lines: Schema.Finite, ready: Schema.Finite, made: Schema.Finite, failed: Schema.Finite })
+const Warm = Schema.Struct({
+  lines: Schema.Finite,
+  ready: Schema.Finite,
+  made: Schema.Finite,
+  pending: Schema.Finite,
+  failed: Schema.Finite,
+})
 const speechCalls = (stub: ZeroGStub, from: number) =>
   stub.voiceSeen.slice(from).filter((call) => call.path === '/v1/audio/speech')
 
@@ -336,17 +353,24 @@ export const registerVoiceWarmAcceptance = (test: TestApi['test'], stack: Effect
             ),
           )
 
-      // The first warm-up makes what earlier conversations did not, one speech call per line it made.
+      // Two warm-ups at once (two tabs) while the speech is slow: together they make what earlier conversations did
+      // not, and no line is made twice; what one is making, the other counts as pending.
       const before = stub.voiceSeen.length
-      const first = yield* warmUp()
-      expect(first.status).toBe(200)
-      expect(first.warm).toMatchObject({ lines: total, failed: 0 })
-      expect(first.warm.made + first.warm.ready).toBe(total)
-      expect(first.warm.made).toBeGreaterThan(0)
-      expect(speechCalls(stub, before)).toHaveLength(first.warm.made)
-      // The second finds them all and asks 0G for nothing.
+      stub.setSpeechDelay(300)
+      const [first, second] = yield* Effect.all([warmUp(), warmUp()], { concurrency: 2 })
+      stub.setSpeechDelay(0)
+      expect([first.status, second.status]).toEqual([200, 200])
+      for (const { warm } of [first, second]) {
+        expect(warm).toMatchObject({ lines: total, failed: 0 })
+        expect(warm.ready + warm.made + warm.pending).toBe(total)
+      }
+      const made = speechCalls(stub, before).map((call) => JSON.stringify(call.body))
+      expect(made.length).toBe(first.warm.made + second.warm.made)
+      expect(new Set(made).size).toBe(made.length)
+      expect(made.length).toBeGreaterThan(0)
+      // The next finds them all and asks 0G for nothing.
       const again = stub.voiceSeen.length
-      expect((yield* warmUp()).warm).toEqual({ lines: total, ready: total, made: 0, failed: 0 })
+      expect((yield* warmUp()).warm).toEqual({ lines: total, ready: total, made: 0, pending: 0, failed: 0 })
       expect(stub.voiceSeen.length).toBe(again)
 
       // A spoken buy's line was made ahead: it plays from the bucket, with no speech call.
