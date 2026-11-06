@@ -25,15 +25,20 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.aDay': Readonly<Record<string, never>>
   'allowance.arcNote': Readonly<Record<string, never>>
   'allowance.change': Readonly<Record<string, never>>
+  'allowance.chip': Readonly<Record<string, never>>
   'allowance.close': Readonly<Record<string, never>>
   'allowance.confirm': Readonly<Record<string, never>>
+  'allowance.details': Readonly<Record<string, never>>
+  'allowance.detailsNote': Readonly<Record<string, never>>
   'allowance.for': Readonly<Record<string, never>>
   'allowance.give': { readonly name: string | number }
+  'allowance.grantHash': Readonly<Record<string, never>>
   'allowance.hours': { readonly hours: number }
   'allowance.leftOf': { readonly daily: string | number }
   'allowance.open': { readonly amount: string | number }
   'allowance.openLeft': { readonly left: string | number; readonly daily: string | number }
   'allowance.openNone': Readonly<Record<string, never>>
+  'allowance.paired': Readonly<Record<string, never>>
   'allowance.perDay': Readonly<Record<string, never>>
   'allowance.perPurchase': Readonly<Record<string, never>>
   'allowance.resets': { readonly time: string | number }
@@ -211,6 +216,8 @@ export interface MessageArgumentsByKey<T = string> {
   'profile.records': Readonly<Record<string, never>>
   'proof.atCounter': Readonly<Record<string, never>>
   'proof.failed': { readonly error: string | number }
+  'proof.frameOnZeroG': Readonly<Record<string, never>>
+  'proof.frameSaving': Readonly<Record<string, never>>
   'proof.log': Readonly<Record<string, never>>
   'proof.noReason': Readonly<Record<string, never>>
   'proof.onZeroG': Readonly<Record<string, never>>
@@ -300,4 +307,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '3b6682b3ffa965480031f6e080b0cbde8e326078e2e01996614791bae53afe99'
+export const catalogVersion = '3ac56d902fe3f9e71998d6fe4949ffb0ad58ed7496f6faab899afaf7edb71205'

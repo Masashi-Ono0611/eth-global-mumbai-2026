@@ -158,6 +158,15 @@ describe('/robot/:id', () => {
       expect(text('Duck Café: Chai, 0.10 USDC')).toExist(),
       expect(text("Seen by the simulator's camera")).not.toExist(),
     )
+    const stored = { ...scanned, observation: { sha256: '0xabc', capturedAt: 1, rootHash: '0xframe' } }
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([stored])),
+      expect(role('link', { name: 'Frame on 0G Storage' })).toHaveAttr(
+        'href',
+        'https://storagescan-galileo.0g.ai/file/0xframe',
+      ),
+    )
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole([scanned], { ...consoleRobot, robot: { ...consoleRobot.robot, kind: 'sim' } })),
@@ -323,6 +332,25 @@ describe('/robot/:id', () => {
         RobotConsole.Message.FailedLoadConsole({ error: 'x', signedOut: false }),
       ),
       Mount.expectEnded(Dialog.AcquireResources),
+    )
+  })
+
+  test("the allowance sheet folds away the robot's details: chip, payee, signed allowance, paired", () => {
+    const detailed = {
+      ...consoleRobot,
+      robot: { ...consoleRobot.robot, pairedAt: 1793900000 },
+      grant: { ...grant, delegationHash: '0xfeed' },
+    }
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([], detailed)),
+      click(role('button', { name: 'Allowance: 1.00 a day' })),
+      Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+      Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      expect(text('Robot details')).toExist(),
+      expect(text('Chip (signs every payment)')).toExist(),
+      expect(text('0x0000 0000 0000 0000 0000 0000 0000 0000 000c 41f0')).toExist(),
+      expect(text('0xfeed')).toExist(),
     )
   })
 

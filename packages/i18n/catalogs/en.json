@@ -266,7 +266,12 @@
     "openLeft": "Allowance: {left} of {daily} USDC left today",
     "leftOf": "left of {daily} today",
     "spent": "Spent today: {spent} of {daily} USDC",
-    "resets": "Resets at {time}"
+    "resets": "Resets at {time}",
+    "details": "Robot details",
+    "chip": "Chip (signs every payment)",
+    "grantHash": "Signed allowance (delegation hash)",
+    "paired": "Paired",
+    "detailsNote": "Arc checks this signed allowance on every payment; stopping it is the transaction you will see on Arc."
   },
   "addRobot": {
     "title": "New robot",
@@ -315,6 +320,8 @@
     "onZeroG": "on 0G",
     "atCounter": "What I saw at the counter",
     "seenAlt": "The QR code {name} read at the counter",
-    "seenBySim": "Seen by the simulator's camera"
+    "seenBySim": "Seen by the simulator's camera",
+    "frameOnZeroG": "Frame on 0G Storage",
+    "frameSaving": "Saving the frame to 0G..."
   }
 }

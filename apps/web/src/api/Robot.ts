@@ -14,6 +14,7 @@ export const ConsoleRobot = Schema.Struct({
     kind: Schema.optionalKey(RobotKind),
     status: Schema.String,
     chipAddress: Schema.NullOr(Schema.String),
+    pairedAt: Schema.optionalKey(Schema.NullOr(Schema.Number)),
   }),
   /** The errand intent still running for this robot, to resume after a reload. */
   openIntentId: Schema.optionalKey(Schema.NullOr(Schema.String)),

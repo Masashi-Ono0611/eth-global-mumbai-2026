@@ -13,7 +13,12 @@ const Time = Schema.NullOr(Schema.Number)
 const WorldClaims = Schema.NullOr(Schema.Struct({ acr: Text, amr: Schema.Array(Schema.String) }))
 
 /** What the robot saw: an errand's first chip-signed QR crop (metadata; the image is the owner-only route below). */
-export const SeenCrop = Schema.Struct({ sha256: Schema.String, capturedAt: Schema.Number })
+export const SeenCrop = Schema.Struct({
+  sha256: Schema.String,
+  capturedAt: Schema.Number,
+  /** The JPEG's root on 0G Storage once the uploader stored it (null until then; absent on older Workers). */
+  rootHash: Schema.optionalKey(Schema.NullOr(Schema.String)),
+})
 export type SeenCrop = typeof SeenCrop.Type
 
 export const EpisodeSummary = Schema.Struct({

@@ -16,6 +16,7 @@ const seenLabelClassName = 'px-1.5 text-[0.8rem] text-muted'
 /** Inner radius = the bubble's 20 px minus its 8 px padding; a pure-black 10 % outline keeps the photo's edge clean. */
 const seenImageClassName = 'block w-44 rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
 const seenCaptionClassName = 'px-1.5 text-[0.95rem]'
+const seenFrameLinkClassName = 'block px-1.5 text-[0.85rem] font-semibold text-paid decoration-paid/40'
 const seenSourceClassName = 'block px-1.5 text-[0.8rem] text-muted'
 
 // VIEW
@@ -90,6 +91,14 @@ export const seenBubble = <M>(
         [
           caption === null ? h.empty : h.span([h.Class(seenCaptionClassName)], [caption]),
           sim ? h.span([h.Class(seenSourceClassName)], [format(locale, 'proof.seenBySim', {})]) : h.empty,
+          crop.rootHash === undefined
+            ? h.empty
+            : crop.rootHash === null
+              ? h.span([h.Class(seenSourceClassName)], [format(locale, 'proof.frameSaving', {})])
+              : h.a(
+                  [h.Href(storageScan(crop.rootHash)), h.Class(seenFrameLinkClassName)],
+                  [format(locale, 'proof.frameOnZeroG', {})],
+                ),
         ],
       ),
     ],

@@ -266,6 +266,12 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'allowance.leftOf': 'left of {daily} today',
   'allowance.spent': 'Spent today: {spent} of {daily} USDC',
   'allowance.resets': 'Resets at {time}',
+  'allowance.details': 'Robot details',
+  'allowance.chip': 'Chip (signs every payment)',
+  'allowance.grantHash': 'Signed allowance (delegation hash)',
+  'allowance.paired': 'Paired',
+  'allowance.detailsNote':
+    'Arc checks this signed allowance on every payment; stopping it is the transaction you will see on Arc.',
   'addRobot.title': 'New robot',
   'addRobot.close': 'Back to the wallet',
   'addRobot.stepPair': 'Pairing',
@@ -310,4 +316,6 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'proof.atCounter': 'What I saw at the counter',
   'proof.seenAlt': 'The QR code {name} read at the counter',
   'proof.seenBySim': "Seen by the simulator's camera",
+  'proof.frameOnZeroG': 'Frame on 0G Storage',
+  'proof.frameSaving': 'Saving the frame to 0G...',
 }

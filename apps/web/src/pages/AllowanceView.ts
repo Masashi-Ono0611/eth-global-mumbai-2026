@@ -29,6 +29,10 @@ const unitClassName = 'ml-1.5 font-sans text-base font-normal text-muted'
 /** The day's use as a native meter: paper track, ink fill (WebKit and Firefox pseudo-elements). */
 const meterClassName =
   'h-2.5 w-full appearance-none overflow-hidden rounded-full bg-paper [&::-moz-meter-bar]:rounded-full [&::-moz-meter-bar]:bg-ink [&::-webkit-meter-bar]:rounded-full [&::-webkit-meter-bar]:border-0 [&::-webkit-meter-bar]:bg-paper [&::-webkit-meter-optimum-value]:rounded-full [&::-webkit-meter-optimum-value]:bg-ink [&::-webkit-meter-optimum-value]:bg-none [&::-webkit-meter-suboptimum-value]:bg-ink [&::-webkit-meter-suboptimum-value]:bg-none [&::-webkit-meter-even-less-good-value]:bg-ink [&::-webkit-meter-even-less-good-value]:bg-none'
+const detailsClassName =
+  'rounded-2xl bg-paper px-4 text-[0.95rem] [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-3 [&_summary]:font-semibold'
+const detailListClassName = 'grid gap-0.5 pb-2 [&_dt]:text-sm [&_dt]:text-muted'
+const detailValueClassName = 'mb-2 font-mono text-[0.85rem] break-all'
 const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
@@ -42,7 +46,12 @@ type ActiveGrant = Readonly<{
   expiresAt: number
   spentToday?: string
   periodEndsAt?: number
+  allowlist?: ReadonlyArray<string>
+  delegationHash?: string
 }>
+
+/** What identifies the robot on-chain: its chip's address (the grant's delegate) and when it paired. */
+type RobotIdentity = Readonly<{ chipAddress: string | null; pairedAt: number | null }>
 
 export type ViewInputs = Readonly<{
   locale: Locale
@@ -50,6 +59,7 @@ export type ViewInputs = Readonly<{
   robotName: string
   payeeName: string
   grant: ActiveGrant | null
+  robot: RobotIdentity | null
 }>
 
 const failureText = (failure: ActionFailure, locale: Locale) =>
@@ -268,9 +278,47 @@ const rules = (model: Model, grant: ActiveGrant, inputs: ViewInputs, h: HtmlBuil
   )
 }
 
+/** Four-character groups, so an address can be read aloud and checked by eye. */
+const grouped = (value: string) => `${value.slice(0, 6)} ${(value.slice(6).match(/.{1,4}/g) ?? []).join(' ')}`
+
+/** Robot details, folded away: the chip's address (the grant's delegate), the payee, the signed grant's hash and when
+ *  the robot paired. There is no grant transaction to link: the grant is a signed delegation that Arc checks on use. */
+const robotDetails = (inputs: ViewInputs, h: HtmlBuilder<Message>): Html => {
+  const { locale, robot, grant } = inputs
+  if (robot === null) return h.empty
+  const row = (label: string, value: string | null) =>
+    value === null ? [] : [h.dt([], [label]), h.dd([h.Class(detailValueClassName)], [value])]
+  const payee = grant?.allowlist?.[0] ?? null
+  return h.details(
+    [h.Class(detailsClassName)],
+    [
+      h.summary([], [format(locale, 'allowance.details', {})]),
+      h.dl(
+        [h.Class(detailListClassName)],
+        [
+          ...row(format(locale, 'allowance.chip', {}), robot.chipAddress === null ? null : grouped(robot.chipAddress)),
+          ...row(inputs.payeeName, payee === null ? null : grouped(payee)),
+          ...row(format(locale, 'allowance.grantHash', {}), grant?.delegationHash ?? null),
+          ...row(
+            format(locale, 'allowance.paired', {}),
+            robot.pairedAt === null ? null : clockTime(robot.pairedAt * 1000, locale, inputs.timeZone),
+          ),
+        ],
+      ),
+      h.p([h.Class('text-sm text-muted')], [format(locale, 'allowance.detailsNote', {})]),
+    ],
+  )
+}
+
 /** The allowance: the active grant's rules with Change and Stop, or the presets the passkey signs. */
 export const allowanceView = Submodel.defineView<Model, Message, ViewInputs>((model, inputs, h) =>
-  inputs.grant !== null && inputs.grant.status === 'active' && !model.editing
-    ? rules(model, inputs.grant, inputs, h)
-    : form(model, inputs, h),
+  h.div(
+    [h.Class('grid gap-4')],
+    [
+      inputs.grant !== null && inputs.grant.status === 'active' && !model.editing
+        ? rules(model, inputs.grant, inputs, h)
+        : form(model, inputs, h),
+      robotDetails(inputs, h),
+    ],
+  ),
 )
