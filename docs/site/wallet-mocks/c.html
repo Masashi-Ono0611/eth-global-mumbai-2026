@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C · Quack chat — Vitaquack wallet mocks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500..800&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="board.css">
+<style>
+.v-c {
+  --sky: #e7f1f6;
+  --white: #ffffff;
+  --ink: #1f2d36;
+  --quiet: #5b6b75;
+  --line: #d3e2ea;
+  --duck: #ffe07a;
+  --duck-deep: #6b5200;
+  --paid: #1b8550;
+  --no: #b9433a;
+  --duck-body: #ffd43b;
+  --duck-bill: #f08a1c;
+  --duck-eye: #1f2d36;
+  --round: 'Baloo 2', system-ui, sans-serif;
+  background: var(--sky);
+  color: var(--ink);
+  font: 400 16.5px/1.4 'Mukta', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 24px;
+}
+.v-c h3, .v-c h4, .v-c p { margin: 0; }
+:where(.v-c) :where(button, a) { font: inherit; color: inherit; text-decoration: none; border: 0; background: none; padding: 0; }
+.v-c .icon { width: 20px; height: 20px; }
+
+.c-top { display: flex; align-items: center; gap: 12px; padding: 6px 18px 8px; }
+.v-c .c-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff; font: 700 17px/1 var(--round); display: grid; place-items: center; padding-top: 3px; }
+.v-c .c-iconbtn { width: 40px; height: 40px; border-radius: 50%; background: var(--white); display: grid; place-items: center; }
+
+.c-bal { padding: 8px 20px 0; }
+.c-bal p:first-child { font: 800 64px/0.95 var(--round); letter-spacing: -0.02em; }
+.c-bal p:first-child span { font-size: 22px; font-weight: 700; margin-left: 6px; letter-spacing: 0; }
+.c-bal p + p { color: var(--quiet); margin-top: 2px !important; }
+.c-pills { display: flex; gap: 8px; padding: 14px 18px 4px; }
+.v-c .c-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px 0 13px; border-radius: 999px; background: var(--white); font-weight: 600; box-shadow: 0 1px 2px rgb(31 45 54 / 0.06); }
+
+.c-h { font: 700 20px/1.2 var(--round); padding: 20px 20px 10px; }
+
+/* bubbles */
+.c-who { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--quiet); }
+.c-who b { color: var(--ink); font-weight: 600; }
+.c-mini { width: 26px; height: 26px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; flex: none; }
+.c-mini svg { width: 20px; height: 20px; }
+.c-ask { margin: 0 14px; padding: 14px 16px 16px; border-radius: 24px 24px 24px 8px; background: var(--duck); display: grid; gap: 10px; }
+.c-ask p { font-size: 17px; line-height: 1.35; }
+.c-ask small { font-size: 14px; color: var(--duck-deep); display: block; }
+.c-two { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.c-two .c-btn:last-child { padding: 0 22px; }
+.v-c .c-btn { min-height: 46px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-weight: 600; background: var(--white); }
+.v-c .c-btn.dark { background: #000; color: #fff; }
+.v-c .c-btn.ink { background: var(--ink); color: #fff; }
+
+.c-convos { list-style: none; margin: 0 14px; padding: 4px 0; border-radius: 22px; background: var(--white); }
+.c-convos li { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; padding: 10px 14px; }
+.c-convos li + li { box-shadow: inset 0 1px 0 var(--line); }
+.c-face { position: relative; width: 52px; height: 52px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+.c-face svg { width: 38px; height: 38px; }
+.c-face::after { content: ''; position: absolute; right: 1px; bottom: 1px; width: 13px; height: 13px; border-radius: 50%; background: #23b064; box-shadow: 0 0 0 3px var(--white); }
+.c-face.off { background: #c9d3d9; --duck-body: #f3f6f8; --duck-bill: #aab5bc; }
+.c-face.off::after { background: #9aa8b0; }
+.c-convos strong { font-weight: 600; font-size: 17px; display: block; line-height: 1.2; }
+.c-convos span { color: var(--quiet); font-size: 15px; }
+.c-convos time { align-self: start; padding-top: 4px; font-size: 13px; color: var(--quiet); display: grid; justify-items: end; gap: 6px; }
+.c-badge { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--duck); color: var(--ink); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.c-add { color: var(--ink) !important; }
+.c-add .c-face { background: var(--sky); }
+.c-add .c-face::after { display: none; }
+
+.c-pay { list-style: none; margin: 0 14px; padding: 4px 0; border-radius: 22px; background: var(--white); }
+.c-pay li { display: flex; justify-content: space-between; gap: 12px; padding: 11px 16px; }
+.c-pay li + li { box-shadow: inset 0 1px 0 var(--line); }
+.c-pay span { color: var(--quiet); font-size: 14.5px; display: block; }
+.c-pay b { font-weight: 600; }
+.c-pay .r { text-align: right; }
+.c-pay .ok { color: var(--paid); }
+.c-pay s { color: var(--quiet); }
+
+/* thread */
+.c-thread-top { display: grid; grid-template-columns: 40px 44px 1fr auto; align-items: center; gap: 10px; padding: 4px 14px 10px; box-shadow: inset 0 -1px 0 var(--line); }
+.c-thread-top .c-face { width: 44px; height: 44px; }
+.c-thread-top .c-face svg { width: 32px; height: 32px; }
+.c-thread-top strong { font: 700 20px/1 var(--round); display: block; padding-top: 4px; }
+.c-thread-top span { font-size: 14px; color: var(--quiet); }
+.v-c .c-allow { display: grid; justify-items: end; line-height: 1.1; padding: 7px 12px 5px; border-radius: 14px; background: var(--white); }
+.c-allow b { font: 800 18px/1 var(--round); }
+.c-allow small { font-size: 12px; color: var(--quiet); }
+.c-msgs { display: grid; gap: 8px; padding: 12px 12px 0; }
+.c-day { justify-self: center; font-size: 13px; color: var(--quiet); padding: 6px 0 2px; }
+.c-me, .c-it { max-width: 82%; padding: 9px 14px 8px; font-size: 16px; line-height: 1.35; }
+.c-me { justify-self: end; background: var(--ink); color: #fff; border-radius: 20px 20px 6px 20px; }
+.c-it { justify-self: start; background: var(--white); border-radius: 20px 20px 20px 6px; }
+.c-it.duck { background: var(--duck); }
+.c-it q { quotes: none; display: block; margin-top: 4px; padding-left: 10px; box-shadow: inset 2.5px 0 0 rgb(31 45 54 / 0.25); color: #3b4a53; font-size: 15px; }
+.c-it .c-label { display: block; font-size: 13px; color: var(--quiet); margin-bottom: 2px; }
+.c-it.duck .c-label { color: var(--duck-deep); }
+.c-qrmsg { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; }
+.c-qrmsg img { width: 76px; height: 76px; padding: 6px; background: #fff; border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
+.c-receipt { display: grid; gap: 4px; min-width: 220px; }
+.c-receipt b { font: 800 26px/1 var(--round); }
+.c-receipt .ok { color: var(--paid); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.c-receipt a { font-size: 14.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 0.18em; text-decoration-color: rgb(31 45 54 / 0.3); }
+.c-sys { justify-self: center; font-size: 14px; color: var(--quiet); background: rgb(255 255 255 / 0.6); padding: 4px 12px; border-radius: 999px; }
+.c-dock { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 12px 30px; background: linear-gradient(rgb(231 241 246 / 0), var(--sky) 22%); display: grid; gap: 8px; }
+.c-dock p { font-size: 13.5px; color: var(--quiet); padding-left: 6px; }
+.c-chips { display: flex; gap: 6px; }
+.v-c .c-chip { flex: 1; min-height: 50px; border-radius: 16px; background: var(--white); display: grid; place-content: center; justify-items: center; line-height: 1.1; font-weight: 600; box-shadow: 0 1px 2px rgb(31 45 54 / 0.08); }
+.c-chip small { font-size: 13px; color: var(--quiet); font-weight: 500; }
+.c-chips.busy .c-chip { opacity: 0.45; }
+
+/* sheet */
+.c-scrim { position: absolute; inset: 0; background: rgb(18 30 38 / 0.4); z-index: 1; }
+.c-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; background: var(--white); border-radius: 30px 30px 0 0; padding: 10px 20px 32px; display: grid; gap: 14px; }
+.c-sheet::before { content: ''; justify-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--line); }
+.c-sheet h3 { font: 700 24px/1.1 var(--round); }
+.c-left b { font: 800 56px/0.95 var(--round); letter-spacing: -0.02em; }
+.c-left span { color: var(--quiet); margin-left: 6px; }
+.c-meter { height: 10px; border-radius: 5px; background: var(--sky); overflow: hidden; }
+.c-meter i { display: block; height: 100%; width: 10%; background: var(--ink); border-radius: 5px; }
+.c-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.c-rules li { display: flex; gap: 10px; align-items: center; }
+.c-rules .icon { color: var(--quiet); }
+.v-c .c-btn.line { background: var(--sky); }
+.v-c .c-btn.stop { background: #fbe9e7; color: var(--no); }
+</style>
+</head>
+<body>
+<header class="board-head">
+  <h1>C · Quack chat: each robot is a conversation</h1>
+  <p>The least technical option. Each robot is a conversation: you tap what to buy, the robot reports back, and when
+  it needs you it asks right there with the buttons in the message. Its messages are written from the real errand
+  states, and 0G's reason is quoted word for word. Nothing is made up. Home keeps the wallet shape: balance,
+  Send/Receive, a "needs you" card at the top, then the robots and payments.</p>
+  <nav class="board-nav"><a href="index.html">All variants</a><a href="a.html">A · Rubber duck</a><a href="b.html">B · Mallard</a><a href="c.html" aria-current="page">C · Quack chat</a></nav>
+</header>
+
+<main class="board">
+
+<!-- 1 HOME -->
+<figure class="shot">
+  <div class="phone v-c">
+    <div class="status"><span>15:47</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="c-top"><button class="c-avatar" aria-label="Profile: language, passkeys, sign out">K</button></header>
+    <section class="c-bal"><p>1.40<span>USDC</span></p><p>Your robots spent 0.10 today</p></section>
+    <nav class="c-pills">
+      <a class="c-pill"><svg class="icon"><use href="sprite.svg#i-send"/></svg>Send</a>
+      <a class="c-pill"><svg class="icon"><use href="sprite.svg#i-receive"/></svg>Receive</a>
+      <a class="c-pill"><svg class="icon"><use href="sprite.svg#i-plus"/></svg>Robot</a>
+    </nav>
+
+    <h3 class="c-h">Needs you</h3>
+    <article class="c-ask">
+      <div class="c-who"><span class="c-mini"><svg><use href="sprite.svg#duck"/></svg></span><b>Duck</b> 15:46</div>
+      <p>Duck Café has cigarettes for 0.50. They're restricted and over my 0.30 limit, so I need your OK before I pay.
+      <small>The request ends in 4:52. Approving pays this once.</small></p>
+      <div class="c-two"><a class="c-btn dark"><svg class="icon"><use href="sprite.svg#i-world"/></svg>Approve with World ID</a><a class="c-btn">No</a></div>
+    </article>
+
+    <h3 class="c-h">Robots</h3>
+    <ul class="c-convos">
+      <li><span class="c-face"><svg><use href="sprite.svg#duck"/></svg></span><div><strong>Duck</strong><span>Waiting for your answer</span></div><time>15:46<span class="c-badge">1</span></time></li>
+      <li><span class="c-face off"><svg><use href="sprite.svg#duck"/></svg></span><div><strong>Mock robot</strong><span>Offline. Start its chip to wake it.</span></div><time>12:40</time></li>
+      <li class="c-add"><span class="c-face"><svg class="icon" style="width:22px;height:22px"><use href="sprite.svg#i-plus"/></svg></span><div><strong>Add a robot</strong><span>Pair it with a code</span></div><time></time></li>
+    </ul>
+
+    <h3 class="c-h">Payments</h3>
+    <ul class="c-pay">
+      <li><div><b>Cigarettes</b><span>Duck, you said no</span></div><div class="r"><s>0.50</s><span>Not paid</span></div></li>
+      <li><div><b>Chai</b><span>Duck at Duck Café</span></div><div class="r"><b>−0.10</b><span class="ok">Paid</span></div></li>
+    </ul>
+  </div>
+  <figcaption>
+    <h2>1 · Home: what needs you comes first</h2>
+    <p>A waiting approval sits at the top of home, answerable without opening anything. "Approve" opens World as it
+    does today. Robots look like chats, with the last thing each one said, and payments stay in a plain list.</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+<!-- 2 THREAD -->
+<figure class="shot">
+  <div class="phone fixed v-c">
+    <div class="status"><span>15:47</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="c-thread-top">
+      <button class="c-iconbtn" aria-label="Back"><svg class="icon"><use href="sprite.svg#i-back"/></svg></button>
+      <span class="c-face"><svg><use href="sprite.svg#duck"/></svg></span>
+      <div><strong>Duck</strong><span>Connected</span></div>
+      <a class="c-allow"><b>0.90</b><small>left today</small></a>
+    </header>
+    <div class="c-msgs">
+      <span class="c-day">Today</span>
+      <p class="c-me">Buy chai</p>
+      <div class="c-it"><div class="c-qrmsg"><img src="qr-invoice.svg" alt="The counter QR Duck read"><span><span class="c-label">At the counter</span>Duck Café: chai, 0.10 USDC</span></div></div>
+      <p class="c-it"><span class="c-label">0G decided: buy</span><q>Owner asked for chai; 0.10 is within the per-payment cap and today's budget.</q></p>
+      <div class="c-it"><div class="c-receipt"><span class="ok"><svg class="icon" style="width:18px;height:18px"><use href="sprite.svg#i-check"/></svg>Paid with my chip</span><b>0.10 USDC</b><a>Proof: Arc payment and 0G record</a></div></div>
+      <p class="c-me">Buy cigarettes</p>
+      <div class="c-it duck"><span class="c-label">I need your OK</span>Cigarettes are 0.50 and restricted, so I can't buy them on my own.
+        <q>Restricted item the owner asked for; the owner approves it in World App.</q>
+        <div class="c-two" style="margin-top:10px"><a class="c-btn dark"><svg class="icon"><use href="sprite.svg#i-world"/></svg>Approve with World ID</a><a class="c-btn">No</a></div>
+      </div>
+    </div>
+    <div class="c-dock">
+      <p>Send Duck for something when this is answered</p>
+      <div class="c-chips busy"><a class="c-chip">Chai<small>0.10</small></a><a class="c-chip">Samosa<small>0.25</small></a><a class="c-chip">Cigarettes<small>0.50</small></a></div>
+    </div>
+  </div>
+  <figcaption>
+    <h2>2 · A robot is a conversation</h2>
+    <p>The buy buttons are the "keyboard": tapping Chai sends "Buy chai" and starts the errand. Each step comes back
+    as a message: the QR it is paying (drawn from the invoice, not a photo), 0G's decision with its reason, the
+    receipt with its proof. Tapping "0.90 left today" opens the allowance.</p>
+    <span class="need ok">Works with today's API (episodes and their decisions)</span>
+  </figcaption>
+</figure>
+
+<!-- 3 ALLOWANCE SHEET -->
+<figure class="shot">
+  <div class="phone fixed v-c">
+    <div class="status"><span>15:48</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="c-thread-top"><span></span><span class="c-face"><svg><use href="sprite.svg#duck"/></svg></span><div><strong>Duck</strong><span>Connected</span></div><span></span></header>
+    <div class="c-scrim"></div>
+    <section class="c-sheet">
+      <h3>Duck's allowance</h3>
+      <p class="c-left"><b>0.90</b><span>of 1.00 USDC left today</span></p>
+      <div class="c-meter"><i></i></div>
+      <ul class="c-rules">
+        <li><svg class="icon"><use href="sprite.svg#i-limit"/></svg>At most 0.30 for one purchase</li>
+        <li><svg class="icon"><use href="sprite.svg#i-store"/></svg>Only at Duck Café</li>
+        <li><svg class="icon"><use href="sprite.svg#i-clock"/></svg>Until tomorrow at 15:30</li>
+        <li><svg class="icon"><use href="sprite.svg#i-world"/></svg>Anything else asks you in World App</li>
+      </ul>
+      <a class="c-btn line">Change allowance</a>
+      <a class="c-btn stop"><svg class="icon"><use href="sprite.svg#i-stop"/></svg>Stop Duck's allowance</a>
+      <p style="font-size:14px;color:var(--quiet);text-align:center">Arc enforces every limit. Stopping takes one passkey tap and works even if Duck is offline.</p>
+    </section>
+  </div>
+  <figcaption>
+    <h2>3 · Allowance and stop</h2>
+    <p>Grant and revoke move into one sheet. "Change allowance" signs a new grant and "Stop" revokes, both with the
+    passkey. Chip address and payee addresses sit under "Robot details" in the thread's menu.</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+<!-- 4 ADD ROBOT AS A CONVERSATION -->
+<figure class="shot">
+  <div class="phone fixed v-c">
+    <div class="status"><span>15:55</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="c-thread-top"><button class="c-iconbtn" aria-label="Close"><svg class="icon"><use href="sprite.svg#i-close"/></svg></button><span class="c-face off"><svg><use href="sprite.svg#duck"/></svg></span><div><strong>New robot</strong><span>Pairing</span></div><span></span></header>
+    <div class="c-msgs">
+      <p class="c-it">What's your robot called?</p>
+      <p class="c-me">Duck</p>
+      <div class="c-it"><span class="c-label">Give Duck this code (works once, 10 min)</span><b style="font:800 30px/1.2 'Baloo 2';letter-spacing:.08em">K7Q2 M9XZ</b><br><span style="font:500 13px/1.4 ui-monospace,Menlo,monospace">./vitaquack-chip --pair K7Q2M9XZ</span></div>
+      <p class="c-sys">Duck connected at 15:56</p>
+      <p class="c-it duck">Hello! My chip made its own key, and it stays on me. How much can I spend?</p>
+      <p class="c-me">1.00 a day, 0.30 at a time, Duck Café only, for 1 day</p>
+      <div class="c-it" style="max-width:92%">Duck can spend up to 1.00 USDC a day, at most 0.30 at a time, only at Duck Café, until tomorrow at 15:56. Anything else asks you first.
+        <a class="c-btn ink" style="width:100%;margin-top:10px"><svg class="icon"><use href="sprite.svg#i-passkey"/></svg>Confirm with passkey</a></div>
+    </div>
+  </div>
+  <figcaption>
+    <h2>4 · Adding a robot is a short conversation</h2>
+    <p>Name, code, "connected", allowance, passkey, in the order they happen. The allowance reply is picked from
+    preset chips (the same presets as A), so nobody types a free-text sentence.</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+</main>
+</body>
+</html>

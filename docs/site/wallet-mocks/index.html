@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitaquack wallet: three directions</title>
+<link rel="stylesheet" href="board.css">
+<style>
+.pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; max-width: 76rem; margin: 0 auto; padding: 28px 24px 8px; }
+.pick a { display: grid; gap: 12px; color: inherit; text-decoration: none; }
+.pick img { width: 100%; max-width: 330px; justify-self: center; border-radius: 40px; box-shadow: 0 0 0 8px #17181b, 0 30px 50px -28px rgb(0 0 0 / 0.45); }
+.pick h2 { margin: 14px 0 0; font-size: 20px; text-wrap: balance; }
+.pick p { margin: 0; color: #464a53; text-wrap: pretty; }
+.pick span { font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; }
+.notes { max-width: 76rem; margin: 0 auto; padding: 40px 24px 96px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 40px; }
+.notes section { display: grid; gap: 10px; align-content: start; }
+.notes h2 { margin: 0; font-size: 19px; }
+.notes p, .notes li { margin: 0; color: #33363d; text-wrap: pretty; }
+.notes ul, .notes ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.notes code { font-size: 0.92em; background: #d9dbdf; padding: 1px 5px; border-radius: 5px; }
+</style>
+</head>
+<body>
+<header class="board-head">
+  <h1>Vitaquack wallet: three directions to choose from</h1>
+  <p>Each direction is a complete wallet: balance, Send, Receive, your robots with their allowance, activity, adding a
+  robot, a robot's own page and the approval. They use the same real data (your 1.40 USDC, Duck's 1.00-a-day
+  allowance, today's chai and cigarettes) and the same flows, so you can also mix them, for example B's home with
+  A's robot page. Pick one, or name the parts you want from each.</p>
+</header>
+
+<div class="pick">
+  <a href="a.html"><img src="thumb-a.png" alt="Variant A home screen"><h2>A · Rubber duck</h2><p>A classic wallet: the balance card first, robots as a row of cards, activity as a list. The closest to Revolut. Seven screens, including Send and Receive.</p><span>Open A</span></a>
+  <a href="b.html"><img src="thumb-b.png" alt="Variant B home screen"><h2>B · Mallard</h2><p>Robots first, in a dark theme: each robot is a live card with its allowance ring and buy buttons. The robot page is a cockpit with what it reads at the top.</p><span>Open B</span></a>
+  <a href="c.html"><img src="thumb-c.png" alt="Variant C home screen"><h2>C · Quack chat</h2><p>Each robot is a conversation: tap what to buy, and it reports back and asks inline. A waiting approval sits at the top of home.</p><span>Open C</span></a>
+</div>
+
+<div class="notes">
+  <section>
+    <h2>The same in every variant</h2>
+    <ul>
+      <li><code>/</code> becomes the landing page (we design it next). The wallet lives at <code>/wallet</code>; signed out, it shows "Create wallet with passkey" and "Sign in".</li>
+      <li>The Robots page and the top navigation go away; robots live on the wallet home.</li>
+      <li>The language dropdown moves into the profile sheet (behind the avatar). All five catalogs stay.</li>
+      <li>Plain words: allowance instead of grant, Stop instead of revoke, Connected instead of lease, Show proof for the Arc transaction and the 0G ids.</li>
+      <li>The approval page becomes a sheet or full screen. Its URL stays, because World redirects back to it.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>The camera</h2>
+    <p>No live video, by design: "no camera frames leave the chip" is a product rule, and the pitch builds on it.
+    The mocks show what the robot reads instead: the merchant, item, price and the invoice QR, drawn from the
+    invoice URL. Today that is the invoice the errand pays. Once the Radxa scans QR codes, it is what the camera
+    decoded.</p>
+  </section>
+  <section>
+    <h2>The tags under each screen</h2>
+    <p><span class="need ok">green</span> works with today's API. <span class="need small">yellow</span> needs a
+    small server or frontend change. <span class="need new">red</span> needs new backend work. The only red one is
+    Send.</p>
+  </section>
+</div>
+</body>
+</html>

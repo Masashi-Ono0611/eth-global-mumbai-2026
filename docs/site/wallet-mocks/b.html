@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B · Mallard — Vitaquack wallet mocks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="board.css">
+<style>
+.v-b {
+  --pond: #0f2c27;
+  --reed: #163a33;
+  --reed-2: #1e4a41;
+  --line: rgb(241 244 236 / 0.09);
+  --collar: #f1f4ec;
+  --quiet: #9db4ac;
+  --bill: #ff9f2e;
+  --bill-ink: #2b1700;
+  --ok: #66d89d;
+  --stop: #ff7f70;
+  --duck-body: #f1f4ec;
+  --duck-bill: #ff9f2e;
+  --duck-eye: #0f2c27;
+  background: var(--pond);
+  color: var(--collar);
+  font: 400 16px/1.45 'Archivo', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 28px;
+}
+.v-b .status { color: var(--collar); }
+.v-b h3, .v-b h4, .v-b p { margin: 0; }
+:where(.v-b) :where(button, a) { font: inherit; color: inherit; text-decoration: none; border: 0; background: none; padding: 0; }
+.wide { font-stretch: 125%; }
+.v-b .icon { width: 22px; height: 22px; }
+
+.b-top { display: flex; align-items: center; justify-content: space-between; padding: 6px 20px 10px; }
+.v-b .b-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--collar); color: var(--pond); font-weight: 700; display: grid; place-items: center; }
+.v-b .b-iconbtn { width: 42px; height: 42px; border-radius: 14px; background: var(--reed); display: grid; place-items: center; }
+.b-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; background: var(--reed); font-size: 14px; font-weight: 550; }
+.b-pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgb(102 216 157 / 0.22); }
+.b-pill.off::before { background: #6f8a82; box-shadow: none; }
+
+.b-wallet { display: flex; align-items: end; justify-content: space-between; gap: 12px; padding: 8px 20px 20px; }
+.b-wallet p:first-child { font-size: 14px; color: var(--quiet); font-weight: 500; }
+.b-num { font-weight: 750; font-stretch: 125%; font-size: 46px; line-height: 1; letter-spacing: -0.02em; margin-top: 4px !important; }
+.b-num span { font-size: 17px; font-weight: 600; font-stretch: 100%; letter-spacing: 0; margin-left: 6px; color: var(--quiet); }
+.b-duo { display: flex; gap: 8px; }
+.v-b .b-sq { width: 52px; height: 52px; border-radius: 16px; background: var(--reed-2); display: grid; place-items: center; }
+.b-sq-label { display: grid; justify-items: center; gap: 6px; font-size: 12.5px; font-weight: 550; color: var(--quiet); }
+
+.b-sec { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 20px 12px; }
+.b-sec h3 { font-weight: 750; font-stretch: 125%; font-size: 20px; letter-spacing: -0.01em; }
+.b-sec a { font-size: 15px; font-weight: 600; color: var(--bill); }
+
+.b-robot { margin: 0 14px 12px; padding: 16px; border-radius: 26px; background: var(--reed); display: grid; gap: 14px; }
+.b-robot-head { display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center; }
+.b-face { width: 56px; height: 56px; border-radius: 18px; background: var(--reed-2); display: grid; place-items: center; }
+.b-face svg { width: 42px; height: 42px; }
+.b-robot h4 { font-weight: 750; font-stretch: 125%; font-size: 24px; line-height: 1.05; }
+.b-robot-head .b-pill { margin-top: 6px; padding: 0; background: none; color: var(--quiet); font-size: 14px; }
+.b-ring { position: relative; width: 70px; height: 70px; }
+.b-ring svg { width: 70px; height: 70px; rotate: -90deg; }
+.b-ring b { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font-weight: 750; font-stretch: 125%; font-size: 17px; line-height: 1; }
+.b-ring b small { font-size: 11px; font-weight: 500; font-stretch: 100%; color: var(--quiet); margin-top: 3px; }
+.b-live { display: grid; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--pond); }
+.b-live p { font-size: 15px; font-weight: 550; display: flex; justify-content: space-between; }
+.b-live p span { color: var(--quiet); font-weight: 450; }
+.b-bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.b-bars i { height: 5px; border-radius: 3px; background: var(--reed-2); }
+.b-bars i.done { background: var(--collar); }
+.b-bars i.now { background: var(--bill); }
+.b-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.v-b .b-chip { min-height: 46px; border-radius: 14px; background: var(--reed-2); display: grid; align-content: center; justify-items: center; font-size: 14px; font-weight: 600; line-height: 1.2; }
+.b-chip small { font-weight: 450; color: var(--quiet); font-size: 12.5px; }
+.b-chips.busy { opacity: 0.4; }
+.b-robot.off { gap: 12px; }
+.b-robot.off .b-face { --duck-body: #6f8a82; --duck-bill: #8fa59e; }
+.v-b .b-cta { min-height: 50px; border-radius: 16px; background: var(--bill); color: var(--bill-ink); display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; }
+.v-b .b-cta.ghost { background: none; color: var(--collar); box-shadow: inset 0 0 0 1.5px rgb(241 244 236 / 0.25); }
+.v-b .b-cta.stop { background: none; color: var(--stop); box-shadow: inset 0 0 0 1.5px rgb(255 127 112 / 0.45); }
+.v-b .b-cta.black { background: #000; color: #fff; }
+.b-hint { font-size: 14px; color: var(--quiet); }
+
+.b-feed { list-style: none; margin: 0 14px; padding: 0; display: grid; }
+.b-feed li { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 13px 6px; align-items: baseline; }
+.b-feed li + li { box-shadow: inset 0 1px 0 var(--line); }
+.b-feed p { font-size: 15px; }
+.b-feed p span { display: block; font-size: 13.5px; color: var(--quiet); margin-top: 2px; }
+.b-feed b { font-weight: 650; }
+.b-feed s { color: var(--quiet); }
+
+/* cockpit */
+.b-title { font-weight: 750; font-stretch: 125%; font-size: 20px; }
+.b-finder { position: relative; margin: 6px 14px 0; border-radius: 26px; background: #0a201c; aspect-ratio: 4 / 3.3; display: grid; place-items: center; overflow: hidden; }
+.b-finder::before {
+  content: ''; position: absolute; inset: 18px;
+  background:
+    linear-gradient(var(--collar) 0 0) top left / 26px 3px, linear-gradient(var(--collar) 0 0) top left / 3px 26px,
+    linear-gradient(var(--collar) 0 0) top right / 26px 3px, linear-gradient(var(--collar) 0 0) top right / 3px 26px,
+    linear-gradient(var(--collar) 0 0) bottom left / 26px 3px, linear-gradient(var(--collar) 0 0) bottom left / 3px 26px,
+    linear-gradient(var(--collar) 0 0) bottom right / 26px 3px, linear-gradient(var(--collar) 0 0) bottom right / 3px 26px;
+  background-repeat: no-repeat; opacity: 0.85;
+}
+.b-qr { width: 132px; padding: 10px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 6px rgb(255 159 46 / 0.35); }
+.b-qr img { display: block; width: 100%; }
+.b-read { position: absolute; left: 28px; right: 28px; bottom: 26px; display: flex; justify-content: space-between; align-items: end; }
+.b-read p { font-size: 13px; color: var(--quiet); }
+.b-read strong { display: block; font-size: 16px; color: var(--collar); font-weight: 650; }
+.b-read em { font-style: normal; font-weight: 750; font-stretch: 125%; font-size: 22px; color: var(--bill); }
+.b-tag { position: absolute; top: 28px; left: 30px; font-size: 13px; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.b-tag::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--bill); }
+.b-under { padding: 10px 24px 4px; font-size: 13.5px; color: var(--quiet); }
+
+.b-panel { margin: 12px 14px 0; padding: 16px; border-radius: 22px; background: var(--reed); display: grid; gap: 12px; }
+.b-panel h4 { font-weight: 700; font-stretch: 125%; font-size: 17px; }
+.b-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.b-steps div { display: grid; gap: 7px; font-size: 12px; line-height: 1.25; color: var(--quiet); font-weight: 500; }
+.b-steps div::before { content: ''; height: 5px; border-radius: 3px; background: var(--reed-2); }
+.b-steps .done { color: var(--collar); }
+.b-steps .done::before { background: var(--collar); }
+.b-steps .now { color: var(--bill); font-weight: 650; }
+.b-steps .now::before { background: var(--bill); }
+.b-quote { padding: 12px 14px; border-radius: 14px; background: var(--pond); font-size: 14.5px; }
+.b-quote span { display: block; font-size: 12.5px; color: var(--quiet); margin-bottom: 4px; }
+.b-allow { display: grid; grid-template-columns: 96px 1fr; gap: 16px; align-items: center; }
+.b-allow .b-ring, .b-allow .b-ring svg { width: 96px; height: 96px; }
+.b-allow .b-ring b { font-size: 24px; }
+.b-allow ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14.5px; }
+.b-allow li span { color: var(--quiet); }
+
+/* approval takeover: the palette inverts so it can't be missed */
+.v-b.ask { background: var(--collar); color: var(--pond); --duck-body: #0f2c27; --duck-bill: #ff9f2e; --duck-eye: #f1f4ec; }
+.v-b.ask .status { color: var(--pond); }
+.b-ask { padding: 18px 22px 0; display: grid; gap: 16px; }
+.b-ask .b-face { width: 64px; height: 64px; background: rgb(15 44 39 / 0.07); }
+.b-ask h3 { font-weight: 800; font-stretch: 125%; font-size: 34px; line-height: 1.02; letter-spacing: -0.02em; text-wrap: balance; }
+.b-ask .b-num { font-size: 64px; }
+.b-ask .b-num span { color: rgb(15 44 39 / 0.6); }
+.b-why { display: grid; gap: 10px; }
+.b-why p { font-size: 15.5px; }
+.b-why .b-quote { background: rgb(15 44 39 / 0.06); }
+.b-why .b-quote span { color: rgb(15 44 39 / 0.6); }
+.b-timer { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600; }
+.b-timer i { width: 22px; height: 22px; border-radius: 50%; background: conic-gradient(var(--bill) 0 97%, rgb(15 44 39 / 0.12) 0); }
+.b-bottom { position: absolute; left: 22px; right: 22px; bottom: 34px; display: grid; gap: 10px; }
+.v-b.ask .b-cta.ghost { color: var(--pond); box-shadow: inset 0 0 0 1.5px rgb(15 44 39 / 0.25); }
+
+/* pairing */
+.b-pair { padding: 10px 22px 0; display: grid; gap: 18px; }
+.b-pair h3 { font-weight: 800; font-stretch: 125%; font-size: 32px; line-height: 1.05; letter-spacing: -0.02em; }
+.b-otp { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.b-otp span { aspect-ratio: 1 / 1.15; border-radius: 16px; background: var(--reed); display: grid; place-items: center; font-weight: 800; font-stretch: 125%; font-size: 40px; }
+.b-cmd { display: flex; justify-content: space-between; align-items: center; padding: 14px; border-radius: 14px; background: #0a201c; font: 500 13.5px/1.3 ui-monospace, 'SF Mono', Menlo, monospace; }
+.b-hello { display: grid; justify-items: center; gap: 14px; padding: 26px 0 8px; text-align: center; }
+.b-hello .b-face { width: 84px; height: 84px; border-radius: 28px; box-shadow: 0 0 0 10px rgb(255 159 46 / 0.12), 0 0 0 22px rgb(255 159 46 / 0.06); }
+.b-hello .b-face svg { width: 60px; height: 60px; }
+.b-hello p { font-weight: 600; }
+</style>
+</head>
+<body>
+<header class="board-head">
+  <h1>B · Mallard: your robots come first</h1>
+  <p>The same wallet, built around the robots. The balance is one compact line at the top. Each robot is a large
+  live card with its allowance ring, its errand progress and buy buttons, so you can send it out without opening it.
+  Inside, the robot page is a cockpit: what it reads at the top, the errand, the allowance, and a stop button you can't
+  miss. The colours are a mallard's: bottle-green head, white collar ring, orange bill.</p>
+  <nav class="board-nav"><a href="index.html">All variants</a><a href="a.html">A · Rubber duck</a><a href="b.html" aria-current="page">B · Mallard</a><a href="c.html">C · Quack chat</a></nav>
+</header>
+
+<main class="board">
+
+<!-- 1 HOME -->
+<figure class="shot">
+  <div class="phone v-b">
+    <div class="status"><span>15:42</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="b-top"><button class="b-avatar" aria-label="Profile: language, passkeys, sign out">K</button></header>
+    <section class="b-wallet">
+      <div><p>Balance</p><p class="b-num">1.40<span>USDC</span></p></div>
+      <div class="b-duo">
+        <a class="b-sq-label"><span class="b-sq"><svg class="icon"><use href="sprite.svg#i-send"/></svg></span>Send</a>
+        <a class="b-sq-label"><span class="b-sq"><svg class="icon"><use href="sprite.svg#i-receive"/></svg></span>Receive</a>
+      </div>
+    </section>
+
+    <div class="b-sec"><h3>Robots</h3><a href="#pair">Add robot</a></div>
+
+    <article class="b-robot">
+      <div class="b-robot-head">
+        <span class="b-face"><svg><use href="sprite.svg#duck"/></svg></span>
+        <div><h4>Duck</h4><span class="b-pill">Connected</span></div>
+        <div class="b-ring" aria-label="0.40 of 1.00 left today">
+          <svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="30" fill="none" stroke="#1e4a41" stroke-width="7"/><circle cx="35" cy="35" r="30" fill="none" stroke="#ff9f2e" stroke-width="7" stroke-linecap="round" stroke-dasharray="75.4 188.5"/></svg>
+          <b>0.40<small>left</small></b>
+        </div>
+      </div>
+      <div class="b-live">
+        <p>Buying samosa <span>chip signing</span></p>
+        <div class="b-bars"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+      </div>
+      <div class="b-chips busy">
+        <button class="b-chip">Chai<small>0.10</small></button>
+        <button class="b-chip">Samosa<small>0.25</small></button>
+        <button class="b-chip">Cigarettes<small>asks you</small></button>
+      </div>
+    </article>
+
+    <article class="b-robot off">
+      <div class="b-robot-head">
+        <span class="b-face"><svg><use href="sprite.svg#duck"/></svg></span>
+        <div><h4>Mock robot</h4><span class="b-pill off">Offline since 12:40</span></div>
+        <span></span>
+      </div>
+      <a class="b-cta">Give it an allowance</a>
+    </article>
+
+    <div class="b-sec" style="padding-top:14px"><h3>Recent</h3></div>
+    <ul class="b-feed">
+      <li><p>Duck paid for cigarettes<span>You approved it with World ID, 14:52</span></p><b>−0.50</b></li>
+      <li><p>Duck asked for cigarettes<span>You said no, nothing paid, 14:47</span></p><s>0.50</s></li>
+      <li><p>Duck paid for chai<span>Duck Café, 14:31</span></p><b>−0.10</b></li>
+    </ul>
+  </div>
+  <figcaption>
+    <h2>1 · Home: the robots are the page</h2>
+    <p>The balance and Send/Receive sit in one row. Each robot card answers three questions: is it connected, how much
+    is left today, and what is it doing right now. The buy buttons sit on the card and are disabled during an errand.
+    Activity reads as sentences.</p>
+    <span class="need ok">Works with today's API</span>
+    <span class="need small">Small server change: "spent today" for each robot</span>
+  </figcaption>
+</figure>
+
+<!-- 2 COCKPIT -->
+<figure class="shot">
+  <div class="phone v-b">
+    <div class="status"><span>15:42</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="b-top"><button class="b-iconbtn" aria-label="Back"><svg class="icon"><use href="sprite.svg#i-back"/></svg></button><span class="b-title">Duck</span><span class="b-pill">Connected</span></header>
+
+    <section class="b-finder" aria-label="What Duck reads">
+      <span class="b-tag">Reading the counter</span>
+      <div class="b-qr"><img src="qr-invoice.svg" alt="The Duck Café invoice QR"></div>
+      <div class="b-read"><p><strong>Duck Café</strong>Samosa, pay by 15:52</p><em>0.25</em></div>
+    </section>
+    <p class="b-under">Duck sends what it reads, never the picture. The camera stays on the robot.</p>
+
+    <section class="b-panel">
+      <h4>Buying samosa</h4>
+      <div class="b-steps"><div class="done">Found it</div><div class="done">0G said yes</div><div class="now">Chip signing</div><div>Paid on Arc</div><div>Saved on 0G</div></div>
+      <p class="b-quote"><span>0G's reason</span>Owner asked for samosa; 0.25 fits the per-payment cap and today's budget.</p>
+      <a class="b-hint" style="display:inline-flex;gap:6px;align-items:center"><svg class="icon" style="width:18px;height:18px"><use href="sprite.svg#i-proof"/></svg>Show proof</a>
+    </section>
+
+    <section class="b-panel">
+      <h4>Allowance</h4>
+      <div class="b-allow">
+        <div class="b-ring"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="30" fill="none" stroke="#1e4a41" stroke-width="6"/><circle cx="35" cy="35" r="30" fill="none" stroke="#ff9f2e" stroke-width="6" stroke-linecap="round" stroke-dasharray="75.4 188.5"/></svg><b>0.40<small>of 1.00</small></b></div>
+        <ul><li>0.30 <span>at most per purchase</span></li><li>Duck Café <span>only</span></li><li>Until <span>tomorrow 15:30</span></li></ul>
+      </div>
+    </section>
+
+    <section class="b-panel">
+      <h4>Send Duck out</h4>
+      <div class="b-chips busy"><button class="b-chip">Chai<small>0.10</small></button><button class="b-chip">Samosa<small>0.25</small></button><button class="b-chip">Cigarettes<small>asks you</small></button></div>
+    </section>
+
+    <div style="padding:14px 14px 0;display:grid;gap:8px">
+      <a class="b-cta stop"><svg class="icon"><use href="sprite.svg#i-stop"/></svg>Stop Duck spending</a>
+      <p class="b-hint" style="text-align:center">Revokes the allowance on Arc with one passkey tap. Duck can't pay after that.</p>
+    </div>
+  </div>
+  <figcaption>
+    <h2>2 · The robot's cockpit</h2>
+    <p>The camera question, answered in the layout: a viewfinder that shows what Duck reads (the invoice QR, drawn from
+    its URL, with the merchant and price), not a video. A five-segment progress bar shows the errand, with 0G's reason
+    under it. The stop button is red and full width.</p>
+    <span class="need ok">Works with today's API</span>
+    <span class="need small">"Reading the counter" becomes a real signal once the Radxa scans QR codes (chip reports what it decoded)</span>
+  </figcaption>
+</figure>
+
+<!-- 3 APPROVAL -->
+<figure class="shot">
+  <div class="phone fixed v-b ask">
+    <div class="status"><span>15:47</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="b-top"><button class="b-iconbtn" style="background:rgb(15 44 39 / .07)" aria-label="Close"><svg class="icon"><use href="sprite.svg#i-close"/></svg></button></header>
+    <section class="b-ask">
+      <span class="b-face"><svg style="width:46px;height:46px"><use href="sprite.svg#duck"/></svg></span>
+      <h3>Duck is asking to buy cigarettes</h3>
+      <p class="b-num">0.50<span>USDC at Duck Café</span></p>
+      <div class="b-why">
+        <p>Cigarettes are a restricted item, and 0.50 is over Duck's 0.30 limit for one purchase. Nothing is paid unless you approve.</p>
+        <p class="b-quote"><span>0G's reason</span>Restricted item the owner asked for; the owner approves it in World App.</p>
+      </div>
+      <p class="b-timer"><i></i>Answer within 4:52</p>
+    </section>
+    <div class="b-bottom">
+      <a class="b-cta black"><svg class="icon"><use href="sprite.svg#i-world"/></svg>Approve once with World ID</a>
+      <a class="b-cta ghost">Decline</a>
+    </div>
+  </div>
+  <figcaption>
+    <h2>3 · Approval takes over the screen</h2>
+    <p>The palette flips to the white of the mallard's collar, so a waiting approval looks different from everything
+    else in the app. It opens from the robot card and from the link the errand produces.</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+<!-- 4 PAIR -->
+<figure class="shot" id="pair">
+  <div class="phone fixed v-b">
+    <div class="status"><span>15:55</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="b-top"><button class="b-iconbtn" aria-label="Close"><svg class="icon"><use href="sprite.svg#i-close"/></svg></button><span class="b-hint">Step 1 of 2</span><span style="width:42px"></span></header>
+    <section class="b-pair">
+      <h3>Pair Duck</h3>
+      <p class="b-hint" style="font-size:15.5px">Start the robot and give it this code. It works once, for 10 minutes.</p>
+      <div class="b-otp"><span>K</span><span>7</span><span>Q</span><span>2</span><span>M</span><span>9</span><span>X</span><span>Z</span></div>
+      <span class="b-cmd">./vitaquack-chip --pair K7Q2M9XZ<svg class="icon" style="width:18px;height:18px"><use href="sprite.svg#i-copy"/></svg></span>
+      <div class="b-hello"><span class="b-face"><svg><use href="sprite.svg#duck"/></svg></span><p>Waiting for Duck to say hello…</p><p class="b-hint">Then you choose its allowance and confirm it with your passkey.</p></div>
+    </section>
+  </div>
+  <figcaption>
+    <h2>4 · Pairing</h2>
+    <p>The code in eight boxes, easy to read off a phone held next to the robot. Step 2, the allowance, uses the same
+    presets as A.</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+</main>
+</body>
+</html>

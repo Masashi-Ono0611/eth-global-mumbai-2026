@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A · Rubber duck — Vitaquack wallet mocks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="board.css">
+<style>
+.v-a {
+  --canvas: #f2f3f5;
+  --surface: #ffffff;
+  --ink: #1a1f36;
+  --quiet: #676d81;
+  --line: #e5e7ec;
+  --duck: #ffd233;
+  --duck-soft: #fff3c4;
+  --paid: #12854a;
+  --stop: #c93636;
+  --display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --ui: 'Instrument Sans', system-ui, sans-serif;
+  --duck-body: #ffd233;
+  --duck-bill: #f08a1c;
+  --duck-eye: #1a1f36;
+  background: var(--canvas);
+  color: var(--ink);
+  font: 400 16px/1.45 var(--ui);
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 28px;
+}
+.v-a h3, .v-a h4, .v-a p { margin: 0; }
+:where(.v-a) :where(button, a) { font: inherit; color: inherit; text-decoration: none; }
+:where(.v-a) :where(button) { border: 0; background: none; padding: 0; cursor: pointer; }
+.v-a .icon { width: 22px; height: 22px; }
+
+/* top bar */
+.a-top { display: flex; align-items: center; justify-content: space-between; padding: 6px 20px 14px; }
+.a-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff !important; font-weight: 600; display: grid; place-items: center; }
+.a-iconbtn { width: 40px; height: 40px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06); }
+.a-title { font: 700 17px/1 var(--ui); }
+
+/* balance: the one loud surface */
+.a-balance { margin: 0 16px; padding: 22px 24px 24px; border-radius: 30px; background: var(--duck); display: grid; gap: 2px; }
+.a-balance p:first-child { font-weight: 500; opacity: 0.78; }
+.a-amount { font: 750 72px/1 var(--display); font-variation-settings: 'opsz' 96; letter-spacing: -0.035em; margin-top: 6px !important; }
+.a-amount span { font: 650 22px/1 var(--ui); letter-spacing: 0; margin-left: 8px; }
+.a-sub { margin-top: 12px !important; font-weight: 500; opacity: 0.78; }
+
+.a-actions { display: grid; grid-template-columns: repeat(3, 1fr); padding: 20px 20px 4px; }
+.a-actions a { display: grid; justify-items: center; gap: 8px; font-size: 14px; font-weight: 550; }
+.a-round { width: 56px; height: 56px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px -6px rgb(0 0 0 / 0.12); }
+
+.a-section { padding: 22px 16px 0; display: grid; gap: 12px; }
+.a-section > h3 { font: 700 21px/1.2 var(--display); padding-inline: 4px; letter-spacing: -0.01em; }
+
+/* robots strip */
+.a-robots { display: flex; gap: 10px; overflow-x: auto; margin-inline: -16px; padding: 2px 16px 6px; scrollbar-width: none; }
+.a-robot { flex: none; width: 164px; padding: 14px; border-radius: 22px; background: var(--surface); display: grid; gap: 4px; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); }
+.a-robot strong { font-size: 17px; font-weight: 650; margin-top: 8px; }
+.a-face { width: 46px; height: 46px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+.a-face svg { width: 34px; height: 34px; }
+.a-robot.off .a-face { background: #c9ccd4; --duck-body: #f4f5f7; --duck-bill: #b4b8c2; }
+.a-state { font-size: 14px; color: var(--quiet); display: flex; align-items: center; gap: 6px; }
+.a-state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #b6bac4; }
+.a-state.on { color: var(--ink); }
+.a-state.on::before { background: #1fa55c; box-shadow: 0 0 0 3px rgb(31 165 92 / 0.18); }
+.a-meter { height: 6px; border-radius: 3px; background: var(--line); margin-top: 10px; overflow: hidden; }
+.a-meter i { display: block; height: 100%; width: var(--w); background: var(--ink); border-radius: 3px; }
+.a-left { font-size: 13px; color: var(--quiet); }
+.a-robot.add { place-content: center; justify-items: center; gap: 10px; font-weight: 600; font-size: 15px; background: transparent; box-shadow: inset 0 0 0 1.5px #cfd2d9; }
+.a-robot.add .a-round { box-shadow: none; background: var(--surface); }
+
+/* list */
+.a-list { list-style: none; margin: 0; padding: 4px 0; border-radius: 22px; background: var(--surface); }
+.a-list li { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px; padding: 12px 16px; }
+.a-list li + li { box-shadow: inset 0 1px 0 var(--line); }
+.a-ico { width: 40px; height: 40px; border-radius: 50%; background: var(--canvas); display: grid; place-items: center; }
+.a-what, .a-amt { display: grid; gap: 1px; min-width: 0; }
+.a-what strong, .a-amt strong { font-weight: 600; }
+.a-what span, .a-amt span { font-size: 14px; color: var(--quiet); }
+.a-amt { justify-items: end; }
+.a-amt .paid { color: var(--paid); }
+.a-amt .pending { color: #8a6400; }
+.a-amt s { color: var(--quiet); font-weight: 500; }
+
+/* robot page */
+.a-hero { display: grid; justify-items: center; gap: 6px; padding: 4px 20px 18px; text-align: center; }
+.a-hero .a-face { width: 76px; height: 76px; }
+.a-hero .a-face svg { width: 56px; height: 56px; }
+.a-hero h3 { font: 750 32px/1.1 var(--display); letter-spacing: -0.02em; margin-top: 8px; }
+.a-card { margin: 0 16px; padding: 18px; border-radius: 22px; background: var(--surface); display: grid; gap: 12px; }
+.a-card + .a-card { margin-top: 12px; }
+.a-big { font: 750 40px/1 var(--display); letter-spacing: -0.03em; }
+.a-big span { font: 500 16px/1 var(--ui); color: var(--quiet); letter-spacing: 0; margin-left: 6px; }
+.a-card .a-meter { margin: 0; height: 8px; }
+.a-facts { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 10px; font-size: 15px; }
+.a-facts li { display: flex; gap: 10px; align-items: center; }
+.a-facts .icon { width: 20px; height: 20px; color: var(--quiet); }
+.a-h { display: flex; justify-content: space-between; align-items: baseline; }
+.a-h h4 { font: 700 19px/1.2 var(--display); letter-spacing: -0.01em; }
+.a-h span { font-size: 14px; color: var(--quiet); }
+
+.a-steps { list-style: none; margin: 0; padding: 0; display: grid; }
+.a-steps li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; position: relative; padding-bottom: 14px; }
+.a-steps li:last-child { padding-bottom: 0; }
+.a-steps li::after { content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--line); }
+.a-steps li:last-child::after { display: none; }
+.a-steps li.done::after { background: var(--ink); }
+.a-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--canvas); color: var(--quiet); }
+.done .a-dot { background: var(--ink); color: #fff; }
+.done .a-dot .icon { width: 16px; height: 16px; }
+.now .a-dot { background: var(--duck); color: var(--ink); }
+.now .a-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+.a-steps strong { font-weight: 600; display: block; padding-top: 3px; }
+.a-steps p { font-size: 14px; color: var(--quiet); }
+.a-steps q { display: block; margin-top: 4px; font-size: 14px; color: var(--ink); background: var(--canvas); border-radius: 12px; padding: 8px 10px; quotes: none; }
+.a-steps .todo strong { color: var(--quiet); font-weight: 500; }
+.a-link { font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.a-link .icon { width: 18px; height: 18px; }
+
+.a-sees { display: grid; grid-template-columns: 116px 1fr; gap: 16px; align-items: center; }
+.a-finder { position: relative; aspect-ratio: 1; padding: 14px; border-radius: 16px; background: var(--canvas); }
+.a-finder img { display: block; width: 100%; height: 100%; }
+.a-finder::before {
+  content: ''; position: absolute; inset: 6px; border-radius: 10px;
+  background:
+    linear-gradient(var(--ink) 0 0) top left / 16px 2.5px, linear-gradient(var(--ink) 0 0) top left / 2.5px 16px,
+    linear-gradient(var(--ink) 0 0) top right / 16px 2.5px, linear-gradient(var(--ink) 0 0) top right / 2.5px 16px,
+    linear-gradient(var(--ink) 0 0) bottom left / 16px 2.5px, linear-gradient(var(--ink) 0 0) bottom left / 2.5px 16px,
+    linear-gradient(var(--ink) 0 0) bottom right / 16px 2.5px, linear-gradient(var(--ink) 0 0) bottom right / 2.5px 16px;
+  background-repeat: no-repeat;
+}
+.a-sees dl { margin: 0; display: grid; gap: 2px; }
+.a-sees dt { font-weight: 600; }
+.a-sees dd { margin: 0; font-size: 14px; color: var(--quiet); }
+.a-note { font-size: 13px; color: var(--quiet); }
+
+.a-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.a-tile { display: grid; align-content: start; gap: 2px; justify-items: start; padding: 12px; border-radius: 16px; background: var(--canvas); text-align: left; }
+.a-tile .icon { margin-bottom: 8px; }
+.a-tile strong { font-weight: 600; font-size: 15px; }
+.a-tile span { font-size: 13px; color: var(--quiet); }
+.a-tile em { font-style: normal; font-size: 12px; font-weight: 600; background: var(--duck-soft); color: #6b4e00; padding: 1px 6px; border-radius: 6px; margin-top: 4px; }
+.a-tiles.busy .a-tile { opacity: 0.45; }
+
+.a-rows { list-style: none; margin: 12px 16px 0; padding: 4px 0; background: var(--surface); border-radius: 22px; }
+.a-rows li { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-weight: 550; }
+.a-rows li + li { box-shadow: inset 0 1px 0 var(--line); }
+.a-rows li .icon:last-child { margin-left: auto; color: var(--quiet); width: 18px; height: 18px; }
+.a-rows .danger { color: var(--stop); }
+
+/* sheets */
+.a-scrim { position: absolute; inset: 0; background: rgb(14 17 33 / 0.42); z-index: 1; }
+.a-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; background: var(--surface); border-radius: 34px 34px 0 0; padding: 10px 22px 34px; display: grid; gap: 14px; }
+.a-sheet::before { content: ''; justify-self: center; width: 40px; height: 5px; border-radius: 3px; background: #d6d8de; margin-bottom: 4px; }
+.a-sheet h3 { font: 750 27px/1.15 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
+.a-qr { justify-self: center; width: 216px; padding: 18px; border-radius: 26px; background: #fff; box-shadow: 0 0 0 1px var(--line); position: relative; }
+.a-qr img { display: block; width: 100%; }
+.a-qr .a-face { position: absolute; inset: 50% auto auto 50%; translate: -50% -50%; width: 44px; height: 44px; box-shadow: 0 0 0 5px #fff; }
+.a-qr .a-face svg { width: 32px; height: 32px; }
+.a-addr { text-align: center; font: 550 17px/1.5 var(--ui); letter-spacing: 0.04em; word-spacing: 0.25em; }
+.a-addr span { color: var(--quiet); }
+.a-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.a-btn { min-height: 54px; border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600 !important; background: var(--canvas); }
+.a-btn.primary { background: var(--ink); color: #fff !important; }
+.a-btn.wide { grid-column: 1 / -1; }
+.a-btn.world { background: #000; color: #fff !important; }
+.a-warn { font-size: 14px; color: var(--quiet); text-align: center; text-wrap: balance; }
+.a-ask { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.a-ask .a-face { width: 64px; height: 64px; }
+.a-ask .a-face svg { width: 46px; height: 46px; }
+.a-ask .a-big { font-size: 52px; margin-top: 6px; }
+.a-why { background: var(--duck-soft); border-radius: 18px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15px; }
+.a-why strong { font-weight: 650; }
+.a-why p:last-child { font-size: 14px; color: #5d4a12; }
+
+/* add robot */
+.a-steplabel { font-size: 14px; color: var(--quiet); font-weight: 550; }
+.a-page { padding: 0 20px; display: grid; gap: 16px; }
+.a-page > h3 { font: 750 32px/1.1 var(--display); letter-spacing: -0.02em; }
+.a-field { display: grid; gap: 6px; }
+.a-field label { font-size: 14px; font-weight: 600; color: var(--quiet); }
+.a-input { min-height: 54px; border-radius: 16px; background: var(--surface); display: flex; align-items: center; padding: 0 16px; font-size: 17px; box-shadow: inset 0 0 0 1px var(--line); }
+.a-input.focus { box-shadow: inset 0 0 0 2px var(--ink); }
+.a-input .ph { color: #9a9fae; }
+.a-code { padding: 22px 18px 18px; border-radius: 24px; background: var(--surface); display: grid; gap: 10px; justify-items: center; text-align: center; }
+.a-code b { font: 750 46px/1 var(--display); letter-spacing: 0.08em; word-spacing: 0.3em; }
+.a-cmd { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--ink); color: #e9ebf3; font: 500 13.5px/1.3 ui-monospace, 'SF Mono', Menlo, monospace; text-align: left; }
+.a-cmd .icon { width: 18px; height: 18px; color: #fff; }
+.a-wait { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 18px; background: var(--duck-soft); font-weight: 550; }
+.a-spin { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid rgb(26 31 54 / 0.2); border-top-color: var(--ink); }
+.a-ok { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 16px; background: #e2f3e8; color: #135a32; font-weight: 600; }
+.a-ok .icon { width: 20px; height: 20px; }
+.a-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 16px; background: #e6e8ec; }
+.a-seg span { min-height: 42px; display: grid; place-items: center; border-radius: 12px; font-weight: 600; font-size: 15px; color: var(--quiet); }
+.a-seg span.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / 0.1); }
+.a-check { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 0 14px; border-radius: 16px; background: var(--surface); }
+.a-check .box { width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: #fff; display: grid; place-items: center; }
+.a-check .box .icon { width: 16px; height: 16px; }
+.a-check small { color: var(--quiet); font-size: 13px; margin-left: auto; }
+.a-summary { font-size: 15px; padding: 14px 16px; border-radius: 18px; background: var(--surface); box-shadow: inset 3px 0 0 var(--duck); }
+.a-amountin { display: grid; justify-items: center; gap: 4px; padding: 18px 0 6px; }
+.a-amountin .a-big { font-size: 64px; }
+.a-bottom { position: absolute; left: 20px; right: 20px; bottom: 34px; }
+</style>
+</head>
+<body>
+<header class="board-head">
+  <h1>A · Rubber duck: a classic wallet with robots in it</h1>
+  <p>The structure you asked for, as close to Revolut as the product allows: balance first, then Send, Receive and Add robot,
+  then your robots as cards, then activity. The rubber-duck yellow balance card is the one loud thing; everything else is
+  white and quiet. Technical detail (0G request ids, Arc transactions, 0G Storage) moves behind "Show proof".</p>
+  <nav class="board-nav"><a href="index.html">All variants</a><a href="a.html" aria-current="page">A · Rubber duck</a><a href="b.html">B · Mallard</a><a href="c.html">C · Quack chat</a></nav>
+</header>
+
+<main class="board">
+
+<!-- 1 HOME -->
+<figure class="shot">
+  <div class="phone v-a">
+    <div class="status"><span>15:42</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="a-top">
+      <button class="a-avatar" aria-label="Profile: language, passkeys, sign out">K</button>
+    </header>
+    <section class="a-balance" aria-label="Balance">
+      <p>Balance</p>
+      <p class="a-amount">1.40<span>USDC</span></p>
+      <p class="a-sub">Your robots spent 0.60 today</p>
+    </section>
+    <nav class="a-actions">
+      <a href="#send"><span class="a-round"><svg class="icon"><use href="sprite.svg#i-send"/></svg></span>Send</a>
+      <a href="#receive"><span class="a-round"><svg class="icon"><use href="sprite.svg#i-receive"/></svg></span>Receive</a>
+      <a href="#pair"><span class="a-round"><svg class="icon"><use href="sprite.svg#i-plus"/></svg></span>Add robot</a>
+    </nav>
+    <section class="a-section">
+      <h3>Robots</h3>
+      <div class="a-robots">
+        <a class="a-robot" href="#robot">
+          <span class="a-face"><svg><use href="sprite.svg#duck"/></svg></span>
+          <strong>Duck</strong>
+          <span class="a-state on">Buying samosa</span>
+          <span class="a-meter"><i style="--w:60%"></i></span>
+          <span class="a-left">0.40 of 1.00 left today</span>
+        </a>
+        <a class="a-robot off" href="#robot">
+          <span class="a-face"><svg><use href="sprite.svg#duck"/></svg></span>
+          <strong>Mock robot</strong>
+          <span class="a-state">Offline</span>
+          <span class="a-meter"><i style="--w:0%"></i></span>
+          <span class="a-left">No allowance yet</span>
+        </a>
+        <a class="a-robot add" href="#pair"><span class="a-round"><svg class="icon"><use href="sprite.svg#i-plus"/></svg></span>Add robot</a>
+      </div>
+    </section>
+    <section class="a-section">
+      <h3>Today</h3>
+      <ul class="a-list">
+        <li><span class="a-ico"><svg class="icon"><use href="sprite.svg#i-samosa"/></svg></span><span class="a-what"><strong>Samosa</strong><span>Duck is paying now</span></span><span class="a-amt"><strong>0.25</strong><span class="pending">Pending</span></span></li>
+        <li><span class="a-ico"><svg class="icon"><use href="sprite.svg#i-cig"/></svg></span><span class="a-what"><strong>Cigarettes</strong><span>Duck, with your OK</span></span><span class="a-amt"><strong>−0.50</strong><span class="paid">Paid</span></span></li>
+        <li><span class="a-ico"><svg class="icon"><use href="sprite.svg#i-cig"/></svg></span><span class="a-what"><strong>Cigarettes</strong><span>Duck, you said no</span></span><span class="a-amt"><s>0.50</s><span>Not paid</span></span></li>
+        <li><span class="a-ico"><svg class="icon"><use href="sprite.svg#i-cup"/></svg></span><span class="a-what"><strong>Chai</strong><span>Duck at Duck Café</span></span><span class="a-amt"><strong>−0.10</strong><span class="paid">Paid</span></span></li>
+      </ul>
+    </section>
+  </div>
+  <figcaption>
+    <h2>1 · Wallet home (replaces / and /wallet)</h2>
+    <p>The avatar opens a profile sheet with language, passkeys and sign out, so the header dropdown goes and all five
+    catalogs stay. A row opens a receipt with the Arc transaction and the 0G decision. The Robots page is gone: robots
+    live here as cards.</p>
+    <span class="need ok">Works with today's API</span>
+    <span class="need small">Small server change: "spent today" for each robot on /api/robots</span>
+  </figcaption>
+</figure>
+
+<!-- 2 RECEIVE -->
+<figure class="shot" id="receive">
+  <div class="phone fixed v-a">
+    <div class="status"><span>15:42</span><span class="status-icons"><i></i><i></i></span></div>
+    <div class="a-balance" style="opacity:.9"><p>Balance</p><p class="a-amount">1.40<span>USDC</span></p><p class="a-sub">Your robots spent 0.60 today</p></div>
+    <div class="a-scrim"></div>
+    <section class="a-sheet">
+      <h3>Receive USDC</h3>
+      <div class="a-qr"><img src="qr-address.svg" alt="QR code of your wallet address"><span class="a-face"><svg><use href="sprite.svg#duck"/></svg></span></div>
+      <p class="a-addr">0x83B1 B415 <span>D739 B161 6C30</span><br><span>557c C397 7623</span> 8BA2 5F7B</p>
+      <div class="a-btns">
+        <a class="a-btn"><svg class="icon"><use href="sprite.svg#i-copy"/></svg>Copy</a>
+        <a class="a-btn"><svg class="icon"><use href="sprite.svg#i-share"/></svg>Share</a>
+      </div>
+      <p class="a-warn">Send only USDC on the Arc network. Your robots spend from this balance, never more than you allow.</p>
+    </section>
+  </div>
+  <figcaption>
+    <h2>2 · Receive</h2>
+    <p>A bottom sheet with the address as a QR code and in four-character groups, so it can be read aloud and checked
+    by eye. The duck in the middle is safe: the code is ECC M.</p>
+    <span class="need ok">Frontend only</span>
+    <span class="need small">Adds a small QR encoder to apps/web (uqr, about 10 KB)</span>
+  </figcaption>
+</figure>
+
+<!-- 3 SEND -->
+<figure class="shot" id="send">
+  <div class="phone fixed v-a">
+    <div class="status"><span>15:42</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="a-top"><button class="a-iconbtn" aria-label="Close"><svg class="icon"><use href="sprite.svg#i-close"/></svg></button><span class="a-title">Send USDC</span><span style="width:40px"></span></header>
+    <div class="a-page">
+      <div class="a-amountin"><p class="a-big">0.50<span>USDC</span></p><p class="a-note">You have 1.40. <b>Use max</b></p></div>
+      <div class="a-field"><label>To</label><div class="a-input focus"><span class="ph">Address on Arc (0x…)</span></div></div>
+      <p class="a-note">Arc only. A payment on Arc settles in about a second and can't be undone.</p>
+      <a class="a-btn primary a-bottom"><svg class="icon"><use href="sprite.svg#i-passkey"/></svg>Send with passkey</a>
+    </div>
+  </div>
+  <figcaption>
+    <h2>3 · Send</h2>
+    <p>Amount, address, passkey. It uses the same mechanism as revoke: the passkey signs a one-time delegation (a USDC
+    transfer, one call only) and the relayer submits it. The relayer can't change the payee or the amount.</p>
+    <span class="need new">New backend: a "send" owner action beside revoke, roughly 2 to 3 h with tests</span>
+  </figcaption>
+</figure>
+
+<!-- 4 ROBOT -->
+<figure class="shot" id="robot">
+  <div class="phone v-a">
+    <div class="status"><span>15:42</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="a-top"><button class="a-iconbtn" aria-label="Back"><svg class="icon"><use href="sprite.svg#i-back"/></svg></button><span></span></header>
+    <section class="a-hero">
+      <span class="a-face"><svg><use href="sprite.svg#duck"/></svg></span>
+      <h3>Duck</h3>
+      <span class="a-state on">Online and buying a samosa</span>
+    </section>
+
+    <section class="a-card" aria-label="Allowance">
+      <div class="a-h"><h4>Left today</h4><span>0.60 spent</span></div>
+      <p class="a-big">0.40<span>of 1.00 USDC</span></p>
+      <span class="a-meter"><i style="--w:60%"></i></span>
+      <ul class="a-facts">
+        <li><svg class="icon"><use href="sprite.svg#i-limit"/></svg>Up to 0.30 for one purchase</li>
+        <li><svg class="icon"><use href="sprite.svg#i-store"/></svg>Only at Duck Café</li>
+        <li><svg class="icon"><use href="sprite.svg#i-clock"/></svg>Ends tomorrow at 15:30</li>
+      </ul>
+    </section>
+
+    <section class="a-card" aria-label="Right now">
+      <div class="a-h"><h4>Right now</h4><span>Samosa, 0.25</span></div>
+      <ol class="a-steps">
+        <li class="done"><span class="a-dot"><svg class="icon"><use href="sprite.svg#i-check"/></svg></span><div><strong>Found it at Duck Café</strong><p>An invoice for 0.25 USDC</p></div></li>
+        <li class="done"><span class="a-dot"><svg class="icon"><use href="sprite.svg#i-check"/></svg></span><div><strong>0G decided to buy it</strong><q>Owner asked for samosa; 0.25 fits the per-payment cap and today's budget.</q></div></li>
+        <li class="now"><span class="a-dot"></span><div><strong>Duck's chip is signing the payment</strong><p>The key never leaves the robot</p></div></li>
+        <li class="todo"><span class="a-dot"></span><div><strong>Paid on Arc</strong></div></li>
+        <li class="todo"><span class="a-dot"></span><div><strong>Saved to 0G Storage</strong></div></li>
+      </ol>
+      <a class="a-link"><svg class="icon"><use href="sprite.svg#i-proof"/></svg>Show proof</a>
+    </section>
+
+    <section class="a-card" aria-label="What Duck sees">
+      <div class="a-h"><h4>What Duck sees</h4></div>
+      <div class="a-sees">
+        <div class="a-finder"><img src="qr-invoice.svg" alt="The invoice QR at the counter"></div>
+        <dl><dt>Duck Café counter</dt><dd>Samosa, 0.25 USDC</dd><dd>Pay by 15:52</dd></dl>
+      </div>
+      <p class="a-note">The camera stays on Duck. You see what it read, never the picture.</p>
+    </section>
+
+    <section class="a-card" aria-label="Send Duck to buy">
+      <div class="a-h"><h4>Send Duck to buy</h4><span>After this errand</span></div>
+      <div class="a-tiles busy">
+        <button class="a-tile"><svg class="icon"><use href="sprite.svg#i-cup"/></svg><strong>Chai</strong><span>0.10</span></button>
+        <button class="a-tile"><svg class="icon"><use href="sprite.svg#i-samosa"/></svg><strong>Samosa</strong><span>0.25</span></button>
+        <button class="a-tile"><svg class="icon"><use href="sprite.svg#i-cig"/></svg><strong>Cigarettes</strong><span>0.50</span><em>Needs your OK</em></button>
+      </div>
+    </section>
+
+    <ul class="a-rows">
+      <li><svg class="icon"><use href="sprite.svg#i-chip"/></svg>Robot details<svg class="icon"><use href="sprite.svg#i-chev"/></svg></li>
+      <li class="danger"><svg class="icon"><use href="sprite.svg#i-stop"/></svg>Stop Duck's allowance</li>
+    </ul>
+  </div>
+  <figcaption>
+    <h2>4 · A robot (replaces /robot/:id)</h2>
+    <p>Allowance first, in plain words. The errand is a five-step tracker with 0G's own reason quoted. "What Duck sees"
+    is the invoice it is paying, drawn as a QR, not a camera frame. "Stop Duck's allowance" is revoke. "Robot details"
+    holds the chip address, the payee address and the grant on Arc. The invoice paste field moves in there too.</p>
+    <span class="need ok">Works with today's API (the errand and its timeline: /api/wallet/episodes/:id)</span>
+  </figcaption>
+</figure>
+
+<!-- 5 APPROVAL -->
+<figure class="shot" id="approve">
+  <div class="phone fixed v-a">
+    <div class="status"><span>15:47</span><span class="status-icons"><i></i><i></i></span></div>
+    <section class="a-hero" style="opacity:.6"><span class="a-face"><svg><use href="sprite.svg#duck"/></svg></span><h3>Duck</h3></section>
+    <div class="a-scrim"></div>
+    <section class="a-sheet">
+      <div class="a-ask">
+        <span class="a-face"><svg><use href="sprite.svg#duck"/></svg></span>
+        <h3>Duck wants to buy cigarettes</h3>
+        <p class="a-big">0.50<span>USDC at Duck Café</span></p>
+      </div>
+      <div class="a-why">
+        <strong>Why it's asking you</strong>
+        <p>Cigarettes are a restricted item, and 0.50 is more than Duck's 0.30 limit for one purchase.</p>
+        <p>0G: "Restricted item the owner asked for; the owner approves it in World App."</p>
+      </div>
+      <p class="a-warn">This approves this one payment and nothing else. The request ends in 4:52.</p>
+      <div class="a-btns">
+        <a class="a-btn world wide"><svg class="icon"><use href="sprite.svg#i-world"/></svg>Approve with World ID</a>
+        <a class="a-btn wide">Decline</a>
+      </div>
+    </section>
+  </div>
+  <figcaption>
+    <h2>5 · Approval (replaces /wallet/approvals/:id)</h2>
+    <p>A sheet that opens over the robot, and the same sheet opens from a notification link. It says why in plain
+    words, then quotes 0G. After World answers, the sheet follows the errand to "Paid" or "Declined, nothing paid".</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+<!-- 6 PAIR -->
+<figure class="shot" id="pair">
+  <div class="phone fixed v-a">
+    <div class="status"><span>15:55</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="a-top"><button class="a-iconbtn" aria-label="Close"><svg class="icon"><use href="sprite.svg#i-close"/></svg></button><span class="a-steplabel">Step 1 of 2</span><span style="width:40px"></span></header>
+    <div class="a-page">
+      <h3>Connect your robot</h3>
+      <div class="a-field"><label>Name</label><div class="a-input">Duck</div></div>
+      <div class="a-code">
+        <span class="a-steplabel">Connection code</span>
+        <b>K7Q2 M9XZ</b>
+        <span class="a-note">Works once, for the next 9 minutes</span>
+        <span class="a-cmd">./vitaquack-chip --pair K7Q2M9XZ<svg class="icon"><use href="sprite.svg#i-copy"/></svg></span>
+        <span class="a-note">Run this on the robot. No hardware? The mock chip takes the same code.</span>
+      </div>
+      <div class="a-wait"><span class="a-spin"></span>Waiting for Duck to connect…</div>
+    </div>
+  </div>
+  <figcaption>
+    <h2>6 · Add robot, step 1: connect</h2>
+    <p>The code comes first and big, then the exact command to run on the robot. The screen polls every 3 s (it does
+    already) and moves to step 2 on its own when the chip pairs.</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+<!-- 7 ALLOWANCE -->
+<figure class="shot" id="allowance">
+  <div class="phone fixed v-a">
+    <div class="status"><span>15:56</span><span class="status-icons"><i></i><i></i></span></div>
+    <header class="a-top"><button class="a-iconbtn" aria-label="Back"><svg class="icon"><use href="sprite.svg#i-back"/></svg></button><span class="a-steplabel">Step 2 of 2</span><span style="width:40px"></span></header>
+    <div class="a-page">
+      <div class="a-ok"><svg class="icon"><use href="sprite.svg#i-check"/></svg>Duck is connected</div>
+      <h3>Give Duck an allowance</h3>
+      <div class="a-field"><label>Per day</label><div class="a-seg"><span>0.50</span><span class="on">1.00</span><span>2.00</span><span>Other</span></div></div>
+      <div class="a-field"><label>For one purchase, at most</label><div class="a-seg"><span>0.10</span><span class="on">0.30</span><span>0.50</span></div></div>
+      <div class="a-field"><label>Where</label><div class="a-check"><span class="box"><svg class="icon"><use href="sprite.svg#i-check"/></svg></span>Duck Café<small>0x2845…97F5</small></div></div>
+      <div class="a-field"><label>For</label><div class="a-seg"><span>1 hour</span><span class="on">1 day</span><span>1 week</span></div></div>
+      <p class="a-summary">Duck can spend up to 1.00 USDC a day, at most 0.30 at a time, only at Duck Café, until tomorrow at 15:56. Anything else asks you first. Arc enforces this, so not even our server can go past it.</p>
+      <a class="a-btn primary wide"><svg class="icon"><use href="sprite.svg#i-passkey"/></svg>Confirm with passkey</a>
+    </div>
+  </div>
+  <figcaption>
+    <h2>7 · Add robot, step 2: allowance</h2>
+    <p>Presets replace the four text fields; "Other" opens a number field. The consent sentence stays, rewritten in
+    plain words, and the passkey signs exactly that.</p>
+    <span class="need ok">Works with today's API</span>
+  </figcaption>
+</figure>
+
+</main>
+</body>
+</html>
