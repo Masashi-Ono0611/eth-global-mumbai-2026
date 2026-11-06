@@ -83,7 +83,9 @@ export const renderDocument: Server.DocumentRenderer = (renderedApplication, ass
   Server.renderDocument(renderedApplication, assets, {
     head:
       quietPageTransitions +
-      '<meta name="theme-color" content="#e7f1f6"><link rel="icon" href="/app/favicon.svg">' +
+      '<meta name="theme-color" content="#e7f1f6"><link rel="icon" href="/app/favicon.svg" type="image/svg+xml">' +
+      // The robot duck, as on the landing page (its media/favicon.svg and apple-touch-icon.png).
+      '<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">' +
       '<link rel="preload" href="/app/fonts/mukta-400-latin.woff2" as="font" type="font/woff2" crossorigin>' +
       '<link rel="preload" href="/app/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>' +
       // Body text's semibold: the first screen uses it, and found only from the CSS it arrived a second after the HTML.
