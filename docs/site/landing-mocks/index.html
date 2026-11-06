@@ -3,19 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Vitaquack — give your robot a budget, not your wallet</title>
-    <meta name="description" content="A passkey wallet that gives your robot a budget it can't break. It pays for small things by itself on Arc, asks you before big ones with World ID, and you can switch it off any time." />
+    <title>Vitaquack: a passkey wallet that gives your robot a budget</title>
+    <meta name="description" content="Your robot pays for small things by itself and asks you before big ones. Live on Arc mainnet with real USDC." />
     <link rel="canonical" href="https://vitaquack.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://vitaquack.com/" />
-    <meta property="og:title" content="Vitaquack — give your robot a budget, not your wallet" />
-    <meta property="og:description" content="A passkey wallet that gives your robot a budget it can't break. Live on Arc mainnet with real USDC." />
+    <meta property="og:title" content="Vitaquack: a passkey wallet that gives your robot a budget" />
+    <meta property="og:description" content="Your robot pays for small things by itself and asks you before big ones. Live on Arc mainnet with real USDC." />
     <meta property="og:image" content="https://vitaquack.com/media/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Vitaquack — give your robot a budget, not your wallet" />
-    <meta name="twitter:description" content="A passkey wallet that gives your robot a budget it can't break. Live on Arc mainnet with real USDC." />
+    <meta name="twitter:title" content="Vitaquack: a passkey wallet that gives your robot a budget" />
+    <meta name="twitter:description" content="Your robot pays for small things by itself and asks you before big ones. Live on Arc mainnet with real USDC." />
     <meta name="twitter:image" content="https://vitaquack.com/media/og.jpg" />
     <meta name="theme-color" content="#16173a" id="theme-color" />
     <link rel="icon" href="/pitch/media/favicon.svg" type="image/svg+xml" />
@@ -101,7 +101,7 @@
       .film { display: grid; align-items: end; min-height: 100svh; overflow: hidden; isolation: isolate; }
       [data-model='flow'] .film:not(.hero) { min-height: 78svh; }
       [data-model='flow'][data-skin='c'] .film:not(.hero) { min-height: 0; }
-      [data-model='flow'][data-skin='c'] .hero { min-height: calc(100svh - 4.25rem); }
+      [data-model='flow'][data-skin='c'] .hero { min-height: min(100svh - 4.25rem, 50rem); }
       .film .media { position: absolute; inset: 0; z-index: -2; }
       .film .media video, .film .media img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .film::after { content: ''; position: absolute; inset: auto 0 0 0; height: 70%; z-index: -1; pointer-events: none; background: linear-gradient(to top, rgb(var(--scrim) / 0.95), rgb(var(--scrim) / 0.6) 45%, transparent); }
@@ -161,7 +161,7 @@
       .live { padding: clamp(3rem, 8vh, 6rem) 0 clamp(4rem, 10vh, 7rem); text-align: center; overflow: hidden; isolation: isolate; background: radial-gradient(60rem 40rem at 50% 60%, var(--bg-2), var(--bg)); }
       [data-model='slides'] .live { min-height: 100svh; }
       .live .wall { position: absolute; inset: -10% 0; z-index: -2; display: grid; grid-template-rows: 1fr 1fr; gap: 2rem; opacity: 0.17; pointer-events: none; overflow: hidden; }
-      [data-skin='c'] .live .wall { opacity: 0.35; }
+      [data-skin='c'] .live .wall { opacity: 0.14; }
       .live .row-screens { display: flex; gap: 2rem; width: max-content; align-items: center; animation: wall 90s linear infinite; }
       .live .row-screens.back { animation-direction: reverse; animation-duration: 120s; }
       .live .row-screens img { width: 15rem; border-radius: 1.25rem; outline: 1px solid var(--outline); display: block; }
@@ -251,13 +251,13 @@
       .band .ctas { justify-content: center; margin-top: 2rem; }
       .band .cta.big { min-height: 4.25rem; padding: 1.25rem 2.5rem; font-size: 1.4rem; }
       footer { padding: 2.5rem 0 calc(3rem + env(safe-area-inset-bottom)); font-size: 0.92rem; color: var(--muted); border-top: 1px solid var(--rule); }
-      footer .cols { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2rem; }
+      footer .cols { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; }
       footer h3 { font-size: 1rem; margin-bottom: 0.6rem; color: var(--fg); }
       footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
       footer a { text-decoration: none; color: var(--soft); padding-block: 0.2rem; display: inline-block; }
       footer a:hover { color: var(--fg); text-decoration: underline; }
       footer .fine { margin-top: 2rem; max-width: 60rem; }
-      @media (max-width: 48rem) { footer .cols { grid-template-columns: 1fr; } footer { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); } }
+      @media (max-width: 48rem) { footer .cols { grid-template-columns: 1fr 1fr; gap: 1.5rem; } footer .cols > div:first-child { grid-column: 1 / -1; } footer { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); } }
 
       /* The phone's bottom bar: one full-width Try the app, above the home indicator, hidden while the final band shows. */
       .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 0.75rem clamp(1rem, 5vw, 1.5rem) calc(0.75rem + env(safe-area-inset-bottom)); background: var(--bar-bg); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--rule); transition-property: translate, opacity; transition-duration: 0.3s; }
@@ -365,7 +365,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
           <div class="words">
             <p class="badge in">Live on Arc mainnet, with real USDC</p>
             <h1 class="in" id="h-hero">Give your robot a budget, not your wallet.</h1>
-            <p class="lede in">Your robot pays for small things by itself, and asks you before big ones.</p>
+            <p class="lede in">It pays for a chai on its own. Anything bigger, it asks you first.</p>
             <div class="ctas in">
               <a class="cta big" href="https://vitaquack.com/app/">Try the app</a>
               <a class="quiet" href="#how-it-works">How it works</a>
@@ -379,8 +379,8 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         <div class="media"><video muted playsinline preload="metadata" poster="/pitch/media/f2.webp" data-src="/pitch/media/f2.mp4" data-once aria-hidden="true"></video></div>
         <div class="wrap">
           <div class="words">
-            <h2 id="h-key">Not your card. Not a company's wallet. Its own key.</h2>
-            <p class="lede">The key lives on the robot, the rules on Arc, and the money stays in your wallet.</p>
+            <h2 id="h-key">Your robot's key belongs on your robot.</h2>
+            <p class="lede">A chip on the robot signs every payment. Your money stays in your wallet, and the rules live on Arc.</p>
           </div>
         </div>
       </section>
@@ -410,7 +410,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
               </ol>
             </div>
           </div>
-          <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/">Try the app</a><a class="quiet" href="https://vitaquack.com/plan/architecture/">Read the architecture</a></div>
+          <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/">Try the app</a><a class="quiet" href="https://explorer.arc.io/tx/0xa18da6c6aa0b5963839d53133c72dc0e75616450779e534efedc6d687090814a">See a real payment on Arc</a></div>
         </div>
       </section>
 
@@ -418,9 +418,9 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         <div class="wrap">
           <h2 id="h-get">A budget it can't break.</h2>
           <div class="cards">
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/f4.webp" data-src="/pitch/media/f4.mp4" aria-hidden="true"></video></div><h3>You set the budget.</h3><p>Three dollars a day, one at a time, only where you say.</p><p class="credit">Enforced on Arc</p></div>
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/rv2.webp" data-src="/pitch/media/rv2.mp4" aria-hidden="true"></video></div><h3>It shops for you.</h3><p>It decides, signs and pays. Every decision has a reason you can read.</p><p class="credit">Decided by 0G</p></div>
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/f6.webp" data-src="/pitch/media/f6.mp4" aria-hidden="true"></video></div><h3>Bigger things ask you.</h3><p>Over the limit, your phone asks. Say no and nothing is paid.</p><p class="credit">A real person, with World ID</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/f4.webp" data-src="/pitch/media/f4.mp4" aria-hidden="true"></video></div><h3>You set the budget.</h3><p>3.00 USDC a day, 1.00 a go, and only at the places you pick.</p><p class="credit">Enforced on Arc</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/rv2.webp" data-src="/pitch/media/rv2.mp4" aria-hidden="true"></video></div><h3>It shops for you.</h3><p>It decides, signs and pays, and every decision comes with a reason you can read.</p><p class="credit">Decided by 0G</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" poster="/pitch/media/f6.webp" data-src="/pitch/media/f6.mp4" aria-hidden="true"></video></div><h3>It asks you for the big ones.</h3><p>Over the limit, you get a message on your phone. Say no and nothing is paid.</p><p class="credit">A real person, with World ID</p></div>
           </div>
         </div>
       </section>
@@ -447,9 +447,9 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
           <div class="grid">
             <h2 id="h-faq">Questions</h2>
             <div>
-              <details><summary>Is this real money?</summary><p>Yes: USDC on Arc mainnet, and every payment is a real transaction.</p></details>
-              <details><summary>Where is my money?</summary><p>In your own wallet, opened with a passkey; the robot only gets permission to spend a little of it.</p></details>
-              <details><summary>How do I stop it?</summary><p>One tap in the wallet revokes the budget, and Arc refuses the next payment.</p></details>
+              <details><summary>Is this real money?</summary><p>Yes. The wallet holds USDC on Arc mainnet, and every payment in the demo is a real transaction.</p></details>
+              <details><summary>Where is my money?</summary><p>In your own wallet, opened with a passkey. The robot only gets permission to spend a little of it.</p></details>
+              <details><summary>How do I stop it?</summary><p>Tap Stop in the wallet. From then on Arc refuses the robot's payments, and not even our servers can undo that.</p></details>
             </div>
           </div>
         </div>
@@ -460,7 +460,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         <div class="wrap">
           <div class="words">
             <h2 id="h-try">Give your robot a budget.</h2>
-            <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/">Try the app</a><a class="quiet" href="https://vitaquack.com/plan/architecture/">Read how it works</a></div>
+            <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/">Try the app</a><a class="quiet" href="https://vitaquack.com/plan/architecture/">Read how it's built</a></div>
           </div>
         </div>
       </section>
@@ -474,7 +474,8 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
             <p style="margin-top: 0.8rem; max-width: 28rem">A passkey wallet that gives robots a budget. Built on Arc, 0G and World.</p>
           </div>
           <div><h3>Product</h3><ul><li><a href="https://vitaquack.com/app/">Try the app</a></li><li><a href="https://vitaquack.com/plan/architecture/">How it works</a></li></ul></div>
-          <div><h3>Follow</h3><ul><li><a href="https://github.com/grmkris/eth-global-mumbai-2026">GitHub</a></li><li><a href="https://t.me/vitaquack_bot">Vitaquack on Telegram</a></li><li><a href="https://ethglobal.com/events/mumbai">ETHGlobal Mumbai 2026</a></li></ul></div>
+          <div><h3>Built by</h3><ul><li><a href="https://x.com/_krisgg">@_krisgg</a></li><li><a href="https://x.com/corotvoid">@corotvoid</a></li><li><a href="https://x.com/Masashi_Ono0611">@Masashi_Ono0611</a></li></ul></div>
+          <div><h3>Links</h3><ul><li><a href="https://github.com/grmkris/eth-global-mumbai-2026">GitHub</a></li><li><a href="https://t.me/vitaquack_bot">Telegram bot</a></li><li><a href="https://ethglobal.com/events/mumbai">ETHGlobal Mumbai 2026</a></li></ul></div>
         </div>
         <p class="fine">The films are illustrations; the photos and app screens are real. Today the robot's chip software runs on a laptop beside the duck. The duck is a modified <a href="https://github.com/apirrone/Open_Duck_Mini">Open Duck Mini</a> (Apache-2.0).</p>
       </div>
@@ -543,25 +544,25 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       const flow = Object.fromEntries(['item', 'spent', 'caption', 'who', 'text', 'cursor', 'trail', 'dot'].map((k) => [k, document.getElementById('flow-' + k)]))
       const scenarios = [
         { item: '<b>Chai</b> · 0.10 USDC · Duck Café', spent: 'Budget: 3.00 a day, 1.00 a go', steps: [
-          [0, 'You set the budget: 3.00 a day, 1.00 a go, Duck Café only. One tap.'],
-          [1, 'The robot picks up the bill: chai, 0.10.'],
-          [2, 'Its brain checks: within the budget, right place. Buy.'],
-          [3, 'Within the limit, so no need to ask you.', 'off'],
-          [4, 'Arc checks the rules and moves 0.10 USDC. Half a second.'],
-          [5, 'The stall sees "paid" and opens its gate.'],
+          [0, 'One tap sets the budget. 3.00 a day, 1.00 a go, Duck Café only.'],
+          [1, 'The robot gets the bill for a chai, 0.10.'],
+          [2, 'Its brain checks the budget and the place, then says buy it.'],
+          [3, 'Within the limit, so it doesn\'t need to ask you.', 'off'],
+          [4, 'Arc checks the rules and moves 0.10 USDC in under a second.'],
+          [5, 'The stall sees “Paid” and opens its gate.'],
         ] },
         { item: '<b>Thali</b> · 2.00 USDC · Duck Café', spent: 'Spent today: 0.10 of 3.00', steps: [
-          [1, 'The bill: a thali, 2.00.'],
-          [2, 'Over the 1.00 limit. Its brain says: ask the owner.'],
+          [1, 'The bill this time is a thali, 2.00.'],
+          [2, 'That\'s over the 1.00 limit, so its brain asks you first.'],
           [0, 'Your phone asks. You say yes.'],
-          [3, "World checks it's really you, for this exact payment."],
+          [3, "World ID checks it's really you approving this exact payment."],
           [4, 'Arc sees your yes and moves 2.00 USDC.'],
           [5, 'The gate opens.'],
         ] },
         { item: '<b>Off switch</b>', spent: 'Spent today: 2.10 of 3.00', steps: [
-          [0, 'You switch the robot off. One tap.'],
+          [0, 'You tap Stop.'],
           [4, 'Arc locks the budget.'],
-          [1, 'Next chai? Refused by Arc itself. Not even we could change that.', 'no'],
+          [1, 'Arc refuses the next chai. Not even we can override that.', 'no'],
         ] },
       ]
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
