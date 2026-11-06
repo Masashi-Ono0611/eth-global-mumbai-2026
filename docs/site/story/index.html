@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Vitaquack — the story in four screens</title>
+    <meta name="description" content="Give your robot a budget, not your wallet." />
+    <meta name="theme-color" content="#1c1d45" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --dusk: #1c1d45;
+        --duck: #ffd24a;
+        --satchel: #48b3ad;
+        --paper: #fff8e8;
+        --ink-soft: rgb(255 248 232 / 0.82);
+        --display: 'Fredoka', ui-rounded, 'Arial Rounded MT Bold', system-ui, sans-serif;
+        --body: 'Nunito Sans', system-ui, sans-serif;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-snap-type: none; background: var(--dusk); }
+      body { margin: 0; color: var(--paper); font: 400 1.0625rem/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+
+      .chapter {
+        position: relative;
+        min-height: 100svh;
+        display: grid;
+        align-items: end;
+        overflow: hidden;
+        isolation: isolate;
+      }
+      .chapter video,
+      .chapter img.poster {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -2;
+      }
+      /* The scrim sits only where the words are, so the film stays bright. */
+      .chapter::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 62%;
+        z-index: -1;
+        background: linear-gradient(to top, rgb(28 29 69 / 0.92), rgb(28 29 69 / 0.55) 45%, transparent);
+        pointer-events: none;
+      }
+      .words {
+        padding: 0 clamp(1.25rem, 6vw, 5.5rem) clamp(2rem, 8vh, 5rem);
+        max-width: 46rem;
+      }
+      .step {
+        display: flex;
+        gap: 0.4rem;
+        margin: 0 0 1.1rem;
+        padding: 0;
+        list-style: none;
+      }
+      .step li {
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+        background: rgb(255 248 232 / 0.35);
+      }
+      .step li[aria-current='step'] { background: var(--duck); width: 1.6rem; border-radius: 0.3rem; }
+      h1, h2 {
+        margin: 0 0 0.6rem;
+        font: 600 clamp(2.4rem, 6.2vw, 4.6rem) / 1.02 var(--display);
+        letter-spacing: -0.01em;
+        text-wrap: balance;
+        text-shadow: 0 0.08em 0.6em rgb(28 29 69 / 0.45);
+      }
+      .lede {
+        margin: 0;
+        max-width: 34rem;
+        font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+      .credit {
+        margin: 1.25rem 0 0;
+        font-size: 0.9rem;
+        color: var(--satchel);
+        font-weight: 600;
+      }
+      .credit::before {
+        content: '';
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        margin-right: 0.5rem;
+        border-radius: 50%;
+        background: currentColor;
+        vertical-align: 0.05em;
+      }
+      .links { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.75rem; }
+      .links a {
+        color: var(--dusk);
+        background: var(--duck);
+        text-decoration: none;
+        font: 600 1rem/1 var(--display);
+        padding: 0.8rem 1.15rem;
+        border-radius: 999px;
+      }
+      .links a.quiet { background: rgb(255 248 232 / 0.14); color: var(--paper); }
+      .links a:focus-visible, .chapter:focus-visible { outline: 3px solid var(--duck); outline-offset: 3px; }
+      .hint {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        margin: 0;
+        font-size: 0.8rem;
+        color: rgb(255 248 232 / 0.6);
+      }
+      @media (hover: none) { .hint { display: none; } }
+      @media (max-aspect-ratio: 3/4) {
+        /* Phones: keep the duck (right of centre in every film) in frame. */
+        .chapter video, .chapter img.poster { object-position: 58% 50%; }
+        .chapter::after { height: 70%; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="chapter" id="budget" tabindex="-1" aria-labelledby="t1">
+        <video muted loop playsinline preload="metadata" poster="media/v1.webp" data-src="media/v1.mp4" aria-hidden="true"></video>
+        <div class="words">
+          <ol class="step" aria-label="Step 1 of 4"><li aria-current="step"></li><li></li><li></li><li></li></ol>
+          <h1 id="t1">Give your robot a budget, not your wallet.</h1>
+          <p class="lede">Your duck gets its own wallet and permission to spend from yours: a dollar a day, only where you say. The money never leaves your account.</p>
+          <p class="credit">The limits are enforced on Arc</p>
+        </div>
+      </section>
+
+      <section class="chapter" id="shop" tabindex="-1" aria-labelledby="t2">
+        <video muted loop playsinline preload="metadata" poster="media/v2.webp" data-src="media/v2.mp4" aria-hidden="true"></video>
+        <div class="words">
+          <ol class="step" aria-label="Step 2 of 4"><li></li><li aria-current="step"></li><li></li><li></li></ol>
+          <h2 id="t2">It shops for you.</h2>
+          <p class="lede">Chai from the corner stall: it decides, pays, and the gate opens. All by itself, inside the budget.</p>
+          <p class="credit">Every decision is made by 0G</p>
+        </div>
+      </section>
+
+      <section class="chapter" id="ask" tabindex="-1" aria-labelledby="t3">
+        <video muted loop playsinline preload="metadata" poster="media/v3.webp" data-src="media/v3.mp4" aria-hidden="true"></video>
+        <div class="words">
+          <ol class="step" aria-label="Step 3 of 4"><li></li><li></li><li aria-current="step"></li><li></li></ol>
+          <h2 id="t3">Bigger things? It asks you first.</h2>
+          <p class="lede">Over its limit, your phone asks. A real person, you, says yes or no. Say no and nothing is paid.</p>
+          <p class="credit">Approved by a verified human with World ID</p>
+        </div>
+      </section>
+
+      <section class="chapter" id="stop" tabindex="-1" aria-labelledby="t4">
+        <video muted loop playsinline preload="metadata" poster="media/v4.webp" data-src="media/v4.mp4" aria-hidden="true"></video>
+        <div class="words">
+          <ol class="step" aria-label="Step 4 of 4"><li></li><li></li><li></li><li aria-current="step"></li></ol>
+          <h2 id="t4">See why. Stop it anytime.</h2>
+          <p class="lede">Every purchase comes with its reason and a receipt. One tap cuts the duck off, and not even our servers can undo that.</p>
+          <p class="credit">Episodes kept on 0G, the off switch enforced on Arc</p>
+          <nav class="links" aria-label="Try it">
+            <a href="https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev/">Try the wallet</a>
+            <a class="quiet" href="/architecture/">How it works</a>
+            <a class="quiet" href="https://github.com/grmkris/eth-global-mumbai-2026">Source on GitHub</a>
+          </nav>
+        </div>
+      </section>
+    </main>
+    <p class="hint">Space or arrow keys for the next screen</p>
+
+    <script>
+      // Films play only while on screen, and never under reduced motion or Save-Data (posters stay).
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches || navigator.connection?.saveData === true
+      const chapters = [...document.querySelectorAll('.chapter')]
+      if (!still) {
+        const seen = new IntersectionObserver(
+          (entries) => {
+            for (const { target, isIntersecting } of entries) {
+              const video = target.querySelector('video')
+              if (isIntersecting) {
+                if (!video.src) video.src = video.dataset.src
+                video.play().catch(() => {})
+              } else video.pause()
+            }
+          },
+          { threshold: 0.35 },
+        )
+        chapters.forEach((chapter) => seen.observe(chapter))
+      }
+      // Stage navigation: space / arrows / PageUp-Down jump a whole screen.
+      const current = () => {
+        const middle = innerHeight / 2
+        return Math.max(0, chapters.findIndex((c) => c.getBoundingClientRect().bottom > middle))
+      }
+      const go = (index) => {
+        const target = chapters[Math.min(chapters.length - 1, Math.max(0, index))]
+        target.scrollIntoView({ behavior: still ? 'auto' : 'smooth' })
+        target.focus({ preventScroll: true })
+      }
+      addEventListener('keydown', (event) => {
+        if (event.target.closest?.('a, button, input')) return
+        if ([' ', 'ArrowDown', 'ArrowRight', 'PageDown'].includes(event.key) && !event.shiftKey) {
+          event.preventDefault()
+          go(current() + 1)
+        } else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(event.key) || (event.key === ' ' && event.shiftKey)) {
+          event.preventDefault()
+          go(current() - 1)
+        } else if (event.key === 'Home') go(0)
+        else if (event.key === 'End') go(chapters.length - 1)
+      })
+    </script>
+  </body>
+</html>
