@@ -26,17 +26,6 @@ export const ConsoleRobot = Schema.Struct({
 })
 export type ConsoleRobot = typeof ConsoleRobot.Type
 
-const ErrandCreated = Schema.Struct({
-  episodeId: Schema.String,
-  state: Schema.String,
-  decision: Schema.Struct({
-    action: Schema.String,
-    reason: Schema.NullOr(Schema.String),
-    requestId: Schema.NullOr(Schema.String),
-  }),
-  approvalUrl: Schema.optionalKey(Schema.String),
-})
-
 export const Decision = Schema.Struct({
   id: Schema.String,
   step: Schema.Number,
@@ -93,22 +82,6 @@ export const loadConsoleRobot = (robotId: string) => getJson(`/api/robots/${robo
 /** The brain the owner picked for one message, as the request's `model`; none = the Worker's ZG_MODEL. */
 const brainField = (model: string | null) => (model === null ? {} : { model })
 
-/**
- * Starts an errand; `invoiceId` pays that pending invoice (the one the gate shows) instead of the counter's default, and
- * `model` is the brain the owner picked for it.
- */
-export const startErrand = (robotId: string, item: string, invoiceId: string | null, model: string | null) =>
-  postJson(
-    `/api/robots/${robotId}/errands`,
-    { item, ...(invoiceId === null ? {} : { invoiceId }), ...brainField(model) },
-    ErrandCreated,
-  )
-
-/** A 26-character invoice id, typed or pasted as the gate's payment URL (`…/api/i/<id>`). */
-export const invoiceIdFrom = (text: string): string | null => {
-  const match = /^(?:\S*\/i\/)?([a-z2-7]{26})$/.exec(text.trim())
-  return match?.[1] ?? null
-}
 export const loadErrand = (robotId: string, episodeId: string) =>
   getJson(`/api/robots/${robotId}/errands/${episodeId}`, ErrandDetail)
 

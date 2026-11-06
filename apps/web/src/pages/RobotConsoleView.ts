@@ -428,16 +428,6 @@ const isPaid = (errand: Errand): boolean =>
 const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ErrandParts =>
   Errand.match(model.errand, {
     Idle: () => untimed([]),
-    Starting: ({ item }) =>
-      untimed([ownerBubble('live', item, locale, h), stepPill(format(locale, 'thread.deciding', {}), h)]),
-    Refused: ({ error }) =>
-      untimed([
-        h.keyed('p')(
-          'refused',
-          [h.Class(errorBubbleClassName), h.Role('alert')],
-          [format(locale, 'thread.couldNotStart', { message: error })],
-        ),
-      ]),
     Running: ({ episodeId, maybeDetail, maybeApprovalUrl }) =>
       Option.match(maybeDetail, {
         onNone: () => untimed([stepPill(format(locale, 'common.loading', {}), h)]),
@@ -476,7 +466,7 @@ const loadedView = (
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
-          // Keyed by the history's length: stable from Starting to Running, new when the next errand begins.
+          // Keyed by the history's length: stable while an errand runs, new when the next errand begins.
           h.keyed('div')(
             `live-${past.length}`,
             [h.Class(liveClassName)],
