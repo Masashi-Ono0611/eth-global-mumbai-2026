@@ -22,11 +22,27 @@ export const EpisodeSummary = Schema.Struct({
   createdAt: Schema.Number,
   endedAt: Time,
   decision: Schema.NullOr(
-    Schema.Struct({ action: Schema.String, reason: Text, requestId: Text, provider: Text, latencyMs: Time }),
+    Schema.Struct({
+      action: Schema.String,
+      reason: Text,
+      requestId: Text,
+      provider: Text,
+      latencyMs: Time,
+      /** Only whether the 0G provider's TEE proof verified; never its text or signature. */
+      tee: Schema.optionalKey(Schema.NullOr(Schema.Struct({ verified: Schema.Boolean }))),
+    }),
   ),
   payment: Schema.NullOr(Schema.Struct({ status: Schema.String, txHash: Text })),
   approval: Schema.NullOr(Schema.Struct({ status: Schema.String, world: WorldClaims })),
-  evidence: Schema.NullOr(Schema.Struct({ status: Schema.String, rootHash: Text, logTx: Text })),
+  evidence: Schema.NullOr(
+    Schema.Struct({
+      status: Schema.String,
+      rootHash: Text,
+      logTx: Text,
+      storageTx: Schema.optionalKey(Text),
+      error: Schema.optionalKey(Text),
+    }),
+  ),
 })
 export type EpisodeSummary = typeof EpisodeSummary.Type
 

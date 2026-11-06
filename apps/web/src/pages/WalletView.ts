@@ -50,6 +50,7 @@ const badgeClassName =
 const addFaceClassName = 'grid size-[52px] place-items-center rounded-full bg-paper text-2xl text-ink'
 const paymentRowClassName = 'flex justify-between gap-3 px-4 py-3 [&>span:first-child]:min-w-0'
 const paymentSubClassName = 'block text-[0.92rem] text-muted'
+const onZeroGClassName = 'ml-1.5 rounded-full bg-paid/10 px-1.5 text-[0.75rem] font-semibold text-paid'
 const paymentAmountClassName = 'shrink-0 text-right font-semibold whitespace-nowrap'
 const paidClassName = 'block text-[0.92rem] text-paid'
 const emptyClassName = 'px-2 text-muted'
@@ -248,7 +249,11 @@ const addRobotRow = (locale: Locale, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-const paymentRow = (episode: EpisodeActivity, locale: Locale, h: HtmlBuilder<Message>): Html => {
+/** The errand's record is on 0G Storage (from the errand list's evidence). */
+const savedOnZeroG = (home: Home, episodeId: string) =>
+  home.episodes.find((episode) => episode.id === episodeId)?.evidence?.status === 'uploaded'
+
+const paymentRow = (episode: EpisodeActivity, onZeroG: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const paid = episode.state === 'paid'
   const live = !terminalStates.has(episode.state)
   const amount = episode.amount === null ? '—' : usdc(episode.amount)
@@ -262,7 +267,10 @@ const paymentRow = (episode: EpisodeActivity, locale: Locale, h: HtmlBuilder<Mes
           h.span([h.Class('font-semibold')], [itemName(episode.item)]),
           h.span(
             [h.Class(paymentSubClassName)],
-            [format(locale, 'home.paymentBy', { robot: episode.robotName, state: episode.state })],
+            [
+              format(locale, 'home.paymentBy', { robot: episode.robotName, state: episode.state }),
+              onZeroG ? h.span([h.Class(onZeroGClassName)], [format(locale, 'proof.onZeroG', {})]) : h.empty,
+            ],
           ),
         ],
       ),
@@ -366,7 +374,7 @@ const loadedView = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<Mes
             ? h.p([h.Class(emptyClassName)], [format(locale, 'home.noPayments', {})])
             : h.ul(
                 [h.Class(listClassName)],
-                home.activity.episodes.map((episode) => paymentRow(episode, locale, h)),
+                home.activity.episodes.map((episode) => paymentRow(episode, savedOnZeroG(home, episode.id), locale, h)),
               ),
         ],
       ),

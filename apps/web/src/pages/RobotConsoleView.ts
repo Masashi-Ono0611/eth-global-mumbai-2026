@@ -8,6 +8,7 @@ import {
   type Decision,
   type ErrandDetail,
   isZeroGDecision,
+  teeVerifiedOf,
   worldAuthorizeUrl,
 } from '../api/Robot.ts'
 import { type Catalogue, explorerTx, type GrantView, leftToday, usdc } from '../api/Wallet.ts'
@@ -18,6 +19,7 @@ import { allowanceView } from './AllowanceView.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
 import { dock } from './RobotDockView.ts'
+import { teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
 import { fromIntent, intentMessages, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 
@@ -130,6 +132,7 @@ const decisionBubble = (
   action: string,
   reason: string | null,
   provider: string | null,
+  tee: boolean,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html =>
@@ -143,6 +146,7 @@ const decisionBubble = (
           format(locale, isZeroGDecision(provider) ? 'thread.zeroGDecided' : 'thread.rehearsalDecided', {
             action,
           }),
+          teeMark(tee, locale, h),
         ],
       ),
       reason === null ? h.empty : h.q([h.Class(quoteClassName)], [reason]),
@@ -154,6 +158,7 @@ const receipt = (
   episodeId: string,
   amount: string | undefined,
   txHash: string | null,
+  record: ZeroGRecord | null,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html =>
@@ -172,6 +177,7 @@ const receipt = (
           h.a([h.Href(episodeRouter({ episodeId })), h.Class(proofClassName)], [format(locale, 'thread.proof', {})]),
         ],
       ),
+      zeroGLine(record, locale, h),
     ],
   )
 
@@ -181,12 +187,17 @@ const outcome = (
   episode: { readonly id: string; readonly state: string; readonly result: string | null },
   amount: string | undefined,
   txHash: string | null,
+  record: ZeroGRecord | null,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html => {
-  if (episode.state === 'paid') return receipt(key, episode.id, amount, txHash, locale, h)
+  if (episode.state === 'paid') return receipt(key, episode.id, amount, txHash, record, locale, h)
   const ended = (text: string, failed: boolean) =>
-    h.keyed('p')(`${key}-end`, [h.Class(failed ? errorBubbleClassName : robotBubbleClassName)], [text])
+    h.keyed('div')(
+      `${key}-end`,
+      [h.Class(failed ? errorBubbleClassName : robotBubbleClassName)],
+      [h.p([], [text]), zeroGLine(record, locale, h)],
+    )
   const reason = episode.result ?? '—'
   switch (episode.state) {
     case 'denied':
@@ -220,10 +231,11 @@ const historyMessages = (
         episode.decision.action,
         episode.decision.reason,
         episode.decision.provider,
+        episode.decision.tee?.verified ?? false,
         locale,
         h,
       ),
-  outcome(episode.id, episode, amounts[episode.id], episode.payment?.txHash ?? null, locale, h),
+  outcome(episode.id, episode, amounts[episode.id], episode.payment?.txHash ?? null, episode.evidence, locale, h),
 ]
 
 /** The approval in the conversation: the robot asks, Approve goes to World, No declines it here. */
@@ -276,7 +288,15 @@ const liveStep = (state: string, locale: Locale): string | null => {
 }
 
 const decisionOf = (decision: Decision, key: string, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  decisionBubble(`${key}-${decision.id}`, decision.action, decision.reason, decision.provider, locale, h)
+  decisionBubble(
+    `${key}-${decision.id}`,
+    decision.action,
+    decision.reason,
+    decision.provider,
+    teeVerifiedOf(decision.tee_json ?? null),
+    locale,
+    h,
+  )
 
 const liveMessages = (
   model: Model,
@@ -313,7 +333,15 @@ const liveMessages = (
         })
       : h.empty,
     step === null ? h.empty : h.keyed('p')(`${episodeId}-step`, [h.Class(systemClassName), h.Role('status')], [step]),
-    outcome(episodeId, episode, detail.payment?.invoice.amount, detail.payment?.txHash ?? null, locale, h),
+    outcome(
+      episodeId,
+      episode,
+      detail.payment?.invoice.amount,
+      detail.payment?.txHash ?? null,
+      detail.evidence,
+      locale,
+      h,
+    ),
   ]
 }
 

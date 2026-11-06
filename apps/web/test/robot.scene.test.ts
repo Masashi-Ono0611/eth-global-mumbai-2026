@@ -110,6 +110,38 @@ describe('/robot/:id', () => {
     )
   })
 
+  test('a receipt says where its record is on 0G, and a TEE-verified decision is marked', () => {
+    const saved = {
+      ...summary('e1', 'chai', 'paid', 'within budget'),
+      decision: {
+        action: 'pay',
+        reason: 'within budget',
+        requestId: 'r1',
+        provider: 'router-api.0g.ai/m@0x01',
+        latencyMs: 900,
+        tee: { verified: true },
+      },
+      payment: { status: 'settled', txHash },
+      evidence: { status: 'uploaded', rootHash: '0xroot', logTx: '0xlog' },
+    }
+    const saving = {
+      ...summary('e2', 'chai', 'denied', 'over the limit'),
+      evidence: { status: 'pending', rootHash: null, logTx: null },
+    }
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([saved, saving])),
+      expect(text('TEE-verified')).toExist(),
+      expect(text('Saved on 0G')).toExist(),
+      expect(role('link', { name: '0G Storage' })).toHaveAttr('href', 'https://storagescan-galileo.0g.ai/file/0xroot'),
+      expect(role('link', { name: 'EpisodeLog record' })).toHaveAttr(
+        'href',
+        'https://chainscan-galileo.0g.ai/tx/0xlog',
+      ),
+      expect(text('Saving to 0G...')).toExist(),
+    )
+  })
+
   test('a robot without an allowance cannot be sent out', () => {
     scene(
       { update: RobotConsole.update, view },

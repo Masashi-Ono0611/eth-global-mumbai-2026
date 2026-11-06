@@ -36,13 +36,16 @@ const ListRow = Schema.Struct({
   request_id: Text,
   provider: Text,
   latency_ms: Time,
+  tee_json: Text,
   tx_hash: Text,
   payment_status: Text,
   approval_status: Text,
   amr_json: Text,
   evidence_status: Text,
   root_hash: Text,
+  storage_tx: Text,
   log_tx: Text,
+  evidence_error: Text,
 })
 
 const ListQuery = Schema.Struct({
@@ -53,10 +56,10 @@ const MAX_LIST = 50
 
 /** The latest row per errand of each child table, picked by subquery so an errand stays one row. */
 const LIST_SQL = `SELECT e.id, e.robot_id, r.name AS robot_name, e.item, e.state, e.result, e.state_changed_at, e.created_at,
-    d.action, d.reason, d.request_id, d.provider, d.latency_ms,
+    d.action, d.reason, d.request_id, d.provider, d.latency_ms, d.tee_json,
     COALESCE(p.tx_hash, i.paid_tx) AS tx_hash, COALESCE(p.status, CASE WHEN i.paid_tx IS NULL THEN NULL ELSE 'settled' END) AS payment_status,
     a.status AS approval_status, a.amr_json,
-    u.status AS evidence_status, u.root_hash, u.log_tx
+    u.status AS evidence_status, u.root_hash, u.storage_tx, u.log_tx, u.error AS evidence_error
   FROM episodes e JOIN robots r ON r.id = e.robot_id
     LEFT JOIN invoices i ON i.id = e.invoice_id
     LEFT JOIN decisions d ON d.id = (SELECT id FROM decisions WHERE episode_id = e.id ORDER BY step DESC, created_at DESC LIMIT 1)
@@ -65,6 +68,11 @@ const LIST_SQL = `SELECT e.id, e.robot_id, r.name AS robot_name, e.item, e.state
     LEFT JOIN evidence_uploads u ON u.episode_id = e.id
   WHERE e.account_id = ? AND (? IS NULL OR e.robot_id = ?)
   ORDER BY e.created_at DESC LIMIT ?`
+
+/** Only whether the decision came with a TEE proof and whether it verified; never its text or signature. */
+const TeeFlag = Schema.fromJsonString(Schema.Struct({ verified: Schema.Boolean }))
+const teeFlag = (teeJson: string | null) =>
+  teeJson === null ? null : Option.getOrNull(Schema.decodeUnknownOption(TeeFlag)(teeJson))
 
 const listView = (row: typeof ListRow.Type) => ({
   id: row.id,
@@ -84,11 +92,20 @@ const listView = (row: typeof ListRow.Type) => ({
           requestId: row.request_id,
           provider: row.provider,
           latencyMs: row.latency_ms,
+          tee: teeFlag(row.tee_json),
         },
   payment: row.payment_status === null ? null : { status: row.payment_status, txHash: row.tx_hash },
   approval: row.approval_status === null ? null : { status: row.approval_status, world: worldClaims(row.amr_json) },
   evidence:
-    row.evidence_status === null ? null : { status: row.evidence_status, rootHash: row.root_hash, logTx: row.log_tx },
+    row.evidence_status === null
+      ? null
+      : {
+          status: row.evidence_status,
+          rootHash: row.root_hash,
+          storageTx: row.storage_tx,
+          logTx: row.log_tx,
+          error: row.evidence_error,
+        },
 })
 
 /** `GET /api/wallet/episodes?robotId=&limit=50` → the owner's errands, newest first, one row each with its latest

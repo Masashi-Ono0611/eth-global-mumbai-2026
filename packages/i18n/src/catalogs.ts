@@ -295,4 +295,12 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'telegram.disconnect': 'Disconnect',
   'telegram.failed': 'Telegram is not reachable right now.',
   'telegram.retry': 'Try again',
+  'proof.saved': 'Saved on 0G',
+  'proof.storage': '0G Storage',
+  'proof.log': 'EpisodeLog record',
+  'proof.saving': 'Saving to 0G...',
+  'proof.failed': 'Not saved to 0G yet: {error}',
+  'proof.noReason': 'the uploader has not said why',
+  'proof.tee': 'TEE-verified',
+  'proof.onZeroG': 'on 0G',
 }

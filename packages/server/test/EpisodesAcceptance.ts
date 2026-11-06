@@ -23,7 +23,14 @@ const Listed = Schema.Struct({
       id: Schema.String,
       robotId: Schema.String,
       item: Schema.String,
-      decision: Schema.NullOr(Schema.Struct({ action: Schema.String, requestId: Schema.NullOr(Schema.String) })),
+      // The list says whether 0G's provider proved its answer from a TEE (a flag), never the proof itself.
+      decision: Schema.NullOr(
+        Schema.Struct({
+          action: Schema.String,
+          requestId: Schema.NullOr(Schema.String),
+          tee: Schema.NullOr(Schema.Struct({ verified: Schema.Boolean })),
+        }),
+      ),
       payment: Schema.NullOr(Schema.Struct({ status: Schema.String, txHash: Schema.NullOr(Schema.String) })),
     }),
   ),

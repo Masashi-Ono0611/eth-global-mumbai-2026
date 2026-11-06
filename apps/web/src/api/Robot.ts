@@ -1,5 +1,5 @@
 import { IntentView, RobotKind } from '@ethmumbai/protocol/Intent'
-import { Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { getJson, postJson } from './Http.ts'
 import { GrantView } from './Wallet.ts'
 
@@ -44,6 +44,8 @@ export const Decision = Schema.Struct({
   reason: Schema.NullOr(Schema.String),
   outcome: Schema.NullOr(Schema.String),
   error: Schema.NullOr(Schema.String),
+  /** The provider TEE's proof as JSON; the conversation reads only its `verified` flag. */
+  tee_json: Schema.optionalKey(Schema.NullOr(Schema.String)),
 })
 export type Decision = typeof Decision.Type
 
@@ -134,3 +136,12 @@ export const stopIntent = (robotId: string, intentId: string) =>
  *  so it never reaches a server log). */
 export const simulatorUrl = (robotId: string, pairingCode: string | null) =>
   `/sim/?${new URLSearchParams({ robot: robotId }).toString()}${pairingCode === null ? '' : `#pair=${encodeURIComponent(pairingCode)}`}`
+
+const TeeFlag = Schema.fromJsonString(Schema.Struct({ verified: Schema.Boolean }))
+/** Whether a decision's stored TEE proof verified (false without one, or for one that does not parse). */
+export const teeVerifiedOf = (teeJson: string | null): boolean =>
+  teeJson !== null &&
+  Option.match(Schema.decodeUnknownOption(TeeFlag)(teeJson), {
+    onNone: () => false,
+    onSome: ({ verified }) => verified,
+  })

@@ -299,5 +299,15 @@
     "disconnect": "Disconnect",
     "failed": "Telegram is not reachable right now.",
     "retry": "Try again"
+  },
+  "proof": {
+    "saved": "Saved on 0G",
+    "storage": "0G Storage",
+    "log": "EpisodeLog record",
+    "saving": "Saving to 0G...",
+    "failed": "Not saved to 0G yet: {error}",
+    "noReason": "the uploader has not said why",
+    "tee": "TEE-verified",
+    "onZeroG": "on 0G"
   }
 }

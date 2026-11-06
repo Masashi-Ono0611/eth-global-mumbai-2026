@@ -209,6 +209,14 @@ export interface MessageArgumentsByKey<T = string> {
   'profile.howItWorks': Readonly<Record<string, never>>
   'profile.open': Readonly<Record<string, never>>
   'profile.records': Readonly<Record<string, never>>
+  'proof.failed': { readonly error: string | number }
+  'proof.log': Readonly<Record<string, never>>
+  'proof.noReason': Readonly<Record<string, never>>
+  'proof.onZeroG': Readonly<Record<string, never>>
+  'proof.saved': Readonly<Record<string, never>>
+  'proof.saving': Readonly<Record<string, never>>
+  'proof.storage': Readonly<Record<string, never>>
+  'proof.tee': Readonly<Record<string, never>>
   'receive.copied': Readonly<Record<string, never>>
   'receive.copy': Readonly<Record<string, never>>
   'receive.copyFailed': Readonly<Record<string, never>>
@@ -285,4 +293,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '699f46c60e5a35ae5ab8d58e9d4dbac2a868ef6fd6dad9e9b56489a9990ef58f'
+export const catalogVersion = 'ff5471996e34fd12cbc50b9bdf2994d02f32985de84589021d09a9275fc723dd'
