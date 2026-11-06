@@ -27,16 +27,16 @@ the final run: replace them with the recorded ones in `docs/evidence/demo-run.md
 | Rehearsal issuer (until the World client exists) | `APP_WORLD_ISSUER=$APP/api/dev/world`, client id and secret `stub` | **Approve with World** opens a page that says "STUB IdP — not World — rehearsal only": **rehearsal only; the submission uses auth.world.org** (`docs/evidence/2026-11-06-world-stub.md`) |
 | 0G configured | starting an errand does not answer `not configured: ZG_API_KEY` | — |
 | Mock chip ready | laptop terminal in the repo | `bun apps/chip/src/main.ts --server $APP --pair <CODE>` ready to paste |
-| Owner funded | the owner's smart account (step 2) holds ≥ 3 USDC on Arc (chai 0.10 + thali 2.00 + cigarettes 0.50 if approved) | — |
+| Owner funded | the owner's smart account (step 2) holds ≥ 2.50 USDC on Arc (the run spends chai 0.10 + one approved thali 2.00) | — |
 | Second screen | `$APP/gate/duck-cafe` open | big **CLOSED** |
 
 ## The run
 
-**Demo caps (Kris, 6 Nov):** the grant form defaults to **5.00 USDC a day, 1.00 per payment**. Anything over 1.00 needs
-the owner's World approval; anything at or under it goes straight through. **Thali (2.00, allowlisted merchant payee)
-is the approval beat** (over the per-payment limit), **cigarettes (0.50, restricted payee) the restricted beat** (needs
-approval whatever the price). A day's run spends chai 0.10 + thali 2.00 (+ cigarettes 0.50 if approved) = at most 2.60,
-inside the daily cap that Arc enforces even for an approved payment.
+**Demo rules (Kris, 6 Nov: spending limits only):** the allowance defaults to **3.00 USDC a day and 1.00 for one
+purchase**. A purchase over 1.00 needs the owner's fresh World approval; the daily cap can't be lifted, approved or not.
+The beats: chai 0.10 pays → thali 2.00 is over the per-purchase limit, so 0G asks the owner → World approve → paid (2.10
+spent today) → another thali asks → the owner taps **No**, nothing is signed → a third thali would take the day to 4.10,
+past 3.00, so the robot walks away (Arc would refuse it anyway) → stop the allowance → the next chai is refused by Arc.
 
 | # | Screen and click | What the screen must show | If it goes wrong |
 | --- | --- | --- | --- |
@@ -44,18 +44,20 @@ inside the daily cap that Arc enforces even for an approved payment.
 | 2 | The wallet home | The balance in large type, "Your robots spent … in the last 24 hours", **Send** (marked Soon), **Receive**, **+ Robot**; **Receive** opens a sheet with the address as a QR code, in four-character groups, and **Copy address** | "Balance unavailable right now": the public RPC throttled; reload |
 | 3 | **+ Robot** (or **Add a robot**) → `/wallet/robots` → "What's your robot called?" → type "Duck" → **Next** | "Give Duck this code (works once, 10 minutes). On the robot, run:", the code in two groups, `./vitaquack-chip --pair CODE`, and "Waiting for Duck to connect..." | Code expired: "The code expired before the robot connected." → **Start again** |
 | 4 | Laptop: `bun apps/chip/src/main.ts --server $APP --pair CODE` (the Radxa: `./vitaquack-chip --server $APP --pair CODE`) | chip log `paired`, `lease ok`; within 3 s the page says **Duck connected**, the duck says hello and asks how much it can spend | Nothing happens: the chip is not polling (network); the page keeps waiting until the code expires |
-| 5 | Keep the presets **5.00** a day, **1.00** for one purchase, **Duck Café**, **1 day** → read the sentence aloud → **Confirm with passkey** → passkey prompt | "Duck can spend up to 5.00 USDC a day, at most 1.00 at a time, only at Duck Café, for the next day. Anything else asks you first. Arc enforces this, so not even our server can go past it."; then "Signing and activating on Arc..." (the first grant also deploys the account), then Duck's conversation opens with **5.00 a day** in its header | "Something went wrong: arc refused…" → the reason is Arc's; retry once. `not configured: …` → a binding is missing on the deploy |
+| 5 | Keep the presets **3.00** a day, **1.00** for one purchase, **Duck Café**, **1 day** → read the sentence aloud → **Confirm with passkey** → passkey prompt | "Duck can spend up to 3.00 USDC a day, at most 1.00 at a time, only at Duck Café, for the next day. A purchase over 1.00 asks you first in World App; nothing goes past 3.00 a day. Arc enforces this, so not even our server can go past it."; then "Signing and activating on Arc..." (the first grant also deploys the account), then Duck's conversation opens with **3.00 a day** in its header | "Something went wrong: arc refused…" → the reason is Arc's; retry once. `not configured: …` → a binding is missing on the deploy |
 | 6 | In Duck's conversation (`/robot/:id`) tap **Chai 0.10** | "Buy chai" from you, "Asking 0G...", then **0G decided: buy it** with 0G's reason quoted (a line reading **The rehearsal brain (not 0G) decided** means the deploy is on the rehearsal brain: never present that as 0G), "My chip is signing the payment...", "Paying on Arc...", then the receipt **Paid with my chip 0.10 USDC** with **On Arc** (explorer) and **Show proof** (the audit page: 0G request id, brain, latency, chip, payment, evidence). The errand pays the counter's open chai invoice, the one the gate shows | 0G slow/down: "I stopped safely and paid nothing: …": that *is* the safe-stop beat, never fake it. Chip silent 60 s: "It timed out. Nothing was paid." To pay one exact invoice, open **Pay a specific QR code** and paste the gate's payment link (or its 26-character id) first |
 | 7 | Second screen, the gate | **OPEN** (the merchant's Ed25519-signed status verified), then it asks for a fresh invoice | Still CLOSED: the errand paid a different invoice; paste the gate's link under **Pay a specific QR code** and buy again |
 | 8 | Conversation → **Thali 2.00** | **0G decided: ask you first**, then Duck asks in a yellow bubble "I need your OK" with **Approve with World ID** and **No**; the wallet home shows the same request under **Needs you** | No buttons, only "Waiting for your answer": World or the approver is not configured (the errand expires after 300 s). A **walked away** or **stopped safely** stays on screen as it is (never faked): tap **Thali** again |
 | 9 | **Approve with World ID** → World sign-in (scan with World App) → **approve** in World App → back on the approval page (`/wallet/approvals/:id`) | "Duck wants to buy thali", **2.00 USDC**, "This payment is over the robot's per-payment limit (2.00 > 1.00 USDC)…", then **Approved: the chip signs the payment now** and the page follows the errand to **Paid · view on Arc**; **Back to Duck** shows the thali receipt in the conversation | "World token rejected: acr (…)" = the World account is not Orb-verified (the brackets name the class World sent); "stale" = the sign-in was not fresh: approve again. "a different World account than the one bound to this wallet": the first approval binds the World account |
 | 10 | The approval page's **Payee and invoice** (optional) | the Duck Café payee and the invoice id | — |
-| 11 | Conversation → **Cigarettes** (marked "asks you") → **No** in the yellow bubble (or **Approve with World ID** → **deny** in World App) | "You said no. Nothing was paid."; on the wallet home the payment shows **Not paid** | To show an approved restricted item instead, approve: it pays 0.50 (2.60 in the day, inside 5.00) |
-| 12 | The **5.00 a day** pill in the header → the allowance sheet → **Stop Duck's allowance** → passkey | "Stopping on Arc...", the sheet closes and the header says **No allowance**; the dock says "Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain." | 202 / still revoking: reload; the wallet settles it from Arc's DelegationManager |
-| 13 | Conversation → **Chai 0.10** | "The payment failed: …CannotUseADisabledDelegation…": Arc refused the revoked grant | — |
-| 14 | Evidence (after `heavy --wait bun tools/evidence-uploader/main.ts --once` on netcup) | a receipt's **Show proof** (or **All of Duck's errands, with their proof**): the episode on 0G Storage and the EpisodeLog record on 0G Chain | `pending`: the uploader has not run yet |
+| 11 | **Back to Duck** → **Thali 2.00** again | **0G decided: ask you first** and the yellow **I need your OK** bubble, as in step 8 | — |
+| 12 | **No** in the yellow bubble (or **Approve with World ID** → **deny** in World App) | "You said no. Nothing was paid."; no chip request, no transaction; on the wallet home the payment shows **Not paid** | — |
+| 13 | **Thali 2.00** a third time | 2.10 is spent today and 2.00 more would make 4.10, past the 3.00 daily cap: **0G decided: walk away** with its reason quoted, then "I walked away. Nothing was paid." | If 0G asks instead, tap **No** and say why: an approval cannot lift the daily cap, Arc's period enforcer would refuse 4.10 > 3.00 on-chain |
+| 14 | The **3.00 a day** pill in the header → the allowance sheet → **Stop Duck's allowance** → passkey | "Stopping on Arc...", the sheet closes and the header says **No allowance**; the dock says "Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain." | 202 / still revoking: reload; the wallet settles it from Arc's DelegationManager |
+| 15 | Conversation → **Chai 0.10** | "The payment failed: …CannotUseADisabledDelegation…": Arc refused the revoked grant | — |
+| 16 | Evidence (after `heavy --wait bun tools/evidence-uploader/main.ts --once` on netcup) | a receipt's **Show proof** (or **All of Duck's errands, with their proof**): the episode on 0G Storage and the EpisodeLog record on 0G Chain | `pending`: the uploader has not run yet |
 
-Talking points per beat are in plan §0. Never say "age check": it is an **approval for a restricted item**.
+Talking points per beat are in plan §0. The approval is for **a purchase over the robot's limit**; the daily cap is never lifted.
 
 ## Fallbacks for the wallet lane
 

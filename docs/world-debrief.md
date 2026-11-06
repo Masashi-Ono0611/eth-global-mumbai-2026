@@ -5,8 +5,8 @@ Ready to paste into the World prize form. Written by the Wallet lane, which buil
 
 ## What we built
 
-A robot with a USDC budget on Arc buys a restricted item (a mock cigarette pack) or something over its per-payment cap.
-Our on-chain enforcer (`RobotPaymentPolicyEnforcer`, Arc mainnet `0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3`) refuses
+A robot with a USDC budget on Arc buys something over its per-payment limit (a 2.00 thali against a 1.00 limit).
+Over-limit purchases need the owner's fresh World approval; the daily cap can't be lifted. Our on-chain enforcer (`RobotPaymentPolicyEnforcer`, Arc mainnet `0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3`) refuses
 that payment unless it carries an approval signed by our approver key. The approver signs only after the owner passes
 a **fresh World ID authentication** through World IdP (Agent Pass):
 

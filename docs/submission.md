@@ -14,7 +14,8 @@ Don't give a robot your wallet. Give it a budget.
 ## Short description
 
 A passkey wallet on Arc grants a robot's chip a capped USDC budget. The robot asks 0G what to buy, its chip signs every
-payment, and Arc enforces every limit; restricted items need the owner's fresh approval in World App.
+payment, and Arc enforces every limit; over-limit purchases need the owner's fresh World approval; the daily cap can't
+be lifted.
 
 ## Description
 
@@ -26,8 +27,8 @@ over the cap or to an unlisted payee. The robot's agent asks 0G whether to buy (
 away") over structured facts, never camera frames, and logs every decision's request id. The chip holds the only
 spending key: it rebuilds the one-time payment voucher from the invoice itself, checks it against its own policy and
 signs it. Our x402 facilitator settles the voucher through the DelegationManager, where Arc checks every limit, replay
-and revocation. A restricted item (a mock cigarette pack) waits for the owner to approve it in World App; deny or
-silence means nothing is paid. Revoking is one more passkey signature, after which the next payment fails on-chain.
+and revocation. A purchase over the per-payment limit (a 2.00 thali against a 1.00 limit) waits for the owner's fresh
+World approval; deny or silence means nothing is paid, and the daily cap can't be lifted, approved or not. Revoking is one more passkey signature, after which the next payment fails on-chain.
 Every episode is uploaded to 0G Storage and anchored in an `EpisodeLog` contract. The duck is the first robot; the
 first iteration is fully virtual (a mock chip and a web gate); the Radxa on the duck is the hardware seam for the same chip protocol.
 
@@ -47,8 +48,8 @@ payment, only delay it.
   digest the DelegationManager checks, and confirms it with an ERC-1271 `isValidSignature` call on Arc before a grant
   counts as active. No viem or wallet kit in the browser (the whole web bundle is under 150 KB gzip).
 - **`RobotPaymentPolicyEnforcer`** (Solidity, Foundry; shown in Arc Studio: https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75): per-payment cap, payee allowlist and an
-  approver whose EIP-712 approval (invoice hash, payee, amount, expiry, nonce) unlocks one over-limit or restricted
-  payment.
+  approver whose EIP-712 approval (invoice hash, payee, amount, expiry, nonce) unlocks one over-limit
+  payment (or one to a payee off the allowlist; the demo uses only the per-payment limit).
 - **x402 with ERC-7710.** Our merchant answers `402` with `assetTransferMethod: erc7710` requirements; the payment
   payload is the permission context (leaf + grant). Our facilitator verifies the chain off-chain, simulates from the
   relayer, keys every send in D1 (`settle:<invoiceHash>`) so a settlement happens once, and returns Arc's revert reasons
@@ -103,7 +104,8 @@ rehearsal-brain decision. Done (6 Nov 12:55 IST, `docs/evidence/2026-11-06-evide
 
 ### World — Agent Pass
 
-The owner approves restricted or over-limit robot payments with a fresh World ID authentication in World App,
+Over-limit purchases need the owner's fresh World approval (the daily cap can't be lifted): the owner approves each one
+with a fresh World ID authentication in World App,
 bound to the exact payment by using the EIP-712 digest of {invoice, payee, amount, expiry} as the OIDC nonce; the
 backend verifies the token (Orb `acr` with a fresh `auth_time`, `jti` once, `sub` bound to the wallet; `amr` recorded) and
 co-signs that single payment, which our Arc enforcer requires. Denial or a 300 s timeout means nothing is ever signed.
