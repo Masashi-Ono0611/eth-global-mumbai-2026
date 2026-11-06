@@ -28,7 +28,7 @@ limit, World still approves restricted items.** Voice only replaces the "Buy" bu
 | Cost | under a cent per turn (0G Router billing, estimate) | per minute while connected (not metered by us) |
 | New secret | none (the 0G key we already have) | `OPENAI_API_KEY` |
 | Prize story | "the duck's ears and voice are 0G too" adds a second 0G call (the prize lists "vision, voice or decision model") | the submission must not say voice runs on 0G |
-| TEE | today no voice step has a TEE claim (omni's provider is not a registered 0G service). Hearing could move to the sealed `whisper-large-v3` on 0G once it answers (502 today): the transcript would then be provable, the reply text and the voice still not | never: hearing and understanding stay inside OpenAI |
+| TEE | on 6 Nov no voice step had a TEE claim (omni's provider is not a registered 0G service). Since 7 Nov the hearing is sealed: `whisper-large-v3` transcribes and `0gm-1.0-35b-a3b` classifies, both TeeML and TEE-verified independently; only the speech (minimax) has no TEE, and it reads a sentence built by code | never: hearing and understanding stay inside OpenAI |
 
 B wins only on feel (speed, interrupting). A wins on everything the prize and the trust story need, so A is the pick. Not
 measured yet: either option with a real microphone in a noisy booth (A was checked with a recorded clip, B with typed
@@ -63,7 +63,7 @@ Example replies (A, omni-plus):
 | Step | Model | Result |
 |---|---|---|
 | Speech to text + item | `qwen3.5-omni-flash`, `qwen3-omni-flash`, `qwen3.5-omni-plus` (`input_audio` with a `data:audio/wav;base64,…` URI; raw base64 gives 400) | **9/9** clips mapped to the right item (English and Japanese), 1.7 to 3.5 s. The synthetic English voice's "Duck" came back as "Doc"/"Dog". **No TEE claim**: their provider is not a registered 0G service (`processResponse` → "Service provider does not exist"). |
-| Speech to text, sealed | `whisper-large-v3` (TeeML) | **HTTP 502** `provider_error` for wav, mp3 and m4a. Not usable right now. |
+| Speech to text, sealed | `whisper-large-v3` (TeeML) | **HTTP 502** `provider_error` for wav, mp3 and m4a on 6 Nov. On 7 Nov it answered: 3/3 verbatim on 16 kHz WAV, 1.6 to 4.4 s, every reply TEE-verified with `processResponse`; the app's hearing uses it since. |
 | Text to speech | `minimax-speech-2.8-turbo` | **HTTP 200**, `audio/mpeg` (it returned 401 on 5 Nov). 7 voices answered (6 English, 1 Japanese); `speed` works, `voice_setting` (pitch) gives 400, so the pitch-up happens in the browser. |
 
 ## 3. How it would fit Vitaquack

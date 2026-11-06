@@ -6,6 +6,7 @@ import {
   type VoiceSay,
   type VoiceTurn,
   VoiceTurnRequest,
+  type VoiceWarm,
 } from '@ethmumbai/protocol/Voice'
 import { Clock, type Duration, Effect, Option, Redacted, Result, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
@@ -24,6 +25,7 @@ import { ErrandRefused, MERCHANT_ID, need } from './Start.ts'
 import {
   answerLine,
   busyLine,
+  fixedLines,
   hearingPrompt,
   intentLine,
   notPairedLine,
@@ -43,16 +45,30 @@ import { firstRow } from '../Sql.ts'
 
 const LIVE = LIVE_STATES.map((state) => `'${state}'`).join(', ')
 
-// Vita's voice in the robot conversation (protocol Voice.ts), always mounted. Two 0G Router calls, both with
-// the Worker's key: the omni model hears the owner's clip, and `minimax-speech` speaks the line. The voice model never
-// decides: a `buy` turn calls `createIntent`, the one operation the Buy chips and typed text use, and the robot's scan
-// then runs 0G's `decide` (glm-5.3, TEE-proven) as for any errand. Audio, transcripts and prompts are never stored or
-// logged; logs carry the robot, the turn's kind, latency and the 0G request id.
+// Vita's voice in the robot conversation (protocol Voice.ts), always mounted. Three 0G Router calls, all with the
+// Worker's key: `whisper-large-v3` transcribes the owner's clip and `0gm-1.0-35b-a3b` classifies the transcript, both
+// on TeeML providers (each reply carries a TEE signature anyone can check with 0G's SDK), and `minimax-speech` speaks
+// the line (no TEE; it only reads a sentence built by code). The voice models never decide: a `buy` turn calls
+// `createIntent`, the one operation the Buy chips and typed text use, and the robot's scan then runs 0G's `decide`
+// (TEE-proven) as for any errand. Audio, transcripts and prompts are never stored or logged; logs carry the robot,
+// the turn's kind, latencies, the 0G request ids and the providers that answered.
 
-/** The omni model that hears (audio in, JSON out, one call). Measured 8/8 in the reply shape in the demo kit. */
-export const VOICE_MODEL = 'qwen3.5-omni-plus'
-/** The 0G Router's text-to-speech model; the page pitches it up for the duck. */
-export const SPEECH_MODEL = 'minimax-speech-2.8-turbo'
+/** The sealed (TeeML) speech-to-text model that transcribes the clip. 3/3 verbatim and TEE-verified on 7 Nov. */
+export const TRANSCRIBE_MODEL = 'whisper-large-v3'
+/**
+ * The sealed (TeeML) model that classifies the transcript (text in, JSON out), 0G's own. 16/16 on the demo phrases on
+ * 7 Nov, median 1.5 s with thinking off; whisper plus this is about 3.4 s against 2.5 s for the unsealed omni model.
+ */
+export const VOICE_MODEL = '0gm-1.0-35b-a3b'
+/** Thinking is on by default for 0GM; off, the classification fits the turn (the field is per model). */
+const VOICE_EXTRA = { chat_template_kwargs: { enable_thinking: false } }
+/**
+ * The 0G Router's text-to-speech model; the page pitches it up for the duck. 2.6 Turbo over 2.8 Turbo (7 Nov): the
+ * whole MP3 in a median 3.6 s (at most 4.0 s) against 5.3 s (at most 6.9 s), the same voice and tempo.
+ */
+export const SPEECH_MODEL = 'minimax-speech-2.6-turbo'
+/** How many fixed lines `…/voice/warm` asks the speech model for at once. */
+const WARM_CONCURRENCY = 4
 const SPEECH_VOICE = 'English_PlayfulGirl'
 /** The demo kit's tempo (0.95) over its browser pitch-up (1.16), so the heard pace stays normal. */
 const SPEECH_SPEED = 0.82
@@ -72,9 +88,83 @@ const factsOf = Effect.fnUntraced(function* (deps: ErrandDeps, robot: RobotRow, 
   } satisfies VoiceFacts
 })
 
-/** The omni model's view of the clip; any failure is a visible 502 and nothing starts. */
-const hear = Effect.fnUntraced(function* (zeroG: ZeroGConfig, audio: string, items: VoiceFacts['items']) {
-  const config: ZeroGConfig = { baseUrl: zeroG.baseUrl, apiKey: zeroG.apiKey, model: VOICE_MODEL }
+const Transcription = Schema.Struct({
+  text: Schema.String,
+  x_0g_trace: Schema.optionalKey(
+    Schema.NullOr(
+      Schema.Struct({
+        request_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
+        provider: Schema.optionalKey(Schema.NullOr(Schema.String)),
+      }),
+    ),
+  ),
+})
+const decodeTranscription = Schema.decodeUnknownOption(Schema.fromJsonString(Transcription))
+
+/** The clip's bytes from its WAV data URI (the request schema already checked the shape). */
+const wavBytes = (audio: string) => Uint8Array.from(atob(audio.slice(audio.indexOf(',') + 1)), (c) => c.charCodeAt(0))
+
+/**
+ * `POST {ZG_BASE_URL}/audio/transcriptions` (multipart, as OpenAI's): the clip's English transcript. A failure is a
+ * reason that names the status or the shape, never the reply's text.
+ */
+const transcribe = Effect.fnUntraced(function* (zeroG: ZeroGConfig, audio: string) {
+  const started = yield* Clock.currentTimeMillis
+  const form = new FormData()
+  form.append('model', TRANSCRIBE_MODEL)
+  form.append('language', 'en')
+  form.append('response_format', 'json')
+  form.append('file', new Blob([wavBytes(audio)], { type: 'audio/wav' }), 'clip.wav')
+  const reply = yield* Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const response = yield* client.execute(
+      HttpClientRequest.post(`${zeroG.baseUrl.replace(/\/+$/, '')}/audio/transcriptions`).pipe(
+        HttpClientRequest.bearerToken(Redacted.value(zeroG.apiKey)),
+        HttpClientRequest.bodyFormData(form),
+      ),
+    )
+    return { status: response.status, text: yield* response.text }
+  }).pipe(Effect.timeout(HEAR_TIMEOUT), Effect.result, Effect.provide(FetchHttpClient.layer))
+  const latencyMs = (yield* Clock.currentTimeMillis) - started
+  if (Result.isFailure(reply)) return { ok: false as const, error: 'the transcription did not answer', latencyMs }
+  if (reply.success.status !== 200)
+    return { ok: false as const, error: `0G answered ${reply.success.status} to the transcription`, latencyMs }
+  const parsed = decodeTranscription(reply.success.text)
+  if (Option.isNone(parsed)) return { ok: false as const, error: 'the transcription is not JSON text', latencyMs }
+  const trace = parsed.value.x_0g_trace
+  return {
+    ok: true as const,
+    text: parsed.value.text.trim(),
+    requestId: trace?.request_id ?? null,
+    provider: trace?.provider ?? null,
+    latencyMs,
+  }
+})
+
+/** Why a hearing failed, for the owner in plain words (the log keeps the technical reason). */
+const unusable = Effect.fnUntraced(function* (error: string) {
+  yield* Effect.logWarning(`voice: 0G hearing unusable: ${error}`)
+  const said = error === 'heard nothing' ? 'Vita did not catch that' : 'Vita did not understand that'
+  return yield* new ErrandRefused({ status: 502, error: said })
+})
+
+/**
+ * What the owner said, in two sealed calls: whisper transcribes the clip, then 0GM classifies the transcript. Any
+ * failure is a visible 502 and nothing starts; an empty transcript is not classified (Vita does not guess).
+ */
+export const hear = Effect.fnUntraced(function* (zeroG: ZeroGConfig, audio: string, items: VoiceFacts['items']) {
+  const transcript = yield* transcribe(zeroG, audio)
+  if (!transcript.ok) {
+    yield* Effect.logWarning(`voice: 0G transcription failed: ${transcript.error}`)
+    return yield* new ErrandRefused({ status: 502, error: `0G did not answer: ${transcript.error}` })
+  }
+  if (transcript.text.length === 0) return yield* unusable('heard nothing')
+  const config: ZeroGConfig = {
+    baseUrl: zeroG.baseUrl,
+    apiKey: zeroG.apiKey,
+    model: VOICE_MODEL,
+    extraBody: VOICE_EXTRA,
+  }
   const outcome = yield* zeroGChat(
     config,
     {
@@ -82,26 +172,25 @@ const hear = Effect.fnUntraced(function* (zeroG: ZeroGConfig, audio: string, ite
       stream: false,
       messages: [
         { role: 'system', content: hearingPrompt(items) },
-        {
-          role: 'user',
-          content: [
-            { type: 'input_audio', input_audio: { data: audio, format: 'wav' } },
-            { type: 'text', text: 'The owner just said this. Answer with the JSON object only.' },
-          ],
-        },
+        { role: 'user', content: transcript.text },
       ],
     },
     { timeout: HEAR_TIMEOUT },
   ).pipe(Effect.provide(FetchHttpClient.layer))
   if (!outcome.ok) return yield* new ErrandRefused({ status: 502, error: `0G did not answer: ${outcome.error}` })
   const hearing = parseHearing(outcome.message, items)
-  if (!hearing.ok) {
-    yield* Effect.logWarning(`voice: 0G hearing unusable: ${hearing.error}`)
-    // The reason for the owner, in plain words; the log above keeps the technical one.
-    const said = hearing.error === 'heard nothing' ? 'Vita did not catch that' : 'Vita did not understand that'
-    return yield* new ErrandRefused({ status: 502, error: said })
+  if (!hearing.ok) return yield* unusable(hearing.error)
+  return {
+    ...hearing,
+    // What Vita heard is whisper's transcript, not the classifier's retelling of it.
+    heard: transcript.text.slice(0, 200),
+    transcribeRequestId: transcript.requestId,
+    transcribeProvider: transcript.provider,
+    transcribeMs: transcript.latencyMs,
+    requestId: outcome.call.requestId,
+    provider: outcome.call.provider,
+    latencyMs: outcome.call.latencyMs,
   }
-  return { ...hearing, requestId: outcome.call.requestId, latencyMs: outcome.call.latencyMs }
 })
 
 /**
@@ -230,7 +319,11 @@ const turn = (deps: VoiceDeps) =>
         robotId: robot.id,
         intent: hearing.intent satisfies VoiceIntent,
         errandId: answer.errand?.id ?? null,
+        transcribeRequestId: hearing.transcribeRequestId,
+        transcribeProvider: hearing.transcribeProvider,
+        transcribeMs: hearing.transcribeMs,
         requestId: hearing.requestId,
+        provider: hearing.provider,
         hearMs: hearing.latencyMs,
         spoken: spoken.speech !== null,
       }),
@@ -305,6 +398,58 @@ const speech = (deps: VoiceDeps) =>
     return HttpServerResponse.uint8Array(bytes, { contentType: 'audio/mpeg', headers: audioHeaders })
   }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
 
+/**
+ * The fixed lines this isolate is making right now: a second warm-up while the cache is still cold (two tabs, a reload)
+ * skips them instead of paying for the same speech again.
+ */
+const warming = new Set<string>()
+
+/**
+ * One fixed line's speech in the bucket: already there, made now, being made by another warm-up in this isolate, or not
+ * made (the line still shows as text and is made on its first play).
+ */
+const ensureSpeech = Effect.fnUntraced(function* (media: ReadWriteBucketClient, zeroG: ZeroGConfig, text: string) {
+  const path = audioPath(yield* speechKey(text))
+  const there = yield* media.head(path).pipe(Effect.option)
+  if (Option.isSome(there) && there.value !== null) return 'ready' as const
+  if (warming.has(path)) return 'pending' as const
+  warming.add(path)
+  const made = yield* Effect.gen(function* () {
+    const bytes = yield* speak(zeroG, text, SPEECH_TIMEOUT)
+    if (bytes === null) return 'failed' as const
+    const saved = yield* media.put(path, bytes, { httpMetadata: { contentType: 'audio/mpeg' } }).pipe(Effect.result)
+    return Result.isSuccess(saved) ? ('made' as const) : ('failed' as const)
+  }).pipe(Effect.ensuring(Effect.sync(() => warming.delete(path))))
+  return made
+})
+
+/**
+ * `POST …/voice/warm` (owner): makes the speech of every fixed line (`fixedLines`) that is not in the bucket yet, so
+ * those lines play at once instead of after the 3 to 4 s the speech model takes. The page calls it when the conversation
+ * opens; a line made once serves every robot (the speech path is the text's hash). A line that fails stays as it was and
+ * is made on its first play, as before.
+ */
+const warm = (deps: VoiceDeps) =>
+  Effect.gen(function* () {
+    yield* ownRobot(deps)
+    const zeroG = yield* need(deps.zeroG, 503, 'not configured: ZG_API_KEY')
+    const merchant = yield* need(findMerchant(MERCHANT_ID), 500, 'merchant catalogue is missing')
+    const lines = fixedLines(merchant.items)
+    const results = yield* Effect.forEach(lines, (line) => ensureSpeech(deps.media, zeroG, line.text), {
+      concurrency: WARM_CONCURRENCY,
+    })
+    const count = (result: (typeof results)[number]) => results.filter((each) => each === result).length
+    const answer = {
+      lines: lines.length,
+      ready: count('ready'),
+      made: count('made'),
+      pending: count('pending'),
+      failed: count('failed'),
+    }
+    yield* Effect.logInfo('voice warm').pipe(Effect.annotateLogs(answer))
+    return yield* json(answer satisfies VoiceWarm)
+  }).pipe(Effect.catchTag('ErrandRefused', ({ status, error }) => jsonError(status, error)))
+
 /** The voice routes need the private bucket too: a line's text and its speech live there. */
 export interface VoiceDeps extends ErrandDeps {
   readonly media: ReadWriteBucketClient
@@ -315,5 +460,6 @@ export const voiceRoutes = (deps: VoiceDeps) =>
   HttpRouter.addAll([
     HttpRouter.route('POST', '/api/robots/:robotId/voice', requireSession(turn(deps))),
     HttpRouter.route('POST', '/api/robots/:robotId/voice/say', requireSession(say(deps))),
+    HttpRouter.route('POST', '/api/robots/:robotId/voice/warm', requireSession(warm(deps))),
     HttpRouter.route('GET', '/api/robots/:robotId/voice/speech/:key', requireSession(speech(deps))),
   ])
