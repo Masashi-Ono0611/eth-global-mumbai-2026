@@ -19,7 +19,7 @@ Deploy only through Alchemy (`docs/DEPLOYMENT.md`): the app stack and the scratc
 
 ## Stack
 
-Use exact manifest/lockfile pins: Bun, Effect 4, Alchemy v2, Foldkit, Yielded Auth, Drizzle SQLite/D1, Domain on Durable Objects, R2, native Cloudflare telemetry. Alchemy owns infrastructure. The single public origin serves pages, API, auth, media and MCP.
+Use exact manifest/lockfile pins: Bun, Effect 4, Alchemy v2, Foldkit, our own passkey auth on `@simplewebauthn/server` (Yielded Auth was removed in M0a), Drizzle SQLite/D1, R2, native Cloudflare telemetry; `packages/domain` stays wired but empty (no Durable Objects for the event). Alchemy owns infrastructure. The single public origin serves pages, API, auth, media and MCP.
 
 The `@yielded/effect-tsrs` gate checks TS and Effect. The editor uses pinned tsrs. Oxlint's type-aware backend is the tsrs-lint the pinned `tsrs` package ships (lockfile-verified), with no fallback. Oxfmt formats. New code has zero lint debt. Keep anti-slop provenance, graph boundaries, suppression census, Knip and native runtime tests effective.
 
