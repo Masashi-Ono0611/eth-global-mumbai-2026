@@ -42,6 +42,7 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const LoadWallet = Command.define('LoadWallet', {
   messages: [Message.SucceededLoadWallet, Message.FailedLoadWallet],
   execute: Effect.all([loadWallet, loadActivity], { concurrency: 2 }).pipe(

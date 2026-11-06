@@ -3,18 +3,28 @@ import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Message } from './message.ts'
 import type { Model } from './model.ts'
+import * as Gate from './pages/gate/Gate.ts'
+import * as Merchant from './pages/merchant/Merchant.ts'
 import * as RobotConsole from './pages/RobotConsole.ts'
 import * as Robots from './pages/Robots.ts'
 import * as Wallet from './pages/Wallet.ts'
 import { AppRoute } from './route.ts'
 
 /** The owner pages' state lives beside the session in the root Model: only the current route's page is present. */
-type Pages = Pick<Model, 'maybeWallet' | 'maybeRobots' | 'maybeConsole'>
-const noPages: Pages = { maybeWallet: Option.none(), maybeRobots: Option.none(), maybeConsole: Option.none() }
+type Pages = Pick<Model, 'maybeWallet' | 'maybeRobots' | 'maybeConsole' | 'maybeMerchant' | 'maybeGate'>
+const noPages: Pages = {
+  maybeWallet: Option.none(),
+  maybeRobots: Option.none(),
+  maybeConsole: Option.none(),
+  maybeMerchant: Option.none(),
+  maybeGate: Option.none(),
+}
 
 const toWallet = (message: Wallet.Message) => Message.GotWalletMessage({ message })
 const toRobots = (message: Robots.Message) => Message.GotRobotsMessage({ message })
 const toConsole = (message: RobotConsole.Message) => Message.GotConsoleMessage({ message })
+const toMerchant = (message: Merchant.Message) => Message.GotMerchantMessage({ message })
+const toGate = (message: Gate.Message) => Message.GotGateMessage({ message })
 
 /** Each page loads its own data on start (in the browser; the server renders the loading state). */
 export const initPages = (route: AppRoute) =>
@@ -33,6 +43,20 @@ export const initPages = (route: AppRoute) =>
       return {
         pages: { ...noPages, maybeRobots: Option.some(robots.model) },
         commands: Command.mapMessages(robots.commands, toRobots),
+      }
+    },
+    Merchant: () => {
+      const merchant = Merchant.init()
+      return {
+        pages: { ...noPages, maybeMerchant: Option.some(merchant.model) },
+        commands: Command.mapMessages(merchant.commands, toMerchant),
+      }
+    },
+    Gate: ({ merchantId }) => {
+      const gate = Gate.init(merchantId)
+      return {
+        pages: { ...noPages, maybeGate: Option.some(gate.model) },
+        commands: Command.mapMessages(gate.commands, toGate),
       }
     },
     RobotConsole: ({ robotId }) => {
@@ -66,4 +90,19 @@ export const foldConsole = Update.foldChild({
   write: (model: Model, nextConsole: RobotConsole.Model) =>
     modifyFields(model, { maybeConsole: () => Option.some(nextConsole) }),
   toParentMessage: toConsole,
+})
+
+export const foldMerchant = Update.foldChild({
+  update: Merchant.update,
+  read: (model: Model) => model.maybeMerchant,
+  write: (model: Model, nextMerchant: Merchant.Model) =>
+    modifyFields(model, { maybeMerchant: () => Option.some(nextMerchant) }),
+  toParentMessage: toMerchant,
+})
+
+export const foldGate = Update.foldChild({
+  update: Gate.update,
+  read: (model: Model) => model.maybeGate,
+  write: (model: Model, nextGate: Gate.Model) => modifyFields(model, { maybeGate: () => Option.some(nextGate) }),
+  toParentMessage: toGate,
 })

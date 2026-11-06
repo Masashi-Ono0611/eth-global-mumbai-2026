@@ -42,6 +42,20 @@
     "storage": "0G Storage 上のエピソード",
     "title": "ロボットコンソール"
   },
+  "gate": {
+    "badSignature": "ステータスの署名を確認できません。ゲートは閉じたままです。",
+    "closed": "閉",
+    "invoice": "請求書",
+    "newInvoice": "この請求書はもう支払えません。新しい請求書を作成します。",
+    "offline": "加盟店から応答がありません。再試行します。",
+    "open": "開",
+    "payLink": "支払いリンク（QR）",
+    "payToOpen": "この請求書を支払うとゲートが開きます。",
+    "price": "価格",
+    "title": "ゲート",
+    "verified": "支払い済み：加盟店の署名付きステータスを確認しました（Ed25519）。",
+    "waiting": "支払いを待っています…"
+  },
   "landing": {
     "browse": "アーキテクチャを見る",
     "contact": "ソースコード",
@@ -51,6 +65,13 @@
     "feedTitle": "しくみ",
     "lead": "あなたのアヒル、<italic>あなたの予算</italic>。",
     "title": "予算を持ったアヒル。"
+  },
+  "merchant": {
+    "createInvoice": "請求書を作成",
+    "openGate": "ゲート画面を開く",
+    "pageTitle": "加盟店",
+    "restricted": "制限品目：所有者の承認が必要です",
+    "title": "{name}"
   },
   "robot": {
     "state": "{state, select, queued {待機中} deciding {判断中} awaiting_approval {承認待ち} signing {チップが署名中} settling {決済中} paid {支払い済み} walked_away {立ち去った} safe_stop {安全停止} denied {拒否} refused {チップが拒否} failed {失敗} expired {期限切れ} other {{state}}}"

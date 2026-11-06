@@ -98,6 +98,8 @@ test('typed routes decide the status, and a preflight gets the allowed methods w
   expect((await respond('/')).status).toBe(200)
   expect((await respond('/login')).status).toBe(404)
   expect((await respond('/account')).status).toBe(404)
+  for (const path of ['/wallet', '/wallet/robots', '/robot/abc', '/merchant', '/gate/duck-cafe'])
+    expect((await respond(path)).status, path).toBe(200)
   const preflight = await respond('/', { method: 'OPTIONS' })
   expect(preflight.status).toBe(204)
   expect(preflight.headers.get('allow')).toContain('GET')

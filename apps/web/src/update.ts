@@ -5,7 +5,7 @@ import { CreatePasskeyWallet, ReadSession, SaveLocale, SignInWithPasskey, SignOu
 import { parseLocale } from './Locale.ts'
 import { Message } from './message.ts'
 import { AuthState, type Flags, LocaleSave, type Model } from './model.ts'
-import { foldConsole, foldRobots, foldWallet, initPages } from './pages.ts'
+import { foldConsole, foldGate, foldMerchant, foldRobots, foldWallet, initPages } from './pages.ts'
 import { routeFromPathname } from './route.ts'
 
 type UpdateReturn = Update.Return<Model, Message, Services>
@@ -103,5 +103,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     GotWalletMessage: ({ message: walletMessage }) => foldWallet(model, walletMessage),
     GotRobotsMessage: ({ message: robotsMessage }) => foldRobots(model, robotsMessage),
     GotConsoleMessage: ({ message: consoleMessage }) => foldConsole(model, consoleMessage),
+    GotMerchantMessage: ({ message: merchantMessage }) => foldMerchant(model, merchantMessage),
+    GotGateMessage: ({ message: gateMessage }) => foldGate(model, gateMessage),
     FailedSignOut: () => ({ model: modifyFields(model, { auth: () => AuthState.Unavailable() }) }),
   })

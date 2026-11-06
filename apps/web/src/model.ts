@@ -3,6 +3,8 @@ import { SessionView } from '@ethmumbai/auth/config'
 import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { Locale } from './Locale.ts'
+import * as Gate from './pages/gate/Gate.ts'
+import * as Merchant from './pages/merchant/Merchant.ts'
 import * as RobotConsole from './pages/RobotConsole.ts'
 import * as Robots from './pages/Robots.ts'
 import * as Wallet from './pages/Wallet.ts'
@@ -44,5 +46,7 @@ export const Model = Schema.Struct({
   maybeWallet: Schema.Option(Wallet.Model),
   maybeRobots: Schema.Option(Robots.Model),
   maybeConsole: Schema.Option(RobotConsole.Model),
+  maybeMerchant: Schema.Option(Merchant.Model),
+  maybeGate: Schema.Option(Gate.Model),
 })
 export type Model = typeof Model.Type

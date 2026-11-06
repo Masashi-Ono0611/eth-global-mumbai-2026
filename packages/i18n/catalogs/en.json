@@ -42,6 +42,20 @@
     "storage": "Episode on 0G Storage",
     "title": "Robot console"
   },
+  "gate": {
+    "badSignature": "The status signature did not verify; the gate stays closed.",
+    "closed": "CLOSED",
+    "invoice": "Invoice",
+    "newInvoice": "This invoice can no longer be paid; making a new one.",
+    "offline": "The merchant did not answer; retrying.",
+    "open": "OPEN",
+    "payLink": "Payment link (QR)",
+    "payToOpen": "Pay this invoice to open the gate.",
+    "price": "Price",
+    "title": "Gate",
+    "verified": "Paid: the merchant's signed status verified (Ed25519).",
+    "waiting": "Waiting for payment…"
+  },
   "landing": {
     "browse": "Read the architecture",
     "contact": "Source",
@@ -51,6 +65,13 @@
     "feedTitle": "How it works",
     "lead": "Your duck, <italic>your budget</italic>.",
     "title": "A duck with a budget."
+  },
+  "merchant": {
+    "createInvoice": "Create invoice",
+    "openGate": "Open the gate screen",
+    "pageTitle": "Merchant",
+    "restricted": "Restricted item: needs the owner's approval",
+    "title": "{name}"
   },
   "robot": {
     "state": "{state, select, queued {queued} deciding {deciding} awaiting_approval {waiting for approval} signing {chip signing} settling {settling} paid {paid} walked_away {walked away} safe_stop {safe stop} denied {denied} refused {refused by the chip} failed {failed} expired {expired} other {{state}}}"

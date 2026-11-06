@@ -85,6 +85,7 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const LoadRobots = Command.define('LoadRobots', {
   messages: [Message.SucceededLoadRobots, Message.FailedLoadRobots],
   execute: Effect.gen(function* () {
@@ -99,6 +100,7 @@ export const LoadRobots = Command.define('LoadRobots', {
   ),
 })
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const AddRobot = Command.define('AddRobot', {
   args: { name: Schema.String },
   messages: [Message.SucceededAddRobot, Message.FailedAddRobot],
@@ -109,7 +111,10 @@ export const AddRobot = Command.define('AddRobot', {
     ),
 })
 
-/** Options (the unsigned grant), the passkey over its digest, then the Worker deploys/activates it on Arc. */
+/**
+ * Options (the unsigned grant), the passkey over its digest, then the Worker deploys/activates it on Arc.
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
 export const GrantBudget = Command.define('GrantBudget', {
   args: {
     robotId: Schema.String,
@@ -135,7 +140,10 @@ export const GrantBudget = Command.define('GrantBudget', {
     }).pipe(Effect.catch((error) => Effect.succeed(Message.FailedGrantBudget({ failure: actionFailureOf(error) })))),
 })
 
-/** The passkey signs the one-time revoke delegation; the relayer has Arc disable the grant. */
+/**
+ * The passkey signs the one-time revoke delegation; the relayer has Arc disable the grant.
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
 export const RevokeGrant = Command.define('RevokeGrant', {
   args: { grantId: Schema.String },
   messages: [Message.SucceededRevokeGrant, Message.FailedRevokeGrant],

@@ -50,7 +50,10 @@ export type Message = typeof Message.Type
 
 // COMMAND
 
-/** The robot, the merchant's items and the robot's latest errand (to resume it after a reload). */
+/**
+ * The robot, the merchant's items and the robot's latest errand (to resume it after a reload).
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
 export const LoadConsole = Command.define('LoadConsole', {
   args: { robotId: Schema.String },
   messages: [Message.SucceededLoadConsole, Message.FailedLoadConsole],
@@ -72,6 +75,7 @@ export const LoadConsole = Command.define('LoadConsole', {
     ),
 })
 
+/** @internal Exported for the scene tests; the page update is its only production caller. */
 export const StartErrand = Command.define('StartErrand', {
   args: { robotId: Schema.String, item: Schema.String },
   messages: [Message.SucceededStartErrand, Message.FailedStartErrand],
@@ -87,7 +91,10 @@ export const StartErrand = Command.define('StartErrand', {
     ),
 })
 
-/** Reads the errand after `delayMillis`: the console polls while the errand is live (spec §6 moves lazily on reads). */
+/**
+ * Reads the errand after `delayMillis`: the console polls while the errand is live (spec §6 moves lazily on reads).
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
 export const PollErrand = Command.define('PollErrand', {
   args: { robotId: Schema.String, episodeId: Schema.String, delayMillis: Schema.Number },
   messages: [Message.SucceededLoadErrand, Message.FailedLoadErrand],

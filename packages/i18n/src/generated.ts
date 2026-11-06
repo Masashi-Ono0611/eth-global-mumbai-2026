@@ -42,6 +42,18 @@ export interface MessageArgumentsByKey<T = string> {
   'console.starting': { readonly item: string | number }
   'console.storage': Readonly<Record<string, never>>
   'console.title': Readonly<Record<string, never>>
+  'gate.badSignature': Readonly<Record<string, never>>
+  'gate.closed': Readonly<Record<string, never>>
+  'gate.invoice': Readonly<Record<string, never>>
+  'gate.newInvoice': Readonly<Record<string, never>>
+  'gate.offline': Readonly<Record<string, never>>
+  'gate.open': Readonly<Record<string, never>>
+  'gate.payLink': Readonly<Record<string, never>>
+  'gate.payToOpen': Readonly<Record<string, never>>
+  'gate.price': Readonly<Record<string, never>>
+  'gate.title': Readonly<Record<string, never>>
+  'gate.verified': Readonly<Record<string, never>>
+  'gate.waiting': Readonly<Record<string, never>>
   'landing.browse': Readonly<Record<string, never>>
   'landing.contact': Readonly<Record<string, never>>
   'landing.description': Readonly<Record<string, never>>
@@ -50,6 +62,11 @@ export interface MessageArgumentsByKey<T = string> {
   'landing.feedTitle': Readonly<Record<string, never>>
   'landing.lead': { readonly italic: RichTextValue<T> }
   'landing.title': Readonly<Record<string, never>>
+  'merchant.createInvoice': Readonly<Record<string, never>>
+  'merchant.openGate': Readonly<Record<string, never>>
+  'merchant.pageTitle': Readonly<Record<string, never>>
+  'merchant.restricted': Readonly<Record<string, never>>
+  'merchant.title': { readonly name: string | number }
   'robot.state': { readonly state: string | number }
   'robots.add': Readonly<Record<string, never>>
   'robots.allowlist': { readonly payees: string | number }
@@ -92,4 +109,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '89ed2d6d8e5d00c9a9614bf78f19f57caad45ef22efa05024495dec00102239e'
+export const catalogVersion = 'b69fd3c8c76b4997afd890048d3c93cacd202da9b3b953cf72913b878b4f5813'

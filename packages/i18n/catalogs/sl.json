@@ -42,6 +42,20 @@
     "storage": "Epizoda na 0G Storage",
     "title": "Konzola robota"
   },
+  "gate": {
+    "badSignature": "Podpis stanja ni veljaven; vrata ostanejo zaprta.",
+    "closed": "ZAPRTO",
+    "invoice": "Račun",
+    "newInvoice": "Tega računa ni več mogoče plačati; ustvarjam novega.",
+    "offline": "Trgovec se ne odziva; poskušam znova.",
+    "open": "ODPRTO",
+    "payLink": "Povezava za plačilo (QR)",
+    "payToOpen": "Plačajte ta račun, da se vrata odprejo.",
+    "price": "Cena",
+    "title": "Vrata",
+    "verified": "Plačano: podpisano stanje trgovca je preverjeno (Ed25519).",
+    "waiting": "Čakam na plačilo …"
+  },
   "landing": {
     "browse": "Preberite arhitekturo",
     "contact": "Izvorna koda",
@@ -51,6 +65,13 @@
     "feedTitle": "Kako deluje",
     "lead": "Vaša raca, <italic>vaš proračun</italic>.",
     "title": "Raca s proračunom."
+  },
+  "merchant": {
+    "createInvoice": "Ustvari račun",
+    "openGate": "Odpri zaslon vrat",
+    "pageTitle": "Trgovec",
+    "restricted": "Omejen izdelek: potrebna je odobritev lastnika",
+    "title": "{name}"
   },
   "robot": {
     "state": "{state, select, queued {v vrsti} deciding {odloča} awaiting_approval {čaka na odobritev} signing {čip podpisuje} settling {poravnava} paid {plačano} walked_away {odšel} safe_stop {varna ustavitev} denied {zavrnjeno} refused {čip je zavrnil} failed {neuspešno} expired {poteklo} other {{state}}}"

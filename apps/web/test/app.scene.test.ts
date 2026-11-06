@@ -42,6 +42,30 @@ describe('routes', () => {
     vitestExpect(AppRoute.guards.Home(page('/').route)).toBe(true)
     vitestExpect(AppRoute.guards.NotFound(page('/login').route)).toBe(true)
   })
+
+  test('owner, merchant and gate paths parse into their pages and start loading', () => {
+    vitestExpect(AppRoute.guards.Wallet(page('/wallet').route)).toBe(true)
+    vitestExpect(AppRoute.guards.Robots(page('/wallet/robots').route)).toBe(true)
+    vitestExpect(page('/robot/abc').route).toEqual(AppRoute.RobotConsole({ robotId: 'abc' }))
+    vitestExpect(AppRoute.guards.Merchant(page('/merchant').route)).toBe(true)
+    vitestExpect(page('/gate/duck-cafe').route).toEqual(AppRoute.Gate({ merchantId: 'duck-cafe' }))
+    vitestExpect(
+      init({
+        locale: 'en',
+        catalogVersion,
+        timeZone: 'UTC',
+        referenceTime: 0,
+        pathname: '/wallet/robots',
+      }).commands?.map((command) => command.name),
+    ).toEqual(['ReadSession', 'LoadRobots'])
+    scene({ update, view }, given(signedOut('/gate/duck-cafe')), expect(role('status')).toHaveText('CLOSED'))
+    scene(
+      { update, view },
+      given(page('/wallet')),
+      expect(role('heading', { name: 'Wallet', level: 1 })).toExist(),
+      expect(role('status')).toHaveText('Loading...'),
+    )
+  })
 })
 
 describe('passkey wallet', () => {
