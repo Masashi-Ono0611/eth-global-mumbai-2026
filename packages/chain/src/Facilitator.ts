@@ -16,7 +16,7 @@ import { arcAddresses, MULTICALL3, USDC } from './Env.ts'
 import { redeemCalldata, singleExecution, transferCall } from './Grant.ts'
 import { decodePermissionContext, delegationHashOf } from './Hashes.ts'
 import { isSignedBy } from './Leaf.ts'
-import { AlreadySubmitted, type Relayer, RelayerError } from './Relayer.ts'
+import type { Relayer, RelayerError } from './Relayer.ts'
 
 // Our x402 `exact` + ERC-7710 facilitator for Arc (port of docs/research/spikes/s2-facilitator-spike.ts.txt with the
 // spec §7 fixes): structural checks on the decoded permission context, off-chain recovery of the chip's leaf signature,
