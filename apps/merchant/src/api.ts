@@ -18,8 +18,7 @@ export type Item = typeof Item.Type
 export const Catalogue = Schema.Struct({ merchantId: Schema.String, name: Schema.String, items: Schema.Array(Item) })
 export type Catalogue = typeof Catalogue.Type
 
-export const Status = Schema.Literals(['pending', 'paid', 'used', 'expired'])
-export type Status = typeof Status.Type
+const Status = Schema.Literals(['pending', 'paid', 'used', 'expired'])
 
 /** The invoice on the counter screen, as `GET …/counter/latest` reports it (`expiresAt` in unix seconds). */
 export const CounterInvoice = Schema.Struct({
