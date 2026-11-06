@@ -1,0 +1,5 @@
+/* Tailwind's theme and utilities for our overlay only: no preflight, so the vendored engine's MUI styles stay as
+   Pollen shipped them. */
+@layer theme, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);

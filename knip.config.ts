@@ -16,7 +16,12 @@ export default {
     },
     'apps/chip': { entry: ['src/main.ts!', 'test/**/*.test.ts'], project: ['src/**/*.ts!', 'test/**/*.ts'] },
     // The simulator page (Vite loads src/main from index.html); vendor/ is Pollen's vendored Microduck game code.
-    'apps/sim': { entry: ['src/main.{ts,tsx}!'], project: ['src/**/*.{ts,tsx}!'], ignore: ['vendor/**'] },
+    'apps/sim': {
+      entry: ['src/main.{ts,tsx}!'],
+      project: ['src/**/*.{ts,tsx}!'],
+      // Imported only by Pollen's vendored engine (vendor/microduck, outside the project); tailwindcss by styles.css.
+      ignoreDependencies: ['@mujoco/mujoco', '@react-three/fiber', 'onnxruntime-web', 'zustand', 'tailwindcss'],
+    },
     'apps/web': {
       entry: ['src/entry.ts!', 'src/entry.server.ts!', 'test/**/*.test.ts'],
       // tailwindcss is imported by styles.css (`@import 'tailwindcss'`), which Knip does not read.
