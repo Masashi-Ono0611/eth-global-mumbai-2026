@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vita: 0G or GPT-Live?</title>
+    <meta name="theme-color" content="#1c1d45" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600&display=swap" rel="stylesheet" />
+    <style>
+      :root { --dusk: #1c1d45; --dusk-up: #26285a; --duck: #ffd24a; --satchel: #48b3ad; --paper: #fff8e8; --ink-soft: rgb(255 248 232 / 0.82); --ink-faint: rgb(255 248 232 / 0.55); --line: rgb(255 248 232 / 0.18); --display: 'Fredoka', ui-rounded, system-ui, sans-serif; --body: 'Nunito Sans', system-ui, sans-serif; color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--dusk); color: var(--paper); font: 400 1rem/1.5 var(--body); }
+      body { display: grid; grid-template-rows: auto 1fr; height: 100svh; }
+      header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); }
+      h1 { margin: 0; font: 600 1.4rem/1.1 var(--display); }
+      [role='tablist'] { display: flex; gap: 0.5rem; }
+      [role='tab'] { padding: 0.6rem 1rem; border-radius: 999px; border: 0; cursor: pointer; background: rgb(255 248 232 / 0.14); color: var(--paper); font: 600 1rem/1 var(--display); }
+      [role='tab'][aria-selected='true'] { background: var(--duck); color: var(--dusk); }
+      [role='tab']:focus-visible { outline: 3px solid var(--duck); outline-offset: 3px; }
+      .note { margin: 0; font-size: 0.85rem; color: var(--ink-faint); }
+      .split { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; min-height: 0; }
+      iframe { width: 100%; height: 100%; border: 0; background: var(--dusk); }
+      aside { overflow: auto; padding: 1rem; border-left: 1px solid var(--line); background: var(--dusk-up); }
+      aside h2 { margin: 0 0 0.5rem; font: 600 1.1rem/1.2 var(--display); }
+      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      th, td { padding: 0.4rem 0.3rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+      th { color: var(--ink-faint); font-weight: 600; }
+      td.a { color: var(--duck); } td.b { color: var(--satchel); }
+      .score { margin-top: 1rem; display: grid; gap: 0.6rem; }
+      .score label { display: grid; grid-template-columns: 1fr auto auto; gap: 0.4rem; align-items: center; font-size: 0.88rem; }
+      .score select { background: var(--dusk); color: var(--paper); border: 1px solid var(--line); border-radius: 0.4rem; padding: 0.2rem; font: inherit; }
+      .verdict { margin-top: 0.8rem; font: 600 1rem/1.3 var(--display); color: var(--duck); }
+      @media (max-width: 860px) { .split { grid-template-columns: 1fr; grid-template-rows: 1fr auto; } aside { border-left: 0; border-top: 1px solid var(--line); max-height: 40svh; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Vita: 0G or GPT-Live?</h1>
+      <div role="tablist" aria-label="Which duck">
+        <button role="tab" id="tabA" aria-selected="true" aria-controls="frame" data-src="/">A · 0G push-to-talk</button>
+        <button role="tab" id="tabB" aria-selected="false" aria-controls="frame" data-src="/live">B · GPT-Live</button>
+      </div>
+      <p class="note">One at a time (switching closes the other, so the mic and speakers never overlap). Same duck, same catchphrases.</p>
+    </header>
+    <div class="split">
+      <iframe id="frame" src="/" title="The duck being tested" allow="microphone; autoplay"></iframe>
+      <aside>
+        <h2>What differs</h2>
+        <table>
+          <tr><th></th><th>A · 0G</th><th>B · GPT-Live</th></tr>
+          <tr><th>How you talk</th><td class="a">hold to talk, one turn at a time</td><td class="b">always listening, can interrupt</td></tr>
+          <tr><th>Reply starts after</th><td class="a">~5–7 s (measured)</td><td class="b">~1–2 s (measured, typed turns)</td></tr>
+          <tr><th>Big QUACK</th><td class="a">separate slow clip + quack sounds, always</td><td class="b">the voice stretches it itself ("QUAAAACK!" in 3 of 3), no added sounds</td></tr>
+          <tr><th>Runs on</th><td class="a">0G Router only (omni-plus + minimax TTS)</td><td class="b">OpenAI (no 0G in the voice)</td></tr>
+          <tr><th>Cost</th><td class="a">under 1 cent per turn (estimate)</td><td class="b">$0.05 per minute connected</td></tr>
+          <tr><th>Prize story</th><td class="a">"the duck's voice is 0G too"</td><td class="b">voice is OpenAI; 0G stays the brain</td></tr>
+        </table>
+        <div class="score" id="score">
+          <h2>Your scores (1–5)</h2>
+        </div>
+        <p class="verdict" id="verdict"></p>
+      </aside>
+    </div>
+    <script>
+      const tabs = [...document.querySelectorAll('[role=tab]')]
+      tabs.forEach((t) => t.addEventListener('click', () => {
+        tabs.forEach((x) => x.setAttribute('aria-selected', String(x === t)))
+        document.getElementById('frame').src = t.dataset.src // reloading the frame ends the other duck's mic and live session
+      }))
+      const criteria = ['Feels like a conversation', 'Duck character / catchphrases', 'Big QUACK lands', 'Speed (wait after you speak)', 'Safe to demo on stage']
+      const box = document.getElementById('score')
+      const read = () => { try { return JSON.parse(localStorage.getItem('vita-compare') || '{}') } catch { return {} } }
+      const save = (v) => { try { localStorage.setItem('vita-compare', JSON.stringify(v)) } catch {} }
+      const state = read()
+      const pick = (key) => { const s = document.createElement('select'); s.add(new Option('–', '')); for (let i = 1; i <= 5; i++) s.add(new Option(String(i), String(i))); s.value = state[key] ?? ''; s.addEventListener('change', () => { state[key] = s.value; save(state); verdict() }); return s }
+      for (const c of criteria) {
+        const l = document.createElement('label'); l.append(c)
+        const a = pick(`A:${c}`); a.setAttribute('aria-label', `${c}, A`); const b = pick(`B:${c}`); b.setAttribute('aria-label', `${c}, B`)
+        l.append(a, b); box.append(l)
+      }
+      const head = document.createElement('label'); head.innerHTML = '<span></span><b style="color:var(--duck)">A</b><b style="color:var(--satchel)">B</b>'; box.insertBefore(head, box.children[1])
+      const verdict = () => {
+        const sum = (p) => criteria.reduce((n, c) => n + (Number(state[`${p}:${c}`]) || 0), 0)
+        const a = sum('A'), b = sum('B')
+        document.getElementById('verdict').textContent = a || b ? `A ${a} : B ${b}${a === b ? ' (tie)' : a > b ? ' → A (0G) wins' : ' → B (GPT-Live) wins'}` : ''
+      }
+      verdict()
+    </script>
+  </body>
+</html>
