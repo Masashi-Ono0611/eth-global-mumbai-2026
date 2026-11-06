@@ -57,6 +57,7 @@ jobs:
           APP_ZG_API_KEY: ${{ secrets.APP_ZG_API_KEY }}
           APP_ZG_BASE_URL: ${{ secrets.APP_ZG_BASE_URL }}
           APP_ZG_MODEL: ${{ secrets.APP_ZG_MODEL }}
+          APP_ZG_EXTRA_JSON: ${{ secrets.APP_ZG_EXTRA_JSON }}
           APP_WORLD_CLIENT_ID: ${{ secrets.APP_WORLD_CLIENT_ID }}
           APP_WORLD_CLIENT_SECRET: ${{ secrets.APP_WORLD_CLIENT_SECRET }}
           APP_WORLD_ISSUER: ${{ secrets.APP_WORLD_ISSUER }}

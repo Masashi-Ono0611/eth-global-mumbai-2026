@@ -69,6 +69,7 @@ export default Alchemy.Stack(
         ZG_API_KEY: yield* secret('APP_ZG_API_KEY'),
         ZG_BASE_URL: yield* plain('APP_ZG_BASE_URL'),
         ZG_MODEL: yield* plain('APP_ZG_MODEL'),
+        ZG_EXTRA_JSON: yield* plain('APP_ZG_EXTRA_JSON'),
         WORLD_CLIENT_ID: yield* plain('APP_WORLD_CLIENT_ID'),
         WORLD_CLIENT_SECRET: yield* secret('APP_WORLD_CLIENT_SECRET'),
         WORLD_ISSUER: yield* plain('APP_WORLD_ISSUER'),
