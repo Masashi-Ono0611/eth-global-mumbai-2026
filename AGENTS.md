@@ -8,7 +8,7 @@ Styld's product is not part of this project.
 
 Product rules: Arc contracts are the only spending authority (D1 mirrors, never authorises); the robot's chip signs
 every payment and the Robot Agent never holds a spending key; never fake a 0G decision (a failed call ends the errand
-in `safe_stop`); no camera frames leave the chip; restricted items need a human approval, never an "age check"; no
+in `safe_stop`); no scene frames leave the chip (only a chip-signed crop of the scanned QR, owner-private in R2, never sent to 0G, hash anchored); restricted items need a human approval, never an "age check"; no
 keys, tokens, signatures' private inputs or prompts in logs, commits or tool output.
 
 ## Ownership and workflow
