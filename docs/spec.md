@@ -225,7 +225,11 @@ Idempotency: unique `chip_requests.episode_id`; unique `approvals.nonce`; `relay
 "Start" while a non-terminal errand exists.
 
 0G call (`packages/chain/src/ZeroG.ts`; `POST ${ZG_BASE_URL}/chat/completions`, `Authorization: Bearer ${ZG_API_KEY}`,
-timeout 10 s, `temperature 0`):
+timeout 10 s, `temperature 0`; one `429` is asked once more after 1 s with what is left of the 10 s, a second one is
+`safe_stop`). The owner picks the brain per message by hand, never as a fallback (Kris, 7 Nov): `POST …/errands` and
+`POST …/intents` take an optional `model`, ZG_MODEL (glm-5.3, its provider in a TEE) or the allowlisted
+`qwen3-vl-plus` (no TEE proof, so its decisions read "Not TEE-verifiable"), else 400; it is stored on the episode and
+the intent, the scan that claims the intent decides with it, and absent means ZG_MODEL:
 
 ```json
 {"model":"<ZG_MODEL>","messages":[
@@ -492,8 +496,8 @@ Evidence for the design: `docs/spikes/sim-results.md`; plan: `docs/sim-plan.md`.
   prompt walks away when the invoice is not what the owner asked for. Without an intent a scan behaves as in §6. The
   instruction is logged and stored in decisions only as its hash.
 - **0G navigation.** For a sim robot the intent is also the navigation session. `POST /api/chips/:robotId/intents/:id
-  /turn {results, scene}` (chip token) stores the sim's tool results, rebuilds the prompt from D1, calls glm-5.3
-  (`reasoning_effort: "low"`, `tool_choice: "required"`, 12 s, one retry on 429), stores the turn (`nav_turns`: ids,
+  /turn {results, scene}` (chip token) stores the sim's tool results, rebuilds the prompt from D1, calls the intent's
+  brain (glm-5.3 unless the owner picked another, §6) (`reasoning_effort: "low"`, `tool_choice: "required"`, 12 s, one retry on 429), stores the turn (`nav_turns`: ids,
   calls, short reasoning, TEE proof) and returns the next calls: `go_to(place)`, `look()`, `scan_qr()`, `say(text)`,
   `wait(s)`, `finish(summary)`. Results of `scan_qr` and `wait` are written by the Worker from the real errand, never by
   the sim. `look()` is text from sim state, never pixels; the only image that leaves the sim is the chip-signed QR
