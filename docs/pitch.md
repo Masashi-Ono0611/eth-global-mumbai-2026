@@ -1,177 +1,219 @@
-# Pitch: how each sponsor sees Vitaquack
+# Pitch: one story, four presentations
 
-Working plan for the stage slot, the booth visits, the presentation page and the video. Written Fri 6 Nov 15:30 IST;
-submissions close **Sat 7 Nov 09:00 IST**. Facts come from `docs/submission.md` and `docs/evidence/`; this file only
-adds the framing. Prize picks: decision D16 (`docs/prizes.md`).
+Working plan for the stage slot, the booth visits, the presentation page and the video. Written Fri 6 Nov 15:30 IST
+and restructured 15:50 IST after Kris's direction. Submissions close **Sat 7 Nov 09:00 IST**. Facts come from
+`docs/submission.md` and `docs/evidence/`; this file adds the framing only. Prize picks: decision D16 (`docs/prizes.md`).
 
 **One line:** "Don't give a robot your wallet. Give it a budget."
-**Three sponsors, three jobs:** **Arc holds the rules for the money, 0G is the brain, World is the human.**
 
-## 1. World cannot prove the owner is 18+ (rechecked 6 Nov 15:20 IST)
+## 1. Four presentations
 
-- **Agent Pass (World IdP) has no age claim.** Its ID token carries `iss sub aud exp iat jti auth_time acr amr nonce`,
-  plus an `email` alias for inbox accounts. The only scopes are `openid`, `offline_access` and `email`. The docs say
-  "Name, raw World identifiers, and World proofs are not included." `acr`/`amr` say how the person proved they are human
-  (Orb, Selfie, face, passkey), nothing about age, documents or nationality.
-  Source: <https://auth.world.org/docs/guides/id-token>.
-- **World's only age feature is IDKit's Identity Check** (`minimum_age`, `nationality`, `document_type`): "Identity Check
-  is currently in preview. To use it or learn more, contact us." The `passport` preset only proves that the person
-  "holds a verified NFC passport credential", with no age or date-of-birth check.
-  Source: <https://docs.world.org/world-id/idkit/credentials>.
-- **So there is no clean way to do it.** Agent Pass can't do it, and IDKit's way is a gated preview that belongs to a
-  prize we did not enter. Our framing stands: **a restricted item is the owner's own "ask me first" rule, and the owner
-  approves it. It is never an age check.**
-- Say it before a judge asks: *"World tells us the verified owner approved this exact payment, just now. It doesn't
-  tell us anyone's age, and we don't claim it does. Identity Check's `minimum_age` would plug in at onboarding once
-  it's out of preview."*
+There is one story, told in the same order every time, so a judge who sees two versions recognises it. Each audience
+gets a different focus:
 
-## 2. Arc: Advanced Stablecoin Logic ("programmable money")
+| Version | Audience | Focus | Shape |
+| --- | --- | --- | --- |
+| **Main** | ETHGlobal judges, the stage, the video | The story: how robots will pay. Sponsors stay in the background as credits | §2, about 4 min |
+| **Arc** | Arc booth | What Arc brings us: programmable money, one balance and no custody handed out, the tooling | 60 s of story, then §4 |
+| **World** | World booth | What World brings us: proof that a real human is behind the robot's big decisions | 60 s of story, then §5 |
+| **0G** | 0G booth | What 0G brings us: 0G runs the AI and keeps the episodes | 60 s of story, then §6 |
 
-The track asks for USDC contracts with programmable logic, built in Arc Studio and connected to an app. Its examples
-include **software-to-software payments** and **conditional transfers**, and it gives a **bonus for contracts other
-builders can reuse**. We already match it in the track's own words:
+There is only **one video**, and every judge watches it. It follows the main story; the sponsors appear as small credits
+in captions, plus a short "under the hood" ending with what the tracks require (Arc Studio on screen, the 0G Storage
+episode). That is already the shape of `docs/video-script.md`.
 
-| What the track names | Ours |
-| --- | --- |
-| Software-to-software payments | A robot pays a merchant's till per invoice over x402. Our ERC-7710 facilitator settles through `redeemDelegations` |
-| Conditional transfer | Outside the policy, a payment passes only with the approver's EIP-712 signature over exactly that payment, once (`PaymentApproved`) |
-| Reusable contract (bonus) | `RobotPaymentPolicyEnforcer` is an ordinary caveat for the MetaMask Delegation Framework v1.3.0. It takes three terms (per-payment cap, payee allowlist, approver) and works for **any** delegated agent wallet on Arc, not only robots |
-| Programmable logic | Our caveat plus stock ones: a daily cap (`ERC20PeriodTransferEnforcer`), expiry, invoice-once (`Id`), revoke. All of them are checked when the payment lands, and an approval lifts neither the daily cap nor the expiry |
+## 2. Main presentation: the story
 
-**Why Arc and not another chain** (say it on stage):
-- USDC is the gas, so the robot never holds a second token.
-- Finality is sub-second and deterministic, so the gate opens on a final payment and the merchant carries no reorg risk.
-- The P-256 precompile makes the passkey account cheap to verify.
+Robots are starting to run errands. To pay, they would need your card or a funded wallet of their own. **Vitaquack is
+an experiment in how robots will pay:** with your money, by your rules, and with you in the loop when it matters.
 
-**Use-case slide, "same contract, other bodies"** (≤ 4 bullets):
+| # | Beat | What the audience sees | The line | Sponsor credit (small) |
+| --- | --- | --- | --- | --- |
+| 0 | **Why** | The duck | "Robots will run errands. Today they'd need your card. We tried something else." | — |
+| 1 | **You have a wallet** | Sign up with a passkey and an address appears | "A wallet with no seed phrase: a passkey on your phone." | on Arc |
+| 2 | **You add a robot to it** | Pairing code, then "paired · online" | "The duck gets its own wallet: a key on its chip that never leaves it." | — |
+| 3 | **You give it a budget** | The grant sentence, one passkey signature | "The money stays in your wallet. The duck gets permission, not money: a dollar a day, thirty cents a payment, only at this café." | enforced on Arc |
+| 4 | **It buys for you** | "Buy chai": it decides, the chip signs, it pays, the gate opens | "It decides, signs and pays by itself, inside the budget." | decided by 0G |
+| 5 | **Bigger things ask you first** | 0.50, over the cap: your phone asks, you deny, then approve | "Over its limit, it has to ask. Say no and nothing is paid." | World ID |
+| 6 | **You can see why** | The activity list: what it bought, why it decided that, who approved, the receipt | "Every decision has a reason you can read, and a receipt." | episodes on 0G |
+| 7 | **You can stop it** | Revoke, then the next buy is refused | "One tap and it's cut off, and not even our servers can undo that." | Arc refuses |
+| 8 | **What's next** | Many robots, one wallet | "Every robot gets a budget, not your wallet." | Arc · 0G · World |
+
+Beats 0, 6, 7 and 8 are additions to Kris's list (wallet → robot → budget → buy → bigger needs approval → visibility).
+They are suggestions: 0 and 8 give the story a frame, and 7 is its strongest proof. Beat 6 needs the work in §3.
+
+## 3. Suggestions to make it better
+
+These are ordered by value against the time left. Cost estimates are ours; nothing here is built yet.
+
+1. **Show "why" on every activity row (beat 6).** Today the console shows 0G's reason, but only for the current
+   errand. The wallet's Activity list (`apps/web/src/pages/Wallet.ts:107`) shows only the item, state, amount and tx.
+   Add three things to each row: the decision and its reason, who approved it (World or the owner's own Deny), and a
+   link to the episode on 0G Storage. That makes the visibility beat true, and it doubles as the 0G and World booth
+   demos. About 1–2 h: a protocol field, the view, i18n in 5 languages.
+2. **Show "spent today, left today" read from Arc.** `ERC20PeriodTransferEnforcer.getAvailableAmount` returns what the
+   duck can still spend in the current period. The robot card would show "0.60 of 1.00 spent today". The number comes
+   from the contract that enforces the limit, so the UI cannot drift from what Arc will allow. That is beat 3 made
+   visible, and the Arc booth's best single screen. About 1–2 h.
+3. **Use the card-with-limits analogy.** "It's like giving someone a card on your account with a limit": everyone
+   already understands that. The new part is that the limit is enforced by the chain, not by a bank.
+4. **Keep the robot on the table as a prop.** Put the physical duck on the table even when the chip runs on the
+   laptop, and say that plainly.
+5. **Mark human approvals on the receipt** ("approved by a verified human, World ID"), in the activity row from item 1
+   and on the merchant's side. This is World's story in one label.
+6. **Close on what's next:** several robots on one wallet, robots paying robots, a merchant seeing "human-approved".
+
+## 4. Arc version: programmable money
+
+**What Arc brings us:**
+- **Money with rules.** The budget is a contract on Arc, not a setting on our server: the caps, the payee list, the
+  approval path, the expiry and revocation. Arc checks every one of them when a payment lands.
+- **One balance, no custody handed out.** The owner keeps a single USDC balance. The robots get permission, not money,
+  so you never fund a robot and never sweep it back. On Arc, USDC is also the gas: the native coin and the ERC-20 share
+  one balance, so the robot never needs a second token. "A card on your account with a limit" is normal for everybody,
+  and here the chain enforces the limit.
+- **Final in under a second,** so the till can open the gate on a payment it knows is final.
+- **Passkeys verified cheaply** through the P-256 precompile.
+
+**Tooling to show:**
+- **Arc Studio:** the project, the enforcer, 42 tests, the testnet deploys. Required on screen.
+- **MetaMask Delegation Framework** deployed on Arc.
+- **Our `RobotPaymentPolicyEnforcer`:** a reusable caveat, which earns the track's bonus.
+- **Our x402 facilitator** that settles ERC-7710 delegations, and the Arc explorer.
+
+**Showcases ("same contract, other bodies"):**
 - a delivery robot paying for its own charging
-- an AI agent paying per API call over x402, with a daily cap
-- a warehouse fleet with one budget per machine, where you revoke one and keep the rest
-- a household errand robot with an "ask me first" list
+- an AI agent paying per API call
+- a fleet with one budget per machine
+- a household robot with an "ask me first" list
 
-**Gaps to close for Arc, cheapest first:**
-1. **Show Studio on screen (required).** Show the Studio project with the enforcer, 42 tests and the testnet deploys,
-   both in the video (its own shot) and at the booth.
-2. **A "Reuse it" section in the README.** Give the terms encoding, the mainnet address and the ABI. That makes the
-   bonus concrete. About 30 minutes.
-3. **Name the Arc and Circle tools (required):** Arc Studio, Arc mainnet, USDC (native gas and the ERC-20 view), Arc's
-   P-256 precompile, the MetaMask Delegation Framework deployments on Arc, x402.
-4. **Booth question:** is a mainnet deploy outside Studio acceptable? It is already listed in `prizes.md`.
-- **Roadmap slide only, no build:** Arc Memo tagging the invoice id, Circle Gateway top-ups from any chain, EURC.
+**Proof, all real tx hashes:**
+- paid within the budget
+- paid with an approval (`PaymentApproved`)
+- refused after revoke (`CannotUseADisabledDelegation`)
 
-## 3. 0G: Physical AI, Agents with a Body
+**Track requirements:**
+- Studio URL and Studio in the demo
+- a working frontend and backend
+- an architecture diagram
+- the Arc and Circle tools named
+- one Arc track
 
-The track's rule is "0G is the brain, not the spinal cord". It does not want "a chatbot with a robot avatar,
-pre-recorded motion, 0G used only for logs."
+All of these are in `docs/prizes.md` and `docs/submission.md`. Still to do: the README's "Reuse it" section (the terms
+encoding, the address and the ABI), and the booth question about deploying to mainnet outside Studio.
 
-| What the track requires | Ours | Status |
-| --- | --- | --- |
-| A 0G call inside the decision loop | `decide`, which returns pay / ask_human / walk_away from the invoice, the budget and the policy flags | Live, with router request ids |
-| An episode log on 0G Storage, with a request id per decision | Episodes are uploaded to Storage, and their root and request-id hash are anchored in `EpisodeLog` (Galileo) | 7 episodes with real 0G decisions |
-| A replayable simulation, or live hardware at the booth | The mock chip plus the web gate on the deployed app, run live at the booth | Live |
-| A safe stop when 0G is unreachable, never faked | Any 0G failure ends the errand in `safe_stop` and the motors stay stopped | In tests, and seen on the deploy with the rehearsal brain. **Not in the video yet** |
+**Open question for Kris.** "Unified balance" above means our own model: one USDC balance that every robot spends from.
+If you meant **Circle Gateway's Unified Balance** (deposit USDC on any chain and spend it on Arc), we don't use it. It
+could be a roadmap slide, or a build we haven't scoped; Gateway lists Arc mainnet (`docs/research/arc-and-circle.md`).
 
-**Pitch:** the duck's body (the chip) holds the key, the camera and the motors. 0G holds the judgement and the memory.
-Camera frames never leave the chip.
+## 5. World version: a human behind it
 
-**Gaps:**
-1. **The video has no safe-stop beat.** Add a narration line now. Add a shot only if we can record a real one (see
-   §7).
-2. **Episode replay, a stretch of about 2 hours.** A page that fetches an episode from 0G Storage by its root and
-   replays the timeline would make "replayable" something judges can click, and would show Storage is more than logs.
-3. **Hardware third place ($1k)** needs the Radxa running the chip client at the booth. Today signing works on the
-   Radxa (in Python), but the QR scan is not done (`docs/spikes/hardware-results.md`).
-4. **Expected question:** "why a vision model with no frames?" Answer: by rule, frames stay on the chip, so the
-   decision is made over structured facts.
+**What World brings us:** proof that a **real, unique, verified human**, the owner, stands behind the robot's big
+decisions. A robot can't prove that about itself; World ID can.
+- When the duck wants to spend over its cap, or buy something on the owner's ask-me-first list, the owner signs in
+  freshly with World ID in World App.
+- The sign-in is bound to that exact payment: its EIP-712 digest is the OIDC nonce.
+- Our backend verifies the token (Orb `acr`, a fresh `auth_time`, `jti` once, `sub` bound to the wallet) and co-signs
+  that one payment. Arc won't settle it without that co-signature, so the approval is enforced on-chain and is more
+  than a UI gate.
+- If the owner denies, or the request expires, nothing is signed.
+- It ran live with a real Orb ID
+  ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9)).
 
-## 4. World: Agent Pass
+**This is World's own use case.** Their step-up guide says: "Pause the agent workflow, complete the step-up procedure,
+and resume only after your backend accepts the authentication." Payments are its first example
+(<https://auth.world.org/docs/guides/step-up>).
 
-World's own step-up guide describes our use case word for word: *"Pause the agent workflow, complete the step-up
-procedure, and resume only after your backend accepts the authentication."* Payments are its first example of a
-sensitive action (<https://auth.world.org/docs/guides/step-up>). The prize asks for "a meaningful action that needs a
-human identity or approval layer, not simply a login screen."
+**To show:**
+- the approval page → World App → paid, then a deny, then the "approved by a verified human" mark (§3, item 5)
+- the debrief: the `amr`/`mfa` surprise and mandatory PKCE; our one improvement is `authorization_details` in the ID
+  token (`docs/world-debrief.md`)
 
-**How ours works:**
-1. A payment over the cap, or on the owner's "ask me first" list, makes 0G ask the owner.
-2. The owner does a fresh World ID check in World App. The OIDC nonce is the payment's EIP-712 digest.
-3. The backend checks the token: Orb `acr`, a fresh `auth_time`, `jti` used once, `sub` bound to the wallet.
-4. The backend co-signs that one payment, and Arc refuses to settle without that co-signature.
-5. Deny or expiry means nothing is signed. It has run live with a real Orb ID
-   ([0xae55688e…ffa9](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9)).
+**Still to do:** one live deny with real World.
 
-**What sets it apart:** the approval is enforced on-chain. Without it Arc reverts, so it is more than a gate in the UI.
+**World does not prove age.** We checked World's docs on 6 Nov at 15:20 IST:
+- **Agent Pass's ID token has no age claim.** It carries `iss sub aud exp iat jti auth_time acr amr nonce`, plus an
+  email alias, and "Name, raw World identifiers, and World proofs are not included"
+  (<https://auth.world.org/docs/guides/id-token>).
+- **World's only age feature is preview-only.** IDKit's Identity Check `minimum_age` "is currently in preview. To use it
+  or learn more, contact us." The `passport` preset proves only that the user holds a verified passport
+  (<https://docs.world.org/world-id/idkit/credentials>).
+- **So a restricted item is the owner's own rule, approved by the owner, never an age check.** Say it before anyone
+  asks: "World tells us the verified owner approved this exact payment, just now. It doesn't tell us anyone's age, and
+  we don't claim it does."
 
-**Gaps:**
-1. **Record a live deny with real World.** One run; it is still _fill in_ in `submission.md`.
-2. **Lead the World beat with "over the cap".** A human checkpoint obviously belongs on spending. The restricted item
-   comes second, framed as the owner's rule (§1).
-3. **Mention the debrief, because World asked for one.** Top frictions: `amr`/`mfa` and mandatory PKCE. Our one
-   improvement: `authorization_details` echoed in the ID token, so nobody has to overload `nonce`
-   (`docs/world-debrief.md`).
+## 6. 0G version: 0G runs the AI and keeps the episodes
 
-## 5. The presentation page (Styld's chapter technique)
+**What 0G brings us:**
+- **The brain.** Every decision the duck makes runs on 0G Compute: buy, ask the owner, or walk away, over the invoice,
+  the budget and the policy. The console names the model and the 0G provider and logs 0G's request id.
+- **The memory.** Every episode (what it saw as facts, what 0G decided, what was signed and paid) is uploaded to 0G
+  Storage and anchored in `EpisodeLog` on 0G Chain. Seven episodes so far have real 0G decisions.
+- **"0G is the brain, not the spinal cord."** The chip keeps the key, the camera and the motors, and camera frames never
+  leave it.
+- **Safe stop.** If 0G fails, the errand ends in `safe_stop` and the motors stay stopped. We never fake a decision.
 
-This is one page on the scratch site (`docs/site`, `eth-mumbai-site…workers.dev`). It is made of full-screen chapters
-and serves as the stage deck, the landing page and the booth opener at once:
+**To show:**
+- the console's decision line with its request id → the episode on 0G Storage → the `EpisodeLog` record tx
+- a safe stop (§8, decision 1)
+- with suggestion 1 from §3, the same thing from the wallet's Activity list
 
-1. Hook: the duck and its budget
-2. The owner's passkey wallet on Arc
-3. **Arc**: one signature is a budget (the policy card), at anchor `#arc`
-4. **0G**: the brain decides and the chip signs, at anchor `#0g`
-5. Paid, and the gate opens
-6. **World**: the human checkpoint, at anchor `#world`
-7. Revoke, and Arc refuses
-8. Proof: Studio, tx hashes, Storage roots, the architecture
-9. Close: the repo, the app, "Arc · 0G · World"
+**Track requirements:**
+- a 0G call in the decision loop
+- an episode log on Storage with request ids
+- a replayable simulation or a live demo at the booth
+- the safe stop
+- contract addresses
+- a video under 3 min
 
-**How it works:**
-- → or space moves to the next chapter. At a booth, open the page straight at that sponsor's anchor.
-- Each chapter has one looping film with no words in the frame, a live title with at most 4 bullets, and an evidence
-  inset: the real screenshot from `docs/evidence/screens/` with its tx link.
-- **Films** follow Styld's pipeline (`~/code/meta-hackathon/out/styld-landing-film/`):
-  - Qwen Image keyframes, Wan 3.0 or Omni segments, `stitch.ts` seams (never a crossfade).
-  - Cost is about $20–30, paid through LiteLLM pay-as-you-go, never the Token Plan.
-  - Start with a round of three hero concepts on `preview`, and Kris picks one.
-- Every frame in it must be honest: a film is illustration, and only the evidence insets claim anything.
+All of these are met, except that the video still needs a safe-stop moment.
 
-## 6. Booth cards (30 seconds each)
+**Stretch:** an episode replay page that loads an episode from Storage by its root.
 
-**Arc.**
-- *Say:* "Robots need money. We give them a budget instead of a key. One passkey signature creates a delegation on Arc
-  with our `RobotPaymentPolicyEnforcer`: a per-payment cap, a payee allowlist and a human-approval path, on top of a
-  daily cap, an expiry and invoice-once. Arc checks every payment as it lands. Revoke the grant, and Arc refuses the next
-  one. We built and tested it in Studio and deployed it on mainnet, and any agent wallet that uses MetaMask delegations
-  can reuse the caveat."
-- *Show:* Studio → the grant sentence → a paid tx → the refusal after revoke.
+**Hardware third place:** the Radxa would have to run the chip client at the booth.
 
-**0G.**
-- *Say:* "The duck's chip holds its key and its motors. 0G Compute makes the call: buy, ask the owner, or walk away.
-  Every decision is logged with 0G's request id, and every episode goes to 0G Storage and is anchored in `EpisodeLog`. If
-  0G doesn't answer, the duck stops. We never fake a decision."
-- *Show:* the console's decision line with its request id → the episode root → the `EpisodeLog` tx.
+## 7. The presentation page
 
-**World.**
-- *Say:* "When the robot wants to spend over its cap, or buy something on the owner's ask-me-first list, the owner
-  gets a fresh World ID check bound to that exact payment: the payment's EIP-712 digest is the OIDC nonce. Our backend
-  verifies the token and co-signs that one payment, and Arc won't settle it otherwise. Deny, and nothing is signed. We
-  ran it live with a real Orb ID."
-- *Show:* the approval page → World App → the paid tx. Then a deny.
+A single page on the scratch site (`docs/site`, `eth-mumbai-site…workers.dev`) carries all four versions.
 
-**Questions to have answers ready for:**
-- *"How do you know they're 18?"* We don't (§1).
-- *"What stops your backend from co-signing anything?"*
-  - It signs only after verifying a World token whose nonce is that payment's digest, and it logs
+**Routes:**
+- `/pitch/` is the main story (§2).
+- `/pitch/arc/`, `/pitch/world/` and `/pitch/0g/` each show beats 1–5 condensed into two chapters, followed by that
+  sponsor's chapters.
+
+**Chapters:**
+- Every chapter is full-screen: a looping film or a real screenshot, a live title and at most 4 bullets.
+- → or space moves to the next chapter.
+- Evidence insets (screenshots with their tx links) are the only things that claim anything. The films are
+  illustration.
+
+**Films:** they follow Styld's pipeline (`~/code/meta-hackathon/out/styld-landing-film/`):
+- Qwen Image keyframes, Wan 3.0 or Omni segments, `stitch.ts` seams, never a crossfade.
+- About $20–30, through LiteLLM pay-as-you-go.
+- A first round of three hero concepts goes on `preview`, and Kris picks one.
+
+**Design skills now vendored here:** `frontend-design`, `hallmark` (new pages), `good-css`, `make-interfaces-feel-better`.
+
+## 8. Decisions for Kris
+
+1. **Safe stop in the video:** a narration line only, or a real one recorded on a preview deploy with 0G unreachable on
+   purpose, labelled as such?
+2. **Build suggestions 1 ("why" on activity rows) and 2 ("spent today" from Arc)?** About 2–4 h together. They make beats
+   3 and 6 real and serve all three booths.
+3. **"Unified balance":** our one-balance model only, or Circle Gateway as well (§4)?
+4. **Films** (about $20–30) or screenshots only for the presentation page?
+5. **Hardware place:** chase it with the Radxa, or show the laptop mock chip only?
+
+## 9. Questions to expect
+
+- **"How do you know they're 18?"** We don't (§5).
+- **"What stops your backend from co-signing anything?"**
+  - It co-signs only after verifying a World token whose nonce is that payment's digest, and it logs
     `(sub, auth_time, jti, digest)`.
   - Verifying the token on-chain is our stretch prototype (S5b). We left it out because it would publish the owner's
     World pseudonym.
-- *"Galileo testnet for 0G?"* We ask at the booth (`prizes.md`).
-- *"Studio only deploys to testnet?"* Studio holds the code, the tests and the testnet deploys. We pulled the code and
-  deployed it to mainnet with Foundry.
-
-## 7. Decisions for Kris
-
-1. **Safe stop in the video.** Either a narration line only, or a real recorded safe stop on a preview deploy whose 0G
-   endpoint is made unreachable on purpose and labelled as such.
-2. **Episode replay page.** Build it (about 2 h) or skip it.
-3. **Hardware place.** Chase it with the Radxa at the booth, or present the laptop mock chip only.
-4. **Films for the presentation.** Spend about $20–30 on generated films, or use the evidence screenshots only.
+- **"Does an approval lift the daily cap?"** No. `ERC20PeriodTransferEnforcer` still applies, and so does the expiry.
+- **"Galileo testnet for 0G?"** We ask at the booth.
+- **"Studio only deploys to testnet?"** Studio holds the code, the tests and the testnet deploys; we pulled it and
+  deployed to mainnet with Foundry.
+- **"Why a vision model with no frames?"** Frames stay on the chip by rule, so the decision runs on structured facts.
