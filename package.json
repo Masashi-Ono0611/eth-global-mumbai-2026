@@ -62,6 +62,7 @@
     "test:native:built": "ALCHEMY_TEST_DEV=1 bun test packages/server/test/Runtime.native.test.ts"
   },
   "devDependencies": {
+    "@0gfoundation/0g-compute-ts-sdk": "0.9.0",
     "@0gfoundation/0g-storage-ts-sdk": "1.2.13",
     "@alchemy.run/cloudflare": "catalog:",
     "@alchemy.run/domain": "catalog:",
