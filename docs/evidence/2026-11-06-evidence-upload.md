@@ -98,8 +98,8 @@ Checks, for each of the seven:
 ## The other 19 (rehearsal brain, labelled)
 
 19 more episodes, uploaded in the same runs, were decided by the **LiteLLM rehearsal brain**, not 0G. Their `provider`
-reads `litellm-production-f53d.up.railway.app/deepseek-v4.1-flash` and their request ids are `chatcmpl-…`: 6 paid,
-1 failed, 7 walked away, 1 denied and 4 safe_stop (undecodable answers, before `563edcb`). They are on 0G Storage and
+reads `litellm-production-f53d.up.railway.app/deepseek-v4.1-flash` and their request ids are `chatcmpl-…`: 5 paid,
+1 failed, 7 walked away, 1 denied and 5 safe_stop (undecodable answers, before `563edcb`). They are on 0G Storage and
 in `EpisodeLog` like the others, and their JSON names the brain. One of them, `z4ttr5zmvvkwx7is3kzmoriaaq`, predates
 the fix and shows `outcome: null`, like the first upload above. Per-episode roots and transactions:
 `GET $APP/api/evidence/<id>`.
