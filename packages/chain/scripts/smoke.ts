@@ -57,7 +57,14 @@ const payTo = getAddress(setting('APP_MERCHANT_PAY_TO') ?? privateKeyToAccount(g
 const client = makeArcClient(rpcUrl)
 const relayer = makeRelayer({ client, privateKey: `0x${relayerKey.slice(2)}`, store: makeMemoryRelayerStore() })
 const explorer = (hash: Hex) => `https://explorer.arc.io/tx/${hash}`
-const step = (label: string, detail: string) => Console.log(`${label.padEnd(16)} ${detail}`)
+const ist = (millis: number) => {
+  const shifted = new Date(millis + 19_800_000)
+  return shifted.toISOString().slice(11, 19)
+}
+const step = (label: string, detail: string) =>
+  Clock.currentTimeMillis.pipe(
+    Effect.flatMap((millis) => Console.log(`${ist(millis)} IST  ${label.padEnd(16)} ${detail}`)),
+  )
 const now = Clock.currentTimeMillis.pipe(Effect.map((millis) => Math.floor(millis / 1000)))
 const dryRun = Bun.argv.includes('--dry-run')
 
