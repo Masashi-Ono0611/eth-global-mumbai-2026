@@ -20,6 +20,11 @@ rmSync(path.join(target, 'landing'), { recursive: true, force: true })
 rmSync(path.join(target, 'media'), { recursive: true, force: true })
 mkdirSync(path.join(target, 'landing'))
 cpSync(path.join(source, 'index.html'), path.join(target, 'landing', 'index.html'))
+// The shop, answered at /shop/ by the edge (EdgeLanding.ts); its files are ../media/<name> from there.
+if (!existsSync(path.join(source, 'shop', 'index.html')))
+  throw new Error(`landing: no shop at ${source}/shop/index.html`)
+mkdirSync(path.join(target, 'landing', 'shop'))
+cpSync(path.join(source, 'shop', 'index.html'), path.join(target, 'landing', 'shop', 'index.html'))
 cpSync(path.join(source, 'media'), path.join(target, 'media'), {
   recursive: true,
   // Dotfiles are editor and transfer leftovers, never page files.
@@ -28,4 +33,6 @@ cpSync(path.join(source, 'media'), path.join(target, 'media'), {
 const files = readdirSync(path.join(target, 'media'))
 const oversized = files.filter((name) => statSync(path.join(target, 'media', name)).size > assetLimit)
 if (oversized.length > 0) throw new Error(`landing: over the 25 MiB asset limit: ${oversized.join(', ')}`)
-console.log(`landing: landing/index.html and ${files.length} media files → ${path.relative(root, target)}`)
+console.log(
+  `landing: landing/index.html, landing/shop/index.html and ${files.length} media files → ${path.relative(root, target)}`,
+)
