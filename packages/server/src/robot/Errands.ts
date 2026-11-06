@@ -44,7 +44,7 @@ export type EpisodeRow = typeof EpisodeRow.Type
 type State = EpisodeState
 
 export const LIVE_STATES = ['queued', 'deciding', 'awaiting_approval', 'signing', 'settling'] as const
-/** Lazy timeouts (spec §6), applied on every read and every chip poll. */
+/** Lazy timeouts (spec §6), applied on every read, every chip poll and the minute sweep (Sweep.ts). */
 const TIMEOUTS: ReadonlyArray<{
   readonly from: State
   readonly seconds: number

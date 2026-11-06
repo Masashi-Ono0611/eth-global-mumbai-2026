@@ -301,6 +301,22 @@ const stuckSettlementsReconcile = (input: {
     expect(landedView.episode).toMatchObject({ state: 'paid', result: settledTx })
     const lostView = yield* errandView(appUrl, cookie, robotId, lost.id)
     expect(lostView.episode).toMatchObject({ state: 'failed', result: 'settlement interrupted before broadcast' })
+    // Nobody reads an unanswered approval: the once-a-minute sweep still expires it (and so queues approval_expired).
+    const waiting = {
+      id: randomId(),
+      robotId,
+      accountId,
+      invoiceId: (yield* invoiceFor).id,
+      ageSeconds: 301,
+      settledTx: null,
+      state: 'awaiting_approval',
+    }
+    expect((yield* post('/test/vq/stuck-episodes', waiting)).status).toBe(204)
+    const swept = yield* post('/test/vq/sweep', { episodeId: waiting.id }).pipe(
+      Effect.flatMap((response) => response.json),
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({ state: Schema.String }))),
+    )
+    expect(swept.state).toBe('expired')
   })
 
 /** M5 acceptance with the stub 0G: `pay` → `signing` + one decision with its request id; timeout and garbage →

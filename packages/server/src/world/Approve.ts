@@ -63,7 +63,7 @@ export const moveApproval = (
     ),
   ).pipe(Effect.map((count) => count === 1))
 
-/** Lazily applies the 300 s window on every read (no scheduler, like the errands). */
+/** Applies the 300 s window on every read; the errand side also expires on the minute sweep (Sweep.ts). */
 export const expireIfLate = Effect.fn('EthMumbai.World.expireIfLate')(function* (
   database: QueryDatabaseClient,
   row: ApprovalRow,

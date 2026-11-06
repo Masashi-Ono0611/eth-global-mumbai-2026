@@ -16,6 +16,7 @@ import { PRODUCTION_NAMES, pinnedOnMain } from './ProductionNames.ts'
 import { AppDatabase, AppMedia } from './Resources.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
 import { makeTelegramConfig } from './telegram/Config.ts'
+import { sweep } from './Sweep.ts'
 import { flushIfDue } from './telegram/Deliver.ts'
 import { telegramRoutes } from './telegram/Routes.ts'
 import { walletRoutes } from './wallet/Routes.ts'
@@ -115,7 +116,12 @@ export default ApiWorker.make(
           onNone: () => Effect.void,
           onSome: (config) => flushIfDue({ database, origin: authOrigin, config }),
         })
-        return { handle: Effect.provideContext(handle, services), observabilityBase, notify }
+        return {
+          handle: Effect.provideContext(handle, services),
+          observabilityBase,
+          notify,
+          sweep: sweep({ database, origin: authOrigin, telegram }),
+        }
       }),
     )
     const fetch = Effect.gen(function* () {
@@ -129,6 +135,15 @@ export default ApiWorker.make(
       yield* execution.waitUntil(notify)
       return response
     })
+    // Once a minute: expire errands and approvals nobody is looking at and send queued Telegram messages, so neither
+    // waits for unrelated traffic. Same isolate-cached application as fetch; a failed sweep is logged, never fatal.
+    yield* Cloudflare.Workers.cron('* * * * *', () =>
+      Effect.gen(function* () {
+        const env = yield* Cloudflare.Workers.WorkerEnvironment
+        const app = yield* application(env)
+        yield* app.sweep
+      }),
+    )
     return { fetch }
-  }).pipe(Effect.provide(Runtime)),
+  }).pipe(Effect.provide(Layer.merge(Cloudflare.Workers.CronEventSourceLive, Runtime))),
 )

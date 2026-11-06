@@ -5,6 +5,7 @@ import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { sha256Hex } from '../src/Respond.ts'
+import { sweepLiveErrands } from '../src/Sweep.ts'
 
 // Test-only D1 writes for the merchant, chip and robot acceptance (RuntimeWorker mounts them under `/test/vq/`).
 // They stand in for the Wallet's robot and grant pages, which these tests do not exercise.
@@ -43,6 +44,8 @@ const StuckEpisode = Schema.Struct({
   invoiceId: Schema.String,
   ageSeconds: Schema.Finite,
   settledTx: Schema.NullOr(Schema.String),
+  /** Where the errand is stuck; `settling` unless given. */
+  state: Schema.optionalKey(Schema.Literals(['settling', 'awaiting_approval'])),
 })
 
 const body = <A>(schema: Schema.ConstraintDecoder<A>) => HttpServerRequest.schemaBodyJson(schema).pipe(Effect.orDie)
@@ -194,9 +197,16 @@ const stuckEpisodeRoute = (database: QueryDatabaseClient) =>
         database
           .prepare(
             `INSERT INTO episodes (id, robot_id, account_id, item, invoice_id, state, decision_count, state_changed_at,
-              created_at) VALUES (?, ?, ?, 'chai', ?, 'settling', 0, unixepoch() - ?, unixepoch() * 1000)`,
+              created_at) VALUES (?, ?, ?, 'chai', ?, ?, 0, unixepoch() - ?, unixepoch() * 1000)`,
           )
-          .bind(episode.id, episode.robotId, episode.accountId, episode.invoiceId, episode.ageSeconds),
+          .bind(
+            episode.id,
+            episode.robotId,
+            episode.accountId,
+            episode.invoiceId,
+            episode.state ?? 'settling',
+            episode.ageSeconds,
+          ),
       ]
       if (episode.settledTx !== null)
         statements.push(
@@ -349,6 +359,23 @@ const chipRequestRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
+const SweepBody = Schema.Struct({ episodeId: Schema.String })
+const EpisodeState = Schema.Struct({ state: Schema.String })
+
+/** The Cron Trigger's errand sweep, run on demand; answers the errand's state as D1 holds it (no read-side tick). */
+const sweepRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/sweep',
+    Effect.gen(function* () {
+      const { episodeId } = yield* body(SweepBody)
+      yield* sweepLiveErrands(database).pipe(Effect.orDie)
+      const row = yield* database.prepare('SELECT state FROM episodes WHERE id = ?').bind(episodeId).first()
+      const state = yield* Schema.decodeUnknownEffect(EpisodeState)(row).pipe(Effect.orDie)
+      return yield* HttpServerResponse.json(state).pipe(Effect.orDie)
+    }),
+  )
+
 export const agentFixtureRoutes = (database: QueryDatabaseClient, media: ReadWriteBucketClient) =>
   HttpRouter.addAll([
     robotRoute(database),
@@ -360,6 +387,7 @@ export const agentFixtureRoutes = (database: QueryDatabaseClient, media: ReadWri
     forcePaidRoute(database),
     chipRequestRoute(database),
     stuckEpisodeRoute(database),
+    sweepRoute(database),
     settledRoute(database),
     chipInvoiceRoute(database),
     auditEpisodeRoute(database),
