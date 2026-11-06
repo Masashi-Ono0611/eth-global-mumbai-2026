@@ -363,9 +363,12 @@ generates fresh relayer, approver and gate keys (never reused from anywhere) and
 ## 11. Mainnet smoke runbook and evidence
 
 1. Fund ≥ 5 USDC to the relayer EOA on Arc; `cast balance --rpc-url $APP_ARC_RPC_URL <relayer>`.
-2. `cd contracts && forge test && forge script script/DeployArc.s.sol --rpc-url $APP_ARC_RPC_URL --broadcast
-   --private-key $APP_RELAYER_PRIVATE_KEY` → `ENFORCER_ADDRESS`; `forge script script/DeployZg.s.sol --rpc-url
-   https://evmrpc-testnet.0g.ai --broadcast` → `EPISODE_LOG_ADDRESS`.
+2. `cd contracts && forge test` (50 tests), then the scripts read the deployer from `DEPLOYER_PRIVATE_KEY` and refuse
+   any other chain: `DEPLOYER_PRIVATE_KEY="$APP_RELAYER_PRIVATE_KEY" forge script script/DeployArc.s.sol --rpc-url
+   "$APP_ARC_RPC_URL" --broadcast --with-gas-price 40gwei --priority-gas-price 1gwei` → `ENFORCER_ADDRESS` (≈ 1.3M
+   gas, ≤ 0.052 USDC); `DEPLOYER_PRIVATE_KEY="$APP_ZG_STORAGE_PRIVATE_KEY" forge script script/DeployZg.s.sol
+   --rpc-url https://evmrpc-testnet.0g.ai --broadcast` → `EPISODE_LOG_ADDRESS` (≈ 0.35M gas). Drop `--broadcast` for
+   a dry run. Details and verification flags: `contracts/README.md`.
 3. `heavy --wait bun packages/chain/scripts/smoke.ts --amount 0.01` → deploy tx, settle tx, replay revert, revoke tx,
    post-revoke revert.
 4. `heavy --wait bun run check`; `APP_RELEASE="$(git rev-parse HEAD)" heavy --wait bunx alchemy deploy --stage main
