@@ -9,9 +9,12 @@ export const STOPS = [
   { id: 'arc', name: 'Arc', does: 'Where your money and the rules live. Every payment is checked and settled in under a second.' },
   { id: 'store', name: 'Store', does: 'The chai stall. It hands over the bill, sees "paid", and opens its gate.' },
 ]
+/** @type {readonly string[]} */
 const SCREENS = ['home', 'wallet', 'pairing', 'episodes', 'gate', 'merchant']
+/** One wall row: the screens twice over, so the drift loops seamlessly. @param {readonly string[]} names */
+const row = (names) => [...names, ...names].map((n) => `<img src="/pitch/media/app-${n}.webp" alt="" />`).join('')
+/** @param {string} variant */
 export const shell = (variant) => {
-  const row = (names) => names.concat(names).map((n) => `<img src="/pitch/media/app-${n}.webp" alt="" />`).join('')
   document.body.insertAdjacentHTML('afterbegin', `
     <div class="wall" aria-hidden="true"><div class="row">${row(SCREENS)}</div><div class="row back">${row(SCREENS.slice(3).concat(SCREENS.slice(0, 3)))}</div></div>
     <div class="words">
