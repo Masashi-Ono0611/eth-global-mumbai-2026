@@ -1,25 +1,16 @@
 import { pairMessage } from '@ethmumbai/protocol/Chip'
-import { ARC_DELEGATION_MANAGER, delegationHash, type UnsignedDelegation } from '@ethmumbai/protocol/Delegation'
+import {
+  DELEGATION_TYPES,
+  delegationDomain,
+  delegationHash,
+  delegationMessage,
+  type UnsignedDelegation,
+} from '@ethmumbai/protocol/Delegation'
 import type { Hex } from '@ethmumbai/protocol/Hex'
-import { ARC_CHAIN_ID } from '@ethmumbai/protocol/Invoice'
 import { Effect, Option } from 'effect'
 import { recoverAddress } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import type { ChipState } from './state.ts'
-
-const DELEGATION_TYPES = {
-  Delegation: [
-    { name: 'delegate', type: 'address' },
-    { name: 'delegator', type: 'address' },
-    { name: 'authority', type: 'bytes32' },
-    { name: 'caveats', type: 'Caveat[]' },
-    { name: 'salt', type: 'uint256' },
-  ],
-  Caveat: [
-    { name: 'enforcer', type: 'address' },
-    { name: 'terms', type: 'bytes' },
-  ],
-} as const
 
 /** The chip's key: generated once into key.json (mode 600) and never printed. */
 export const loadOrCreateKey = (state: ChipState) =>
@@ -42,21 +33,10 @@ export const makeSigner = (privateKey: Hex) => {
     signLeaf: (leaf: UnsignedDelegation) =>
       Effect.promise(() =>
         account.signTypedData({
-          domain: {
-            name: 'DelegationManager',
-            version: '1',
-            chainId: ARC_CHAIN_ID,
-            verifyingContract: ARC_DELEGATION_MANAGER,
-          },
+          domain: delegationDomain(),
           types: DELEGATION_TYPES,
           primaryType: 'Delegation',
-          message: {
-            delegate: leaf.delegate,
-            delegator: leaf.delegator,
-            authority: leaf.authority,
-            caveats: leaf.caveats.map(({ enforcer, terms }) => ({ enforcer, terms })),
-            salt: BigInt(leaf.salt),
-          },
+          message: delegationMessage(leaf),
         }),
       ).pipe(Effect.map((signature) => ({ signature, leafHash: delegationHash(leaf) }))),
   }
