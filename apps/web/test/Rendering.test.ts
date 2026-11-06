@@ -41,6 +41,13 @@ const respond = async (path: string, requestInit?: RequestInit) =>
     await Effect.runPromise(renderRequest(new Request(`https://app.test${path}`, requestInit), { buildId: 'test' })),
   )
 
+test("the merchant counter's server render already shows the menu, not a loading state", async () => {
+  const html = await (await respond('/app/merchant')).text()
+  expect(html).toMatch(/<h1[^>]*>Duck Café<\/h1>/)
+  for (const price of ['0.10 USDC', '0.25 USDC', '2.00 USDC']) expect(html).toContain(price)
+  expect(html).not.toContain('role="status"')
+})
+
 test('typed routes decide the status, and a preflight gets the allowed methods without a render', async () => {
   expect((await respond('/app')).status).toBe(200)
   expect((await respond('/app/')).status).toBe(200)
