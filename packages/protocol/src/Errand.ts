@@ -77,6 +77,8 @@ export const DecideInput = Schema.Struct({
     approvalRequired: Schema.Boolean,
   }),
   merchant: Schema.Struct({ id: Schema.String, trust: Schema.Literals(['known', 'untrusted']) }),
+  /** What the owner asked for (an errand intent), when the errand came from one; absent on older decisions. */
+  owner: Schema.optionalKey(Schema.Struct({ instruction: Schema.String, item: Schema.optionalKey(Schema.String) })),
 })
 export type DecideInput = typeof DecideInput.Type
 
@@ -130,6 +132,24 @@ export const EvidenceObservation = Schema.Struct({
 })
 export type EvidenceObservation = typeof EvidenceObservation.Type
 
+/** A 0G navigation turn in the evidence (simulator robots): ids, the tool calls and the proof, never the prompt. */
+export const EvidenceNavTurn = Schema.Struct({
+  step: Schema.Finite,
+  model: Schema.String,
+  requestId: Schema.NullOr(Schema.String),
+  chatId: Schema.NullOr(Schema.String),
+  promptSha256: Schema.String,
+  calls: Schema.Array(Schema.Struct({ name: Schema.String, args: Schema.Record(Schema.String, Schema.Unknown) })),
+  tee: Schema.optionalKey(TeeProof),
+})
+export type EvidenceNavTurn = typeof EvidenceNavTurn.Type
+
+/** The owner's instruction (as its hash only) and the navigation turns that led to the scan. */
+export const EvidenceNavigation = Schema.Struct({
+  instructionSha256: Sha256Hex,
+  turns: Schema.Array(EvidenceNavTurn),
+})
+
 /**
  * The episode evidence uploaded to 0G Storage. `observations` is absent on episodes without a scan (read it as `[]`),
  * so older evidence encodes byte-identically; it is not part of `requestIdsHash`.
@@ -146,6 +166,7 @@ export const EpisodeEvidence = Schema.Struct({
   }),
   requestIds: Schema.Array(Schema.String),
   observations: Schema.optionalKey(Schema.Array(EvidenceObservation)),
+  navigation: Schema.optionalKey(EvidenceNavigation),
 })
 export type EpisodeEvidence = typeof EpisodeEvidence.Type
 

@@ -66,6 +66,10 @@ export const robots = sqliteTable(
     lastPollAt: integer('last_poll_at'),
     leaseUntil: integer('lease_until'),
     status: text('status', { enum: ['unpaired', 'paired', 'revoked'] }).notNull(),
+    // `chip` = a hardware or CLI chip; `sim` = a simulator duck whose software chip runs in the browser at /sim/.
+    kind: text('kind', { enum: ['chip', 'sim'] })
+      .notNull()
+      .default('chip'),
     createdAt: createdAt(),
   },
   (table) => [
@@ -374,6 +378,55 @@ export const notifications = sqliteTable(
   ],
 )
 
+// An owner's errand intent (packages/protocol Intent.ts): one instruction for one robot. A scan by that robot claims
+// the open intent (`episode_id`), so the 0G decision sees what the owner asked for. For a simulator robot it is also the
+// 0G navigation session; `turn` is the next step and the in-flight lock (a conditional UPDATE).
+export const intents = sqliteTable(
+  'intents',
+  {
+    id: text('id').primaryKey(),
+    robotId: text('robot_id').notNull(),
+    accountId: text('account_id').notNull(),
+    instruction: text('instruction').notNull(),
+    instructionSha256: text('instruction_sha256').notNull(),
+    item: text('item'),
+    state: text('state', { enum: ['running', 'scanned', 'finished', 'stopped', 'expired'] }).notNull(),
+    turn: integer('turn').notNull().default(0),
+    busyUntil: integer('busy_until'),
+    episodeId: text('episode_id'),
+    reason: text('reason'),
+    createdAt: createdAt(),
+    endedAt: integer('ended_at'),
+  },
+  (table) => [index('intents_robot_created').on(table.robotId, table.createdAt)],
+)
+
+// One 0G navigation turn of an intent: the model's tool calls and the results the sim (or, for scans, the Worker)
+// answered them with. No prompt text: `prompt_sha256` only; `tee_json` as for decisions.
+export const navTurns = sqliteTable(
+  'nav_turns',
+  {
+    id: text('id').primaryKey(),
+    intentId: text('intent_id').notNull(),
+    step: integer('step').notNull(),
+    model: text('model').notNull(),
+    requestId: text('request_id'),
+    chatId: text('chat_id'),
+    provider: text('provider'),
+    latencyMs: integer('latency_ms'),
+    promptSha256: text('prompt_sha256').notNull(),
+    // The assistant message as 0G returned it (tool calls with ids), JSON; replayed into the next turn's prompt.
+    callsJson: text('calls_json').notNull(),
+    reasoning: text('reasoning'),
+    // The tool results for this turn's calls, JSON, filled in by the next turn.
+    resultsJson: text('results_json'),
+    error: text('error'),
+    teeJson: text('tee_json'),
+    createdAt: createdAt(),
+  },
+  (table) => [uniqueIndex('nav_turns_intent_step').on(table.intentId, table.step)],
+)
+
 export const appSchema = {
   accounts,
   passkeys,
@@ -392,4 +445,6 @@ export const appSchema = {
   observations,
   telegramLinks,
   notifications,
+  intents,
+  navTurns,
 }
