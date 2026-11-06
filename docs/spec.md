@@ -418,8 +418,11 @@ MCP server over the wallet Â· the float path replaced by a policy-bound escrow Â
 
 The robot speaks to its owner through the Telegram bot `@vitaquack_bot` (created by Kris on 6 Nov): the owner learns
 in real life that the robot wants an approval, paid, was refused, or lost its allowance, without the wallet page open.
-Telegram only informs: **it never approves anything**, approvals stay World ID gated on `/wallet/approvals/:id`, the
-Arc enforcer is unchanged, and the chip never sees the token.
+Telegram informs and **may deny, never approve** (Kris, 18:30 IST): a **Deny** button under the approval message
+denies that approval only when the chat is linked to the approval's account and the approval is still waiting (the
+same `denyApproval` path the approval page uses; fail-safe, nothing is signed); approving stays World ID gated on
+`/wallet/approvals/:id`, the Arc enforcer is unchanged, and the chip never sees the token. A later v2 (a signed
+one-time link straight into the World sign-in, bound to the owner's `world_sub`) is a proposal, not this build.
 
 - **Link.** The wallet's avatar sheet has **Connect Telegram**: `POST /api/telegram/link` (session, same origin) answers a
   single-use code (10 min) and the page opens `https://t.me/vitaquack_bot?start=<code>`. Telegram calls
