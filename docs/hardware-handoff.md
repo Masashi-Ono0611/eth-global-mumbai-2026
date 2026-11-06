@@ -56,7 +56,7 @@ and the Python fallback are in `apps/chip/README.md`.
 
 Chip protocol (spec §8). Shapes, with values from the native tests:
 
-1. **Pair** (the code comes from the wallet: **+ Robot** (`/wallet/robots`), name the robot, **Next**; 8 characters of `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, 10
+1. **Pair** (the code comes from the wallet: **+ Robot** (`/app/wallet/robots`), name the robot, **Next**; 8 characters of `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, 10
    minutes, single use). The chip signs the EIP-191 `personal_sign` message
    `Vitaquack pair K7Q2M9XZ 0x<chip address lowercase> 5042` and sends
    `POST $APP/api/chips/pair {"pairingCode":"K7Q2M9XZ","address":"0x…","sig":"0x<65 bytes>"}`.
@@ -106,7 +106,7 @@ workaround: invoice links carry the public origin, so such a chip refuses every 
 1. Boot it (5 V on the "5V IN / USB_OTG" port), join `duckbench`, `ping -c3 1.1.1.1`, `curl -s $APP/api/health`.
 2. On the Mac, `bun build --compile --target=bun-linux-arm64 apps/chip/src/main.ts --outfile vitaquack-chip`, then
    `scp vitaquack-chip radxa@<ip>:~/`.
-3. In the wallet tap **+ Robot** (`$APP/wallet/robots`), name it, **Next**, and note the code. On the Radxa run
+3. In the wallet tap **+ Robot** (`$APP/app/wallet/robots`), name it, **Next**, and note the code. On the Radxa run
    `./vitaquack-chip --server $APP --pair <CODE>`. Expect `chip 0x… (new key)`, `paired <robotId>`, `lease ok`.
    Check `stat -c %a ~/.vitaquack-chip/key.json` → `600`.
 4. When the page says the robot connected, keep the allowance presets (3.00 a day, 1.00 a purchase, Duck Café,
@@ -210,5 +210,5 @@ On 201 the `state` is `signing` (the chip's poll gets the payment to sign), `awa
 needed), `walked_away` or `safe_stop`. On the demo allowance (3.00 a day, 1.00 a purchase) a scanned thali (2.00) is
 `awaiting_approval`; once less than its price is left today it is `walked_away`, because no approval lifts the daily
 allowance. Follow it on `$APP/robot/<robotId>`, or let the gate show PAID. The owner sees
-the crop at `/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
+the crop at `/app/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
 `observations: [{sha256, hashMatches, signerMatches}]`.
