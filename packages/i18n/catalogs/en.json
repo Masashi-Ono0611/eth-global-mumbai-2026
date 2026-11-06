@@ -208,7 +208,7 @@
     "noAllowance": "No allowance",
     "perDay": "a day",
     "conversation": "Conversation with {name}",
-    "empty": "Nothing yet. Tap something below and {name} goes to buy it.",
+    "empty": "Tap an item to send {name}.",
     "buy": "Buy {item}",
     "buyChip": "Buy {item} for {amount} USDC",
     "asksYou": "asks you",
@@ -381,7 +381,7 @@
     "headerListening": "Listening…",
     "headerSpeaking": "Speaking…",
     "pending": "listening",
-    "empty": "Nothing yet. Tap something below, or hold the mic and ask {name}.",
+    "empty": "Tap an item, or hold the mic and ask {name}.",
     "sent": "sent"
   }
 }

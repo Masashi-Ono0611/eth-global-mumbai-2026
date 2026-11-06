@@ -206,7 +206,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.noAllowance': 'No allowance',
   'thread.perDay': 'a day',
   'thread.conversation': 'Conversation with {name}',
-  'thread.empty': 'Nothing yet. Tap something below and {name} goes to buy it.',
+  'thread.empty': 'Tap an item to send {name}.',
   'thread.buy': 'Buy {item}',
   'thread.buyChip': 'Buy {item} for {amount} USDC',
   'thread.asksYou': 'asks you',
@@ -380,6 +380,6 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'voice.headerListening': 'Listening…',
   'voice.headerSpeaking': 'Speaking…',
   'voice.pending': 'listening',
-  'voice.empty': 'Nothing yet. Tap something below, or hold the mic and ask {name}.',
+  'voice.empty': 'Tap an item, or hold the mic and ask {name}.',
   'voice.sent': 'sent',
 }

@@ -96,10 +96,11 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   is waiting.
 - Receipt: inside a robot bubble. Paid amount in the amount face, a paid check, and "Show proof".
 - System pill: centred and muted, for events that are not anyone's words ("Duck connected at 15:56").
-- Buy chips: the dock's buttons, one per catalogue item with its price. They are dimmed while an errand is live, while
-  the robot has no allowance, or while the owner is talking.
-- Mic (when the Worker has voice on): a round ink button beside the row a spoken request stands for ("Get me" for a
-  real robot, the buy chips for a simulator). Hold it (or Space while it is focused): it turns duck yellow with a soft
+- Item chips: the dock's one row of buttons, one per catalogue item, its name over its price in USDC. A real robot
+  fetches the item (its own scan pays the counter); a simulator buys it. Paying a real robot's counter directly is in
+  the "Pay the counter directly" fold. The chips are dimmed while an errand is live, while the robot has no allowance,
+  or while the owner is talking. Under the fold, a small brain switch: the TEE brain is the default, never duck yellow.
+- Mic (when the Worker has voice on): a round ink button beside the item chips. Hold it (or Space while it is focused): it turns duck yellow with a soft
   halo, the header says "Listening…" and a faint owner bubble waits in the thread. The mic is open only while held.
   The line under the row says what the voice is doing: the hint, "listening to you…", "speaking…", or a failure in
   error red.

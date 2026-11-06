@@ -14,7 +14,7 @@ describe('/robot/:id', () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole()),
-      expect(text('Nothing yet. Tap something below and Duck goes to buy it.')).toExist(),
+      expect(text('Tap an item to send Duck.')).toExist(),
       click(role('button', { name: 'Buy Chai for 0.10 USDC' })),
       Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId: null, model: null })),
       expect(text('Buy chai')).toExist(),
