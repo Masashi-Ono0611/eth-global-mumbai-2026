@@ -44,8 +44,13 @@ export default Alchemy.Stack(
       main: 'packages/server/src/EdgeWorker.ts',
       env: { API: api, WEBSITE: website },
       // Service-binding fetch enters the SSR handler without the website's
-      // public asset router. Serve the same build's files at the public edge.
-      assets: { directory: 'apps/web/dist/client' },
+      // public asset router. Serve the same build's files at the public edge:
+      // the app's files under /app, the simulator under /sim, and the landing
+      // (tools/copy-landing.ts), which the edge answers at `/`. Its films need
+      // byte ranges, which the asset layer does not answer, so /media/* runs
+      // through the edge first, and so does the landing's own asset path,
+      // only to redirect it to `/` (EdgeLanding.ts).
+      assets: { directory: 'apps/web/dist/client', runWorkerFirst: ['/media/*', '/landing', '/landing/*'] },
       compatibility: { date: '2026-10-19' },
       workersDev: true,
       observability: {

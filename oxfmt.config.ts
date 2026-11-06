@@ -21,6 +21,9 @@ export default defineConfig({
     // Pollen's vendored Microduck engine (hash-pinned) and the sim build copied into apps/web.
     'apps/sim/vendor/**',
     'apps/web/public/sim/**',
+    // The landing page copied from docs/site/pitch (tools/copy-landing.ts).
+    'apps/web/public/landing/**',
+    'apps/web/public/media/**',
     'packages/i18n/catalogs/**',
   ],
 })

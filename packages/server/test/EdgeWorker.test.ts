@@ -49,7 +49,12 @@ describe('public edge routing', () => {
         throw new Error('Unexpected website request')
       },
     }
-    const result = await edge.fetch(request, { API: api, WEBSITE: website })
+    const assets = {
+      fetch: async () => {
+        throw new Error('Unexpected assets request')
+      },
+    }
+    const result = await edge.fetch(request, { API: api, WEBSITE: website, ASSETS: assets })
     expect(result).toBe(response)
     expect(result.headers.getSetCookie()).toHaveLength(2)
     expect(result.status).toBe(302)

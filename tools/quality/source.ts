@@ -17,6 +17,8 @@ export const sourceFiles = async (root = '.') => {
         'tools/oxlint/anti-slop/**',
         'apps/sim/vendor/**',
         'apps/web/public/sim/**',
+        'apps/web/public/landing/**',
+        'apps/web/public/media/**',
       ],
     },
   ))
