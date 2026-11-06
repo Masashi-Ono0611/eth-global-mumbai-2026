@@ -5,7 +5,7 @@ import { makeArcClient } from '@ethmumbai/chain/Arc'
 import { sendUsdc } from '@ethmumbai/chain/Fund'
 import { Address } from '@ethmumbai/protocol/Hex'
 import { usdcToUnits } from '@ethmumbai/protocol/Invoice'
-import { Clock, Console, Effect, Schedule, Schema } from 'effect'
+import { Clock, Console, Effect, Random, Schedule, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpClient from 'effect/http/HttpClient'
 import type * as HttpClientResponse from 'effect/http/HttpClientResponse'
@@ -16,7 +16,10 @@ import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie 
 // new smart account, "Add robot", the mock chip pairs, the passkey signs a grant (with the enforcer), one errand,
 // polled to its end. Prints addresses, ids and explorer links only; never a key, a token, a cookie or a signature.
 // Usage: bun --env-file=.env.main.local packages/server/scripts/e2e-deployed.ts [--base-url URL] [--fund 0.15]
-//        [--item chai] [--no-chip]   (by default the mock chip runs as a child process with a fresh key)
+//        [--item chai] [--no-chip] [--invoice <id> | --gate]
+// --no-chip: pair your own chip (otherwise the mock chip runs as a child process with a fresh key).
+// --invoice <id>: the errand pays that counter invoice. --gate: mint the gate's invoice first, pay it, then read the
+// signed gate status like /gate/duck-cafe does (pending before, paid on the first read after, used on the next).
 // Exit 0: paid, or the expected end while 0G is not configured (503 / safe_stop "not configured"). Otherwise 1.
 const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
 const flag = (name: string) => {
@@ -27,6 +30,8 @@ const base = new URL(flag('base-url') ?? DEPLOYED).origin
 const fundUnits = usdcToUnits(flag('fund') ?? '0.15')
 const item = flag('item') ?? 'chai'
 const spawnChip = !Bun.argv.includes('--no-chip')
+const gate = Bun.argv.includes('--gate')
+const namedInvoice = flag('invoice')
 const relayerKey = process.env.APP_RELAYER_PRIVATE_KEY ?? ''
 if (!/^0x[0-9a-f]{64}$/.test(relayerKey)) throw new Error('APP_RELAYER_PRIVATE_KEY missing: run with --env-file')
 if (fundUnits > 500_000n) throw new Error('--fund is capped at 0.50 USDC')
@@ -149,12 +154,13 @@ const signGrant = Effect.fn('e2e.signGrant')(function* (
 })
 
 /** `true` when the run ended as expected (paid, or 0G not configured yet). */
-const errand = Effect.fn('e2e.errand')(function* (robotId: string, cookie: string) {
-  const started = yield* passkeyCall(base)(`/api/robots/${robotId}/errands`, { item }, cookie)
+const errand = Effect.fn('e2e.errand')(function* (robotId: string, cookie: string, invoiceId: string | undefined) {
+  const body = invoiceId === undefined ? { item } : { item, invoiceId }
+  const started = yield* passkeyCall(base)(`/api/robots/${robotId}/errands`, body, cookie)
   if (started.status === 503) {
     const { error } = yield* jsonOf(started, ErrorBody, 'errand')
     yield* say(`errand refused 503 "${error}"`)
-    return error.startsWith('not configured: ZG')
+    return { expected: error.startsWith('not configured: ZG'), paid: false }
   }
   yield* expectStatus(started, 201, 'errand')
   const { episodeId, state } = yield* jsonOf(started, Errand, 'errand')
@@ -174,12 +180,64 @@ const errand = Effect.fn('e2e.errand')(function* (robotId: string, cookie: strin
   )
   const txHash = view.payment?.txHash ?? null
   if (view.episode.state === 'paid' && txHash !== null)
-    return yield* say(`paid ${explorer(txHash)}`).pipe(Effect.as(true))
+    return yield* say(`paid ${explorer(txHash)}`).pipe(Effect.as({ expected: true, paid: true }))
   const pending = view.episode.state === 'safe_stop' && (decision?.error ?? '').includes('not configured')
   yield* say(
     pending ? 'safe_stop because 0G is not configured yet (expected)' : `unexpected end: ${view.episode.result ?? ''}`,
   )
-  return pending
+  return { expected: pending, paid: false }
+})
+
+const MintedInvoice = Schema.Struct({ id: Schema.String, invoiceHash: Schema.String })
+const GateKey = Schema.Struct({ alg: Schema.Literal('ed25519'), publicKey: Schema.String })
+const GateStatus = Schema.Struct({
+  invoiceId: Schema.String,
+  status: Schema.String,
+  nonce: Schema.String,
+  expiresAt: Schema.Finite,
+  sig: Schema.String,
+})
+const fromBase64 = (text: string) => Uint8Array.from(atob(text), (char) => char.charCodeAt(0))
+
+/** What the gate page does: a fresh nonce per read, and the Ed25519 signature checked against the gate key. */
+const gateReader = Effect.gen(function* () {
+  const { publicKey } = yield* jsonOf(yield* get('/api/merchants/duck-cafe/gate-key', ''), GateKey, 'gate key')
+  const key = yield* Effect.promise(() =>
+    crypto.subtle.importKey('raw', fromBase64(publicKey), { name: 'Ed25519' }, false, ['verify']),
+  )
+  return Effect.fn('e2e.readGate')(function* (invoiceId: string) {
+    const nonce = `e2e${yield* Random.nextIntBetween(100_000, 999_999)}`
+    const read = yield* get(`/api/invoices/${invoiceId}/status?nonce=${nonce}`, '')
+    yield* expectStatus(read, 200, 'gate status')
+    const status = yield* jsonOf(read, GateStatus, 'gate status')
+    const message = `${status.invoiceId}|${status.status}|${status.nonce}|${status.expiresAt}`
+    const valid = yield* Effect.promise(() =>
+      crypto.subtle.verify({ name: 'Ed25519' }, key, fromBase64(status.sig), new TextEncoder().encode(message)),
+    )
+    if (!valid || status.nonce !== nonce || status.invoiceId !== invoiceId)
+      return yield* fail(`gate status for ${invoiceId} is not signed for this read`)
+    yield* say(`gate ${status.status} (Ed25519 signature ok, nonce ${nonce})`)
+    return status.status
+  })
+})
+
+const mintGateInvoice = Effect.gen(function* () {
+  const minted = yield* passkeyCall(base)('/api/merchants/duck-cafe/invoices', { itemId: item }, '')
+  yield* expectStatus(minted, 201, 'gate invoice')
+  const invoice = yield* jsonOf(minted, MintedInvoice, 'gate invoice')
+  yield* say(`gate invoice ${invoice.id} ${invoice.invoiceHash}`)
+  return invoice.id
+})
+
+/** After a paid errand on the gate's invoice: the first read reports paid (and flips it), the next reports used. */
+const gateOpens = Effect.fn('e2e.gateOpens')(function* (
+  readGate: Effect.Success<typeof gateReader>,
+  invoiceId: string,
+) {
+  const first = yield* readGate(invoiceId)
+  const second = yield* readGate(invoiceId)
+  if (first !== 'paid' || second !== 'used') return yield* fail(`gate read ${first} then ${second}, not paid then used`)
+  yield* say('gate OPEN once, then used')
 })
 
 const program = Effect.gen(function* () {
@@ -206,7 +264,13 @@ const program = Effect.gen(function* () {
   yield* waitForPairing(robot.robotId, session.cookie)
   yield* say('chip paired')
   yield* signGrant(session, robot.robotId, payTo)
-  return yield* errand(robot.robotId, session.cookie)
+  const readGate = gate ? yield* gateReader : undefined
+  const invoiceId = readGate === undefined ? namedInvoice : yield* mintGateInvoice
+  if (readGate !== undefined && invoiceId !== undefined && (yield* readGate(invoiceId)) !== 'pending')
+    return yield* fail('a fresh gate invoice is not pending')
+  const result = yield* errand(robot.robotId, session.cookie, invoiceId)
+  if (result.paid && readGate !== undefined && invoiceId !== undefined) yield* gateOpens(readGate, invoiceId)
+  return result.expected
 })
 
 const passed = await Effect.runPromise(

@@ -1,6 +1,6 @@
 # Deployed end to end, owner side, 6 Nov 2026
 
-Driver: `packages/server/scripts/e2e-deployed.ts` (commit `55f6ba3`), run on netcup against the deployed app
+Driver: `packages/server/scripts/e2e-deployed.ts` (commit `55f6ba3`; `--invoice`/`--gate` added later the same morning), run on netcup against the deployed app
 `https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev`. It goes through the same HTTP routes the
 pages use, with Wallet's software WebAuthn authenticator (`packages/server/test/PasskeyFixture.ts`, the native
 tests' ceremony):
@@ -73,6 +73,32 @@ With run 2's chip token (read from the chip's state dir, never printed):
 `GET /api/chips/xdpxdi75galea6kt3rls4tz5z4/poll` → `200` in 24.8 s and `200` in 24.6 s, `requests: []`, lease
 `until − serverTime = 35000` ms. The edge does not reset the 25 s hold, so the chip does not need to poll the API
 origin directly.
+
+## Run 3 (release b8ab06f, `--gate --fund 0.01`): the gate's invoice, then the errand
+
+`bun --env-file=.env.main.local packages/server/scripts/e2e-deployed.ts --gate --fund 0.01` → exit 0. The owner was
+funded only 0.01, since no payment can run until 0G is set. The driver mints the gate's invoice
+(`POST /api/merchants/duck-cafe/invoices {itemId:"chai"}`) and reads its signed status the way `/gate/duck-cafe` does:
+a fresh nonce, with the Ed25519 signature checked against `/api/merchants/duck-cafe/gate-key`. It then names that
+invoice in the errand (`{item, invoiceId}`, M+R's counter-invoice claim).
+
+```text
+e2e  owner 0x13a05d46335721daA9f9a64526c94FDeaA291968 (account 35svw37zc7azgj4favrqo25rzm)
+e2e  funded https://explorer.arc.io/tx/0x9697843a645b07b6a85fc5d79e5fd27b397abad6c5c437b4a2b68c243ad9696b
+e2e  robot r66hqig4cdhwry57hwiecmuefe pairing code HW95YZGW
+chip chip 0xf580B395dB273029d2D4d178e1AB1F45bEfd3B00 (new key)
+chip paired r66hqig4cdhwry57hwiecmuefe
+e2e  chip paired
+e2e  grant tychcz4uze3743k5t64q45ays4 active; account deploy https://explorer.arc.io/tx/0xf2a53554f3e9d9034d35d5f66875b43aa7964ed81426a4343f6d11177a3fd8f7
+e2e  gate invoice zm5qqltydxgsz5whyl4letiyam 0xd1323e4942ac1180253127eef185c9a74d31a6b1bb84caf2f03af00d0ba7446c
+e2e  gate pending (Ed25519 signature ok, nonce e2e376984)
+e2e  errand refused 503 "not configured: ZG_API_KEY"
+```
+
+Once `APP_ZG_*` is set, the same command (with the default `--fund 0.15`) continues past the errand: `paid` with the
+settle link, then two gate reads that must be `paid` (first read, the gate opens once) and `used` (next read).
+Otherwise the driver exits 1. The 409 for a named invoice that is not open is answered after the 0G check, so it is
+not reachable while 0G is unset.
 
 ## Not proven by this run
 
