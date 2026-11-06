@@ -40,7 +40,7 @@ const faceAsleepClassName = 'relative grid size-11 place-items-center rounded-fu
 const nameClassName = 'block truncate pt-1 font-display text-xl leading-none font-bold'
 const statusClassName = 'text-sm text-muted'
 const allowanceClassName =
-  'grid min-h-11 cursor-pointer justify-items-end rounded-[14px] bg-surface px-3 pt-1.5 pb-1 leading-tight transition-transform active:scale-[0.96]'
+  'grid min-h-11 cursor-pointer content-center justify-items-end rounded-[14px] bg-surface px-3 py-1.5 leading-tight transition-transform active:scale-[0.96]'
 const allowanceAmountClassName = 'font-display text-lg leading-none font-extrabold'
 const allowanceLabelClassName = 'text-xs text-muted'
 const threadClassName = 'flex flex-1 flex-col gap-2 px-1 pt-3 pb-4'
