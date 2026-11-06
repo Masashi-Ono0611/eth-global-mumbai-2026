@@ -8,7 +8,7 @@ interface Env {
   readonly APP_ORIGIN: string
 }
 
-const forwarded = [/^\/api\/merchants\/[a-z0-9-]+\/(items|invoices|gate-key)$/, /^\/api\/invoices\/[a-z0-9]+\/status$/]
+const forwarded = [/^\/api\/merchants\/[a-z0-9-]+\/(items|counter|counter\/latest)$/]
 
 export default {
   fetch: async (request: Request, env: Env): Promise<Response> => {

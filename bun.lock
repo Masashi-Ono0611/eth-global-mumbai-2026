@@ -57,12 +57,13 @@
       "dependencies": {
         "effect": "catalog:",
         "foldkit": "catalog:",
-        "uqr": "0.1.3",
       },
       "devDependencies": {
         "@alchemy.run/cloudflare": "catalog:",
         "@foldkit/vite-plugin": "catalog:",
+        "@tailwindcss/vite": "catalog:",
         "alchemy": "catalog:",
+        "tailwindcss": "catalog:",
         "vite": "catalog:",
         "vitest": "catalog:",
       },

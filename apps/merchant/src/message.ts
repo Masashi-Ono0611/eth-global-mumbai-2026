@@ -1,16 +1,16 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
-import { Catalogue, Invoice, Status } from './api.ts'
+import { Catalogue, CounterInvoice } from './api.ts'
 
 export const Message = defineMessageUnion({
-  SucceededLoadTill: { catalogue: Catalogue, publicKey: Schema.String },
+  SucceededLoadTill: { catalogue: Catalogue },
   FailedLoadTill: { reason: Schema.String },
   ClickedItem: { itemId: Schema.String },
-  SucceededOpenInvoice: { invoice: Invoice },
-  FailedOpenInvoice: { reason: Schema.String },
-  ReceivedStatus: { invoiceId: Schema.String, status: Status, trusted: Schema.Boolean },
-  FailedReadStatus: { invoiceId: Schema.String },
-  ClickedNextCustomer: {},
+  SucceededPlaceOnCounter: { invoice: CounterInvoice, placedAt: Schema.Finite },
+  FailedPlaceOnCounter: { itemId: Schema.String, reason: Schema.String },
+  SucceededReadCounter: { maybeInvoice: Schema.Option(CounterInvoice), askedAt: Schema.Finite },
+  FailedReadCounter: {},
+  Ticked: {},
   ClickedTryAgain: {},
 })
 export type Message = typeof Message.Type

@@ -1,94 +1,115 @@
-import { Option } from 'effect'
+import { Array, Duration, Effect, Option, Schema, Stream } from 'effect'
 import type * as HttpClient from 'effect/http/HttpClient'
-import type { Update } from 'foldkit'
-import type { Invoice, Item, Status } from './api.ts'
-import { LoadTill, OpenInvoice, ReadStatus } from './command.ts'
+import { Subscription, type Update } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
+import type { CounterInvoice, Item } from './api.ts'
+import { LoadTill, PlaceOnCounter, ReadCounter } from './command.ts'
 import { Message } from './message.ts'
-import { type Hitch, MERCHANT_ID, type Model, POLL_MILLIS, Sale, Till } from './model.ts'
+import { type Link, MERCHANT_ID, type Model, POLL_MILLIS, type Read, Screen, Tap, Till } from './model.ts'
 
 type UpdateReturn = Update.Return<Model, Message, HttpClient.HttpClient>
-type Ready = Extract<Model['till'], { _tag: 'Ready' }>
+type Ready = Extract<Till, { _tag: 'Ready' }>
 
 export const init = (): UpdateReturn => ({
   model: { till: Till.Loading() },
   commands: [LoadTill({ merchantId: MERCHANT_ID })],
 })
 
-const withSale = (ready: Ready, sale: Sale): Model => ({ till: Till.Ready({ ...ready, sale }) })
-
 const whenReady = (model: Model, next: (ready: Ready) => UpdateReturn): UpdateReturn =>
   Till.guards.Ready(model.till) ? next(model.till) : { model }
 
-/** The sale waiting on this invoice, if any: answers about an invoice no longer on screen are dropped. */
-const waitingOn = (ready: Ready, invoiceId: string) =>
-  Sale.guards.Waiting(ready.sale) && ready.sale.invoice.id === invoiceId ? Option.some(ready.sale) : Option.none()
+const shownSince = (screen: Screen) => (Screen.guards.Reading(screen) ? Option.none() : Option.some(screen.readAt))
 
-const pollAgain = (ready: Ready, item: Item, invoice: Invoice, hitch: Option.Option<Hitch>): UpdateReturn => ({
-  model: withSale(ready, Sale.Waiting({ item, invoice, hitch })),
-  commands: [ReadStatus({ invoiceId: invoice.id, publicKey: ready.publicKey, delayMillis: POLL_MILLIS })],
+/** A read that began before what the till shows (a later read, or the tap's own invoice) is older news. */
+const isNewer = (screen: Screen, askedAt: number) =>
+  Option.match(shownSince(screen), { onNone: () => true, onSome: (readAt) => askedAt >= readAt })
+
+const afterRead = (ready: Ready, maybeInvoice: Option.Option<CounterInvoice>, askedAt: number): Model => ({
+  till: modifyFields(ready, {
+    read: (): Read => 'idle',
+    link: (): Link => 'answering',
+    screen: (screen) =>
+      isNewer(screen, askedAt)
+        ? Option.match(maybeInvoice, {
+            onNone: () => Screen.Blank({ readAt: askedAt }),
+            onSome: (invoice) => Screen.Showing({ invoice, readAt: askedAt }),
+          })
+        : screen,
+  }),
 })
 
-/**
- * A verified `paid` or `used` is paid: only the first reader ever sees `paid` (the robot's gate may read first). An
- * unverified answer never changes the sale; the till keeps asking and says why.
- */
-const afterStatus = (ready: Ready, invoiceId: string, status: Status, trusted: boolean): UpdateReturn =>
-  Option.match(waitingOn(ready, invoiceId), {
-    onNone: () => ({ model: { till: ready } }),
-    onSome: ({ item, invoice }) => {
-      if (!trusted) return pollAgain(ready, item, invoice, Option.some('unverified'))
-      if (status === 'paid' || status === 'used') return { model: withSale(ready, Sale.Paid({ item, invoice })) }
-      if (status === 'expired') return { model: withSale(ready, Sale.Expired({ item, invoice })) }
-      return pollAgain(ready, item, invoice, Option.none())
-    },
-  })
+/** One read at a time: a tick while the previous read is still out changes nothing. */
+const readNow = (ready: Ready): UpdateReturn =>
+  ready.read === 'asking'
+    ? { model: { till: ready } }
+    : {
+        model: { till: modifyFields(ready, { read: (): Read => 'asking' }) },
+        commands: [ReadCounter({ merchantId: ready.catalogue.merchantId })],
+      }
 
-const openFor = (ready: Ready, item: Item): UpdateReturn => ({
-  model: withSale(ready, Sale.Opening({ item })),
-  commands: [OpenInvoice({ merchantId: ready.catalogue.merchantId, itemId: item.itemId })],
-})
+/** One tap at a time: while an item is going up, further taps change nothing. */
+const place = (ready: Ready, item: Item): UpdateReturn =>
+  Tap.guards.Placing(ready.tap)
+    ? { model: { till: ready } }
+    : {
+        model: { till: modifyFields(ready, { tap: () => Tap.Placing({ itemId: item.itemId }) }) },
+        commands: [PlaceOnCounter({ merchantId: ready.catalogue.merchantId, item })],
+      }
 
-/** The item the current sale is for, to open a fresh invoice for it. */
-const saleItem = (sale: Sale) => (Sale.guards.Choosing(sale) ? Option.none() : Option.some(sale.item))
+const loaded = (catalogue: Ready['catalogue']): UpdateReturn =>
+  readNow(Till.Ready({ catalogue, screen: Screen.Reading(), tap: Tap.Idle(), read: 'idle', link: 'answering' }))
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SucceededLoadTill: ({ catalogue, publicKey }) => ({
-      model: { till: Till.Ready({ catalogue, publicKey, sale: Sale.Choosing() }) },
-    }),
+    SucceededLoadTill: ({ catalogue }) => loaded(catalogue),
     FailedLoadTill: ({ reason }) => ({ model: { till: Till.Broken({ reason }) } }),
     ClickedItem: ({ itemId }) =>
-      whenReady(model, (ready) => {
-        const item = ready.catalogue.items.find((candidate) => candidate.itemId === itemId)
-        return item === undefined || !Sale.guards.Choosing(ready.sale) ? { model } : openFor(ready, item)
-      }),
-    SucceededOpenInvoice: ({ invoice }) =>
       whenReady(model, (ready) =>
-        Sale.guards.Opening(ready.sale) ? pollAgain(ready, ready.sale.item, invoice, Option.none()) : { model },
+        Option.match(
+          Array.findFirst(ready.catalogue.items, (item) => item.itemId === itemId),
+          { onNone: () => ({ model }), onSome: (item) => place(ready, item) },
+        ),
       ),
-    FailedOpenInvoice: ({ reason }) =>
-      whenReady(model, (ready) =>
-        Sale.guards.Opening(ready.sale)
-          ? { model: withSale(ready, Sale.Refused({ item: ready.sale.item, reason })) }
-          : { model },
-      ),
-    ReceivedStatus: ({ invoiceId, status, trusted }) =>
-      whenReady(model, (ready) => afterStatus(ready, invoiceId, status, trusted)),
-    FailedReadStatus: ({ invoiceId }) =>
-      whenReady(model, (ready) =>
-        Option.match(waitingOn(ready, invoiceId), {
-          onNone: () => ({ model }),
-          onSome: ({ item, invoice }) => pollAgain(ready, item, invoice, Option.some('offline')),
-        }),
-      ),
-    ClickedNextCustomer: () => whenReady(model, (ready) => ({ model: withSale(ready, Sale.Choosing()) })),
+    SucceededPlaceOnCounter: ({ invoice, placedAt }) =>
+      whenReady(model, (ready) => ({
+        model: {
+          till: modifyFields(ready, {
+            tap: () => Tap.Idle(),
+            screen: () => Screen.Showing({ invoice, readAt: placedAt }),
+          }),
+        },
+      })),
+    FailedPlaceOnCounter: ({ itemId, reason }) =>
+      whenReady(model, (ready) => ({
+        model: { till: modifyFields(ready, { tap: () => Tap.Refused({ itemId, reason }) }) },
+      })),
+    SucceededReadCounter: ({ maybeInvoice, askedAt }) =>
+      whenReady(model, (ready) => ({ model: afterRead(ready, maybeInvoice, askedAt) })),
+    FailedReadCounter: () =>
+      whenReady(model, (ready) => ({
+        model: { till: modifyFields(ready, { read: (): Read => 'idle', link: (): Link => 'silent' }) },
+      })),
+    Ticked: () => whenReady(model, readNow),
     ClickedTryAgain: () =>
       Till.guards.Broken(model.till)
         ? { model: { till: Till.Loading() }, commands: [LoadTill({ merchantId: MERCHANT_ID })] }
-        : whenReady(model, (ready) =>
-            Option.match(saleItem(ready.sale), {
-              onNone: () => ({ model }),
-              onSome: (item) => openFor(ready, item),
-            }),
-          ),
+        : { model },
   })
+
+/** Every 2 s while the till is open, read the counter screen again (the first read starts when it opens). */
+export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
+  poll: entry(
+    { open: Schema.Boolean },
+    {
+      modelToDependencies: (model) => ({ open: Till.guards.Ready(model.till) }),
+      dependenciesToStream: ({ open }) =>
+        Stream.when(
+          Stream.tick(Duration.millis(POLL_MILLIS)).pipe(
+            Stream.drop(1),
+            Stream.map(() => Message.Ticked()),
+          ),
+          Effect.sync(() => open),
+        ),
+    },
+  ),
+}))

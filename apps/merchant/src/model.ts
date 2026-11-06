@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 import { defineTaggedUnion } from 'foldkit/schema'
-import { Catalogue, Invoice, Item } from './api.ts'
+import { Catalogue, CounterInvoice } from './api.ts'
 
 /** The demo merchant (packages/server/src/merchant/Catalogue.ts). */
 export const MERCHANT_ID = 'duck-cafe'
@@ -12,27 +12,38 @@ export const MERCHANT_ID = 'duck-cafe'
  */
 export const APPROVAL_ABOVE = 1_000_000n
 
-/** How often the till asks whether the invoice on screen was paid. */
-export const POLL_MILLIS = 1000
+/** How often the till reads what the counter screen shows. */
+export const POLL_MILLIS = 2000
 
-/** Why the till is still waiting although it read something: a status whose signature failed, or no answer. */
-export const Hitch = Schema.Literals(['unverified', 'offline'])
-export type Hitch = typeof Hitch.Type
+/** With less than this left the screen drops the invoice: the chip and scans refuse it (CLAIM_MARGIN_SECONDS). */
+export const CLOSING_MILLIS = 60_000
 
-/** One sale at the counter: pick an item, show its x402 QR, wait for a signed "paid". */
-export const Sale = defineTaggedUnion({
-  Choosing: {},
-  Opening: { item: Item },
-  Waiting: { item: Item, invoice: Invoice, hitch: Schema.Option(Hitch) },
-  Paid: { item: Item, invoice: Invoice },
-  Expired: { item: Item, invoice: Invoice },
-  Refused: { item: Item, reason: Schema.String },
+/** What the till last read of the counter screen. `readAt` is when that read began (or when the tap's invoice was
+ *  stored): a read that began earlier than what is shown is older news and changes nothing. */
+export const Screen = defineTaggedUnion({
+  Reading: {},
+  Blank: { readAt: Schema.Finite },
+  Showing: { invoice: CounterInvoice, readAt: Schema.Finite },
 })
-export type Sale = typeof Sale.Type
+export type Screen = typeof Screen.Type
+
+/** The tap on the menu: nothing in flight, an item going up, or the app's refusal for it. */
+export const Tap = defineTaggedUnion({
+  Idle: {},
+  Placing: { itemId: Schema.String },
+  Refused: { itemId: Schema.String, reason: Schema.String },
+})
+export type Tap = typeof Tap.Type
+
+/** The screen reads: one at a time (`asking` while one is in flight), and whether the last one got an answer. */
+export const Read = Schema.Literals(['idle', 'asking'])
+export type Read = typeof Read.Type
+export const Link = Schema.Literals(['answering', 'silent'])
+export type Link = typeof Link.Type
 
 export const Till = defineTaggedUnion({
   Loading: {},
-  Ready: { catalogue: Catalogue, publicKey: Schema.String, sale: Sale },
+  Ready: { catalogue: Catalogue, screen: Screen, tap: Tap, read: Read, link: Link },
   Broken: { reason: Schema.String },
 })
 export type Till = typeof Till.Type

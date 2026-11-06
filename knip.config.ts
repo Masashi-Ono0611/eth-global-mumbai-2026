@@ -13,6 +13,8 @@ export default {
     'apps/merchant': {
       entry: ['src/entry.ts!', 'alchemy.run.ts!', 'worker.ts!', 'test/**/*.test.ts'],
       project: ['src/**/*.ts!', 'test/**/*.ts', '*.ts'],
+      // tailwindcss is imported by styles.css (`@import 'tailwindcss'`), which Knip does not read.
+      ignoreDependencies: ['tailwindcss'],
     },
     'apps/chip': { entry: ['src/main.ts!', 'test/**/*.test.ts'], project: ['src/**/*.ts!', 'test/**/*.ts'] },
     // The simulator page (Vite loads src/main from index.html); vendor/ is Pollen's vendored Microduck game code.
