@@ -13,16 +13,19 @@ v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the fo
 **Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.** On Fri 05:00 no product code existed. Three Opus
 workers build from `docs/spec.md` while Kris does the prerequisites and the teammates build the physical duck.
 
-### Status board (Fri 6 Nov 16:10 IST)
+### Status board (Fri 6 Nov 17:03 IST)
 
 | Lane | State | Blocker |
 | --- | --- | --- |
-| **Everything real, on the deployed app** | **Kris, real passkey owner (Mac), real 0G, real World:** chai paid `0x652cae43…05de`; cigarettes: 0G `ask_human` → **approved in World App with his Orb-verified account** → enforcer `PaymentApproved` → paid `0xae55688e…ffa9`; his episodes on 0G Storage + `EpisodeLog`; the first attempt refused on our too-strict `amr` rule (fixed: `acr` + fresh `auth_time` decide; real token carries `amr ["pop","user","mfa"]`). One-command e2e (runs 9–10) and the browser journey (run 7) prove the loop with real 0G and the stub World | live **deny** and **revoke** still to click (`docs/demo.md` steps 8–10) |
-| Infra | **State-store incident resolved:** an Alchemy bug re-bootstrapped the Cloudflare state store from CI (new encryption key, state unreadable). Recovered by name pins + adoption, zero data loss, same URLs; a bun patch now refuses to re-bootstrap an existing store; written up in `docs/DEPLOYMENT.md`. CI deploys resumed (release `e4c67ea`) | Kris revokes the Alchemy CLI OAuth grant and re-logs in (after the event is fine) |
-| Audit view | **`/wallet/episodes` + `/wallet/episodes/:id` live:** timeline, 0G decision with the exact input, chip, Arc payment, World `acr`/`amr`, 0G evidence links, **Verify** (recomputes hashes, reads `EpisodeLog` on-chain) and **Replay decision (non-binding)** | styled; check on a phone |
-| Contracts | **Arc Studio is the single source:** pinned pull in `contracts/studio/`, Foundry builds it, 92 tests, deploy scripts byte-identical to Studio's testnet code; mainnet enforcer and Galileo `EpisodeLog` match the pull (metadata aside) | none |
-| 0G | Router `qwen3-vl-plus` live (8/8 probe); 0GM-1.0-35B TeeML switch ready (`APP_ZG_MODEL` + `APP_ZG_EXTRA_JSON`) when its provider stops answering 502 | provider down |
-| Next | notification channel decision (QR on the robot page / Telegram push) · S5b `eth_call` artefact (optional) · demo rehearsal · video (`docs/video-script.md`) Sat 06:00 · submission (`docs/submission.md`) by 08:00 | Kris |
+| **Everything real, on the deployed app** | Kris (real passkey, Mac) → real 0G decisions → **real World approval with his Orb-verified account** → enforcer `PaymentApproved` → paid `0xae55688e…ffa9`; episodes on 0G Storage + `EpisodeLog`; one-command e2e and the browser journey prove the loop | live **deny** and **revoke** clicks still to do (`docs/demo.md`) |
+| Robot evidence (scans) | **Live, flag on** (`features.scans: true`): `POST /api/chips/:robotId/scans` starts the errand for the scanned invoice with a chip-signed ≤ 64 KB QR crop (owner-private R2, hash anchored on 0G); `/wallet/episodes/:id` shows "What the robot saw" with a verify badge; the chip's `--local-port` listener and `docs/hardware-handoff.md` §5 are ready for the Radxa | the hardware team wires the Radxa scanner |
+| Audit view | `/wallet/episodes` + `/wallet/episodes/:id`: timeline, 0G input/decision, chip, Arc payment, World `acr`/`amr`, 0G evidence, Verify (on-chain), Replay (non-binding) | — |
+| Merchant till | **Live:** https://eth-mumbai-merchant.kristjan-grm11775.workers.dev (own stack, same frozen routes; items over 1 USDC badged "needs owner approval"); run one counter at a time | — |
+| Demo rules | grant defaults **5.00/day, 1.00 per payment**; **thali 2.00** = the over-cap approval beat, cigarettes = the restricted beat; approval page names the reason | the two commits deploy in the next push |
+| Design | Tailwind v4 + @foldkit/ui replaced zyzz; the wallet redesign (steps 2–3: shell, wallet home) is live; the robot conversation (console) is being rewritten by the redesign session | — |
+| Contracts / infra | Arc Studio is the single source (pinned pull, 92 tests, byte-identical deploys); state-store incident resolved with a guard; three stacks in the named store | Kris revokes the Alchemy CLI OAuth grant after the event |
+| 0G | router `qwen3-vl-plus` live; 0GM-1.0-35B TeeML switch ready when its provider recovers | provider 502 |
+| Next | deny/revoke → M+R uploads those episodes → demo rehearsal → video (`docs/video-script.md`) Sat 06:00 → submission (`docs/submission.md`) by 08:00 | Kris |
 
 ### Scope
 

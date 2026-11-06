@@ -56,15 +56,16 @@
 <body>
 <main>
   <nav class="tabs"><a href="/architecture/" aria-current="page">Architecture</a><a href="/plan/">Plan</a></nav>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.9 · Fri 6 Nov 16:10 IST · status board below · comment with 💬 (blocks, diagram nodes, selected text)</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v4.0 · Fri 6 Nov 17:03 IST · status board below · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <section id="status-board">
-  <h2>Where we are (Fri 6 Nov 16:10 IST)</h2>
+  <h2>Where we are (Fri 6 Nov 17:03 IST)</h2>
   <ul>
-    <li><strong>Everything is real now.</strong> Kris, as a real passkey owner on his Mac, bought chai (<code>0x652cae43…05de</code>) and cigarettes: 0G decided <code>ask_human</code> → he <strong>approved in World App with his Orb-verified account</strong> → the backend verified the token and co-signed → the enforcer accepted (<code>PaymentApproved</code>, <code>0xae55688e…ffa9</code>) → his episodes are on 0G Storage and anchored in <code>EpisodeLog</code>. The first attempt was refused by our own too-strict <code>amr</code> rule (the real token carries <code>["pop","user","mfa"]</code>; <code>acr</code> + fresh <code>auth_time</code> are the signal now). Evidence: <code>docs/evidence/README.md</code>.</li>
-    <li><strong>Audit view live:</strong> <code>/wallet/episodes</code> and <code>/wallet/episodes/:id</code>: timeline, the 0G decision with its exact input and request id, chip, Arc payment, World <code>acr</code>/<code>amr</code>, 0G evidence links, <em>Verify</em> (recomputes the hashes and reads <code>EpisodeLog</code> on-chain) and <em>Replay decision</em> (non-binding).</li>
-    <li><strong>Contracts:</strong> the Arc Studio project (<a href="https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75">studio.arc.io/app/63241623…</a>) is the single source; the repo keeps a pinned pull, builds and tests it (92 tests) and deploys it byte-identically; mainnet enforcer <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code>, Galileo <code>EpisodeLog</code> <code>0x4C947E6D794C78d0F684e46EFC97f712E51a206A</code>.</li>
-    <li><strong>Infra incident, resolved:</strong> an Alchemy bug re-bootstrapped the Cloudflare state store from CI (new encryption key); recovered by name pins + adoption with zero data loss and the same URLs; a patch now refuses to re-bootstrap an existing store (<code>docs/DEPLOYMENT.md</code>).</li>
-    <li><strong>Open:</strong> the live deny and revoke clicks; the notification channel (QR on the robot's display / Telegram push); optional S5b on-chain token check; the video Sat 06:00; submission by 08:00 IST.</li>
+    <li><strong>Everything is real on the deployed app:</strong> Kris, as a real passkey owner, bought chai on a real 0G decision; cigarettes went 0G <code>ask_human</code> → <strong>approval in World App with his Orb-verified account</strong> → enforcer <code>PaymentApproved</code> → paid (<code>0xae55688e…ffa9</code>); his episodes are on 0G Storage and anchored in <code>EpisodeLog</code>. Evidence: <code>docs/evidence/README.md</code>.</li>
+    <li><strong>Robot evidence is live:</strong> the chip can start an errand by scanning (<code>POST /api/chips/:robotId/scans</code>, chip-signed, ≤ 64 KB QR crop stored owner-private in R2, hash anchored on 0G; never sent to the brain) and the episode page shows "What the robot saw" with an on-chain verify badge. Rule 4 now reads: no scene frames leave the chip; one signed QR crop may. The Radxa wiring guide is <code>docs/hardware-handoff.md</code> §5.</li>
+    <li><strong>Audit view:</strong> <code>/wallet/episodes</code> and <code>/wallet/episodes/:id</code> — timeline, the exact 0G input and decision, chip, Arc payment, World <code>acr</code>/<code>amr</code>, 0G evidence, Verify and Replay.</li>
+    <li><strong>Merchant till:</strong> <a href="https://eth-mumbai-merchant.kristjan-grm11775.workers.dev">eth-mumbai-merchant…workers.dev</a>, a point of sale on the same frozen routes; items over 1 USDC are badged "needs owner approval". Demo rules: grant 5.00/day, 1.00 per payment; thali 2.00 = the approval beat, cigarettes = the restricted beat.</li>
+    <li><strong>Contracts and infra:</strong> Arc Studio (<a href="https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75">studio.arc.io/app/63241623…</a>) is the single source; mainnet enforcer <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code>, Galileo <code>EpisodeLog</code> <code>0x4C947E6D794C78d0F684e46EFC97f712E51a206A</code>; the state-store incident is resolved and guarded.</li>
+    <li><strong>Open:</strong> the live deny and revoke clicks; the Radxa wiring; the video Sat 06:00; submission by 08:00 IST.</li>
   </ul>
   </section>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
@@ -527,7 +528,7 @@ flowchart LR
   </table>
 
   <footer>
-    Plan v3.9, 6 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/decisions.md</code> the decisions, <code>docs/research/</code> the evidence ·
+    Plan v4.0, 6 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/decisions.md</code> the decisions, <code>docs/research/</code> the evidence ·
     <a href="https://github.com/grmkris/eth-global-mumbai-2026">github.com/grmkris/eth-global-mumbai-2026</a>
   </footer>
 </main>
