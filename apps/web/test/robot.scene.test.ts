@@ -8,13 +8,23 @@ import { detail, grant, payee, summary, txHash } from './Fixtures.ts'
 import { Animation, Dialog } from '@foldkit/ui'
 import * as Allowance from '../src/pages/Allowance.ts'
 
+/** The conversation after its errand timed out, with the reason the Worker recorded. */
+const ended = (result: string) =>
+  RobotConsole.update(
+    resumedConsole('e1'),
+    RobotConsole.Message.SucceededLoadErrand({
+      episodeId: 'e1',
+      detail: { ...detail('expired', false), episode: { ...detail('expired', false).episode, result } },
+    }),
+  ).model
+
 describe('/robot/:id', () => {
   const view = consoleView
   test("the robot's errand runs in the conversation: 0G decides, the chip signs, the receipt links the proof and Arc", () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole()),
-      expect(text('Nothing yet. Ask Duck for something below.')).toExist(),
+      expect(text('Ask Duck for something below.')).toExist(),
       // The ready dock says nothing: the pills and the composer speak for themselves.
       expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeEnabled(),
       expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).not.toHaveAttr('aria-describedby'),
@@ -35,13 +45,17 @@ describe('/robot/:id', () => {
       expect(text('My chip is signing the payment...')).toExist(),
       expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeDisabled(),
       expect(label('Tell Duck what to get')).toBeDisabled(),
-      expect(text('Duck is on an errand. You can send the next one when it ends.')).toExist(),
+      expect(text('Duck is on an errand.')).toExist(),
     )
     const paid = RobotConsole.update(
       signing.model,
       RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e1', detail: detail('paid', true) }),
     )
-    vitestExpect(paid.commands?.map((command) => [command.name, command.args])).toEqual([['LoadConsole', { robotId }]])
+    // The errand ended: reload the conversation, and bring the receipt into view.
+    vitestExpect(paid.commands?.map((command) => [command.name, command.args])).toEqual([
+      ['LoadConsole', { robotId }],
+      ['ShowLatest', undefined],
+    ])
     scene(
       { update: RobotConsole.update, view },
       given(paid.model),
@@ -144,8 +158,33 @@ describe('/robot/:id', () => {
       given(loadedConsole([], { ...consoleRobot, grant: null })),
       expect(text('No allowance')).toExist(),
       expect(text("Duck has no allowance yet, so it can't buy anything.")).toExist(),
+      // The empty conversation says what to do first, with the way to do it right there.
+      expect(text('Give Duck an allowance first, then send it for something.')).toExist(),
+      expect(role('button', { name: 'Give Duck an allowance' })).toExist(),
       expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeDisabled(),
       expect(label('Tell Duck what to get')).toBeDisabled(),
+    )
+  })
+
+  test('an allowance past its window reads Ended, and the dock says to give a new one', () => {
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([], { ...consoleRobot, grant: { ...grant, status: 'expired' } })),
+      expect(text('Ended')).toExist(),
+      expect(text("Duck's allowance has ended. Give it a new one; until then Arc refuses its payments.")).toExist(),
+    )
+  })
+
+  test('a timeout says who did not answer: the chip, or the owner on an approval', () => {
+    scene(
+      { update: RobotConsole.update, view },
+      given(ended('chip silent for 60 s')),
+      expect(text("My chip didn't answer in time. Nothing was paid.")).toExist(),
+    )
+    scene(
+      { update: RobotConsole.update, view },
+      given(ended('no approval within 300 s')),
+      expect(text('No answer to the approval in time. Nothing was paid.')).toExist(),
     )
   })
 
@@ -153,7 +192,7 @@ describe('/robot/:id', () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole([], { ...consoleRobot, grant: { ...grant, status: 'revoked' } })),
-      expect(text('No allowance')).toExist(),
+      expect(text('Stopped')).toExist(),
       expect(text("Duck's allowance is stopped. Send it anyway and Arc refuses the payment on-chain.")).toExist(),
       expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeEnabled(),
       expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toHaveAccessibleDescription(
@@ -194,6 +233,7 @@ describe('/robot/:id', () => {
         }),
       ),
       expect(text('You said no. Nothing was paid.')).toExist(),
+      Command.resolve(RobotConsole.ShowLatest, RobotConsole.Message.CompletedShowLatest()),
       Command.resolve(
         RobotConsole.LoadConsole,
         RobotConsole.Message.FailedLoadConsole({ error: 'x', signedOut: false }),
@@ -309,11 +349,11 @@ describe('/robot/:id', () => {
       expect(role('heading', { name: 'Give Duck an allowance' })).toExist(),
       click(role('radio', { name: '5.00' })),
       click(role('radio', { name: '1 week' })),
-      expect(
-        text(
-          'Duck can spend up to 5.00 USDC a day at Duck Café, for the next week. Over 1.00 asks you in World App. Arc enforces it; not even our server can go past.',
-        ),
-      ).toExist(),
+      // What is about to be signed, as the same rules a live allowance shows.
+      expect(text('1.00 USDC max per purchase')).toExist(),
+      expect(text('Duck Café only')).toExist(),
+      expect(text('For 1 week')).toExist(),
+      expect(text('Over 1.00 USDC: asks you in World App')).toExist(),
       click(role('button', { name: 'Confirm with passkey' })),
       Command.expectExact(
         Allowance.GrantAllowance({ robotId, dailyCap: '5.00', perPaymentCap: '1.00', allowlist: [payee], hours: 168 }),
@@ -345,9 +385,11 @@ describe('/robot/:id', () => {
         RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai', model: null }),
       ),
       Command.resolve(RobotConsole.SendIntent, RobotConsole.Message.SucceededCreateIntent({ intent: waiting })),
-      expect(text('Waiting for Duck to scan the QR code at the counter.')).toExist(),
+      expect(text('On my way to scan the QR at the counter.')).toExist(),
       expect(role('button', { name: 'Stop Duck' })).toBeEnabled(),
       expect(role('button', { name: 'Get me a samosa, 0.25 USDC' })).toBeDisabled(),
+      // The new intent's bubbles are at the bottom: the thread scrolls to them.
+      Command.resolve(RobotConsole.ShowLatest, RobotConsole.Message.CompletedShowLatest()),
       Command.resolve(RobotConsole.PollIntent, RobotConsole.Message.FailedLoadIntent({ intentId: 'other' })),
     )
   })

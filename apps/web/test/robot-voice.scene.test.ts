@@ -91,6 +91,7 @@ describe('/robot/:id voice', () => {
       ),
       Story.message(voice(RobotVoice.Message.PressedTalk())),
       Story.Command.resolve(RobotVoice.StartListening, RobotVoice.Message.CompletedStartListening({ holdId: 1 })),
+      Story.Command.resolve(RobotVoice.ShowNewest, RobotVoice.Message.CompletedShowNewest()),
       Story.Command.resolve(RobotVoice.LimitListening, RobotVoice.Message.CompletedLimitListening({ holdId: 0 })),
       Story.message(voice(RobotVoice.Message.ReleasedTalk())),
       Story.Command.resolve(
@@ -109,7 +110,9 @@ describe('/robot/:id voice', () => {
       Story.message(voice(RobotVoice.Message.PressedTalk())),
       Story.Command.expectExact(RobotVoice.StartListening({ holdId: 1 })),
       Story.Command.resolve(RobotVoice.StartListening, RobotVoice.Message.CompletedStartListening({ holdId: 1 })),
-      Story.Command.expectExact(RobotVoice.LimitListening({ holdId: 1 })),
+      // The mic is open: its limit starts, and the owner's faint bubble is scrolled into view.
+      Story.Command.expectExact(RobotVoice.LimitListening({ holdId: 1 }), RobotVoice.ShowNewest()),
+      Story.Command.resolve(RobotVoice.ShowNewest, RobotVoice.Message.CompletedShowNewest()),
       Story.Command.resolve(RobotVoice.LimitListening, RobotVoice.Message.CompletedLimitListening({ holdId: 0 })),
       Story.message(voice(RobotVoice.Message.ReleasedTalk())),
       Story.Command.expectExact(RobotVoice.StopListening()),
@@ -121,6 +124,8 @@ describe('/robot/:id voice', () => {
       Story.Command.resolve(RobotVoice.SendVoiceTurn, RobotVoice.Message.SucceededVoiceTurn({ turn: turn() })),
       Story.Command.expectHas(RobotVoice.PlaySpeech({ url: `/api/robots/${robotId}/voice/speech/${'a'.repeat(64)}` })),
       Story.Command.expectHas(RobotConsole.PollIntent({ robotId, intentId, delayMillis: 2000 })),
+      // The spoken buy's intent is new: the thread scrolls to its bubbles.
+      Story.Command.resolve(RobotConsole.ShowLatest, RobotConsole.Message.CompletedShowLatest()),
       Story.model((model) => {
         expectValue(RobotVoice.Status.guards.Speaking(model.voice.status)).toBe(true)
         expectValue(RobotConsole.Intent.guards.Open(model.intent)).toBe(true)
@@ -133,7 +138,9 @@ describe('/robot/:id voice', () => {
           intent: intent({ state: 'expired', reason: 'no scan within 10 minutes' }),
         }),
       ),
-      Story.Command.expectExact(RobotVoice.SayIntent({ robotId, intentId })),
+      // It expired: Vita says so, and the thread scrolls to the new state.
+      Story.Command.expectExact(RobotVoice.SayIntent({ robotId, intentId }), RobotConsole.ShowLatest()),
+      Story.Command.resolve(RobotConsole.ShowLatest, RobotConsole.Message.CompletedShowLatest()),
       Story.Command.resolve(
         RobotVoice.SayIntent,
         RobotVoice.Message.SucceededSayIntent({
@@ -289,7 +296,7 @@ describe('/robot/:id voice', () => {
     Scene.scene(
       { update: RobotConsole.update, view: consoleView },
       Scene.given(after(...spoken)),
-      Scene.expect(Scene.text('Duck is listening to you…')).toExist(),
+      Scene.expect(Scene.text('Duck is working out what you said…')).toExist(),
       Scene.expect(mic).toBeDisabled(),
     )
     Scene.scene(

@@ -368,6 +368,10 @@ const firstSteps = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Readon
   ]
 }
 
+/** A step's mark: a green check once done, the next step in ink, the rest quiet. */
+const stepMark = (done: boolean, isNext: boolean) =>
+  clsx(stepMarkClassName, done ? 'bg-paid/12 text-paid' : isNext ? 'bg-ink text-surface' : 'bg-paper text-muted')
+
 /** The first-steps card: each open step one tap from where it is done (the next one only, so the order is clear). */
 const firstStepsCard = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const steps = firstSteps(home, locale, h)
@@ -388,19 +392,7 @@ const firstStepsCard = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Ht
             [h.Class(stepRowClassName)],
             [
               h.span(
-                [
-                  h.Class(
-                    clsx(
-                      stepMarkClassName,
-                      step.done
-                        ? 'bg-paid/12 text-paid'
-                        : index === next
-                          ? 'bg-ink text-surface'
-                          : 'bg-paper text-muted',
-                    ),
-                  ),
-                  h.AriaHidden(true),
-                ],
+                [h.Class(stepMark(step.done, index === next)), h.AriaHidden(true)],
                 [step.done ? '✓' : `${index + 1}`],
               ),
               h.span(

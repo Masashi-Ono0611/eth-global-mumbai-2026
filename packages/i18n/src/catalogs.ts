@@ -49,7 +49,6 @@ export const en: Readonly<Record<MessageKey, string>> = {
     '{brain} decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
   'console.episodeLog': 'EpisodeLog record on 0G Chain',
   'console.paymentTx': 'Payment on Arc',
-  'console.reason': 'Reason: {reason}',
   'console.storage': 'Episode on 0G Storage',
   'console.title': 'Robot console',
   'episode.action':
@@ -269,8 +268,6 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'allowance.where': 'Where',
   'allowance.for': 'For',
   'allowance.hours': '{hours, plural, =24 {1 day} =168 {1 week} one {# hour} other {# hours}}',
-  'allowance.summary':
-    '{name} can spend up to {daily} USDC a day at {payee}, for {hours, plural, =24 {the next day} =168 {the next week} one {the next hour} other {the next # hours}}. Over {perPayment} asks you in World App. Arc enforces it; not even our server can go past.',
   'allowance.overBalance':
     'Your wallet has {balance} USDC, so {name} can only spend that much until you add money to the wallet.',
   'allowance.confirm': 'Confirm with passkey',

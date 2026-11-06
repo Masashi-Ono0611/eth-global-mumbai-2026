@@ -54,13 +54,6 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.spent': { readonly spent: string | number; readonly daily: string | number }
   'allowance.stop': { readonly name: string | number }
   'allowance.stopping': Readonly<Record<string, never>>
-  'allowance.summary': {
-    readonly name: string | number
-    readonly daily: string | number
-    readonly payee: string | number
-    readonly hours: number
-    readonly perPayment: string | number
-  }
   'allowance.title': { readonly name: string | number }
   'allowance.where': Readonly<Record<string, never>>
   'approval.back': { readonly robot: string | number }
@@ -112,7 +105,6 @@ export interface MessageArgumentsByKey<T = string> {
   }
   'console.episodeLog': Readonly<Record<string, never>>
   'console.paymentTx': Readonly<Record<string, never>>
-  'console.reason': { readonly reason: string | number }
   'console.storage': Readonly<Record<string, never>>
   'console.title': Readonly<Record<string, never>>
   'episode.action': { readonly action: string | number }
@@ -392,4 +384,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '4d8866762a9cbd5765d29b5b67ff7ec4d5b6e1f29882930aca357896d4d0315c'
+export const catalogVersion = 'ba73660a88f2ee42b503f51b00542233c4ee7c026d7d2ad133438b07c2119cc6'

@@ -19,9 +19,10 @@ import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
 import { dock, voiceIn } from './RobotDockView.ts'
+import { emptyThread, failedConsole } from './RobotEmptyView.ts'
 import { seenBubble, teeMark, zeroGStatus, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
-import { failedView, signedOutView } from './Shared.ts'
+import { signedOutView } from './Shared.ts'
 import { workingDots } from '../Busy.ts'
 import { threadSkeleton } from '../Skeleton.ts'
 import { busyLabel } from '../Busy.ts'
@@ -55,15 +56,6 @@ const paidClassName = 'inline-flex items-center gap-1 font-semibold text-paid'
 const proofClassName = 'text-[0.92rem] font-semibold decoration-ink/30'
 const arcLinkClassName = 'text-[0.85rem] text-muted decoration-muted/40'
 const systemClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-center text-sm text-muted'
-const emptyClassName = 'my-auto grid justify-items-center gap-3 px-6 py-8 text-center'
-// The same face as the robot's row on home: ink while its chip is on, grey (and the duck asleep) while it is off.
-const emptyFaceClassName = 'grid size-24 place-items-center rounded-full'
-const failedClassName = 'grid gap-4 px-1 pt-4'
-const failedBackClassName =
-  'inline-flex min-h-11 items-center gap-1.5 justify-self-start rounded-full bg-surface px-3.5 font-semibold no-underline transition-transform active:scale-[0.96]'
-const emptyActionClassName =
-  'inline-flex min-h-11 cursor-pointer items-center rounded-full bg-ink px-5 font-semibold text-surface transition-transform active:scale-[0.96]'
-const emptyTextClassName = 'max-w-[15rem] text-[0.95rem] text-muted text-balance'
 const stepTextClassName = 'transition-opacity duration-150 starting:opacity-0'
 /** The live errand's messages enter (DESIGN.md "Motion"); the history above never moves. A contents box, so the
  *  bubbles stay items of the thread's column. */
@@ -487,41 +479,11 @@ const loadedView = (
         ],
         [
           view.robot.kind === 'sim' ? simulatorLink(view.robot.id, locale, h) : h.empty,
-          // An empty conversation: the duck itself, waiting to be asked (asleep while its chip is off).
           past.length === 0 &&
           Errand.guards.Idle(model.errand) &&
           Intent.guards.Idle(model.intent) &&
           model.voice.entries.length === 0
-            ? h.div(
-                [h.Class(emptyClassName)],
-                [
-                  h.span(
-                    [h.Class(clsx(emptyFaceClassName, view.lease.online ? 'bg-ink' : 'bg-rule')), h.AriaHidden(true)],
-                    [duck('size-16 motion-safe:animate-bob', !view.lease.online, h)],
-                  ),
-                  h.p(
-                    [h.Class(emptyTextClassName)],
-                    [
-                      format(
-                        locale,
-                        view.grant === null
-                          ? 'thread.emptyNoAllowance'
-                          : RobotVoice.Status.guards.Unavailable(model.voice.status)
-                            ? 'thread.empty'
-                            : 'voice.empty',
-                        { name: view.robot.name },
-                      ),
-                    ],
-                  ),
-                  // Without an allowance the pills rest: the way forward is right here.
-                  view.grant === null
-                    ? h.button(
-                        [h.Type('button'), h.Class(emptyActionClassName), h.OnClick(Message.ClickedAllowance())],
-                        [format(locale, 'allowance.give', { name: view.robot.name })],
-                      )
-                    : h.empty,
-                ],
-              )
+            ? emptyThread(model, view, locale, h)
             : past.length === 0
               ? h.empty
               : h.a(
@@ -565,18 +527,7 @@ export const robotConsoleView = Submodel.defineView<
       ConsoleState.match(model.state, {
         Loading: () => threadSkeleton(locale, h),
         SignedOut: () => signedOutView(locale, h),
-        // A robot that cannot be read (gone, or another owner's): a way back beside Retry.
-        Failed: ({ error }) =>
-          h.div(
-            [h.Class(failedClassName)],
-            [
-              h.a(
-                [h.Href(walletRouter()), h.Class(failedBackClassName)],
-                [h.span([h.AriaHidden(true)], ['‹']), format(locale, 'episodes.backToWallet', {})],
-              ),
-              failedView(error, Message.ClickedRefresh(), locale, h),
-            ],
-          ),
+        Failed: ({ error }) => failedConsole(error, locale, h),
         Loaded: ({ robot, catalogue, history, amounts }) =>
           loadedView(model, robot, catalogue, history, amounts, locale, timeZone, h),
       }),

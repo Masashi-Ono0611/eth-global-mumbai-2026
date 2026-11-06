@@ -75,7 +75,9 @@ describe('/robot/:id, a simulator robot', () => {
       expect(text('Walking to the chai stall')).toExist(),
       expect(role('button', { name: 'Stop Duck' })).toBeEnabled(),
       expect(role('button', { name: 'Get me a chai, 0.10 USDC' })).toBeDisabled(),
-      Command.expectExact(RobotConsole.PollIntent({ robotId, intentId, delayMillis: 2000 })),
+      // The new intent's bubbles land at the bottom of the thread, so it scrolls to them.
+      Command.expectExact(RobotConsole.PollIntent({ robotId, intentId, delayMillis: 2000 }), RobotConsole.ShowLatest()),
+      Command.resolve(RobotConsole.ShowLatest, RobotConsole.Message.CompletedShowLatest()),
       Command.resolve(RobotConsole.PollIntent, RobotConsole.Message.FailedLoadIntent({ intentId: 'other' })),
     )
   })
@@ -131,6 +133,7 @@ describe('/robot/:id, a simulator robot', () => {
         RobotConsole.SendIntent,
         RobotConsole.Message.SucceededCreateIntent({ intent: intent('running', null) }),
       ),
+      Command.resolve(RobotConsole.ShowLatest, RobotConsole.Message.CompletedShowLatest()),
       expect(role('img', { name: 'What Duck sees right now' })).not.toExist(),
       Command.resolve(
         RobotConsole.PollIntent,
@@ -158,6 +161,8 @@ describe('/robot/:id, a simulator robot', () => {
         RobotConsole.PollIntent,
         RobotConsole.Message.SucceededLoadIntent({ intent: intent('stopped', null) }),
       ),
+      // Stopped is a new state: the thread scrolls to its message.
+      Command.resolve(RobotConsole.ShowLatest, RobotConsole.Message.CompletedShowLatest()),
       expect(role('img', { name: 'What Duck sees right now' })).not.toExist(),
       // The live loop's next read finds the intent closed and stops: no further command.
       Command.resolve(RobotConsole.PollLive, RobotConsole.Message.FailedLoadLive({ intentId })),
@@ -177,7 +182,20 @@ describe('/robot/:id, a simulator robot', () => {
     vitestExpect(scanned.commands?.map((command) => [command.name, command.args])).toEqual([
       ['PollIntent', { robotId, intentId, delayMillis: 2000 }],
       ['PollErrand', { robotId, episodeId, delayMillis: 0 }],
+      ['ShowLatest', undefined],
     ])
+    // Walking says so; once the duck has scanned, the errand's own messages take over and the walking line goes.
+    scene(
+      { update: RobotConsole.update, view },
+      given(walking),
+      expect(text('On my way. 0G steers me in the simulator.')).toExist(),
+    )
+    scene(
+      { update: RobotConsole.update, view },
+      given(scanned.model),
+      expect(text('On my way. 0G steers me in the simulator.')).not.toExist(),
+      expect(role('button', { name: 'Stop Duck' })).not.toExist(),
+    )
     scene(
       { update: RobotConsole.update, view },
       given(walking),

@@ -129,15 +129,18 @@ export const LoadConsole = Command.define('LoadConsole', {
 })
 
 /**
- * Reads the errand after `delayMillis`: the console polls while the errand is live (spec §6 moves lazily on reads).
+ * The thread moved on: bring its newest message into view above the dock (as the voice does for Vita's lines).
  * @internal Exported for the scene tests; the page update is its only production caller.
  */
-/** The errand moved on: bring its newest message into view above the dock (as the voice does for Vita's lines). */
 export const ShowLatest = Command.define('ShowLatest', {
   messages: [Message.CompletedShowLatest],
   execute: Dom.scrollIntoView('#main', { block: 'end' }).pipe(Effect.ignore, Effect.as(Message.CompletedShowLatest())),
 })
 
+/**
+ * Reads the errand after `delayMillis`: the console polls while the errand is live (spec §6 moves lazily on reads).
+ * @internal Exported for the scene tests; the page update is its only production caller.
+ */
 export const PollErrand = Command.define('PollErrand', {
   args: { robotId: Schema.String, episodeId: Schema.String, delayMillis: Schema.Number },
   messages: [Message.SucceededLoadErrand, Message.FailedLoadErrand],
