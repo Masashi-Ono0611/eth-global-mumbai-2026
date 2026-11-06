@@ -239,9 +239,13 @@ Input JSON: `{"requested","catalogue":{"itemId","name","amount","restricted"},"i
 `x_0g_trace.request_id`), `chat_id` (header `zg-res-key`), provider, model, `latency_ms`, `prompt_sha256`, `input_json`;
 never the key. Episode evidence JSON = `{episodeId, robotId, item, decisions[], outcome:{state, txHash?, approvalId?},
 requestIds[]}`; `request_ids_hash = keccak256(requestIds.join(","))`. The uploader (`tools/evidence-uploader`, Bun, on
-netcup, `~/.config/secrets.env`) polls `GET /api/evidence/pending` (bearer `APP_EVIDENCE_TOKEN`), uploads the JSON to
-0G Storage (`@0gfoundation/0g-storage-ts-sdk` 1.2.13, Galileo turbo indexer), calls `EpisodeLog.record(episodeId,
-rootHash, requestIdsHash)` on 0G Chain 16602, then `POST /api/evidence/:id/uploaded {rootHash, storageTx, logTx}`.
+netcup; it loads the repo's `.env.main.local` and falls back to the process environment, nothing is added to
+`~/.config/secrets.env`) polls `GET /api/evidence/pending` (bearer `APP_EVIDENCE_TOKEN`), uploads the JSON to 0G
+Storage (`@0gfoundation/0g-storage-ts-sdk` 1.2.13, Galileo turbo indexer), calls `EpisodeLog.record(string episodeId,
+bytes32 rootHash, bytes32 requestIdsHash)` on 0G Chain 16602 (event `EpisodeRecorded(address indexed recorder, bytes32
+indexed episodeKey, string episodeId, bytes32 rootHash, bytes32 requestIdsHash, uint64 recordedAt)`, `episodeKey =
+keccak256(bytes(episodeId))`, duplicate → `AlreadyRecorded`; the uploader reads `records(episodeKey)` first and never
+records twice), then `POST /api/evidence/:id/uploaded {rootHash, storageTx, logTx}`.
 
 ## 7. Merchant, x402 and the gate (`packages/server/src/merchant/`, `packages/protocol/src/X402.ts`)
 
