@@ -371,7 +371,7 @@ export const view = Submodel.defineView<Model, Message, { readonly locale: Local
         // A failed read has no robot to go back to (an approval that is not there): the wallet is the way out.
         Failed: ({ error }) =>
           h.div(
-            [h.Class('contents')],
+            [h.Class('grid gap-4')],
             [
               failedView(error, Message.ClickedReload(), locale, h),
               h.a(

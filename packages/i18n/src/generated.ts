@@ -346,4 +346,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'f1ef6edb5597286ba35bf63a61d5e091a6b2d3097a903c3c8bcbdc308d106ebf'
+export const catalogVersion = 'da21aa18768cb7eb0e7ad9f0f8551b33e86218a9ea46b6928b18a572c8ac554d'

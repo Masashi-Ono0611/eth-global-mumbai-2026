@@ -3,7 +3,7 @@
 import type { MessageKey } from './generated.ts'
 export const en: Readonly<Record<MessageKey, string>> = {
   'approval.errandEnded':
-    '{state, select, refused {Refused by the chip: nothing is paid} failed {The payment failed: nothing is paid} expired {Expired: nothing is paid} safe_stop {Stopped safely: nothing is paid} walked_away {The robot walked away: nothing is paid} other {Ended ({state}): nothing is paid}}',
+    '{state, select, refused {Refused by the chip: nothing is paid} failed {The payment failed: nothing is paid} expired {Timed out: nothing is paid} safe_stop {Stopped safely: nothing is paid} walked_away {The robot walked away: nothing is paid} other {Ended ({state}): nothing is paid}}',
   'approval.explainer':
     "{why, select, restricted {A restricted item: approve it in World App. Nothing is paid until you do.} overCap {Over the per-payment limit ({amount} > {cap} USDC): approve it in World App. Nothing is paid until you do.} offList {A payee not on the robot's list: approve it in World App. Nothing is paid until you do.} other {Approve it in World App. Nothing is paid until you do.}}",
   'approval.followStopped': 'No final state after 2 minutes; the conversation shows the latest.',

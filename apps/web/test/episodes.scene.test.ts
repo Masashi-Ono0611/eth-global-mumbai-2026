@@ -210,6 +210,19 @@ const queuedIn = (state: string) =>
     }),
   ).model
 
+/** The audit with its chip request picked up but unanswered, in an errand that is in `state`. */
+const deliveredIn = (state: string) =>
+  Episode.update(
+    Episode.init('ep1').model,
+    Episode.Message.SucceededLoadAudit({
+      audit: {
+        ...audit,
+        episode: { ...audit.episode, state },
+        chipRequests: audit.chipRequests.map((request) => ({ ...request, status: 'delivered' })),
+      },
+    }),
+  ).model
+
 describe('/wallet/episodes/:id', () => {
   const view = withViewInputs(episodeView, inputs)()
   const loaded = Episode.update(Episode.init('ep1').model, Episode.Message.SucceededLoadAudit({ audit })).model
@@ -249,6 +262,12 @@ describe('/wallet/episodes/:id', () => {
       given(queuedIn('expired')),
       expect(text('The chip never picked this up')).toExist(),
       expect(text('Waiting for the chip to poll')).not.toExist(),
+    )
+    scene(
+      { update: Episode.update, view },
+      given(deliveredIn('failed')),
+      expect(text('The chip did not answer in time')).toExist(),
+      expect(text('The chip is checking the invoice and signing')).not.toExist(),
     )
   })
 
