@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "entries": {
+    ".foundry-version": {
+      "hash": "b59269d636da76a16dca895a43085d37114d105ca9f933cb45d3ec23fdfe0845",
+      "pulledAt": "2026-11-06T10:03:50.177Z"
+    },
+    "foundry.toml": {
+      "hash": "b936d5f142c70afa0570bf776c73c5954b53e523d02a8ace8fc6681a48c53def",
+      "pulledAt": "2026-11-06T10:03:50.178Z"
+    },
+    "remappings.txt": {
+      "hash": "7db29ab99ec9f13cfd2dc2c9c746f77e57f85c17c6186a15204e1dfdcfadd29c",
+      "pulledAt": "2026-11-06T10:03:50.178Z"
+    },
+    "contracts/EpisodeLog.sol": {
+      "hash": "e5d17b7d9a8e1fb5fd24210b70d2df75a4bb37ad351eb7cfbc9df55b5f92e2b3",
+      "pulledAt": "2026-11-06T10:03:50.179Z"
+    },
+    "contracts/RobotPaymentPolicyEnforcer.sol": {
+      "hash": "ff554c88be9024acaa4a8adec561a020c281c4314e71a45036a907fc69f6400a",
+      "pulledAt": "2026-11-06T10:03:50.179Z"
+    },
+    "contracts/contract-metadata/EpisodeLog.json": {
+      "hash": "da54633a8d47dbff0b807122b9cb483a7fc1a7b503b0f6fd7f377ed945aaeca9",
+      "pulledAt": "2026-11-06T10:03:50.181Z"
+    },
+    "contracts/contract-metadata/RobotPaymentPolicyEnforcer.json": {
+      "hash": "93fbc43ac66b54829db4513f6ab12122942b87f8bad49a8916eda2da129b349e",
+      "pulledAt": "2026-11-06T10:03:50.181Z"
+    },
+    "contracts/script/Create2Factory.sol": {
+      "hash": "4b2d23e8364e58e08460c39d6c26dced67b82b7e039c306c671245c4f012c38b",
+      "pulledAt": "2026-11-06T10:03:50.187Z"
+    },
+    "contracts/script/DeployCreate2.s.sol": {
+      "hash": "031692db152269016a8df83293d429f69f90dcb0e563ecc5366a257cbcf334a1",
+      "pulledAt": "2026-11-06T10:03:50.187Z"
+    },
+    "contracts/test/EpisodeLog.t.sol": {
+      "hash": "312b6320583da76a39d37edb0534b7d778fc58fb691468bec16c550666cd2d77",
+      "pulledAt": "2026-11-06T10:03:50.206Z"
+    },
+    "contracts/test/RobotPaymentPolicyEnforcer.t.sol": {
+      "hash": "2918e7f143ee05571f957c65fa91cbf77774c3e38e4e9da75642eca57525ae5d",
+      "pulledAt": "2026-11-06T10:03:50.206Z"
+    }
+  }
+}
