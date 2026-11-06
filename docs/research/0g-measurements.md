@@ -1,79 +1,69 @@
-# 0G measurements for Vitaquack (decide call, uploader, Galileo)
+# 0G readiness for the Physical AI prize: model choice, TEE verification, evidence
 
-Measured 2026-11-05 to 2026-11-06 (Masashi, from a separate 0G PoC) against the same 0G Router and Galileo this repo uses.
-Everything here was run for real unless it is under "Not verified". Probe script: `docs/research/spikes/zg-decide-probe.mjs.txt`
-(it copies `decideRequestBody` from `packages/server/src/robot/ZeroGClient.ts` byte for byte and posts it to several models;
-run it with `node --env-file=<file with OG_ROUTER_API_KEY> zg-decide-probe.mjs`).
+Measured 2026-11-06 06:30 to 07:15 UTC (12:00 to 12:45 IST) by Masashi against the same 0G Router and Galileo this repo uses. Everything below
+was run for real unless it is listed under "Not verified". Scripts are in `docs/research/spikes/` (`zg-*.mjs.txt`); they
+copy the request from `packages/server/src/robot/ZeroGClient.ts` at `main` of 2026-11-06 07:00 UTC (the decision-table
+prompt and `promptInput`), checked string for string.
 
-## 1. Decide call: which model, and one change to the request
+## 1. Prize checklist against what exists now
 
-Team request body as is (forced `decide` tool call, `temperature: 0`, structured input), 2 scenarios (chai → expect `pay`,
-cigarettes → expect `ask_human`) x 2 repeats = 4 calls per model. **n = 4 per model: a smoke test, not a benchmark.**
+| "Must show" (0G Physical AI) | State on 2026-11-06 07:15 UTC |
+|---|---|
+| A 0G call inside the decision loop | Code ready. **Not yet observed on the deployed app**: the only uploaded episode was decided by the rehearsal brain. A team Router key has been handed over; the next step is `APP_ZG_*` on the Worker, then `zg-probe.ts` and `e2e-deployed.ts`. |
+| An episode log on 0G Storage with a request id per decision | Path proven. Episode `hg2ouddwe2h5j6ekbrsn7grfja` re-verified independently: `EpisodeLog.records` on Galileo, download of root `0x8db4ffc1…d5dd` with proof (774 bytes, same episode id), `keccak256(requestIds.join(","))` equal to the on-chain `requestIdsHash`. Its decision provider is LiteLLM, so it shows storage, not a 0G decision. |
+| A replayable simulation, or a live hardware demo at the 0G booth | Not checked here. The prize text says simulated builds are eligible for every place except the hardware one; the submission should say which of the two we show. |
+| A safe-stop fallback if 0G is unreachable (never a faked decision) | Proven against a stub (`RobotAcceptance.ts`). A live example exists for free: `0gm-1.0-35b-a3b` answered HTTP 502 for every call at 06:45 and again from 07:05 to 07:14 UTC (section 2), which the errand turns into `safe_stop`. |
+| Contract deployment addresses | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo). Explorer source verification not done (optional). |
 
-| `APP_ZG_MODEL` | Verifiability (catalog) | Median / max latency | Correct | Note |
-|---|---|---|---|---|
-| `0gm-1.0-35b-a3b` | TeeML (TDX, dstack) | 6.3 s / 6.7 s | 4/4 | thinking is on by default |
-| `0gm-1.0-35b-a3b` + `chat_template_kwargs: {"enable_thinking": false}` | TeeML | **3.2 s / 3.3 s** | 4/4 | **recommended** |
-| `qwen3-vl-plus` | none flagged | 3.5 s / 3.7 s | 4/4 | good fallback, no extra field needed |
-| `qwen3.8-flash` | none | 4.8 s / 9.0 s | 3/4 | 9.0 s is close to the 10 s timeout; with `enable_thinking: false` it was 2.2 s, 4/4 |
-| `glm-5.3` | TeeML | **10.9 s / 12.0 s** | 4/4 | 2 of 4 calls exceeded the 10 s timeout, so the errand would `safe_stop`; with thinking off 3.4 s but 2/4 correct (`walk_away` instead of `ask_human`) |
-| `deepseek-v4-flash-vision-exp` | none | 1.3 s | 0/4 | HTTP 400 "rejected by an internal MaaS component" for `tools` + forced `tool_choice` |
+"Not wanted: 0G used only for logs." Until a 0G-decided episode is uploaded, that is exactly what the evidence shows.
 
-- **Proposal (not part of this PR; `decideRequestBody` is pinned by `ZeroGClient.test.ts` and spec §6):** `APP_ZG_BASE_URL=https://router-api.0g.ai/v1`, `APP_ZG_MODEL=0gm-1.0-35b-a3b`, and add
-  `chat_template_kwargs: { enable_thinking: false }` to the body for that model. It halves the latency and keeps
-  the "sealed inference" story. Keep `qwen3-vl-plus` as the second choice.
-- **Availability warning (2026-11-06 06:45 UTC):** `0gm-1.0-35b-a3b` has **one provider** (`provider_count: 1`). It returned
-  HTTP 502 `provider_error` on every call for several minutes and `/v1/providers?model=0gm-1.0-35b-a3b` reported
-  `is_healthy: false`, while `qwen3-vl-plus` kept answering 200. A 502 ends the errand in `safe_stop`, as designed, but for
-  the live demo keep `qwen3-vl-plus` ready as `APP_ZG_MODEL` and check `/v1/providers?model=...` (public, no key) first.
-- Cost per decision: about **$0.00005 to $0.00015** (`x_0g_trace.billing.total_cost_usd_micro` 49 to 149). $5 of credit is
-  tens of thousands of decisions.
-- The reply carries `x_0g_trace.request_id` and `provider`. The `ZG-Res-Key` header (your `chatId`) was present for
-  `0gm-1.0-35b-a3b` and absent for `qwen3-vl-plus`; `chat_id` being nullable is correct.
-- **`tee_verified` is never in the trace**, even with `verify_tee: true` and `X-0G-Provider-Trust-Mode: private` (HTTP 200).
-  The catalog flags `0gm-1.0-35b-a3b`, `glm-5.3` and `whisper-large-v3` as TeeML (9 TeeML models on 2026-11-06). Earlier
-  on 2026-11-05 the catalog showed none, so it changes. **Do not write "TEE verified" in the submission** unless the
-  `ZG-Res-Key` signature is checked independently (`broker.inference.processResponse`); we have not done that.
-- The Router rejects `response_format: json_object` for some models (`qwen3.8-flash`: 400 `model_not_capable`). Your forced
-  tool call avoids that problem.
+## 2. Which `APP_ZG_MODEL`: measured with the current prompt
 
-## 2. Evidence uploader (`tools/evidence-uploader/main.ts`): one bug, rest consistent
+4 scenarios (chai → `pay`, restricted cigarettes → `ask_human`, wrong item → `walk_away`, untrusted merchant → `walk_away`),
+the team's request body unchanged, reply read like `DecideReply.ts`, a reply over 10 s counted as `safe_stop`.
 
-- **Bug (fixed in this PR):** `uploadOne` reports a failure with `api('/api/evidence/<id>/failed', { method: 'POST', body: JSON.stringify({ error }) })`,
-  but `api(path, body)` takes the body itself and stringifies it. The server receives
-  `{"method":"POST","body":"{\"error\":\"boom\"}"}` (reproduced with a fake `fetch`), which has no top-level `error`, so
-  `/failed` answers 400. The `.catch(() => undefined)` hides it. Effect: a failed episode stays `uploading` until the
-  300 s reclaim, and the error text is never stored. Fix: `api(path, { error: reason })`.
-- Checked and consistent: upload via `MemData` → `merkleTree()` → `indexer.upload(data, rpc, signer)` returns
-  `{ rootHash, txHash }` (we use the same call); `requestIdsHash = keccak256(utf8(requestIds.join(',')))` matches
-  `EpisodeLog.record`; skipping `record` when the episode is already on chain is the right idempotence.
-- SDK pitfalls we hit: `@0gfoundation/0g-storage-ts-sdk` 1.2.13 needs **exactly `ethers@6.13.1`** (6.17 gives an npm
-  ERESOLVE); the SDK needs Node (it imports `fs`/`crypto`), so the uploader cannot run in Workers.
+| Model | Verifiability | Correct | Median / p95 / max latency | safe_stop | Cost per decision |
+|---|---|---|---|---|---|
+| **`glm-5.3`** | **TeeML, independently verified (section 3)** | **60/60** | 4.1 s / 6.3 s / 6.9 s | 0 | about $0.001 |
+| `qwen3-vl-plus` | none (provider not in the 0G service registry) | 60/60 | 2.0 s / 2.7 s / 3.8 s | 0 | about $0.0002 |
+| `qwen3.8-flash` | none | 19/20 | 3.6 s / 5.1 s / 5.1 s | 1 (no `decide` call) | about $0.00025 |
+| `0gm-1.0-35b-a3b` | TeeML (catalog) | 0/40 | - | **40 (HTTP 502)** | - |
 
-## 3. 0G Storage and 0G Chain on Galileo: proven path
+- **Recommendation: `APP_ZG_MODEL=glm-5.3`.** It is the only model that is both reliable with the current prompt and
+  verifiably sealed. The worst latency seen (6.9 s) leaves about 3 s under the 10 s timeout. Keep `qwen3-vl-plus` as the
+  fallback if latency becomes a problem; it is faster but carries no TEE claim.
+- **Avoid `0gm-1.0-35b-a3b` for the demo.** It has one provider; `/v1/providers` reported it healthy while every call
+  returned 502.
+- Earlier numbers in this file (old one-line prompt) are superseded. With that prompt `glm-5.3` took 10.9 s median and
+  missed the 10 s timeout twice in four calls; the decision-table prompt fixed both speed and accuracy.
 
-- Galileo chain id 16602, RPC `https://evmrpc-testnet.0g.ai`, turbo indexer `https://indexer-storage-testnet-turbo.0g.ai`.
-- Real episodes uploaded, downloaded with `indexer.download(root, path, true)` (Merkle proof checked), root recomputed from
-  the bytes, and compared with the on-chain record. Example (41 real 0G decisions): root
-  `0xff51b8d65e9437f1f93d8a5919d497af61a6a9be90d147eb2eb30d690242ce36`, storage tx `0x88353202…794a`, registry tx
-  `0xf3a1b9f7…8382`. Anyone can fetch that root with the SDK without a key.
-- A contract compiled with `solc 0.8.24`, `evm_version = paris` deployed and ran on Galileo (our `EpisodeRegistry` at
-  `0xC8BE29f9238b6A1194CFa3E43c4FC56c37D86Ac4`, similar to your `EpisodeLog`). Your `paris` + solc 0.8.23 setup is the same
-  class, so `DeployZg.s.sol` should work.
-- Faucet: the event link `https://faucet.0g.ai/?promo=ETHMUMBAI-26` works; the plain faucet had a cooldown. A private
-  browser window was needed once.
+## 3. TEE: independent verification works for `glm-5.3`
 
-## 4. Not verified
+- The router trace never contains `tee_verified`, even with `verify_tee: true`. The independent path does work:
+  `broker.inference.processResponse(x_0g_trace.provider, ZG-Res-Key)` from `@0gfoundation/0g-compute-ts-sdk` 0.9.0, with a
+  **random, unfunded wallet** on `https://evmrpc.0g.ai`. No deposit or ledger was needed.
+- Results: 4 of 4 real `decide` calls on `glm-5.3` (one per scenario) returned `true`; two `glm-5.3` chat ids re-checked
+  2 to 3 minutes later still returned `true`; a made-up chat id returned "getting signature error" (negative control);
+  `qwen3-vl-plus` returned "Service provider does not exist" (its provider is not a registered 0G service, so it cannot
+  carry a TEE claim).
+- The Worker already stores `provider` and `chat_id` per decision, which is everything the check needs.
+- **Proposal:** run `processResponse` for each decision in `tools/evidence-uploader` (Node, outside Workers) and put
+  `teeVerified: true | false | null` next to each decision in the episode JSON before upload, or ship it as a separate
+  checker that anyone can run against `GET /api/evidence/:id`. Only then can the submission say "decisions run in a TEE
+  and were verified independently". Today it may only say the model is TeeML.
 
-- TEE verification of a response (see section 1).
-- 0G audio: `whisper-large-v3` is back in the catalog (TeeML) but we did not retry it; all 6 `minimax-speech` models
-  returned upstream 401 on 2026-11-05.
-- Your `tools/evidence-uploader` itself was not run (we only read it).
-- The gas an upload plus `record` costs on Galileo: not measured.
+## 4. Evidence uploader (`tools/evidence-uploader/main.ts`)
 
-## 5. Changes in this PR
+- **Bug (fixed in this PR):** the `/failed` report passed `{ method, body }` into `api(path, body)`, so the server received
+  `{"method":"POST","body":"{\"error\":\"…\"}"}`, had no top-level `error`, and answered 400 (hidden by the `.catch`). A
+  failed upload stayed `uploading` until the 300 s reclaim and its error was never stored. Reproduced with a fake `fetch`.
+- Consistent: `MemData` → `merkleTree()` → `indexer.upload` returning `{ rootHash, txHash }`; the `requestIdsHash` rule;
+  skipping `record` when the episode is already on chain.
+- SDK pitfalls: the storage SDK 1.2.13 needs exactly `ethers@6.13.1`, and Node (not Workers).
 
-- This document and `docs/research/spikes/zg-decide-probe.mjs.txt`.
-- `tools/evidence-uploader/main.ts`: the `/failed` report sends `{ error }` (one line). Not run against a live server; the shape
-  was reproduced with a fake `fetch` (see section 2).
-- Not changed: `decideRequestBody` / `APP_ZG_MODEL` (your call; see the proposal in section 1).
+## 5. Not verified
+
+- A 0G decision on the deployed Worker (needs the key in `APP_ZG_*`).
+- `processResponse` inside the Worker runtime (only tried in Node).
+- How long a provider keeps a signature retrievable beyond a few minutes.
+- The replay or hardware part of the demo.
