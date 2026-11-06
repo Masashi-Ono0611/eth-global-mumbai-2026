@@ -31,8 +31,8 @@ a Body), World (Agent Pass).
    chip-signed camera frames are uploaded to 0G Storage and anchored in an `EpisodeLog` contract. The café's ESP32
    screen shows the counter's invoice QR and opens only on an Ed25519-signed "paid".
 
-Arc is the authority. Our servers coordinate and relay, so they can delay a payment but can never authorise, steal or
-redirect one.
+The one rule: **Arc is the authority.** Our servers coordinate and relay, so they can delay a payment but can never
+authorise, steal or redirect one.
 
 ## Status
 
