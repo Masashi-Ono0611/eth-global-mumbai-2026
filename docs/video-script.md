@@ -1,11 +1,9 @@
 # Video storyboard (2:52)
 
-Follows plan §0 "Demo script". The rules (spec §12): 2:30 to 2:59, so it satisfies both ETHGlobal (2 to 4 min) and 0G
-(under 3 min); at least 720p (record a 1920×1080 screen, with phone shots mirrored or filmed in the screen recording,
-never a phone filming a screen); **Kris's own voice**, no AI voice; real speed (cut instead of speeding up); at most 4
-bullets on any slide. The approval is for a purchase over the robot's limit, never an age check (World proves no age;
-`docs/pitch.md` §1). The sponsor framing per beat (Arc = the rules, 0G = the brain, World = the human) is in
-`docs/pitch.md`.
+The same story as `docs/demo.md`, cut to 2:52. The rules (spec §12): 2:30 to 2:59, so it satisfies both ETHGlobal (2 to
+4 min) and 0G (under 3 min); at least 720p (record a 1920×1080 screen, with phone shots mirrored or filmed in the screen
+recording, never a phone filming a screen); **Kris's own voice**, no AI voice; real speed (cut instead of speeding up);
+at most 4 bullets on any slide.
 
 Shot status: ✅ = we already have this screen (`docs/evidence/screens/`); 🟡 = needs the funded run on the deployed app
 with 0G configured (the live demo run); 🌍 = also needs World. Record every 🟡/🌍 shot in one continuous take on the
@@ -38,11 +36,8 @@ screens (`12-…`, `17-…`) say "STUB IdP, not World" and are never the World b
 
 ## Recording notes
 
-- Allowance 3.00 a day and 1.00 per purchase (the presets since 6 Nov, spending limits only). A purchase over 1.00
-  needs World approval, and the daily cap can't be lifted. The chai at 0.10 plus the approved thali 2.00 is 2.10; a third thali
-  would make 4.10 > 3.00, so the robot walks away, and Arc's `ERC20PeriodTransferEnforcer` would refuse it even
-  approved.
-- Use the 4-minute demo order in `docs/demo.md`; the video is the same story, cut to 2:52.
+- Keep the presets (3.00 a day, 1.00 per purchase). The chai (0.10) plus the approved thali (2.00) is 2.10, so a third thali
+  (4.10 > 3.00) walks away, and Arc's `ERC20PeriodTransferEnforcer` would refuse it even approved.
 - Keep the explorer tabs on screen for a beat so judges can read a real tx hash.
 - If 0G or World is not live at recording time, do not fake those beats. Show the safe stop ("Reason: …") for 0G and the
   owner's own **No** for the deny beat, and say so in the narration.

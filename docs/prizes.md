@@ -6,7 +6,7 @@ track. The video is 2 to 4 min, ≥ 720p, with real narration (0G asks for under
 the submission, and code that predates the event is disclosed (README → "Code that predates the event").
 
 Picks (decision D16, 6 Nov): Arc Advanced Stablecoin Logic, 0G Physical AI and World Agent Pass, at most $3k + $2.5k +
-$2.5k. They are final at submission. The checklist is `docs/spec.md` §12.
+$2.5k. The checklist is `docs/spec.md` §12.
 
 ## Arc: Advanced Stablecoin Logic ($3k track inside Arc's $15k pool)
 
@@ -60,6 +60,5 @@ registry). On-chain verification of the token on Arc is a stretch (the S5b proto
 
 - Other Arc tracks (DeFi app, Marketplace Discovery, Bridge Kit, Continuity)
 - ENS (cut; names could sit on top of Arc later)
-- World IDKit
 - Frame Transaction Alternative Mempool (needs EF alt-mempool devnets and conflicts with the Arc mainnet story), CROPS, Hedera,
   Whitechain, Uniswap, 1inch, Definitive, Arkiv
