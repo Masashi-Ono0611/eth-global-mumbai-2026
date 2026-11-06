@@ -55,7 +55,9 @@ export const serveMedia = async (request: Request, assets: FetchService): Promis
   if (!asset.ok) return asset
   const headers = new Headers(asset.headers)
   headers.set('accept-ranges', 'bytes')
-  headers.set('cache-control', 'public, max-age=3600')
+  // A day fresh, then served from cache while it revalidates for a week: the films and photos keep their names, so a
+  // replaced file shows up within a day, and a returning visitor never waits on a revalidation.
+  headers.set('cache-control', 'public, max-age=86400, stale-while-revalidate=604800')
   const body = (content: BodyInit | null) => (request.method === 'HEAD' ? null : content)
   const header = request.headers.get('range')
   if (header === null) return new Response(body(asset.body), { status: 200, headers })

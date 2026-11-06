@@ -101,6 +101,7 @@ describe('the landing through the edge', () => {
     const response = await serveMedia(get(), assets())
     expect(response.status).toBe(200)
     expect(response.headers.get('accept-ranges')).toBe('bytes')
+    expect(response.headers.get('cache-control')).toBe('public, max-age=86400, stale-while-revalidate=604800')
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(film)
   })
 
