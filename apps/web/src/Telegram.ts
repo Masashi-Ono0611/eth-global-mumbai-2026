@@ -6,6 +6,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { getJson, postJson } from './api/Http.ts'
+import { busyLabel, workingDots } from './Busy.ts'
 
 // The profile sheet's Telegram row (spec §14): connect the owner's chat to @vitaquack_bot so the robot can tell them
 // when it needs an OK or has paid. The server hands out a one-time link; the tap that opens Telegram is the owner's own.
@@ -130,12 +131,15 @@ const rowClassName = 'grid gap-2 rounded-card bg-surface p-3'
 const rowTitleClassName = 'font-semibold'
 const hintClassName = 'text-sm text-muted'
 const actionClassName =
-  'flex min-h-11 cursor-pointer items-center justify-center rounded-control bg-ink px-4 font-semibold text-surface no-underline transition-transform active:scale-[0.96] disabled:opacity-60'
+  'flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-control bg-ink px-4 font-semibold text-surface no-underline transition-transform active:scale-[0.96] disabled:cursor-progress disabled:opacity-60'
 const quietActionClassName =
   'min-h-11 cursor-pointer rounded-control px-4 font-semibold text-ink underline-offset-2 transition-transform active:scale-[0.96] disabled:opacity-60'
 
 const button = (h: HtmlBuilder<Message>, label: string, onClick: Message, className: string, disabled = false) =>
-  h.button([h.Type('button'), h.Class(className), h.Disabled(disabled), h.OnClick(onClick)], [label])
+  h.button(
+    [h.Type('button'), h.Class(className), h.Disabled(disabled), h.OnClick(onClick)],
+    busyLabel(disabled, label, h),
+  )
 
 const connected = (locale: Locale, username: string | null) =>
   username === null ? format(locale, 'telegram.connected', {}) : format(locale, 'telegram.connectedAs', { username })
@@ -152,7 +156,8 @@ export const view = Submodel.defineView<Model, Message, { readonly locale: Local
     // Nothing to show, but a submodel view must return an element.
     Idle: () => h.div([h.Hidden(true)]),
     Off: () => h.div([h.Hidden(true)]),
-    Loading: () => row([h.p([h.Role('status'), h.Class(hintClassName)], [format(locale, 'telegram.checking', {})])]),
+    Loading: () =>
+      row([h.p([h.Role('status'), h.Class(hintClassName)], [workingDots(h), format(locale, 'telegram.checking', {})])]),
     Unlinked: () =>
       row([hint, button(h, format(locale, 'telegram.connect', {}), Message.ClickedConnectTelegram(), actionClassName)]),
     Linking: () =>

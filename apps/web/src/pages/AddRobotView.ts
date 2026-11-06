@@ -9,6 +9,7 @@ import { bubbleSkeleton } from '../Skeleton.ts'
 import { Message, type Model, Stage } from './AddRobot.ts'
 import { allowanceView } from './AllowanceView.ts'
 import { failedView, signedOutView } from './Shared.ts'
+import { workingDots } from '../Busy.ts'
 
 // STYLES
 
@@ -158,7 +159,10 @@ const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
       askName(locale, h),
       h.p([h.Class(ownerBubbleClassName)], [robot.name]),
       codeBubble(robot, locale, h),
-      h.p([h.Role('status'), h.Class(systemClassName)], [format(locale, 'addRobot.waiting', { name: robot.name })]),
+      h.p(
+        [h.Role('status'), h.Class(systemClassName)],
+        [workingDots(h), format(locale, 'addRobot.waiting', { name: robot.name })],
+      ),
     ],
     Expired: ({ robot }) => [
       h.p([h.Class(ownerBubbleClassName)], [robot.name]),

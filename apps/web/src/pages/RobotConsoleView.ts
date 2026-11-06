@@ -22,6 +22,7 @@ import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.t
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 import { threadSkeleton } from '../Skeleton.ts'
+import { busyLabel } from '../Busy.ts'
 
 // STYLES
 
@@ -54,7 +55,7 @@ const askButtonsClassName = 'mt-2.5 grid grid-cols-[1fr_auto] gap-2'
 const approveClassName =
   'inline-flex min-h-12 items-center justify-center rounded-control bg-black px-3 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const declineClassName =
-  'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
 // VIEW
 
 /** The header pill: what is left today when the Worker reports the day, otherwise the daily allowance. */
@@ -291,7 +292,7 @@ const askBubble = (model: Model, approvalId: string, item: string, locale: Local
               h.Disabled(declining),
               h.OnClick(Message.ClickedDecline({ approvalId })),
             ],
-            [format(locale, declining ? 'home.declining' : 'home.decline', {})],
+            busyLabel(declining, format(locale, declining ? 'home.declining' : 'home.decline', {}), h),
           ),
         ],
       ),

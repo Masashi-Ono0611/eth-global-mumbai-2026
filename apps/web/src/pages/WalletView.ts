@@ -12,6 +12,7 @@ import { sheetTitleClassName, sheetView } from '../Sheet.ts'
 import { walletSkeleton } from '../Skeleton.ts'
 import { failedView, signedOutView } from './Shared.ts'
 import { Copy, Decline, type Home, Message, type Model, type NeedsYou, WalletState } from './Wallet.ts'
+import { busyLabel } from '../Busy.ts'
 
 // STYLES
 
@@ -37,7 +38,7 @@ const askButtonsClassName = 'grid grid-cols-[1fr_auto] gap-2'
 const approveClassName =
   'inline-flex min-h-12 items-center justify-center gap-2 rounded-control bg-black px-3 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const declineClassName =
-  'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
 const listClassName = 'mx-0.5 grid rounded-card bg-surface py-1 [&>li+li]:border-t [&>li+li]:border-rule'
 const rowLinkClassName = 'grid min-h-[4.5rem] grid-cols-[52px_1fr_auto] items-center gap-3 px-3.5 py-2.5 no-underline'
 const faceClassName = 'relative grid size-[52px] place-items-center rounded-full bg-ink'
@@ -144,7 +145,7 @@ const askCard = (model: Model, need: NeedsYou, locale: Locale, h: HtmlBuilder<Me
               h.Disabled(declining),
               h.OnClick(Message.ClickedDecline({ approvalId: need.approvalId })),
             ],
-            [format(locale, declining ? 'home.declining' : 'home.decline', {})],
+            busyLabel(declining, format(locale, declining ? 'home.declining' : 'home.decline', {}), h),
           ),
         ],
       ),

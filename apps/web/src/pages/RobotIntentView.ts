@@ -3,6 +3,7 @@ import { isOpenIntent, type NavCall, type NavTurnView } from '@ethmumbai/protoco
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { liveFrameUrl, simulatorUrl } from '../api/Robot.ts'
 import { Intent, Message, type Model } from './RobotConsole.ts'
+import { busyLabel } from '../Busy.ts'
 
 // STYLES
 
@@ -18,7 +19,7 @@ const liveImageClassName =
   'block h-auto w-64 max-w-full rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
 const liveCaptionClassName = 'px-1.5 text-[0.8rem] text-muted'
 const stopClassName =
-  'min-h-11 cursor-pointer rounded-full bg-error-soft px-5 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-11 cursor-pointer rounded-full bg-error-soft px-5 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
 const simLinkClassName =
   'self-center rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const formClassName = 'grid grid-cols-[1fr_auto] gap-1.5'
@@ -115,7 +116,7 @@ const walking = (model: Model, name: string, sim: boolean, locale: Locale, h: Ht
           h.Disabled(intent.stopping),
           h.OnClick(Message.ClickedStopIntent({ intentId: intent.intent.id })),
         ],
-        [format(locale, intent.stopping ? 'thread.stopping' : 'thread.stop', { name })],
+        busyLabel(intent.stopping, format(locale, intent.stopping ? 'thread.stopping' : 'thread.stop', { name }), h),
       ),
     ],
   )

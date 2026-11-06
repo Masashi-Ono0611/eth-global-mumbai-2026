@@ -10,6 +10,7 @@ import {
 } from '../api/Episodes.ts'
 import { type Message, type Model, Verify } from './Episode.ts'
 import { card, fields, type Inputs, mutedClassName, stackClassName } from './EpisodeParts.ts'
+import { workingDots } from '../Busy.ts'
 
 // STYLES
 
@@ -54,7 +55,8 @@ const frameOnZeroG = (model: Model, observation: Observation, inputs: Inputs, h:
   const { locale } = inputs
   const { rootHash, storageTx } = observation
   if (rootHash === undefined) return h.empty
-  if (rootHash === null) return h.p([h.Class(mutedClassName)], [format(locale, 'proof.frameSaving', {})])
+  if (rootHash === null)
+    return h.p([h.Class(mutedClassName)], [workingDots(h), format(locale, 'proof.frameSaving', {})])
   const check = frameCheckOf(model, observation)
   return h.div(
     [h.Class(stackClassName)],

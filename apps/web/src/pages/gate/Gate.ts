@@ -9,6 +9,7 @@ import { modifyFields } from 'foldkit/struct'
 import { usdc } from '../../api/Wallet.ts'
 import { failedView } from '../Shared.ts'
 import { createInvoice, InvoiceStatus, loadGateKey, MerchantInvoice, readSignedStatus } from './GateApi.ts'
+import { workingDots } from '../../Busy.ts'
 
 // `/gate/:merchantId`, the virtual gate (spec §7): it shows an invoice for the counter's item, reads its status every
 // second with a fresh nonce, verifies the merchant's Ed25519 signature itself and opens only on a verified `paid`;
@@ -213,7 +214,7 @@ export const view = Submodel.defineView<Model, Message, { readonly locale: Local
               invoiceView(invoice, locale, h),
               h.p([h.Class('hint')], [format(locale, 'gate.restrictedNote', {})]),
               Option.match(maybeProblem, {
-                onNone: () => h.p([h.Class('hint')], [format(locale, 'gate.waiting', {})]),
+                onNone: () => h.p([h.Class('hint')], [workingDots(h), format(locale, 'gate.waiting', {})]),
                 onSome: (problem) => h.p([h.Role('alert')], [problemText(problem, locale)]),
               }),
             ],

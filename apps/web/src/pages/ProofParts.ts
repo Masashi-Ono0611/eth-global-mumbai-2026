@@ -1,6 +1,7 @@
 import { format, type Locale } from '@ethmumbai/i18n'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { chainScan, observationImage, type SeenCrop, storageScan } from '../api/Episodes.ts'
+import { workingDots } from '../Busy.ts'
 
 // STYLES
 
@@ -56,7 +57,7 @@ export const zeroGLine = <M>(record: ZeroGRecord | null, locale: Locale, h: Html
       [h.Class(zeroGFailedClassName)],
       [format(locale, 'proof.failed', { error: record.error ?? format(locale, 'proof.noReason', {}) })],
     )
-  return h.p([h.Class(zeroGPendingClassName)], [format(locale, 'proof.saving', {})])
+  return h.p([h.Class(zeroGPendingClassName)], [workingDots(h), format(locale, 'proof.saving', {})])
 }
 
 /** A decision whose 0G provider proved its answer from a TEE (the stored verification flag; the proof page re-checks). */
@@ -94,7 +95,7 @@ export const seenBubble = <M>(
           crop.rootHash === undefined
             ? h.empty
             : crop.rootHash === null
-              ? h.span([h.Class(seenSourceClassName)], [format(locale, 'proof.frameSaving', {})])
+              ? h.span([h.Class(seenSourceClassName)], [workingDots(h), format(locale, 'proof.frameSaving', {})])
               : h.a(
                   [h.Href(storageScan(crop.rootHash)), h.Class(seenFrameLinkClassName)],
                   [format(locale, 'proof.frameOnZeroG', {})],
