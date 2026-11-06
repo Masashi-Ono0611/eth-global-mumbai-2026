@@ -109,7 +109,8 @@
   },
   "packageManager": "bun@1.4.4",
   "patchedDependencies": {
-    "@alchemy.run/domain@2.0.0-beta.84": "patches/@alchemy.run%2Fdomain@2.0.0-beta.84.patch"
+    "@alchemy.run/domain@2.0.0-beta.84": "patches/@alchemy.run%2Fdomain@2.0.0-beta.84.patch",
+    "@alchemy.run/cloudflare@2.0.0-beta.84": "patches/@alchemy.run%2Fcloudflare@2.0.0-beta.84.patch"
   },
   "trustedDependencies": [
     "esbuild",

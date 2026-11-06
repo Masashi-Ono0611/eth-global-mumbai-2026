@@ -1,0 +1,25 @@
+diff --git a/lib/StateStore/State.js b/lib/StateStore/State.js
+index b6759065dee6153eebdb8af875fbb5fab6b03d29..92d69814e29cf666a5c1ef83b57ca2e54419169c 100644
+--- a/lib/StateStore/State.js
++++ b/lib/StateStore/State.js
+@@ -54,7 +54,19 @@ export const state = (options = {}) => Layer.effect(State, Effect.gen(function*
+     const init = Effect.gen(function* () {
+         if (name !== undefined)
+             yield* Provisioning.storeName(name);
+-        const deployMissing = Provisioning.deployMissing(store, bootstrap({ workerName: scriptName, profile: profileName }));
++        // PATCH (ethmumbai, 6 Nov 2026): never re-bootstrap a store whose Worker exists. A transient failure of the
++        // subdomain or /version probe used to read as "store missing"; with --yes (CI) the bootstrap then minted a new
++        // encryption key and overwrote the Secrets Store entry, making every record of every stack unreadable. If the
++        // store's script exists, fail this run instead (a retry finds it serving); errors of the existence check fail too.
++        const deployMissing = Effect.gen(function* () {
++            if (yield* isStateStoreAvailable(scriptName)) {
++                return yield* new StateStoreError({
++                    message: `${store.label} exists but did not answer its probes; refusing to re-bootstrap it ` +
++                        `(that would replace its encryption key). Retry the deploy.`,
++                });
++            }
++            return yield* Provisioning.deployMissing(store, bootstrap({ workerName: scriptName, profile: profileName }));
++        });
+         if (yield* hasLocalStack(localStage)) {
+             // A local stack left behind is a bootstrap that didn't finish.
+             const task = (yield* Interaction.Interaction).task;
