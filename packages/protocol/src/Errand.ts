@@ -149,6 +149,7 @@ export const EvidenceNavigation = Schema.Struct({
   instructionSha256: Sha256Hex,
   turns: Schema.Array(EvidenceNavTurn),
 })
+export type EvidenceNavigation = typeof EvidenceNavigation.Type
 
 /**
  * The episode evidence uploaded to 0G Storage. `observations` is absent on episodes without a scan (read it as `[]`),

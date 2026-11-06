@@ -16,15 +16,14 @@ import { latestSignedGrant, spentInPeriod } from './Budget.ts'
 import { decisionsOf } from './Decide.ts'
 import { type ErrandDeps, readEpisode } from './Errands.ts'
 import {
-  endIntent,
   type IntentRow,
   navCallsOf,
   navTurnsOf,
   readIntent,
-  settleIntents,
-  StoredToolCall,
+  type StoredToolCall,
   StoredToolCalls,
-} from './Intents.ts'
+} from './IntentRows.ts'
+import { endIntent, settleIntents } from './Intents.ts'
 import { ErrandRefused, MERCHANT_ID, need } from './Start.ts'
 import { encodeTeeProof, proveChat } from './TeeProof.ts'
 import { zeroGChat, type ZeroGChatOutcome } from './ZeroGChat.ts'

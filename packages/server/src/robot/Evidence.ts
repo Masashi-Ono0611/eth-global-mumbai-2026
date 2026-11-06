@@ -1,5 +1,5 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
-import { EpisodeEvidence, requestIdsHash } from '@ethmumbai/protocol/Errand'
+import { EpisodeEvidence, type EvidenceNavigation, requestIdsHash } from '@ethmumbai/protocol/Errand'
 import { Bytes32 } from '@ethmumbai/protocol/Hex'
 import { Clock, Effect, Option, Redacted, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
@@ -7,6 +7,7 @@ import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import type * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { decisionsOf } from './Decide.ts'
 import type { EpisodeRow } from './Errands.ts'
+import { IntentRow, navCallsOf, navTurnsOf } from './IntentRows.ts'
 import { evidenceObservation, observationsOf } from './Observations.ts'
 import { decodeTeeProof } from './TeeProof.ts'
 import { json, jsonError, notConfigured, nowSeconds, sha256Hex } from '../Respond.ts'
@@ -29,6 +30,32 @@ const EvidenceRow = Schema.Struct({
 type EvidenceRow = typeof EvidenceRow.Type
 
 const ApprovalRef = Schema.Struct({ id: Schema.String })
+
+/**
+ * The navigation that led to the scan, when the episode claimed an errand intent: the instruction's hash (never its
+ * text) and each 0G turn's ids, calls and TEE proof. `None` for an episode without an intent.
+ */
+const navigationOf = Effect.fnUntraced(function* (database: QueryDatabaseClient, episodeId: string) {
+  const intent = yield* firstRow(
+    database.prepare('SELECT * FROM intents WHERE episode_id = ? LIMIT 1').bind(episodeId),
+    IntentRow,
+  )
+  if (Option.isNone(intent)) return Option.none<EvidenceNavigation>()
+  const turns = yield* navTurnsOf(database, intent.value.id)
+  return Option.some<EvidenceNavigation>({
+    instructionSha256: `0x${intent.value.instruction_sha256.replace(/^0x/, '')}`,
+    turns: turns.map((turn) => ({
+      step: turn.step,
+      model: turn.model,
+      requestId: turn.request_id,
+      chatId: turn.chat_id,
+      promptSha256: turn.prompt_sha256,
+      calls: navCallsOf(turn.calls_json).map(({ name, args }) => ({ name, args })),
+      ...Option.match(decodeTeeProof(turn.tee_json), { onNone: () => ({}), onSome: (tee) => ({ tee }) }),
+    })),
+  })
+})
+
 const encodeEvidence = Schema.encodeEffect(Schema.fromJsonString(EpisodeEvidence))
 
 /**
@@ -49,6 +76,7 @@ export const enqueueEvidence = Effect.fn('EthMumbai.Robot.enqueueEvidence')(func
   const requestIds = decisions.flatMap((decision) => (decision.request_id === null ? [] : [decision.request_id]))
   // A scan's hash and chip signature, never its image; absent when the errand had no scan (older evidence unchanged).
   const observations = (yield* observationsOf(database, episode.id)).map(evidenceObservation)
+  const navigation = yield* navigationOf(database, episode.id)
   const txHash = Option.getOrUndefined(
     Schema.decodeUnknownOption(Bytes32)(episode.state === 'paid' ? episode.result : undefined),
   )
@@ -77,6 +105,8 @@ export const enqueueEvidence = Effect.fn('EthMumbai.Robot.enqueueEvidence')(func
     },
     requestIds,
     ...(observations.length > 0 ? { observations } : {}),
+    // Only an episode that claimed an errand intent has it, so every other episode encodes byte-identically.
+    ...Option.match(navigation, { onNone: () => ({}), onSome: (present) => ({ navigation: present }) }),
   }).pipe(Effect.orDie)
   const hash = requestIdsHash(requestIds)
   const createdAt = yield* Clock.currentTimeMillis
