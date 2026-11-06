@@ -176,6 +176,11 @@ const restricted = async (page: Page, choice: 'approve' | 'deny', step: number) 
     }
   }
   if (!asked) return say('no approval after 3 attempts; skipping this restricted step')
+  // The link can show before the errand's decision line has loaded; the shot is for that line.
+  await page
+    .getByText('cigarettes: waiting for approval')
+    .waitFor({ timeout: 15_000 })
+    .catch(() => undefined)
   await shot(page, prefix(0, 'asks'))
   await ask.click()
   // The heading renders before the approval loads; the World link is there only once its details are.
