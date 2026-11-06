@@ -2,7 +2,7 @@ import { Effect, Layer, Redacted } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientResponse from 'effect/http/HttpClientResponse'
 import { describe, expect, test } from 'vitest'
-import { APPROVAL_RULE, decide, decideRequestBody } from '../src/robot/ZeroGClient.ts'
+import { APPROVAL_RULE, decide, decideRequestBody, promptInput } from '../src/robot/ZeroGClient.ts'
 import { chaiDecideInput } from './DecideSamples.ts'
 
 const input = chaiDecideInput
@@ -28,10 +28,31 @@ describe('0G decide call', () => {
   test('the prompt sends an approval-required item the owner asked for to the owner, at temperature 0', () => {
     const body = decideRequestBody('m', input)
     expect(body.messages[0]?.content).toContain(
-      'When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown.',
+      'When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App;',
     )
     expect(body.messages[0]?.content).toContain(APPROVAL_RULE)
     expect(body).toMatchObject({ temperature: 0, tool_choice: { type: 'function', function: { name: 'decide' } } })
+  })
+
+  test('an amount over the remaining daily allowance is walk_away, which no approval lifts', () => {
+    const body = decideRequestBody('m', input)
+    expect(body.messages[0]?.content).toContain(
+      "invoice.amount is over budget.remainingToday (dailyAllowance.exceeded=true) → walk_away, even if the owner asked: an approval cannot lift today's allowance; the owner can raise it.",
+    )
+    const overToday = {
+      ...input,
+      requested: 'thali',
+      catalogue: { ...input.catalogue, itemId: 'thali', name: 'Thali', amount: '2000000' },
+      invoice: { ...input.invoice, amount: '2000000' },
+      budget: { dailyCap: '3000000', spentToday: '2100000', remainingToday: '900000', perPaymentCap: '1000000' },
+      policy: { ...input.policy, approvalRequired: true },
+    }
+    expect(promptInput(overToday)).toMatchObject({ dailyAllowance: { exceeded: true, approvalCanLift: false } })
+    expect(promptInput(overToday)).not.toHaveProperty('approval')
+    const overCap = { ...overToday, budget: { ...overToday.budget, spentToday: '100000', remainingToday: '2900000' } }
+    expect(promptInput(overCap)).toMatchObject({ approval: { required: true } })
+    expect(promptInput(overCap)).not.toHaveProperty('dailyAllowance')
+    expect(promptInput(input)).toEqual(input)
   })
 
   test('a router reply keeps its x_0g_trace request id beside the chat id', async () => {

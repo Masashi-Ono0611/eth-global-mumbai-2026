@@ -4,16 +4,14 @@ import { TeeProof } from '@ethmumbai/protocol/Errand'
 import { Effect, Schema } from 'effect'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
-import type { HttpClientError } from 'effect/http/HttpClientError'
-import type { HttpClientResponse } from 'effect/http/HttpClientResponse'
 import { keccak256, sha256, stringToHex } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { freshConnections, grantRow, randomId, sampleGrant } from './AgentSamples.ts'
+import { type Caps, freshConnections, grantRow, randomId, sampleGrant, SPEC_CAPS } from './AgentSamples.ts'
 import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
 
 type Urls = { readonly appUrl: string; readonly url: string; readonly apiUrl: string }
-type StubMode = 'pay' | 'ask' | 'timeout' | 'garbage'
+type StubMode = 'pay' | 'ask' | 'table' | 'timeout' | 'garbage'
 
 /** The native stack binds these for the Robot Agent (test-only values; the stub never forwards anything). */
 export const TEST_ZG_API_KEY = 'native-test-zg-key-0123456789'
@@ -30,9 +28,36 @@ const teeSignature = async (chatId: string) => {
   return { text, signature, signing_address: teeAccount.address.toLowerCase(), signing_algo: 'ecdsa' }
 }
 
+const ASK_OWNER = { action: 'ask_human', reason: 'over the per-payment limit; the owner approves it in World App' }
+const SentInput = Schema.Struct({
+  invoice: Schema.Struct({ amount: Schema.String }),
+  budget: Schema.Struct({ remainingToday: Schema.String }),
+  policy: Schema.Struct({ approvalRequired: Schema.Boolean }),
+})
+/** What the brain was sent: the system prompt, then the structured input as JSON. */
+export const SentDecide = Schema.Struct({
+  messages: Schema.Tuple([Schema.Unknown, Schema.Struct({ content: Schema.fromJsonString(Schema.Unknown) })]),
+})
+
+/** The prompt's decision table applied to the input the Worker sent (a deterministic brain for the limits test). */
+const byDecisionTable = (body: unknown) => {
+  const sent = Schema.decodeUnknownSync(SentDecide)(body).messages[1].content
+  const { invoice, budget, policy } = Schema.decodeUnknownSync(SentInput)(sent)
+  if (BigInt(invoice.amount) > BigInt(budget.remainingToday))
+    return { action: 'walk_away', reason: "over today's allowance; the owner can raise it" }
+  return policy.approvalRequired ? ASK_OWNER : { action: 'pay', reason: 'as asked, within both limits' }
+}
+
+const decisionFor = (mode: StubMode, body: unknown) =>
+  mode === 'table'
+    ? byDecisionTable(body)
+    : mode === 'ask'
+      ? ASK_OWNER
+      : { action: 'pay', reason: 'chai is allowlisted and within budget' }
+
 /**
- * A stand-in for the 0G router on 127.0.0.1: answers the `decide` tool call with `pay`, hangs past the 10 s timeout,
- * or returns something that is not a tool call. It records what it was sent so the test can check the request shape.
+ * A stand-in for the 0G router on 127.0.0.1: answers the `decide` tool call with `pay`, `ask_human` or by the
+ * prompt's decision table, hangs past the 10 s timeout, or returns something that is not a tool call. It records what it was sent so the test can check the request shape.
  */
 export const startZeroGStub = () => {
   let mode: StubMode = 'pay'
@@ -51,10 +76,7 @@ export const startZeroGStub = () => {
       seen.push({ authorization: request.headers.get('authorization'), body: await request.json() })
       if (mode === 'timeout') await Bun.sleep(12_000)
       if (mode === 'garbage') return Response.json({ choices: [{ message: { content: 'I would buy it' } }] })
-      const decision =
-        mode === 'ask'
-          ? { action: 'ask_human', reason: 'above the per-payment cap; the owner approves it in World App' }
-          : { action: 'pay', reason: 'chai is allowlisted and within budget' }
+      const decision = decisionFor(mode, seen.at(-1)?.body)
       return Response.json(
         {
           id: `stub-completion-${calls}`,
@@ -115,18 +137,16 @@ const freshChip = () => privateKeyToAccount(generatePrivateKey()).address
 export const postTo = (url: string) => (path: string, body: unknown) =>
   HttpClient.post(`${url}${path}`, { body: HttpBody.text(JSON.stringify(body), 'application/json') })
 
-/** A paired robot of this account with a signed grant to the throwaway chip. */
-export const seedRobot = (url: string, accountId: string, chipAddress: `0x${string}`) =>
+/** A paired robot of this account with a signed grant to the throwaway chip (the spec's caps unless given). */
+export const seedRobot = (url: string, accountId: string, chipAddress: `0x${string}`, caps: Caps = SPEC_CAPS) =>
   Effect.gen(function* () {
     const robotId = randomId()
     const post = postTo(url)
     const robot = { id: robotId, accountId, pairingCode: null, chipAddress, chipToken: 'R'.repeat(43) }
     expect((yield* post('/test/vq/robots', robot)).status).toBe(204)
-    const delegation = sampleGrant(chipAddress, TEST_MERCHANT_PAY_TO)
-    expect(
-      (yield* post('/test/vq/grants', grantRow({ robotId, accountId, delegation, payee: TEST_MERCHANT_PAY_TO })))
-        .status,
-    ).toBe(204)
+    const delegation = sampleGrant(chipAddress, TEST_MERCHANT_PAY_TO, caps)
+    const grant = grantRow({ robotId, accountId, delegation, payee: TEST_MERCHANT_PAY_TO, caps })
+    expect((yield* post('/test/vq/grants', grant)).status).toBe(204)
     return robotId
   })
 
@@ -210,61 +230,8 @@ const gateInvoiceIsPaid = (input: {
     })
   })
 
-const AskedOwner = Schema.Struct({
-  episodeId: Schema.String,
-  state: Schema.String,
-  decision: Schema.Struct({ action: Schema.String }),
-  approvalUrl: Schema.String,
-})
-const SentDecide = Schema.Struct({
-  messages: Schema.Tuple([Schema.Unknown, Schema.Struct({ content: Schema.fromJsonString(Schema.Unknown) })]),
-})
-
-/**
- * Thali (2.00, not restricted) above the grant's per-payment cap (0.30): 0G is told `approvalRequired`, the errand
- * waits for the owner's World approval, and the owner's No ends it `denied` in the evidence.
- */
-const thaliNeedsApproval = (input: {
-  readonly url: string
-  readonly appUrl: string
-  readonly accountId: string
-  readonly stub: ZeroGStub
-  readonly call: (
-    path: string,
-    body: unknown,
-  ) => Effect.Effect<HttpClientResponse, HttpClientError, HttpClient.HttpClient>
-}) =>
-  Effect.gen(function* () {
-    const { url, appUrl, accountId, stub, call } = input
-    stub.setMode('ask')
-    // The provider no longer serves the signature: no proof, and the decision is unchanged.
-    stub.setSignatures(false)
-    const robotId = yield* seedRobot(url, accountId, freshChip())
-    const created = yield* call(`/api/robots/${robotId}/errands`, { item: 'thali' })
-    expect(created.status).toBe(201)
-    const asked = yield* Schema.decodeUnknownEffect(AskedOwner)(yield* created.json)
-    expect(asked).toMatchObject({ state: 'awaiting_approval', decision: { action: 'ask_human' } })
-    const sent = yield* Schema.decodeUnknownEffect(SentDecide)(stub.seen.at(-1)?.body)
-    expect(sent.messages[1].content).toMatchObject({
-      catalogue: { itemId: 'thali', amount: '2000000', restricted: false },
-      budget: { perPaymentCap: '300000' },
-      policy: { approvalRequired: true, payeeAllowlisted: true, restricted: false },
-      approval: { required: true },
-    })
-    const approvalId = asked.approvalUrl.split('/').at(-1) ?? ''
-    const denied = yield* call(`/api/approvals/${approvalId}/deny`, {})
-    expect(yield* denied.json).toEqual({ id: approvalId, status: 'denied' })
-    const evidence = yield* (yield* HttpClient.get(`${appUrl}/api/evidence/${asked.episodeId}`)).json
-    expect(evidence).toMatchObject({
-      payload: { item: 'thali', decisions: [{ action: 'ask_human', outcome: 'denied' }], outcome: { state: 'denied' } },
-    })
-    const unproven = yield* Schema.decodeUnknownEffect(EvidenceTee)(evidence)
-    expect(unproven.payload.decisions[0] !== undefined && 'tee' in unproven.payload.decisions[0]).toBe(false)
-    stub.setSignatures(true)
-  })
-
 const StoredProof = Schema.fromJsonString(TeeProof)
-const EvidenceTee = Schema.Struct({
+export const EvidenceTee = Schema.Struct({
   payload: Schema.Struct({ decisions: Schema.Array(Schema.Struct({ tee: Schema.optionalKey(TeeProof) })) }),
 })
 const VerifiedTee = Schema.Struct({
@@ -413,7 +380,6 @@ export const registerRobotAcceptance = (test: TestApi['test'], stack: Effect.Eff
 
       yield* evidenceRoundTrip(appUrl, stopped.episodeId)
       yield* stuckSettlementsReconcile({ appUrl, url, cookie, accountId, robotId: robot })
-      yield* thaliNeedsApproval({ url, appUrl, accountId, stub, call: (path, body) => call(path, body, cookie) })
     }).pipe(Effect.provide(freshConnections)),
     { timeout: 90000 },
   )

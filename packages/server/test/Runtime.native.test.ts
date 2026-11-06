@@ -19,6 +19,7 @@ import {
   TEST_MERCHANT_PAY_TO,
   TEST_RESTRICTED_PAY_TO,
 } from './MerchantAcceptance.ts'
+import { registerLimitsAcceptance } from './LimitsAcceptance.ts'
 import { verifyPasskeyBrowser } from './PasskeyBrowserAcceptance.ts'
 import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
 import {
@@ -354,6 +355,7 @@ registerMerchantAcceptance(test, stack)
 registerChipAcceptance(test, stack)
 registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
+registerLimitsAcceptance(test, stack, zeroG)
 registerAuditAcceptance(test, stack, zeroG, chainStub)
 registerScanAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)

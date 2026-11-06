@@ -205,6 +205,8 @@ run above.
 | 201    | `{"episodeId":"…","state":"signing","observationId":"…"}`                                                                                   | errand started; `state` is the state after the 0G decision                   |
 
 On 201 the `state` is `signing` (the chip's poll gets the payment to sign), `awaiting_approval` (World approval
-needed), `walked_away` or `safe_stop`. Follow it on `$APP/robot/<robotId>`, or let the gate show PAID. The owner sees
+needed), `walked_away` or `safe_stop`. On the demo allowance (3.00 a day, 1.00 a purchase) a scanned thali (2.00) is
+`awaiting_approval`; once less than its price is left today it is `walked_away`, because no approval lifts the daily
+allowance. Follow it on `$APP/robot/<robotId>`, or let the gate show PAID. The owner sees
 the crop at `/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
 `observations: [{sha256, hashMatches, signerMatches}]`.

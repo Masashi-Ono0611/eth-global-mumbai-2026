@@ -17,32 +17,41 @@ export interface ZeroGConfig {
 export const ZEROG_TIMEOUT = '10 seconds'
 
 /**
- * Spec §6's prompt with the approval rule spelled out (6 Nov): a restricted or over-limit item the owner asked for goes
- * to the owner (`ask_human` → World approval), it is not dropped (`walk_away`).
+ * Spec §6's prompt with the approval rule spelled out (6 Nov): an over-the-cap item the owner asked for goes to the
+ * owner (`ask_human` → World approval), it is not dropped (`walk_away`). An approval cannot lift the daily allowance
+ * (Arc's period cap counts approved payments too), so an amount over today's remaining allowance is `walk_away`.
  */
 export const APPROVAL_RULE =
-  'Never pay when approvalRequired is true. When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown.'
+  "Never pay when approvalRequired is true. When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, the merchant is unknown, or invoice.amount is over budget.remainingToday (an approval cannot lift today's allowance; the owner can raise it)."
 
 /** The rule as a table first (models read "over the cap" as "unpayable" from prose alone), then one example per row. */
 const SYSTEM_PROMPT = [
   'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool: call it once with {"action": "pay" | "ask_human" | "walk_away", "reason": one short sentence}.',
   'Decision table, apply the first row that matches:',
   '1. The item, the price or the merchant does not match (requested differs from catalogue.itemId, invoice.amount differs from catalogue.amount, or merchant.trust is untrusted) → walk_away.',
-  "2. policy.approvalRequired=true and the item is what the owner asked for → ask_human. The per-payment cap and the allowlist never justify walk_away: the owner's approval in World App lifts them (see the approval field).",
-  '3. policy.approvalRequired=false and invoice.amount is within budget.remainingToday → pay.',
-  '4. Otherwise → walk_away.',
+  "2. invoice.amount is over budget.remainingToday (dailyAllowance.exceeded=true) → walk_away, even if the owner asked: an approval cannot lift today's allowance; the owner can raise it.",
+  "3. policy.approvalRequired=true and the item is what the owner asked for → ask_human. The per-payment cap and the allowlist never justify walk_away: the owner's approval in World App lifts them (see the approval field).",
+  '4. policy.approvalRequired=false → pay.',
+  '5. Otherwise → walk_away.',
   'Examples:',
-  '- requested chai, catalogue chai 100000, invoice 100000, approvalRequired false, remainingToday 1000000 → {"action":"pay","reason":"Chai as asked, within budget."}',
-  '- requested cigarettes, catalogue cigarettes 500000 restricted, invoice 500000, approvalRequired true → {"action":"ask_human","reason":"Restricted item the owner asked for; the owner approves it in World App."}',
+  '- requested chai, catalogue chai 100000, invoice 100000, approvalRequired false, remainingToday 3000000 → {"action":"pay","reason":"Chai as asked, within budget."}',
+  '- requested thali, catalogue thali 2000000, invoice 2000000, perPaymentCap 1000000, remainingToday 2900000, approvalRequired true → {"action":"ask_human","reason":"Over the per-payment limit; the owner approves it in World App."}',
+  `- requested thali, catalogue thali 2000000, invoice 2000000, remainingToday 900000, approvalRequired true → {"action":"walk_away","reason":"Over today's allowance; the owner can raise it."}`,
   '- requested chai, catalogue samosa → {"action":"walk_away","reason":"Not the item the owner asked for."}',
   APPROVAL_RULE,
 ].join('\n')
 
-/** When approval is required the input says so as structure, not only as a flag the model may read as a refusal. */
-export const promptInput = (input: DecideInput) =>
-  input.policy.approvalRequired
+/**
+ * The facts the table turns on, also as structure: an amount over today's remaining allowance says so (no approval can
+ * lift it), and an approval-required one says who can grant it, not only as a flag the model may read as a refusal.
+ */
+export const promptInput = (input: DecideInput) => {
+  if (BigInt(input.invoice.amount) > BigInt(input.budget.remainingToday))
+    return { ...input, dailyAllowance: { exceeded: true, approvalCanLift: false, ownerCanRaise: true } }
+  return input.policy.approvalRequired
     ? { ...input, approval: { required: true, canBeGrantedBy: 'the owner in World App', capsDoNotBlock: true } }
     : input
+}
 
 const DECIDE_TOOL = {
   type: 'function',
