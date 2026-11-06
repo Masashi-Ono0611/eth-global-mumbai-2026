@@ -38,9 +38,11 @@
     "retry": "Ponovi"
   },
   "console": {
+    "brainRehearsal": "Vadbeni možgani (ne 0G)",
+    "brainZeroG": "0G",
     "buy": "Kupi {item} ({amount} USDC)",
     "chipState": "{status, select, queued {Čakanje, da se čip oglasi} delivered {Čip preverja račun in podpisuje} signed {Čip je podpisal plačilo} refused {Čip je zavrnil: {refusal}} expired {Čip se ni pravočasno odzval} other {{status}}}",
-    "decision": "0G se je odločil {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {oditi} safe_stop {se varno ustaviti} other {{action}}}: {reason}",
+    "decision": "{brain}: odločitev {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {oditi} safe_stop {se varno ustaviti} other {{action}}}: {reason}",
     "episodeLog": "Zapis EpisodeLog na 0G Chain",
     "errandState": "{item}: {state, select, queued {v vrsti} deciding {odloča} awaiting_approval {čaka na odobritev} signing {čip podpisuje} settling {poravnava} paid {plačano} walked_away {odšel} safe_stop {varna ustavitev} denied {zavrnjeno} refused {čip je zavrnil} failed {neuspešno} expired {poteklo} other {{state}}}",
     "evidence": "Dnevnik epizode: {status}",
@@ -54,7 +56,7 @@
     "paymentTx": "Plačilo na Arcu",
     "reason": "Razlog: {reason}",
     "requestId": "id zahteve {requestId} · {model} · {latency} ms",
-    "starting": "Vprašanje 0G glede: {item}...",
+    "starting": "Robotove možgane sprašujemo o: {item}...",
     "storage": "Epizoda na 0G Storage",
     "title": "Konzola robota"
   },

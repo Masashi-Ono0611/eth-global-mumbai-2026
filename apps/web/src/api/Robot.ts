@@ -34,6 +34,7 @@ export const Decision = Schema.Struct({
   request_id: Schema.NullOr(Schema.String),
   chat_id: Schema.NullOr(Schema.String),
   latency_ms: Schema.NullOr(Schema.Number),
+  provider: Schema.NullOr(Schema.String),
   action: Schema.String,
   reason: Schema.NullOr(Schema.String),
   outcome: Schema.NullOr(Schema.String),
@@ -86,6 +87,13 @@ export const loadErrand = (robotId: string, episodeId: string) =>
 
 export const loadEpisodeApproval = (episodeId: string) =>
   getJson(`/api/episodes/${episodeId}/approval`, Schema.Struct({ approvalUrl: Schema.String }))
+
+/**
+ * Which brain answered a decision, from `decisions.provider` (`<host>/<model>`, plus `@<0G provider>` when the 0G
+ * router names one): only a 0G host or a named 0G provider counts as 0G; anything else is the rehearsal brain.
+ */
+export const isZeroGDecision = (provider: string | null) =>
+  provider !== null && (/(^|\.)0g\.ai(\/|$)/.test(provider.split('/')[0] ?? '') || provider.includes('@0x'))
 
 /** Spec §6 terminal states: the console stops polling and enables "Start" again. */
 export const terminalStates: ReadonlySet<string> = new Set([

@@ -34,11 +34,13 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'common.notFoundTitle': 'Page not found',
   'common.refresh': 'Refresh',
   'common.retry': 'Retry',
+  'console.brainRehearsal': 'The rehearsal brain (not 0G)',
+  'console.brainZeroG': '0G',
   'console.buy': 'Buy {item} ({amount} USDC)',
   'console.chipState':
     '{status, select, queued {Waiting for the chip to poll} delivered {The chip is checking the invoice and signing} signed {The chip signed the payment} refused {The chip refused: {refusal}} expired {The chip did not answer in time} other {{status}}}',
   'console.decision':
-    '0G decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
+    '{brain} decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
   'console.episodeLog': 'EpisodeLog record on 0G Chain',
   'console.errandState':
     '{item}: {state, select, queued {queued} deciding {deciding} awaiting_approval {waiting for approval} signing {chip signing} settling {settling} paid {paid} walked_away {walked away} safe_stop {safe stop} denied {denied} refused {refused by the chip} failed {failed} expired {expired} other {{state}}}',
@@ -53,7 +55,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'console.paymentTx': 'Payment on Arc',
   'console.reason': 'Reason: {reason}',
   'console.requestId': 'request id {requestId} · {model} · {latency} ms',
-  'console.starting': 'Asking 0G about {item}...',
+  'console.starting': "Asking the robot's brain about {item}...",
   'console.storage': 'Episode on 0G Storage',
   'console.title': 'Robot console',
   'gate.badSignature': 'The status signature did not verify; the gate stays closed.',
@@ -162,11 +164,13 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'common.notFoundTitle': 'Stran ni najdena',
   'common.refresh': 'Osveži',
   'common.retry': 'Ponovi',
+  'console.brainRehearsal': 'Vadbeni možgani (ne 0G)',
+  'console.brainZeroG': '0G',
   'console.buy': 'Kupi {item} ({amount} USDC)',
   'console.chipState':
     '{status, select, queued {Čakanje, da se čip oglasi} delivered {Čip preverja račun in podpisuje} signed {Čip je podpisal plačilo} refused {Čip je zavrnil: {refusal}} expired {Čip se ni pravočasno odzval} other {{status}}}',
   'console.decision':
-    '0G se je odločil {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {oditi} safe_stop {se varno ustaviti} other {{action}}}: {reason}',
+    '{brain}: odločitev {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {oditi} safe_stop {se varno ustaviti} other {{action}}}: {reason}',
   'console.episodeLog': 'Zapis EpisodeLog na 0G Chain',
   'console.errandState':
     '{item}: {state, select, queued {v vrsti} deciding {odloča} awaiting_approval {čaka na odobritev} signing {čip podpisuje} settling {poravnava} paid {plačano} walked_away {odšel} safe_stop {varna ustavitev} denied {zavrnjeno} refused {čip je zavrnil} failed {neuspešno} expired {poteklo} other {{state}}}',
@@ -181,7 +185,7 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'console.paymentTx': 'Plačilo na Arcu',
   'console.reason': 'Razlog: {reason}',
   'console.requestId': 'id zahteve {requestId} · {model} · {latency} ms',
-  'console.starting': 'Vprašanje 0G glede: {item}...',
+  'console.starting': 'Robotove možgane sprašujemo o: {item}...',
   'console.storage': 'Epizoda na 0G Storage',
   'console.title': 'Konzola robota',
   'gate.badSignature': 'Podpis stanja ni veljaven; vrata ostanejo zaprta.',
@@ -290,11 +294,13 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'common.notFoundTitle': 'ページが見つかりません',
   'common.refresh': '更新',
   'common.retry': '再試行',
+  'console.brainRehearsal': 'リハーサル用の頭脳（0G ではない）',
+  'console.brainZeroG': '0G',
   'console.buy': '{item} を買う（{amount} USDC）',
   'console.chipState':
     '{status, select, queued {チップの接続を待っています} delivered {チップが請求書を確認して署名しています} signed {チップが支払いに署名しました} refused {チップが拒否しました：{refusal}} expired {チップが時間内に応答しませんでした} other {{status}}}',
   'console.decision':
-    '0G の判断：{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {立ち去る} safe_stop {安全に停止する} other {{action}}}（{reason}）',
+    '{brain}の判断：{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {立ち去る} safe_stop {安全に停止する} other {{action}}}（{reason}）',
   'console.episodeLog': '0G Chain 上の EpisodeLog 記録',
   'console.errandState':
     '{item}：{state, select, queued {待機中} deciding {判断中} awaiting_approval {承認待ち} signing {チップが署名中} settling {決済中} paid {支払い済み} walked_away {立ち去った} safe_stop {安全停止} denied {拒否} refused {チップが拒否} failed {失敗} expired {期限切れ} other {{state}}}',
@@ -309,7 +315,7 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'console.paymentTx': 'Arc 上の支払い',
   'console.reason': '理由：{reason}',
   'console.requestId': 'リクエスト ID {requestId} · {model} · {latency} ms',
-  'console.starting': '{item} について 0G に問い合わせています...',
+  'console.starting': 'ロボットの頭脳に {item} について問い合わせています...',
   'console.storage': '0G Storage 上のエピソード',
   'console.title': 'ロボットコンソール',
   'gate.badSignature': 'ステータスの署名を確認できません。ゲートは閉じたままです。',
@@ -418,11 +424,13 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'common.notFoundTitle': 'पेज नहीं मिला',
   'common.refresh': 'रीफ़्रेश करें',
   'common.retry': 'फिर से कोशिश करें',
+  'console.brainRehearsal': 'रिहर्सल ब्रेन (0G नहीं)',
+  'console.brainZeroG': '0G',
   'console.buy': '{item} खरीदें ({amount} USDC)',
   'console.chipState':
     '{status, select, queued {चिप के जुड़ने की प्रतीक्षा} delivered {चिप इनवॉइस जाँचकर हस्ताक्षर कर रही है} signed {चिप ने भुगतान पर हस्ताक्षर किए} refused {चिप ने मना किया: {refusal}} expired {चिप ने समय पर जवाब नहीं दिया} other {{status}}}',
   'console.decision':
-    '0G का निर्णय: {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {चले जाना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}} — {reason}',
+    '{brain} का निर्णय: {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {चले जाना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}} — {reason}',
   'console.episodeLog': '0G Chain पर EpisodeLog रिकॉर्ड',
   'console.errandState':
     '{item}: {state, select, queued {कतार में} deciding {निर्णय हो रहा है} awaiting_approval {मंज़ूरी की प्रतीक्षा} signing {चिप हस्ताक्षर कर रही है} settling {भुगतान निपट रहा है} paid {भुगतान हो गया} walked_away {चला गया} safe_stop {सुरक्षित रोक} denied {अस्वीकृत} refused {चिप ने मना किया} failed {विफल} expired {समय समाप्त} other {{state}}}',
@@ -437,7 +445,7 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'console.paymentTx': 'Arc पर भुगतान',
   'console.reason': 'कारण: {reason}',
   'console.requestId': 'अनुरोध आईडी {requestId} · {model} · {latency} ms',
-  'console.starting': '{item} के बारे में 0G से पूछ रहे हैं...',
+  'console.starting': 'रोबोट के ब्रेन से {item} के बारे में पूछ रहे हैं...',
   'console.storage': '0G Storage पर एपिसोड',
   'console.title': 'रोबोट कंसोल',
   'gate.badSignature': 'स्थिति का हस्ताक्षर सत्यापित नहीं हुआ; गेट बंद रहेगा।',
@@ -545,11 +553,13 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'common.notFoundTitle': 'पान सापडले नाही',
   'common.refresh': 'रीफ्रेश करा',
   'common.retry': 'पुन्हा प्रयत्न करा',
+  'console.brainRehearsal': 'रिहर्सल ब्रेन (0G नाही)',
+  'console.brainZeroG': '0G',
   'console.buy': '{item} विकत घ्या ({amount} USDC)',
   'console.chipState':
     '{status, select, queued {चिप जोडली जाण्याची प्रतीक्षा} delivered {चिप बीजक तपासून स्वाक्षरी करत आहे} signed {चिपने पेमेंटवर स्वाक्षरी केली} refused {चिपने नकार दिला: {refusal}} expired {चिपने वेळेत उत्तर दिले नाही} other {{status}}}',
   'console.decision':
-    '0G चा निर्णय: {action, select, pay {पेमेंट करणे} ask_human {आधी तुम्हाला विचारणे} walk_away {निघून जाणे} safe_stop {सुरक्षितपणे थांबणे} other {{action}}} — {reason}',
+    '{brain} चा निर्णय: {action, select, pay {पेमेंट करणे} ask_human {आधी तुम्हाला विचारणे} walk_away {निघून जाणे} safe_stop {सुरक्षितपणे थांबणे} other {{action}}} — {reason}',
   'console.episodeLog': '0G Chain वरील EpisodeLog नोंद',
   'console.errandState':
     '{item}: {state, select, queued {रांगेत} deciding {निर्णय होत आहे} awaiting_approval {मंजुरीची प्रतीक्षा} signing {चिप स्वाक्षरी करत आहे} settling {पेमेंट पूर्ण होत आहे} paid {पेमेंट झाले} walked_away {निघून गेला} safe_stop {सुरक्षित थांबा} denied {नाकारले} refused {चिपने नकार दिला} failed {अयशस्वी} expired {मुदत संपली} other {{state}}}',
@@ -564,7 +574,7 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'console.paymentTx': 'Arc वरील पेमेंट',
   'console.reason': 'कारण: {reason}',
   'console.requestId': 'विनंती आयडी {requestId} · {model} · {latency} ms',
-  'console.starting': '{item} बद्दल 0G ला विचारत आहे...',
+  'console.starting': 'रोबोटच्या ब्रेनला {item} बद्दल विचारत आहे...',
   'console.storage': '0G Storage वरील एपिसोड',
   'console.title': 'रोबोट कन्सोल',
   'gate.badSignature': 'स्थितीची स्वाक्षरी पडताळली नाही; गेट बंदच राहील.',

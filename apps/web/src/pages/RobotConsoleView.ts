@@ -2,7 +2,7 @@ import { format, type Locale } from '@ethmumbai/i18n'
 import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { type ConsoleRobot, type Decision, type ErrandDetail, invoiceIdFrom } from '../api/Robot.ts'
+import { type ConsoleRobot, type Decision, type ErrandDetail, invoiceIdFrom, isZeroGDecision } from '../api/Robot.ts'
 import { type Catalogue, explorerTx, usdc } from '../api/Wallet.ts'
 import { ConsoleState, Errand, isLive, Message, type Model } from './RobotConsole.ts'
 import { robotsRouter } from '../route.ts'
@@ -77,13 +77,26 @@ const decisionRow = (decision: Decision, locale: Locale, h: HtmlBuilder<Message>
     decision.id,
     [h.Class('decision')],
     [
-      h.p([], [format(locale, 'console.decision', { action: decision.action, reason: decision.reason ?? '—' })]),
+      h.p(
+        [],
+        [
+          format(locale, 'console.decision', {
+            brain: format(
+              locale,
+              isZeroGDecision(decision.provider) ? 'console.brainZeroG' : 'console.brainRehearsal',
+              {},
+            ),
+            action: decision.action,
+            reason: decision.reason ?? '—',
+          }),
+        ],
+      ),
       h.p(
         [h.Class('hint')],
         [
           format(locale, 'console.requestId', {
             requestId: decision.request_id ?? '—',
-            model: decision.model,
+            model: decision.provider ?? decision.model,
             latency: decision.latency_ms ?? 0,
           }),
         ],

@@ -38,9 +38,11 @@
     "retry": "再試行"
   },
   "console": {
+    "brainRehearsal": "リハーサル用の頭脳（0G ではない）",
+    "brainZeroG": "0G",
     "buy": "{item} を買う（{amount} USDC）",
     "chipState": "{status, select, queued {チップの接続を待っています} delivered {チップが請求書を確認して署名しています} signed {チップが支払いに署名しました} refused {チップが拒否しました：{refusal}} expired {チップが時間内に応答しませんでした} other {{status}}}",
-    "decision": "0G の判断：{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {立ち去る} safe_stop {安全に停止する} other {{action}}}（{reason}）",
+    "decision": "{brain}の判断：{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {立ち去る} safe_stop {安全に停止する} other {{action}}}（{reason}）",
     "episodeLog": "0G Chain 上の EpisodeLog 記録",
     "errandState": "{item}：{state, select, queued {待機中} deciding {判断中} awaiting_approval {承認待ち} signing {チップが署名中} settling {決済中} paid {支払い済み} walked_away {立ち去った} safe_stop {安全停止} denied {拒否} refused {チップが拒否} failed {失敗} expired {期限切れ} other {{state}}}",
     "evidence": "エピソードログ：{status}",
@@ -54,7 +56,7 @@
     "paymentTx": "Arc 上の支払い",
     "reason": "理由：{reason}",
     "requestId": "リクエスト ID {requestId} · {model} · {latency} ms",
-    "starting": "{item} について 0G に問い合わせています...",
+    "starting": "ロボットの頭脳に {item} について問い合わせています...",
     "storage": "0G Storage 上のエピソード",
     "title": "ロボットコンソール"
   },

@@ -65,7 +65,9 @@ export const registerConsoleAcceptance = (test: TestApi['test'], stack: Effect.E
           await page.goto(new URL(`/robot/${robotId}`, appUrl).toString(), { waitUntil: 'networkidle' })
           await page.getByRole('button', { name: 'Buy Chai (0.10 USDC)' }).click()
           await page.getByText('0G decided to pay: chai is allowlisted and within budget').waitFor({ timeout: 30_000 })
-          expect(await page.getByText(/^request id stub-request-\d+ · native-stub-model · \d+ ms$/).count()).toBe(1)
+          expect(
+            await page.getByText(/^request id stub-request-\d+ · \S+\/native-stub-model@0x[0-9a-f]+ · \d+ ms$/).count(),
+          ).toBe(1)
           expect(await errandState(page).textContent()).toBe('chai: chip signing')
           expect(await page.getByRole('button', { name: 'Buy Chai (0.10 USDC)' }).isDisabled()).toBe(true)
 

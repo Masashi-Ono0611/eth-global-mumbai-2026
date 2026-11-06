@@ -33,9 +33,15 @@ export interface MessageArgumentsByKey<T = string> {
   'common.notFoundTitle': Readonly<Record<string, never>>
   'common.refresh': Readonly<Record<string, never>>
   'common.retry': Readonly<Record<string, never>>
+  'console.brainRehearsal': Readonly<Record<string, never>>
+  'console.brainZeroG': Readonly<Record<string, never>>
   'console.buy': { readonly item: string | number; readonly amount: string | number }
   'console.chipState': { readonly status: string | number; readonly refusal: string | number }
-  'console.decision': { readonly action: string | number; readonly reason: string | number }
+  'console.decision': {
+    readonly brain: string | number
+    readonly action: string | number
+    readonly reason: string | number
+  }
   'console.episodeLog': Readonly<Record<string, never>>
   'console.errandState': { readonly item: string | number; readonly state: string | number }
   'console.evidence': { readonly status: string | number }
@@ -133,4 +139,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '317c6f07707bc4dbba713ff5acca2e2600b7a52867c67555d8542b5c6f7f044f'
+export const catalogVersion = '104499bfd339ef842809af19ee6b6254f7f7df80ad8bc0237f8f556faf281a1f'

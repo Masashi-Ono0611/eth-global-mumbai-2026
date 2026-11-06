@@ -61,6 +61,7 @@ const detail = (state: string, paid: boolean) => ({
       request_id: 'req-1',
       chat_id: 'chat-1',
       latency_ms: 812,
+      provider: 'router-api.0g.ai/zg-model@0x00000000000000000000000000000000000000f0',
       action: 'pay',
       reason: 'under the cap',
       outcome: null,
@@ -288,7 +289,9 @@ describe('/robot/:id', () => {
       expect(text('chai: chip signing')).toExist(),
       expect(text('0G decided to pay: under the cap')).toExist(),
       expect(text('The chip is checking the invoice and signing')).toExist(),
-      expect(text('request id req-1 · zg-model · 812 ms')).toExist(),
+      expect(
+        text('request id req-1 · router-api.0g.ai/zg-model@0x00000000000000000000000000000000000000f0 · 812 ms'),
+      ).toExist(),
       expect(role('button', { name: 'Buy Chai (0.10 USDC)' })).toBeDisabled(),
       Command.expectExact(RobotConsole.PollErrand({ robotId, episodeId: 'e1', delayMillis: 1500 })),
       Command.resolve(
@@ -304,6 +307,28 @@ describe('/robot/:id', () => {
         RobotConsole.Message.FailedLoadConsole({ error: 'offline', signedOut: false }),
       ),
       expect(role('alert')).toHaveText('Something went wrong: offline'),
+    )
+  })
+
+  test('a decision from anything but 0G is labelled the rehearsal brain', () => {
+    const rehearsal = detail('signing', false)
+    const fromLiteLlm = {
+      ...rehearsal,
+      decisions: rehearsal.decisions.map((decision) => ({ ...decision, provider: 'litellm.example/deepseek-chat' })),
+    }
+    const started = RobotConsole.update(
+      loaded,
+      RobotConsole.Message.SucceededStartErrand({ episodeId: 'e9', maybeApprovalUrl: Option.none() }),
+    ).model
+    const decided = RobotConsole.update(
+      started,
+      RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e9', detail: fromLiteLlm }),
+    ).model
+    scene(
+      { update: RobotConsole.update, view },
+      given(decided),
+      expect(text('The rehearsal brain (not 0G) decided to pay: under the cap')).toExist(),
+      expect(text('request id req-1 · litellm.example/deepseek-chat · 812 ms')).toExist(),
     )
   })
 

@@ -38,9 +38,11 @@
     "retry": "फिर से कोशिश करें"
   },
   "console": {
+    "brainRehearsal": "रिहर्सल ब्रेन (0G नहीं)",
+    "brainZeroG": "0G",
     "buy": "{item} खरीदें ({amount} USDC)",
     "chipState": "{status, select, queued {चिप के जुड़ने की प्रतीक्षा} delivered {चिप इनवॉइस जाँचकर हस्ताक्षर कर रही है} signed {चिप ने भुगतान पर हस्ताक्षर किए} refused {चिप ने मना किया: {refusal}} expired {चिप ने समय पर जवाब नहीं दिया} other {{status}}}",
-    "decision": "0G का निर्णय: {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {चले जाना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}} — {reason}",
+    "decision": "{brain} का निर्णय: {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {चले जाना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}} — {reason}",
     "episodeLog": "0G Chain पर EpisodeLog रिकॉर्ड",
     "errandState": "{item}: {state, select, queued {कतार में} deciding {निर्णय हो रहा है} awaiting_approval {मंज़ूरी की प्रतीक्षा} signing {चिप हस्ताक्षर कर रही है} settling {भुगतान निपट रहा है} paid {भुगतान हो गया} walked_away {चला गया} safe_stop {सुरक्षित रोक} denied {अस्वीकृत} refused {चिप ने मना किया} failed {विफल} expired {समय समाप्त} other {{state}}}",
     "evidence": "एपिसोड लॉग: {status}",
@@ -54,7 +56,7 @@
     "paymentTx": "Arc पर भुगतान",
     "reason": "कारण: {reason}",
     "requestId": "अनुरोध आईडी {requestId} · {model} · {latency} ms",
-    "starting": "{item} के बारे में 0G से पूछ रहे हैं...",
+    "starting": "रोबोट के ब्रेन से {item} के बारे में पूछ रहे हैं...",
     "storage": "0G Storage पर एपिसोड",
     "title": "रोबोट कंसोल"
   },

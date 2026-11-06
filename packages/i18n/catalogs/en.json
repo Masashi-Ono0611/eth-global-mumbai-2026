@@ -38,9 +38,11 @@
     "retry": "Retry"
   },
   "console": {
+    "brainRehearsal": "The rehearsal brain (not 0G)",
+    "brainZeroG": "0G",
     "buy": "Buy {item} ({amount} USDC)",
     "chipState": "{status, select, queued {Waiting for the chip to poll} delivered {The chip is checking the invoice and signing} signed {The chip signed the payment} refused {The chip refused: {refusal}} expired {The chip did not answer in time} other {{status}}}",
-    "decision": "0G decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}",
+    "decision": "{brain} decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}",
     "episodeLog": "EpisodeLog record on 0G Chain",
     "errandState": "{item}: {state, select, queued {queued} deciding {deciding} awaiting_approval {waiting for approval} signing {chip signing} settling {settling} paid {paid} walked_away {walked away} safe_stop {safe stop} denied {denied} refused {refused by the chip} failed {failed} expired {expired} other {{state}}}",
     "evidence": "Episode log: {status}",
@@ -54,7 +56,7 @@
     "paymentTx": "Payment on Arc",
     "reason": "Reason: {reason}",
     "requestId": "request id {requestId} · {model} · {latency} ms",
-    "starting": "Asking 0G about {item}...",
+    "starting": "Asking the robot's brain about {item}...",
     "storage": "Episode on 0G Storage",
     "title": "Robot console"
   },
