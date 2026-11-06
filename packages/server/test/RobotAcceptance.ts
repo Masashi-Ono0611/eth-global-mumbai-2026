@@ -84,11 +84,11 @@ const Pending = Schema.Struct({ episodes: Schema.Array(Schema.Struct({ episodeId
 /** A fresh throwaway chip per robot: `robots.chip_address` is unique across tests and reruns. */
 const freshChip = () => privateKeyToAccount(generatePrivateKey()).address
 
-const postTo = (url: string) => (path: string, body: unknown) =>
+export const postTo = (url: string) => (path: string, body: unknown) =>
   HttpClient.post(`${url}${path}`, { body: HttpBody.text(JSON.stringify(body), 'application/json') })
 
 /** A paired robot of this account with a signed grant to the throwaway chip. */
-const seedRobot = (url: string, accountId: string, chipAddress: `0x${string}`) =>
+export const seedRobot = (url: string, accountId: string, chipAddress: `0x${string}`) =>
   Effect.gen(function* () {
     const robotId = randomId()
     const post = postTo(url)
@@ -102,7 +102,7 @@ const seedRobot = (url: string, accountId: string, chipAddress: `0x${string}`) =
     return robotId
   })
 
-const errandView = (appUrl: string, cookie: string, robotId: string, episodeId: string) =>
+export const errandView = (appUrl: string, cookie: string, robotId: string, episodeId: string) =>
   HttpClient.get(`${appUrl}/api/robots/${robotId}/errands/${episodeId}`, { headers: { cookie } }).pipe(
     Effect.flatMap((response) => response.json),
     Effect.flatMap(Schema.decodeUnknownEffect(ErrandView)),
@@ -140,7 +140,7 @@ const evidenceRoundTrip = (appUrl: string, episodeId: string) =>
 const Invoice = Schema.Struct({ id: Schema.String })
 const GateStatus = Schema.Struct({ status: Schema.String })
 
-const mintInvoice = (appUrl: string) =>
+export const mintInvoice = (appUrl: string) =>
   postTo(appUrl)('/api/merchants/duck-cafe/invoices', { itemId: 'chai' }).pipe(
     Effect.flatMap((created) => created.json),
     Effect.flatMap(Schema.decodeUnknownEffect(Invoice)),

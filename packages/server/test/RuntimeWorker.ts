@@ -26,7 +26,7 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
     const database = yield* Cloudflare.D1.QueryDatabase(AppDatabase)
     const media = yield* Cloudflare.R2.ReadWriteBucket(AppMedia)
     const fixtureHandle = yield* HttpRouter.toHttpEffect(yield* recoveryRoutes(media)).pipe(Effect.orDie)
-    const agentHandle = yield* HttpRouter.toHttpEffect(agentFixtureRoutes(database)).pipe(Effect.orDie)
+    const agentHandle = yield* HttpRouter.toHttpEffect(agentFixtureRoutes(database, media)).pipe(Effect.orDie)
     const chainHandle = yield* HttpRouter.toHttpEffect(chainFixtureRoutes(database)).pipe(Effect.orDie)
     return {
       fetch: Effect.gen(function* () {

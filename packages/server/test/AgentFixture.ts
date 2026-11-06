@@ -1,4 +1,5 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
+import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWriteBucket'
 import { Effect, Option, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
@@ -129,6 +130,35 @@ const forcePaidRoute = (database: QueryDatabaseClient) =>
         .bind(`0x${'ab'.repeat(32)}`, invoiceId ?? '')
         .run()
       return HttpServerResponse.empty({ status: result.meta.changes === 1 ? 204 : 404 })
+    }),
+  )
+
+/** An invoice whose QR has gone stale: its expiry is already behind the server clock. */
+const expireInvoiceRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/invoices/:invoiceId/expire',
+    Effect.gen(function* () {
+      const { invoiceId } = yield* HttpRouter.params
+      const result = yield* database
+        .prepare('UPDATE invoices SET expires_at = unixepoch() - 1 WHERE id = ?')
+        .bind(invoiceId ?? '')
+        .run()
+      return HttpServerResponse.empty({ status: result.meta.changes === 1 ? 204 : 404 })
+    }),
+  )
+
+const MediaObject = Schema.Struct({ key: Schema.String, text: Schema.String })
+
+/** Overwrite an R2 object, as someone with bucket access tampering with a stored scan crop would. */
+const tamperMediaRoute = (media: ReadWriteBucketClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/media',
+    Effect.gen(function* () {
+      const { key, text } = yield* body(MediaObject)
+      yield* media.put(key, text).pipe(Effect.orDie)
+      return noContent
     }),
   )
 
@@ -298,9 +328,11 @@ const chipRequestRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
-export const agentFixtureRoutes = (database: QueryDatabaseClient) =>
+export const agentFixtureRoutes = (database: QueryDatabaseClient, media: ReadWriteBucketClient) =>
   HttpRouter.addAll([
     robotRoute(database),
+    expireInvoiceRoute(database),
+    tamperMediaRoute(media),
     grantRoute(database),
     queueRoute(database),
     forcePaidRoute(database),

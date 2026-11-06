@@ -29,6 +29,7 @@ import {
   TEST_ZG_MODEL,
 } from './RobotAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
+import { registerScanAcceptance, registerScansOffAcceptance } from './ScanAcceptance.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
 import { registerWorldStubAcceptance, TEST_ENFORCER_ADDRESS, TEST_WORLD_STUB_JWK } from './WorldStubAcceptance.ts'
@@ -85,6 +86,8 @@ const makeStack = (generation: string) =>
           ZG_MODEL: TEST_ZG_MODEL,
           EPISODE_LOG_ADDRESS: TEST_EPISODE_LOG,
           ZG_CHAIN_RPC: chainStub.url,
+          // Off in the first generation (the flag-off 404 runs there), on after the restart test (ScanAcceptance.ts).
+          SCANS_ENABLED: generation === 'after' ? 'true' : 'pending',
           // Derived throwaway keys (no literal, never funded): with a relayer the x402 402 and the errand paths run;
           // no ARC_RPC_URL, so only POST /pay reaches the public Arc RPC, and only to simulate.
           RELAYER_PRIVATE_KEY: Redacted.make(keccak256(stringToHex('vitaquack native test relayer'))),
@@ -296,6 +299,8 @@ test(
   { timeout: 60000 },
 )
 
+registerScansOffAcceptance(test, stack)
+
 test(
   'recovers auth sessions and R2 bytes after a Worker restart',
   Effect.gen(function* () {
@@ -342,6 +347,7 @@ registerChipAcceptance(test, stack)
 registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
 registerAuditAcceptance(test, stack, zeroG, chainStub)
+registerScanAcceptance(test, stack, zeroG)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
 registerWorldStubAcceptance(test, stack, zeroG)
