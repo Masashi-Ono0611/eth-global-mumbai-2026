@@ -54,7 +54,7 @@ the team's request body unchanged, reply read like `DecideReply.ts`, a reply ove
 
 ## 4. Evidence uploader (`tools/evidence-uploader/main.ts`)
 
-- **Bug (fixed in this PR):** the `/failed` report passed `{ method, body }` into `api(path, body)`, so the server received
+- **Bug (already fixed on `main` in `e01d8765`, 07:03 UTC):** the `/failed` report passed `{ method, body }` into `api(path, body)`, so the server received
   `{"method":"POST","body":"{\"error\":\"…\"}"}`, had no top-level `error`, and answered 400 (hidden by the `.catch`). A
   failed upload stayed `uploading` until the 300 s reclaim and its error was never stored. Reproduced with a fake `fetch`.
 - Consistent: `MemData` → `merkleTree()` → `indexer.upload` returning `{ rootHash, txHash }`; the `requestIdsHash` rule;
