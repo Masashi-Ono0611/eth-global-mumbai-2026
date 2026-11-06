@@ -228,6 +228,9 @@ export const decisions = sqliteTable(
     }),
     outcomeRef: text('outcome_ref'),
     error: text('error'),
+    // The 0G TeeML proof of this decision, JSON of protocol `TeeProof` (signer, signed text, signature, fetchedAt ms,
+    // verified); null for providers without one and for decisions made before it was captured.
+    teeJson: text('tee_json'),
     createdAt: createdAt(),
   },
   (table) => [uniqueIndex('decisions_episode_step').on(table.episodeId, table.step)],

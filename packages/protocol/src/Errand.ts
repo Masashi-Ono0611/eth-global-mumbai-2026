@@ -1,6 +1,16 @@
 import { Schema } from 'effect'
 import { Id } from './Base32.ts'
-import { Address, Bytes32, EcdsaSignature, type Hex, Sha256Hex, UintString, UnixMs, UnixSeconds } from './Hex.ts'
+import {
+  Address,
+  Bytes32,
+  EcdsaSignature,
+  type Hex,
+  HexBytes,
+  Sha256Hex,
+  UintString,
+  UnixMs,
+  UnixSeconds,
+} from './Hex.ts'
 import { keccak256Utf8 } from './Keccak.ts'
 
 // The Robot Agent's errand (= episode) state machine and its 0G decision (§6).
@@ -79,6 +89,21 @@ export const CreateErrandResponse = Schema.Struct({
 })
 export type CreateErrandResponse = typeof CreateErrandResponse.Type
 
+/**
+ * A 0G TeeML proof of one decision, as fetched from the provider after the call: the TEE signer's address, the exact
+ * text it signed, its signature, when we fetched it (unix ms) and whether our check of signature against signer passed.
+ * Stored as `decisions.tee_json`.
+ */
+export const TeeProof = Schema.Struct({
+  signer: Address,
+  text: Schema.String,
+  signature: HexBytes,
+  fetchedAt: UnixMs,
+  verified: Schema.Boolean,
+})
+export type TeeProof = typeof TeeProof.Type
+
+/** One decision in the evidence. `tee` is absent for decisions without a TEE proof, so older evidence is unchanged. */
 export const EvidenceDecision = Schema.Struct({
   step: Schema.Finite,
   model: Schema.String,
@@ -90,6 +115,7 @@ export const EvidenceDecision = Schema.Struct({
   action: DecisionAction,
   reason: Schema.NullOr(Schema.String),
   outcome: Schema.NullOr(DecisionOutcome),
+  tee: Schema.optionalKey(TeeProof),
 })
 
 /** A chip-signed scan the episode carries: the crop's digest and size, when it was taken, the chip's signature. */

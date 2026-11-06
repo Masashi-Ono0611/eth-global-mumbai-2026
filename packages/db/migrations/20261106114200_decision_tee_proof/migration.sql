@@ -1,0 +1,1 @@
+ALTER TABLE `decisions` ADD `tee_json` text;
