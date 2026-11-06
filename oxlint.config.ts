@@ -21,6 +21,8 @@ export default defineConfig({
     // Pollen's vendored Microduck engine (hash-pinned in tools/provenance.json) and the sim build copied into apps/web.
     'apps/sim/vendor/**',
     'apps/web/public/sim/**',
+    // Design mocks on the scratch site (hand-written page scripts for Kris to pick from), not product code.
+    'docs/site/flow-mocks/**',
   ],
   options: { typeAware: true, reportUnusedDisableDirectives: 'error' },
   categories: { correctness: 'error', suspicious: 'error' },
