@@ -11,7 +11,7 @@ import { formatEther, keccak256 } from 'viem'
 //        (APP_ZG_BASE_URL / APP_WORLD_ISSUER / APP_ARC_RPC_URL are read from the environment when present, e.g. with
 //        `bun --env-file=.env.main.local …`; only their reachability is printed, never their value.)
 // Exit 0 when everything a demo run needs is there; 1 otherwise (each FAIL line says what).
-const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
+const DEPLOYED = 'https://vitaquack.com'
 const RELAYER = '0x404b09F43db64fB08f70b0b3e2b785bC312D6fDb'
 const ENFORCER = '0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3'
 /**

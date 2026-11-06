@@ -19,7 +19,7 @@ import { addVirtualAuthenticator } from '../test/PasskeyBrowserAcceptance.ts'
 //   ≥ 0.10, chai + the approved cigarettes ≥ 0.60.
 //   The owner is throwaway (its virtual passkey ends with the run), so the funds stay in that account.
 //   --only-restricted skips chai, the gate and the post-revoke chai. Exit 0 when every step showed what it must.
-const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
+const DEPLOYED = 'https://vitaquack.com'
 const flag = (name: string) => {
   const index = Bun.argv.indexOf(`--${name}`)
   return index < 0 ? undefined : Bun.argv[index + 1]

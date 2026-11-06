@@ -22,7 +22,7 @@ import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie 
 // approval path), then one denied (nothing paid). --invoice <id>: the errand pays that counter invoice. --gate: mint the gate's invoice first, pay it, then read the
 // signed gate status like /gate/duck-cafe does (pending before, paid on the first read after, used on the next).
 // Exit 0: paid, or the expected end while 0G is not configured (503 / safe_stop "not configured"). Otherwise 1.
-const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
+const DEPLOYED = 'https://vitaquack.com'
 const flag = (name: string) => {
   const index = Bun.argv.indexOf(`--${name}`)
   return index < 0 ? undefined : Bun.argv[index + 1]

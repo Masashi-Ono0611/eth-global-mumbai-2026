@@ -6,6 +6,8 @@ import ApiWorkerLive, { ApiWorker } from '@ethmumbai/server/ApiWorker'
 import { PRODUCTION_NAMES, pinnedOnMain } from '@ethmumbai/server/ProductionNames'
 
 const PENDING = 'pending'
+/** The vitaquack.com zone on the personal account (pinned, so attaching the domain needs no zone lookup). */
+const VITAQUACK_ZONE = 'ac3b1b0de3412475c7a0adcb4e4ece6b'
 const plain = (name: string) => Config.String(name).pipe(Config.withDefault(PENDING))
 const secret = (name: string) => Config.Redacted(name).pipe(Config.withDefault(Redacted.make(PENDING)))
 
@@ -52,6 +54,14 @@ export default Alchemy.Stack(
       // only to redirect it to `/` (EdgeLanding.ts).
       assets: { directory: 'apps/web/dist/client', runWorkerFirst: ['/media/*', '/landing', '/landing/*'] },
       compatibility: { date: '2026-10-19' },
+      // Stage `main` is https://vitaquack.com (Kris, 6 Nov): the apex is a custom domain of this Worker, so edge.url,
+      // and with it AUTH_ORIGIN and the passkey rp id, is https://vitaquack.com; www 301s to it in a zone redirect
+      // rule that runs before any Worker. vitaquack.com/plan* is the scratch site's zone route, which takes precedence
+      // over this custom domain. The workers.dev URL keeps serving, but passkeys and same-origin POSTs belong to the
+      // apex. Previews keep their workers.dev origin. docs/DEPLOYMENT.md has the cutover.
+      ...(stage === 'main'
+        ? { domain: { name: 'vitaquack.com', zoneId: VITAQUACK_ZONE, redirects: ['www.vitaquack.com'] } }
+        : {}),
       workersDev: true,
       observability: {
         enabled: true,
