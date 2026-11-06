@@ -77,8 +77,8 @@ export const makeWorldClient = Effect.fn('EthMumbai.World.client')(function* (en
       ),
     )
     const basic = `Basic ${Base64.encode(`${encodeURIComponent(config.clientId)}:${encodeURIComponent(config.clientSecret)}`)}`
-    /** `authorization_code` at the token endpoint with `client_secret_basic`; returns the ID token only. */
-    const exchange = (code: string, redirectUri: string) =>
+    /** `authorization_code` + the PKCE verifier at the token endpoint with `client_secret_basic`; the ID token only. */
+    const exchange = (code: string, redirectUri: string, codeVerifier: Redacted.Redacted) =>
       Effect.gen(function* () {
         const { token_endpoint } = yield* discovery(false)
         const client = HttpClient.filterStatusOk(yield* HttpClient.HttpClient)
@@ -86,7 +86,12 @@ export const makeWorldClient = Effect.fn('EthMumbai.World.client')(function* (en
           HttpClientRequest.post(token_endpoint).pipe(
             HttpClientRequest.setHeader('authorization', basic),
             HttpClientRequest.acceptJson,
-            HttpClientRequest.bodyUrlParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri }),
+            HttpClientRequest.bodyUrlParams({
+              grant_type: 'authorization_code',
+              code,
+              redirect_uri: redirectUri,
+              code_verifier: Redacted.value(codeVerifier),
+            }),
           ),
         )
         const body = yield* HttpClientResponse.schemaBodyJson(TokenResponse)(response)
@@ -116,5 +121,10 @@ export interface WorldClient {
   readonly bindsSubject: boolean
   readonly authorizationEndpoint: Effect.Effect<string, WorldUnavailable>
   readonly keys: (refresh: boolean) => Effect.Effect<ReadonlyArray<Jwk>, WorldUnavailable>
-  readonly exchange: (code: string, redirectUri: string) => Effect.Effect<Redacted.Redacted, WorldUnavailable>
+  /** The token endpoint, with the attempt's PKCE `code_verifier` (redacted until it is put in the request body). */
+  readonly exchange: (
+    code: string,
+    redirectUri: string,
+    codeVerifier: Redacted.Redacted,
+  ) => Effect.Effect<Redacted.Redacted, WorldUnavailable>
 }

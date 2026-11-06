@@ -13,6 +13,7 @@ import { firstRow } from '../Sql.ts'
 import { NotFound, required } from '../wallet/Errors.ts'
 import { type ApprovalRow, closesAt, expireIfLate, moveApproval, readApproval } from './Approve.ts'
 import type { WorldClient } from './Config.ts'
+import { startPkce } from './Pkce.ts'
 
 /** Everything the World approval routes need; each optional binding answers 503 until it is set. */
 export interface WorldDeps {
@@ -81,7 +82,8 @@ const AuthorizeQuery = Schema.Struct({ approval: Schema.String.check(Schema.isMa
 
 /**
  * `GET /api/world/authorize?approval=:id` (§9 step 2) → 302 to World IdP with `state` = the approval's random OIDC
- * state, `nonce` = its EIP-712 nonce, `max_age=0` and `prompt=login` (a fresh World authentication every time).
+ * state, `nonce` = its EIP-712 nonce, `max_age=0` and `prompt=login` (a fresh World authentication every time), and an
+ * `S256` PKCE challenge from a verifier made for this attempt (World's browser flow expects PKCE).
  */
 export const authorize = (deps: WorldDeps) =>
   Effect.gen(function* () {
@@ -98,6 +100,7 @@ export const authorize = (deps: WorldDeps) =>
       .prepare("UPDATE approvals SET status = 'opened' WHERE id = ? AND status IN ('requested', 'opened')")
       .bind(row.id)
       .run()
+    const codeChallenge = yield* startPkce(deps.database, row)
     const endpoint = yield* world.authorizationEndpoint.pipe(Effect.orElseSucceed(() => `${world.issuer}/authorize`))
     const url = new URL(endpoint)
     url.search = new URLSearchParams({
@@ -109,6 +112,8 @@ export const authorize = (deps: WorldDeps) =>
       nonce: row.oidc_nonce,
       max_age: '0',
       prompt: 'login',
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     }).toString()
     yield* Effect.logInfo('world approval opened').pipe(Effect.annotateLogs({ approvalId: row.id }))
     return HttpServerResponse.redirect(url.toString(), { status: 302 })

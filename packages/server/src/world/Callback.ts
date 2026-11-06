@@ -10,6 +10,7 @@ import { changes, firstRow } from '../Sql.ts'
 import { type ApprovalRow, approvalByState, expireIfLate, moveApproval, signApproval } from './Approve.ts'
 import { approvalPage, callbackUrl, type WorldDeps } from './Authorize.ts'
 import type { WorldClient } from './Config.ts'
+import { takeVerifier } from './Pkce.ts'
 import { verifyIdToken, type VerifiedHuman } from './Verify.ts'
 
 const CallbackQuery = Schema.Struct({
@@ -24,17 +25,22 @@ type CallbackQuery = typeof CallbackQuery.Type
 class Refused extends Schema.TaggedError<Refused>()('Refused', { reason: Schema.String }) {}
 const refuse = (reason: string) => Refused.make({ reason })
 
-/** The World token for this approval: exchanged, RS256-verified, every §9 claim checked (one key refresh on rotation). */
+/**
+ * The World token for this approval: exchanged with the attempt's PKCE verifier, RS256-verified, every §9 claim checked
+ * (one key refresh on rotation).
+ */
 const verifiedHuman = Effect.fn('EthMumbai.World.verifiedHuman')(function* (
   world: WorldClient,
   row: ApprovalRow,
   query: CallbackQuery,
-  origin: string,
+  deps: WorldDeps,
 ) {
   if (query.error !== undefined) return yield* refuse(`World answered ${query.error}`)
   if (query.iss !== undefined && query.iss !== world.issuer) return yield* refuse('issuer mismatch')
   if (query.code === undefined) return yield* refuse('no authorization code')
-  const token = yield* world.exchange(query.code, callbackUrl(origin))
+  const verifier = yield* takeVerifier(deps.database, row.id)
+  if (Option.isNone(verifier)) return yield* refuse('no PKCE verifier for this approval')
+  const token = yield* world.exchange(query.code, callbackUrl(deps.origin), verifier.value)
   const check = (refresh: boolean) =>
     Effect.flatMap(world.keys(refresh), (keys) =>
       Effect.flatMap(nowSeconds, (now) =>
@@ -138,7 +144,7 @@ export const callback = (deps: WorldDeps) =>
         onNone: () => refuse('enforcer not configured'),
         onSome: Effect.succeed,
       })
-      const human = yield* verifiedHuman(world, row, query.value, deps.origin)
+      const human = yield* verifiedHuman(world, row, query.value, deps)
       return yield* approve(deps, { row, human, approver, enforcer, bindsSubject: world.bindsSubject })
     }).pipe(
       Effect.catchTags({

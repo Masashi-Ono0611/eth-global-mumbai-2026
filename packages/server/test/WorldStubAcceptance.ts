@@ -1,6 +1,7 @@
 import { expect } from 'bun:test'
 import type { TestApi } from 'alchemy/Test/Bun'
 import { Effect, Schema } from 'effect'
+import * as Base64Url from 'effect/encoding/Base64Url'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import { seedRobot } from './ConsoleBrowserAcceptance.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
@@ -51,7 +52,10 @@ const answer = async (
   expect(authorize.status).toBe(302)
   const location = authorize.headers.get('location') ?? ''
   expect(location.startsWith(`${origin}/api/dev/world/authorize?`)).toBe(true)
-  expect(new URL(location).searchParams.get('max_age')).toBe('0')
+  const sent = new URL(location).searchParams
+  expect(sent.get('max_age')).toBe('0')
+  expect(sent.get('code_challenge_method')).toBe('S256')
+  expect(sent.get('code_challenge')).toMatch(/^[\w-]{43}$/)
   const page = await (await fetch(location)).text()
   expect(page).toContain('STUB IdP — not World — rehearsal only')
   const href = unescape(new RegExp(`id="${choice}" href="([^"]+)"`).exec(page)?.[1] ?? '')
@@ -92,6 +96,53 @@ const tokenGuards = async (appUrl: string, usedCallback: string) => {
   })
 }
 
+const s256 = async (verifier: string) =>
+  Base64Url.encode(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))))
+
+/** A code from the stub's own authorize page for this challenge (or its 400 when the request carries none). */
+const stubCode = async (appUrl: string, challenge: string | null) => {
+  const query = new URLSearchParams({
+    response_type: 'code',
+    client_id: 'stub',
+    redirect_uri: `${new URL(appUrl).origin}/api/world/callback`,
+    state: 'pkce-guard',
+    nonce: 'pkce-guard',
+    ...(challenge === null ? {} : { code_challenge: challenge, code_challenge_method: 'S256' }),
+  })
+  const page = await fetch(`${appUrl}/api/dev/world/authorize?${query}`)
+  const href = unescape(/id="approve" href="([^"]+)"/.exec(await page.text())?.[1] ?? '')
+  return { status: page.status, code: href === '' ? '' : (new URL(href).searchParams.get('code') ?? '') }
+}
+
+/** PKCE at the stub: no challenge → 400; a wrong or missing verifier → invalid_grant; the right one → an ID token. */
+const pkceGuards = async (appUrl: string) => {
+  expect((await stubCode(appUrl, null)).status).toBe(400)
+  const verifier = Base64Url.encode(crypto.getRandomValues(new Uint8Array(32)))
+  const redeem = async (verifierSent: string | null) => {
+    const { code } = await stubCode(appUrl, await s256(verifier))
+    const response = await fetch(`${appUrl}/api/dev/world/token`, {
+      method: 'POST',
+      headers: { authorization: `Basic ${btoa('stub:stub')}`, 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: `${new URL(appUrl).origin}/api/world/callback`,
+        ...(verifierSent === null ? {} : { code_verifier: verifierSent }),
+      }),
+    })
+    return {
+      status: response.status,
+      body: Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Unknown))(await response.json()),
+    }
+  }
+  const wrong = Base64Url.encode(crypto.getRandomValues(new Uint8Array(32)))
+  expect(await redeem(wrong)).toEqual({ status: 400, body: { error: 'invalid_grant' } })
+  expect(await redeem(null)).toEqual({ status: 400, body: { error: 'invalid_grant' } })
+  const granted = await redeem(verifier)
+  expect(granted.status).toBe(200)
+  expect(typeof granted.body['id_token']).toBe('string')
+}
+
 const rehearse = async (urls: Urls, owner: { readonly accountId: string; readonly cookie: string }) => {
   const approved = await answer(urls, owner, 'approve')
   expect(approved.state).toBe('signing')
@@ -101,16 +152,18 @@ const rehearse = async (urls: Urls, owner: { readonly accountId: string; readonl
   expect(denied.state).toBe('denied')
   expect(denied.approval).toEqual({ status: 'denied', error: 'World answered access_denied' })
   await tokenGuards(urls.appUrl, approved.href)
+  await pkceGuards(urls.appUrl)
 }
 
 /**
  * The rehearsal issuer (world/Stub.ts) mounted on the native stack: a restricted errand → World authorize → the stub's
  * Approve → our callback verifies its RS256 token → the errand continues to `signing`; Deny → `denied`, nothing signed.
- * A replayed callback is 409; the stub's token endpoint refuses a wrong client secret and a spent code.
+ * A replayed callback is 409; the stub's token endpoint refuses a wrong client secret, a spent code and a wrong or
+ * missing PKCE verifier (the authorize redirect carries an `S256` challenge, the callback sends the attempt's verifier).
  */
 export const registerWorldStubAcceptance = (test: TestApi['test'], stack: Effect.Effect<Urls>, zeroG: ZeroGStub) =>
   test(
-    'world stub (rehearsal only): Approve → co-signed approval → signing; Deny → denied; replay 409; token guards',
+    'world stub (rehearsal only): Approve → co-signed approval → signing; Deny → denied; replay 409; token and PKCE guards',
     Effect.gen(function* () {
       const urls = yield* stack
       zeroG.setMode('pay')

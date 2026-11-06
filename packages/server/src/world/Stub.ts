@@ -10,6 +10,7 @@ import { type Bindings, json, jsonError, nowSeconds, optionalBinding, randomByte
 import { firstRow } from '../Sql.ts'
 import { callbackUrl } from './Authorize.ts'
 import { type WorldClient, WorldUnavailable } from './Config.ts'
+import { pkceChallenge } from './Pkce.ts'
 import type { Jwk } from './Verify.ts'
 
 /**
@@ -52,7 +53,9 @@ const signJwt = (key: CryptoKey, kid: string, claims: object) =>
     return `${body}.${Base64Url.encode(new Uint8Array(signature))}`
   })
 
-const CodeRef = Schema.fromJsonString(Schema.Struct({ nonce: Schema.String, redirectUri: Schema.String }))
+const CodeRef = Schema.fromJsonString(
+  Schema.Struct({ nonce: Schema.String, redirectUri: Schema.String, codeChallenge: Schema.String }),
+)
 
 const escapeHtml = (text: string) =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
@@ -65,8 +68,16 @@ type Stub = {
   readonly publicJwk: Jwk
 }
 
-/** Spends an authorization code once (it lives in `auth_challenges`, kind `world_stub`) and mints the ID token. */
-const redeem = Effect.fn('EthMumbai.World.stubRedeem')(function* (stub: Stub, code: string, redirectUri: string) {
+/**
+ * Spends an authorization code once (it lives in `auth_challenges`, kind `world_stub`) and mints the ID token, only for
+ * the code's redirect URI and a PKCE verifier whose `S256` matches the authorize request's challenge.
+ */
+const redeem = Effect.fn('EthMumbai.World.stubRedeem')(function* (
+  stub: Stub,
+  code: string,
+  redirectUri: string,
+  verifier: string | undefined,
+) {
   const now = yield* nowSeconds
   const spent = yield* firstRow(
     stub.database
@@ -79,6 +90,7 @@ const redeem = Effect.fn('EthMumbai.World.stubRedeem')(function* (stub: Stub, co
   if (Option.isNone(spent)) return Option.none<string>()
   const ref = yield* Schema.decodeUnknownEffect(CodeRef)(spent.value.ref).pipe(Effect.orDie)
   if (ref.redirectUri !== redirectUri) return Option.none<string>()
+  if (verifier === undefined || (yield* pkceChallenge(verifier)) !== ref.codeChallenge) return Option.none<string>()
   const jti = Base64Url.encode(yield* randomBytes(16))
   const token = yield* signJwt(stub.key, stub.publicJwk.kid, {
     iss: stub.issuer,
@@ -101,6 +113,8 @@ const AuthorizeQuery = Schema.Struct({
   redirect_uri: Schema.String,
   state: Schema.String.check(Schema.isMaxLength(128)),
   nonce: Schema.String.check(Schema.isMaxLength(128)),
+  code_challenge: Schema.String.check(Schema.isPattern(/^[\w-]{43}$/)),
+  code_challenge_method: Schema.Literal('S256'),
 })
 
 const page = (stub: Stub, query: typeof AuthorizeQuery.Type, code: string) => {
@@ -114,7 +128,7 @@ const page = (stub: Stub, query: typeof AuthorizeQuery.Type, code: string) => {
 </body></html>`
 }
 
-/** `GET …/authorize`: only our own client and callback; issues a single-use code and shows Approve / Deny. */
+/** `GET …/authorize`: only our own client and callback, with an `S256` challenge; a single-use code, Approve / Deny. */
 const authorize = (stub: Stub) =>
   Effect.gen(function* () {
     const query = yield* HttpServerRequest.schemaSearchParams(AuthorizeQuery).pipe(Effect.option)
@@ -128,7 +142,11 @@ const authorize = (stub: Stub) =>
       )
       .bind(
         code,
-        JSON.stringify({ nonce: query.value.nonce, redirectUri: query.value.redirect_uri }),
+        JSON.stringify({
+          nonce: query.value.nonce,
+          redirectUri: query.value.redirect_uri,
+          codeChallenge: query.value.code_challenge,
+        }),
         now + CODE_SECONDS,
         yield* Clock.currentTimeMillis,
       )
@@ -147,17 +165,18 @@ const TokenBody = Schema.Struct({
   grant_type: Schema.Literal('authorization_code'),
   code: Schema.String,
   redirect_uri: Schema.String,
+  code_verifier: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(128))),
 })
 const STUB_BASIC = `Basic ${Base64.encode(`${STUB_CLIENT}:${STUB_CLIENT}`)}`
 
-/** `POST …/token`: `client_secret_basic` with `stub:stub`, a single-use code → the RS256 ID token. */
+/** `POST …/token`: `client_secret_basic` with `stub:stub`, a single-use code and its PKCE verifier → the ID token. */
 const token = (stub: Stub) =>
   Effect.gen(function* () {
     const request = yield* HttpServerRequest.HttpServerRequest
     if (request.headers.authorization !== STUB_BASIC) return yield* jsonError(401, 'invalid_client')
     const body = yield* HttpServerRequest.schemaBodyUrlParams(TokenBody).pipe(Effect.option)
     if (Option.isNone(body)) return yield* jsonError(400, 'invalid_request')
-    const minted = yield* redeem(stub, body.value.code, body.value.redirect_uri)
+    const minted = yield* redeem(stub, body.value.code, body.value.redirect_uri, body.value.code_verifier)
     if (Option.isNone(minted)) return yield* jsonError(400, 'invalid_grant')
     return yield* json(
       {
@@ -182,6 +201,7 @@ const discovery = (stub: Stub) =>
     scopes_supported: ['openid'],
     id_token_signing_alg_values_supported: ['RS256'],
     token_endpoint_auth_methods_supported: ['client_secret_basic'],
+    code_challenge_methods_supported: ['S256'],
     acr_values_supported: [ORB],
     claims_supported: ['iss', 'sub', 'aud', 'exp', 'iat', 'jti', 'nonce', 'auth_time', 'acr', 'amr'],
   })
@@ -232,8 +252,8 @@ export const makeWorldStub = Effect.fn('EthMumbai.World.makeStub')(function* (
     bindsSubject: false,
     authorizationEndpoint: Effect.succeed(`${issuer}/authorize`),
     keys: () => Effect.succeed([publicJwk]),
-    exchange: (code, redirectUri) =>
-      redeem(stub, code, redirectUri).pipe(
+    exchange: (code, redirectUri, codeVerifier) =>
+      redeem(stub, code, redirectUri, Redacted.value(codeVerifier)).pipe(
         Effect.provideContext(runtime),
         Effect.flatMap(
           Option.match({
