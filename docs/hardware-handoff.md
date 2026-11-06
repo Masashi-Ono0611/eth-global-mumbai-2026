@@ -12,7 +12,8 @@ paired with the old origin must pair again with `--server https://vitaquack.com`
 ## 1. ESP32 gate
 
 Loop: fetch the gate key once → mint an invoice → draw its `url` as a QR → read the signed status every second with a
-fresh random nonce → verify → show PAID / open on the first verified `paid` → mint the next invoice.
+fresh random nonce → verify → show PAID / open on the first verified `paid` → mint the next invoice. With the café
+till driving the screen, the ESP32 pulls the invoice to show instead of minting (§6); the status checks stay the same.
 
 | Call | Example |
 | --- | --- |
@@ -213,3 +214,76 @@ needed), `walked_away` or `safe_stop`. On the demo allowance (3.00 a day, 1.00 a
 allowance. Follow it on `$APP/app/robot/<robotId>`, or let the gate show PAID. The owner sees
 the crop at `/app/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
 `observations: [{sha256, hashMatches, signerMatches}]`.
+
+## 6. Counter screen: the till puts the bill up, the ESP32 pulls it
+
+The ESP32 cannot be reached from outside (it sits behind the Mac's NAT), so it pulls what to show. The café owner taps
+an item on the till (<https://eth-mumbai-merchant.kristjan-grm11775.workers.dev>, laptop or phone): that mints the bill
+exactly as `POST …/invoices` does and puts it on display, replacing the previous one (one displayed invoice per
+merchant). `POST …/invoices` (the sim's stalls, the web gate) never changes the display, so they cannot take over the
+screen. Displaying does not claim the invoice: the duck's scan (§5) and a "buy chai" errand still pay it. Neither route
+needs auth or an Origin header, like the mint.
+
+| Call | Answer |
+| --- | --- |
+| `POST $APP/api/merchants/duck-cafe/counter` with `{"itemId":"chai"}` (or `samosa`, `thali`) | 201 with the invoice mint's body (§1); 404 `{"error":"unknown item"}`; 400 `{"error":"expected {\"itemId\": string}"}` |
+| `GET $APP/api/merchants/duck-cafe/counter` | 200 `{"invoice":{"id","itemId","name","amount","expiresAt","status"}}`, or `{"invoice":null}` when nothing is displayed, the displayed invoice is no longer `pending` (paid, used, expired), or it has under 60 s left (the chip and scans refuse those). Compact JSON, keys in this order, numbers unquoted, `cache-control: no-store` |
+
+Exact request/response pairs from the native run on `a98b3e7` (local Worker: the id, the `url` origin and `payTo` are
+local; on `$APP` the `url` is `$APP/api/i/<id>`):
+
+```sh
+curl -s -w ' %{http_code}\n' $APP/api/merchants/duck-cafe/counter
+{"invoice":null} 200
+
+curl -s -w ' %{http_code}\n' $APP/api/merchants/duck-cafe/counter -H 'content-type: application/json' -d '{"itemId":"chai"}'
+{"id":"njdayl5o7vyfvvadql7rlscshq","url":"http://localhost:1342/api/i/njdayl5o7vyfvvadql7rlscshq","merchantId":"duck-cafe","payTo":"0x000000000000000000000000000000000000c0de","asset":"0x3600000000000000000000000000000000000000","amount":"100000","expiresAt":1793978503,"linesHash":"0x41552ab61f5ac7450097251d29fe65a0d483d2e95f7a70b94cc17f70376e84ef","rulesHash":"0x518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70","invoiceHash":"0x6c63c5d480f640d3ac22b195a8129cc3c14d1809db6de1a63f014f276b3b5348","restricted":false} 201
+
+curl -s -w ' %{http_code}\n' $APP/api/merchants/duck-cafe/counter
+{"invoice":{"id":"njdayl5o7vyfvvadql7rlscshq","itemId":"chai","name":"Chai","amount":"100000","expiresAt":1793978503,"status":"pending"}} 200
+
+# after the payment settled (also: under 60 s left, or expired)
+curl -s -w ' %{http_code}\n' $APP/api/merchants/duck-cafe/counter
+{"invoice":null} 200
+```
+
+ESP32 loop with the till: read `GET …/counter` every 1–2 s. `null` → show the idle screen. A new `id` → draw its QR
+(`VQ1:<ID>`) and read its signed status every second as in §1; the signed status stays the only proof of payment
+(the counter read carries no signature, and a QR carries only an invoice id). On the first verified `paid` show PAID;
+the counter then answers `null` until the till puts up the next bill. When not `null`, `status` is always `pending`.
+The till itself reads `GET …/counter/latest` (the same invoice in any status) and never the signed status, so the
+ESP32's read is the one that sees `paid`.
+
+### 6.1 What the owner asked reaches 0G on a real robot
+
+Nothing changes on the Radxa: the chip and its scan (§5) are as before. The owner asks in the robot's conversation
+(`$APP/app/robot/<robotId>`: the **Get me a chai / samosa / thali** row, or typed words). That creates an errand
+intent, `POST $APP/api/robots/<robotId>/intents {"instruction", "item"?}`, with the owner's passkey session and the
+app's Origin (the chip cannot call it). For a `kind=chip` robot the intent only waits for the chip's scan: there are no
+navigation turns. The robot's next scan claims it before 0G decides, and `decide` gets `requested` = the item asked
+for and `owner: {instruction, item}`. Native results on the demo allowance (3.00 a day, 1.00 a purchase): asked chai,
+scanned samosa → `walked_away`; asked thali, scanned thali → `awaiting_approval` (over the 1.00 per-payment cap: World
+approval, or a Telegram deny); asked chai, scanned chai → `signing`. Asked chai, scanned thali → `walked_away`: "not
+what the owner asked for" comes before the approval row, so for the approval beat the owner asks for a thali.
+
+- **One open intent per robot:** a second `POST …/intents` while one is `running` or `scanned` → 409
+  `{"error":"this robot already has an open errand intent"}`.
+- **10-minute scan window:** a `running` intent with no scan for 10 minutes ends `expired`, reason
+  `no scan within 10 minutes`. Once scanned it follows its errand (also while a World approval waits past 10 minutes)
+  and ends `finished` with reason `errand <state>` when the errand ends. The owner's Stop
+  (`POST …/intents/<id>/stop`) ends it at once. Without an open intent a scan behaves as in §5.
+- The chip may read its open intent with `GET $APP/api/chips/<robotId>/intent` (chip bearer; 204 without one), for
+  example to say the instruction aloud. The chip CLI does not call it.
+
+From the same native run (owner calls with the session cookie and Origin; the scan through §5.2):
+
+```text
+POST /api/robots/4sai4bguhdynkn7mzretxlyoba/intents {"instruction":"Get me a chai","item":"chai"}
+→ 201 {"id":"maedm5dvlb6j6mmt3ukczxtcu4","robotId":"4sai4bguhdynkn7mzretxlyoba","state":"running","instruction":"Get me a chai","item":"chai","episodeId":null,"episodeState":null,"reason":null,"turns":[],"createdAt":1793977903768}
+POST /api/robots/4sai4bguhdynkn7mzretxlyoba/intents {"instruction":"and a samosa"}
+→ 409 {"error":"this robot already has an open errand intent"}
+POST /api/chips/4sai4bguhdynkn7mzretxlyoba/scans (the till's samosa invoice)
+→ 201 {"episodeId":"fxqntbk7vbniy2i6xljg2plxhu","state":"walked_away","observationId":"6rnshyzyffyo75beqlziqtoxqq"}
+GET /api/robots/4sai4bguhdynkn7mzretxlyoba/intents/maedm5dvlb6j6mmt3ukczxtcu4
+→ 200 {"id":"maedm5dvlb6j6mmt3ukczxtcu4","robotId":"4sai4bguhdynkn7mzretxlyoba","state":"finished","instruction":"Get me a chai","item":"chai","episodeId":"fxqntbk7vbniy2i6xljg2plxhu","episodeState":"walked_away","reason":"errand walked_away","turns":[],"createdAt":1793977903768}
+```

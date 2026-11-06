@@ -254,6 +254,13 @@ records twice), then `POST /api/evidence/:id/uploaded {rootHash, storageTx, logT
 - `GET /api/merchants/:id/items` → the catalogue. `POST /api/merchants/:id/invoices {itemId}` → 201 invoice
   `{id (26-char base32), url: "https://<origin>/api/i/<id>", merchantId, payTo, asset, amount, expiresAt (= now + 600),
   linesHash, rulesHash, invoiceHash, restricted}`.
+- **Counter screen** (6 Nov, hardware counter brief, Kris): `POST /api/merchants/:id/counter {itemId}` mints exactly as
+  `POST …/invoices` and puts the invoice on the merchant's counter display (`counter_display`, one row per merchant,
+  replaced by each tap; only this route writes it); `GET /api/merchants/:id/counter` → compact
+  `{"invoice":{"id","itemId","name","amount","expiresAt","status"}}`, or `{"invoice":null}` when nothing is displayed,
+  it is not `pending`, or it has under 60 s left; `GET …/counter/latest` is the till's read of the same invoice in any
+  status. No session, no Origin. Displaying never claims: scans and §6's counter's-open-invoice rule still take it. The
+  ESP32 pulls it (`docs/hardware-handoff.md` §6); the till (`apps/merchant`) puts it up.
 - `GET /api/i/:id` unpaid → **402**, header `PAYMENT-REQUIRED: <base64 of the body>`, body:
 
 ```json

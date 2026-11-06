@@ -7,12 +7,12 @@ GitHub-hosted runners (the repo is public; no self-hosted runner on this box).
 | --- | --- | --- | --- | --- |
 | `EthMumbai` (app) | `alchemy.run.ts` | `main` | https://vitaquack.com from the cutover below (the workers.dev URL https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev keeps serving) | `check.yml` job `deploy`, every push to `main` after `bun run check` is green |
 | `EthMumbaiSite` (scratch site) | `docs/site/alchemy.run.ts` | `prod` | https://eth-mumbai-site.kristjan-grm11775.workers.dev | `site.yml`, every push to `main` touching `docs/site/**`; no app gates (see `docs/site/README.md`) |
-| `EthMumbaiMerchant` (merchant till) | `apps/merchant/alchemy.run.ts` | `prod` | https://eth-mumbai-merchant.kristjan-grm11775.workers.dev | `merchant.yml`, every push to `main` touching `apps/merchant/**` (its own tests, then deploy); its Worker forwards the five public merchant routes to the app's edge |
+| `EthMumbaiMerchant` (merchant till) | `apps/merchant/alchemy.run.ts` | `prod` | https://eth-mumbai-merchant.kristjan-grm11775.workers.dev | `merchant.yml`, every push to `main` touching `apps/merchant/**` (its own tests, then deploy); its Worker forwards the till's three merchant routes to the app's edge |
 
 The app is one public edge Worker (`Edge`, owns `vitaquack.com` and the workers.dev URL) in front of the API Worker (`Api`) and the Foldkit
 SSR Worker (`Website`), which have no public URLs; plus D1 `Database` and R2 `Media`. The merchant till is one
 static-site Worker (`Till`, physical name pinned to `eth-mumbai-merchant`): it serves its Vite build and forwards only
-the till's merchant routes (`/api/merchants/<id>/{items,invoices,gate-key}`, `/api/invoices/<id>/status`) to the app's
+the till's merchant routes (`/api/merchants/<id>/{items,counter,counter/latest}`) to the app's
 edge (`APP_ORIGIN`), never cookies; it has no D1, R2 or secrets of its own.
 
 On `vitaquack.com` the edge serves the static landing at `/` (docs/site/pitch, copied into the build by
