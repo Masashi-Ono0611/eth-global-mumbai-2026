@@ -91,8 +91,8 @@ https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (both contracts, 
 the invoice, the budget, the policy flags), each decision stored with its 0G request id and response key, a safe stop on
 any 0G failure (never a faked decision), and every episode uploaded to 0G Storage and anchored in `EpisodeLog` on 0G
 Chain (Galileo). Proven: the decision loop, the safe stop and the evidence queue against a stub 0G on the native Worker
-(`packages/server/test/RobotAcceptance.ts`). _Fill in: a real 0G decision on the deployed app (request id), the first
-uploaded episode (root hash) and `EpisodeLog` address `0x…` with its record tx._
+(`packages/server/test/RobotAcceptance.ts`). `EpisodeLog` is deployed on 0G Galileo (16602) at `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (deploy tx
+[0xe4eb07f3…bf69](https://chainscan-galileo.0g.ai/tx/0xe4eb07f387cc5a767c019f150cc7abca7424fa68ae092ab50fe1bc49b2bebf69), code = build). _Fill in: a real 0G decision on the deployed app (request id) and the first uploaded episode (root hash, record tx)._
 
 ### World — Agent Pass
 
@@ -124,7 +124,7 @@ during the event too.
 ## What is not finished (keep honest at submission time)
 
 - A real 0G decision and a paid robot errand on the deployed app: _pending `APP_ZG_*`_.
-- The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: _pending deploy and gas_.
+- The evidence uploader against 0G Storage and `EpisodeLog` on Galileo: contract deployed (`0x4C94…206A`), first upload _pending a paid episode_.
 - A live World approve and deny: _pending the World IdP client_.
 - On-chain verification of the World token (the S5b prototype) is a stretch; the backend co-signer is what runs.
 - The physical duck walking to the till; the virtual loop (mock chip + web gate) is the demo.
@@ -138,5 +138,5 @@ during the event too.
 | Demo video 2–4 min, ≥ 720p, real narration, ≤ 4 bullets per slide | _record from `docs/video-script.md`_ |
 | Up to 3 partner prizes with integration + feedback | Arc, 0G, World above; World debrief in `docs/world-debrief.md` |
 | Arc: shareable Studio URL, Studio in the demo, working frontend + backend, architecture diagram, Arc/Circle tools named | Studio URL https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75; the rest above |
-| 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | contract address and live ids _fill in_ |
+| 0G: 0G call in the loop, Storage episode log with request ids, safe stop, contract addresses, README setup, video < 3 min | `EpisodeLog` `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` (Galileo); live ids _fill in_ |
 | World: official Agent Pass, full journey incl. deny/expired, backend validation, debrief | live run _fill in_ |
