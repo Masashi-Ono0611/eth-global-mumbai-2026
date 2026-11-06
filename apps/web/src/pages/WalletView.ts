@@ -158,6 +158,16 @@ const askCard = (model: Model, need: NeedsYou, locale: Locale, h: HtmlBuilder<Me
   )
 }
 
+/** What the robot's latest errand says about it, while it is live or when it ended in a way worth a line. */
+const errandLine = (episode: Home['episodes'][number], locale: Locale): string | null => {
+  const item = episode.item
+  if (episode.state === 'awaiting_approval') return format(locale, 'home.lineWaiting', {})
+  if (!terminalStates.has(episode.state)) return format(locale, 'home.lineBusy', { item })
+  if (episode.state === 'paid') return format(locale, 'home.linePaid', { item })
+  if (episode.state === 'denied') return format(locale, 'home.lineDenied', { item })
+  return null
+}
+
 /** The robot's last line, in its own words where the errand's state supports them. */
 const robotLine = (robot: RobotView, home: Home, locale: Locale): string => {
   if (robot.status === 'unpaired')
@@ -165,13 +175,8 @@ const robotLine = (robot: RobotView, home: Home, locale: Locale): string => {
       ? format(locale, 'home.lineCodeExpired', {})
       : format(locale, 'home.linePairing', { code: robot.pairingCode })
   const latest = home.episodes.find((episode) => episode.robotId === robot.id)
-  if (latest !== undefined) {
-    const item = latest.item
-    if (latest.state === 'awaiting_approval') return format(locale, 'home.lineWaiting', {})
-    if (!terminalStates.has(latest.state)) return format(locale, 'home.lineBusy', { item })
-    if (latest.state === 'paid') return format(locale, 'home.linePaid', { item })
-    if (latest.state === 'denied') return format(locale, 'home.lineDenied', { item })
-  }
+  const fromErrand = latest === undefined ? null : errandLine(latest, locale)
+  if (fromErrand !== null) return fromErrand
   if (!robot.lease.online) return format(locale, 'home.lineOffline', {})
   if (robot.grant === null || robot.grant.status !== 'active') return format(locale, 'home.lineNoAllowance', {})
   const left = leftToday(robot.grant)
