@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flow mock A2: one payment, step by step (refined)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="shared.css" />
+    <style>
+      .stage { padding-top: 0.5rem; }
+      .ticket { display: flex; justify-content: center; gap: 0.75rem; margin: 0 0 1.4rem; }
+      .ticket span { font: 600 0.95rem/1 var(--body); padding: 0.55rem 0.9rem; border-radius: 999px; background: rgb(255 248 234 / 0.1); color: var(--soft); transition: opacity 0.4s; }
+      .ticket .item { background: rgb(255 231 176 / 0.16); color: var(--paper); }
+      .ticket .item b { font-weight: 700; }
+      .caption { min-height: 4.6rem; text-align: center; margin: 0 auto 1.6rem; max-width: 46rem; opacity: 0; transform: translateY(0.3rem); transition: opacity 0.35s, transform 0.35s; }
+      .caption.show { opacity: 1; transform: none; }
+      .caption .who { display: block; font: 600 0.95rem/1 var(--body); color: var(--chip); margin-bottom: 0.5rem; }
+      .caption .text { font: 700 clamp(1.3rem, 2.3vw, 1.9rem) / 1.2 var(--display); letter-spacing: -0.01em; text-wrap: balance; }
+      .caption.off .who { color: var(--faint); } .caption.off .text { color: var(--faint); font-weight: 500; }
+      .caption.no .who { color: var(--no); }
+      .rail { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); padding-top: 1.2rem; }
+      .rail ol { display: contents; }
+      .rail li { display: grid; justify-items: center; gap: 0.55rem; list-style: none; }
+      .mark { width: 3.9rem; height: 3.9rem; }
+      .mark svg { width: 1.95rem; height: 1.95rem; }
+      .name { font-size: 0.95rem; }
+      .line { position: absolute; left: calc(100% / 12); right: calc(100% / 12); top: calc(1.2rem + 1.95rem); height: 2px; background: rgb(255 231 176 / 0.35); }
+      .cursor { position: absolute; top: 0; width: 0; height: 0; margin-left: -0.5rem; border: 0.5rem solid transparent; border-top: 0.6rem solid var(--chip); border-bottom: 0; transition: left 0.8s cubic-bezier(0.45, 0, 0.55, 1), border-top-color 0.4s, opacity 0.4s; }
+      .cursor.off { border-top-color: rgb(255 248 234 / 0.4); } .cursor.no { border-top-color: var(--no); }
+      .dot { position: absolute; top: calc(1.2rem + 1.95rem); width: 1rem; height: 1rem; margin: -0.5rem 0 0 -0.5rem; border-radius: 50%; background: var(--chip); box-shadow: 0 0 1.2rem 0.35rem rgb(63 214 196 / 0.75); transition: left 0.8s cubic-bezier(0.45, 0, 0.55, 1), opacity 0.4s, background 0.4s, box-shadow 0.4s; }
+      .dot.trail { opacity: 0.4; transition-delay: 0.08s; }
+      .dot.no { background: var(--no); box-shadow: 0 0 1.2rem 0.35rem rgb(255 138 128 / 0.6); }
+      @media (max-width: 40rem) { .mark { width: 2.8rem; height: 2.8rem; } .mark svg { width: 1.4rem; height: 1.4rem; } .name { font-size: 0.75rem; } .line, .dot { top: calc(1.2rem + 1.4rem); } .ticket { flex-wrap: wrap; } .ticket span { font-size: 0.8rem; } .caption .text { font-size: 1.15rem; } }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="ticket"><span class="item" id="item"></span><span id="spent"></span></div>
+      <div class="caption" id="caption"><span class="who" id="who"></span><span class="text" id="text"></span></div>
+      <div class="rail">
+        <div class="line"></div>
+        <div class="cursor" id="cursor"></div>
+        <div class="dot trail" id="trail"></div>
+        <div class="dot" id="dot"></div>
+        <ol id="stops"></ol>
+      </div>
+    </div>
+    <script type="module">
+      import { ICONS, STOPS, shell, reduced } from './shared.js'
+      shell('A2')
+      const stops = document.getElementById('stops')
+      stops.innerHTML = STOPS.map((s) => `<li><span class="mark" data-id="${s.id}">${ICONS[s.id]}</span><span class="name">${s.name}</span></li>`).join('')
+      const at = (i) => `${((i + 0.5) / 6) * 100}%`
+      const marks = [...stops.querySelectorAll('.mark')]
+      const $ = (id) => document.getElementById(id)
+      const [dot, trail, cursor, caption, who, text, item, spent] = ['dot', 'trail', 'cursor', 'caption', 'who', 'text', 'item', 'spent'].map($)
+      // Plain words only. 'off' = this stop is not needed this time; 'no' = refused.
+      const scenarios = [
+        { item: '<b>Chai</b> · 0.10 USDC · Duck Café', spent: 'Budget: 3.00 a day, 1.00 a go', steps: [
+          [0, 'You set the budget: 3.00 a day, 1.00 a go, Duck Café only. One tap.'],
+          [1, 'The robot picks up the bill: chai, 0.10.'],
+          [2, 'Its brain checks: within the budget, right place. Buy.'],
+          [3, 'Within the limit, so no need to ask you.', 'off'],
+          [4, 'Arc checks the rules and moves 0.10 USDC. Half a second.'],
+          [5, 'The stall sees "paid" and opens its gate.'],
+        ] },
+        { item: '<b>Thali</b> · 2.00 USDC · Duck Café', spent: 'Spent today: 0.10 of 3.00', steps: [
+          [1, 'The bill: a thali, 2.00.'],
+          [2, 'Over the 1.00 limit. Its brain says: ask the owner.'],
+          [0, 'Your phone asks. You say yes.'],
+          [3, 'World checks it\'s really you, for this exact payment.'],
+          [4, 'Arc sees your yes and moves 2.00 USDC.'],
+          [5, 'The gate opens.'],
+        ] },
+        { item: '<b>Off switch</b>', spent: 'Spent today: 2.10 of 3.00', steps: [
+          [0, 'You switch the robot off. One tap.'],
+          [4, 'Arc locks the budget.'],
+          [1, 'Next chai? Refused by Arc itself. Not even we could change that.', 'no'],
+        ] },
+      ]
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+      const run = async () => {
+        for (;;) {
+          for (const sc of scenarios) {
+            item.innerHTML = sc.item; spent.textContent = sc.spent
+            marks.forEach((m) => m.classList.remove('on', 'off', 'no'))
+            for (const [i, line, kind] of sc.steps) {
+              for (const el of [dot, trail, cursor]) { el.style.left = at(i); el.classList.toggle('no', kind === 'no'); el.classList.toggle('off', kind === 'off') }
+              dot.style.opacity = kind === 'off' ? 0.3 : 1
+              caption.classList.remove('show')
+              await sleep(reduced ? 0 : 820)
+              marks.forEach((m) => m.classList.remove('on'))
+              marks[i].classList.add(kind === 'off' ? 'off' : kind === 'no' ? 'no' : 'on')
+              who.textContent = STOPS[i].name; text.textContent = line
+              caption.className = `caption show ${kind ?? ''}`
+              await sleep(kind === 'off' ? 1500 : 2600)
+            }
+            caption.classList.remove('show')
+            await sleep(900)
+          }
+        }
+      }
+      run()
+    </script>
+  </body>
+</html>

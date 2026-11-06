@@ -38,19 +38,19 @@
       const line = (id, what, sub, val, cls = '') => ({ id, what, sub, val, cls })
       const receipts = [
         { title: 'Chai', amount: '0.10 USDC', total: 'Spent today <b>0.10</b> of 3.00', lines: [
-          line('gate', 'Invoice from the till', 'Duck Café · 7asbeh…', '0.10'),
+          line('store', 'The bill from the stall', 'Duck Café · 7asbeh…', '0.10'),
           line('zg', '0G decided: buy', 'within budget · request id 5ca4a212…', 'ok'),
           line('robot', 'The chip signed', 'the robot\'s own key, on the robot', 'ok'),
           line('arc', 'Settled on Arc mainnet', 'tx 0xa18da6c6…814a · 0.5 s', '0.10'),
-          line('gate', 'Gate', 'saw a signed "paid"', 'OPEN'),
+          line('store', 'Store', 'saw a signed "paid": gate open', 'OPEN'),
         ] },
         { title: 'Thali', amount: '2.00 USDC', total: 'Spent today <b>2.10</b> of 3.00', lines: [
-          line('gate', 'Invoice from the till', 'Duck Café · thali', '2.00'),
+          line('store', 'The bill from the stall', 'Duck Café · thali', '2.00'),
           line('zg', '0G decided: ask you', 'over the 1.00 per-payment cap', 'ask', 'muted'),
           line('you', 'You, on your phone', 'approve', 'yes'),
           line('world', 'World ID: a verified human', 'bound to this exact payment', 'ok'),
           line('arc', 'Settled on Arc, co-signed', 'the approval is checked on-chain', '2.00'),
-          line('gate', 'Gate', '', 'OPEN'),
+          line('store', 'Store', 'gate open', 'OPEN'),
         ] },
         { title: 'Revoke', amount: '', total: 'Budget <b>off</b>', lines: [
           line('you', 'You revoke the budget', 'one passkey signature', 'done'),

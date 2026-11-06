@@ -34,7 +34,7 @@
       import { ICONS, STOPS, shell, reduced } from './shared.js'
       shell('D')
       const orbit = document.getElementById('orbit')
-      const sats = { you: 200, zg: 320, world: 20, arc: 70, gate: 130 } // degrees around the robot
+      const sats = { you: 200, zg: 320, world: 20, arc: 70, store: 130 } // degrees around the robot
       const R = 50 // percent of the box
       const pos = (deg) => { const r = (deg * Math.PI) / 180; return { x: 50 + R * Math.cos(r), y: 50 + R * Math.sin(r) } }
       orbit.insertAdjacentHTML('beforeend', Object.entries(sats).map(([id, deg]) => `<div class="spoke" id="spoke-${id}" style="transform: rotate(${deg}deg)"><span class="pulse"></span></div>`).join(''))
@@ -44,19 +44,19 @@
       // Each hop: between the robot and one satellite, out or in, with what it means.
       const hops = [
         ['you', 'in', 'You', 'A budget, with one passkey signature', '3.00 a day, 1.00 a go, Duck Café only. The money stays in your wallet; the rules go to Arc.'],
-        ['gate', 'in', 'Gate', 'The till hands over an invoice', 'Chai, 0.10 USDC, as an x402 invoice.'],
+        ['store', 'in', 'Store', 'The stall hands over the bill', 'Chai, 0.10 USDC.'],
         ['zg', 'out', '0G', 'The robot asks its brain', 'Facts only: the item, the price, the budget, the policy.'],
         ['zg', 'in', '0G', 'Decides: buy', 'Logged with a request id; the whole errand lands on 0G Storage.'],
         ['arc', 'out', 'Arc', 'The chip signs; Arc checks the caps', 'Settled in USDC in half a second, on mainnet.'],
-        ['gate', 'out', 'Gate', 'A signed "paid": the gate opens', ''],
-        ['gate', 'in', 'Gate', 'Next invoice: a thali, 2.00', ''],
+        ['store', 'out', 'Store', 'The stall sees "paid" and opens its gate', ''],
+        ['store', 'in', 'Store', 'Next bill: a thali, 2.00', ''],
         ['zg', 'out', '0G', 'The robot asks its brain', ''],
         ['zg', 'in', '0G', 'Decides: ask you', 'It\'s over the 1.00 per-payment cap.'],
         ['you', 'out', 'You', 'Your phone asks', ''],
         ['world', 'out', 'World', 'A fresh World ID check', 'Bound to this exact payment. Say no and nothing is signed.'],
         ['world', 'in', 'World', 'Approved by a verified human', 'The backend co-signs this one payment.'],
         ['arc', 'out', 'Arc', 'Arc checks the approval and settles', ''],
-        ['gate', 'out', 'Gate', 'The gate opens', ''],
+        ['store', 'out', 'Store', 'The gate opens', ''],
         ['you', 'in', 'You', 'You switch it off', 'One passkey signature revokes the budget on Arc.'],
         ['arc', 'out', 'Arc', 'The next payment is refused by Arc itself', 'Not even our servers could override that.', 'no'],
       ]

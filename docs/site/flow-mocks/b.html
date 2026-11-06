@@ -45,7 +45,7 @@
         arc: { x: 300, y: 232, name: 'Arc mainnet', does: ['the budget as a contract;', 'USDC settles in 0.5 s'] },
         zg: { x: 500, y: 232, name: '0G', does: ['decides buy / ask / walk;', 'keeps every errand'] },
         world: { x: 740, y: 232, name: 'World', does: ['a fresh human yes,', 'per payment'] },
-        gate: { x: 700, y: 378, name: 'Gate', does: ['x402 invoice;', 'opens on "paid"'] },
+        store: { x: 700, y: 378, name: 'Store', does: ['hands over the bill;', 'opens on "paid"'] },
       }
       const icon = (id, x, y, size) => ICONS[id].replace('<svg ', `<svg x="${x - size / 2}" y="${y - size / 2}" width="${size}" height="${size}" `)
       document.getElementById('nodes').innerHTML = Object.entries(N).map(([id, n]) => `
@@ -59,11 +59,11 @@
         { id: 'ask', d: curve('robot', 'zg', -40), label: 'decide?', dur: 1.3 },
         { id: 'answer', d: curve('zg', 'robot', 40), label: 'buy', dur: 1.3 },
         { id: 'sign', d: curve('robot', 'arc', -130), label: 'signed payment', dur: 1.8 },
-        { id: 'paid', d: curve('arc', 'gate', 120), label: 'paid', dur: 1.8 },
+        { id: 'paid', d: curve('arc', 'store', 120), label: 'paid', dur: 1.8 },
         { id: 'asks', d: curve('zg', 'you', -40), label: 'over the cap: ask you', dur: 1.5 },
         { id: 'yes', d: curve('you', 'world', -120), label: 'yes, with World ID', kind: 'human', dur: 1.8 },
         { id: 'approval', d: curve('world', 'arc', 90), label: 'approval, bound to this payment', dur: 1.6 },
-        { id: 'paid2', d: curve('arc', 'gate', 120), label: '', dur: 1.8 },
+        { id: 'paid2', d: curve('arc', 'store', 120), label: '', dur: 1.8 },
       ]
       document.getElementById('edges').innerHTML = E.filter((e) => e.id !== 'paid2').map((e) => `<path id="e-${e.id}" class="edge" d="${e.d}" />`).join('') +
         E.filter((e) => e.label && e.id !== 'paid2').map((e) => `<text class="edge-label" dy="-6"><textPath href="#e-${e.id}" startOffset="50%">${e.label}</textPath></text>`).join('')
