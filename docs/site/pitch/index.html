@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Vitaquack — the pitch: a robot of your own, with a budget</title>
-    <meta name="description" content="Every robot will need to pay. Its key should live on the robot, its rules on a public chain, and the money in your wallet." />
+    <title>Vitaquack — a robot of your own, with a budget, not your wallet</title>
+    <meta name="description" content="Everyone will have a robot of their own, and a robot that does things has to pay. Its key belongs on the robot, its rules on a public chain, and the money in your wallet." />
     <meta name="theme-color" content="#16173a" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,7 +16,7 @@
         --lamp: #ffe7b0;
         --chip: #3fd6c4;
         --paper: #fff8ea;
-        --soft: rgb(255 248 234 / 0.8);
+        --soft: rgb(255 248 234 / 0.82);
         --faint: rgb(255 248 234 / 0.55);
         --display: 'Bricolage Grotesque', system-ui, sans-serif;
         --body: 'Nunito Sans', system-ui, sans-serif;
@@ -30,47 +30,31 @@
 
       .chapter { position: relative; min-height: 100svh; display: grid; overflow: hidden; isolation: isolate; }
       .film { align-items: end; }
-      .film video, .film img.poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+      .film video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
       .film::after {
-        content: ''; position: absolute; inset: auto 0 0 0; height: 60%; z-index: -1; pointer-events: none;
+        content: ''; position: absolute; inset: auto 0 0 0; height: 62%; z-index: -1; pointer-events: none;
         background: linear-gradient(to top, rgb(22 23 58 / 0.94), rgb(22 23 58 / 0.55) 45%, transparent);
       }
       .words { padding: 0 clamp(1.25rem, 6vw, 5.5rem) clamp(2rem, 8vh, 5rem); max-width: 48rem; }
+      .words.wide { max-width: 64rem; }
       .part { margin: 0 0 0.9rem; font: 500 0.95rem/1.2 var(--display); color: var(--lamp); }
       h1, h2 {
         margin: 0 0 0.6rem; font: 700 clamp(2.3rem, 5.8vw, 4.4rem) / 1.02 var(--display);
         letter-spacing: -0.02em; text-wrap: balance; text-shadow: 0 0.06em 0.5em rgb(22 23 58 / 0.5);
       }
-      .lede { margin: 0; max-width: 36rem; font-size: clamp(1.05rem, 1.45vw, 1.28rem); color: var(--soft); text-wrap: pretty; }
+      .lede { margin: 0; max-width: 38rem; font-size: clamp(1.05rem, 1.45vw, 1.28rem); color: var(--soft); text-wrap: pretty; }
+      .credit { margin: 1.1rem 0 0; font: 600 0.95rem/1.3 var(--body); color: var(--chip); }
+      .credit::before { content: ''; display: inline-block; width: 0.55rem; height: 0.55rem; margin-right: 0.5rem; border-radius: 50%; background: currentColor; vertical-align: 0.05em; }
 
-      /* Plain chapters: no film, the words carry the screen. */
-      .plain { align-content: center; padding: clamp(3rem, 10vh, 6rem) clamp(1.25rem, 6vw, 5.5rem); background: var(--night); }
-      .plain .inner { max-width: 68rem; }
-      .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: clamp(1rem, 3vw, 2.5rem); margin: 2.25rem 0 0; }
-      .option { padding: clamp(1.5rem, 2.5vw, 2.25rem) clamp(1.6rem, 2.6vw, 2.4rem); border-radius: 1.25rem; background: var(--night-2); }
-      .option h3 { margin: 0 0 0.5rem; font: 700 clamp(1.6rem, 2.6vw, 2.3rem)/1.15 var(--display); }
-      .option p { margin: 0; color: var(--soft); font-size: clamp(1.05rem, 1.5vw, 1.3rem); }
-      .option.bad h3 { text-decoration: line-through; text-decoration-color: rgb(255 120 120 / 0.85); text-decoration-thickness: 0.09em; }
-
-      .where { margin: 2rem 0 0; display: grid; gap: 0; max-width: 64rem; }
-      .where div { display: grid; grid-template-columns: minmax(9rem, 15rem) 1fr; gap: 0.25rem 1.5rem; padding: 0.95rem 0; border-top: 1px solid rgb(255 248 234 / 0.14); }
-      .where dt { font: 700 clamp(1.15rem, 1.6vw, 1.45rem)/1.3 var(--display); }
-      .where dd { margin: 0; color: var(--soft); font-size: clamp(1rem, 1.3vw, 1.2rem); }
-      .where .device dt::before, .where .chain dt::before {
-        content: ''; display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: 0.6rem; border-radius: 50%; vertical-align: 0.1em;
-      }
-      .where .device dt::before { background: var(--chip); box-shadow: 0 0 0.6rem var(--chip); }
-      .where .chain dt::before { background: var(--lamp); }
-      .where .cloud dt, .where .cloud dd { color: var(--faint); }
-      .key { margin: 1.25rem 0 0; font-size: 0.92rem; color: var(--faint); }
-      .key span { white-space: nowrap; margin-right: 1.25rem; }
-      .key span::before { content: ''; display: inline-block; width: 0.55rem; height: 0.55rem; margin-right: 0.45rem; border-radius: 50%; vertical-align: 0.05em; }
-      .key .k-device::before { background: var(--chip); }
-      .key .k-chain::before { background: var(--lamp); }
-      @media (max-width: 40rem) { .where div { grid-template-columns: 1fr; } }
+      /* Screen 3: the real build, six photos under the title. */
+      .strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; margin: 1.5rem 0 0; max-width: 60rem; list-style: none; padding: 0; }
+      .strip li { aspect-ratio: 1; border-radius: 0.75rem; overflow: hidden; background: var(--night-2); }
+      .strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      @media (max-width: 48rem) { .strip { grid-template-columns: repeat(3, 1fr); } }
 
       .live { place-content: center; text-align: center; background: radial-gradient(60rem 40rem at 50% 60%, #2a2c66, var(--night)); }
       .live h2 { font-size: clamp(3rem, 10vw, 7rem); }
+      .live .lede { margin-inline: auto; }
       .buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.75rem; }
       .buttons a { text-decoration: none; font: 700 1rem/1 var(--display); padding: 0.9rem 1.25rem; border-radius: 999px; background: var(--lamp); color: var(--night); }
       .buttons a.quiet { background: rgb(255 248 234 / 0.12); color: var(--paper); }
@@ -81,86 +65,81 @@
       .hint { position: fixed; right: 1rem; bottom: 1rem; margin: 0; font-size: 0.8rem; color: var(--faint); z-index: 2; }
       @media (hover: none) { .hint { display: none; } }
       @media (max-aspect-ratio: 3/4) {
-        .film video, .film img.poster { object-position: 55% 50%; }
-        .film::after { height: 70%; }
+        .film video { object-position: 55% 50%; }
+        .film::after { height: 72%; }
       }
     </style>
   </head>
   <body>
     <main>
-      <!-- Part 1: the vision -->
+      <!-- Part 1: the future -->
       <section class="chapter film" tabindex="-1" aria-labelledby="c1">
         <video muted loop playsinline preload="metadata" poster="media/rv1.webp" data-src="media/rv1.mp4" aria-hidden="true"></video>
         <div class="words">
-          <p class="part">The idea</p>
           <h1 id="c1">Soon, everyone will have a robot of their own.</h1>
-          <p class="lede">It will fetch the shopping, pick up the parcel and run the errands you don't have time for.</p>
+          <p class="lede">It'll run the errands you don't have time for. And a robot that does things has to pay for them.</p>
         </div>
       </section>
 
       <section class="chapter film" tabindex="-1" aria-labelledby="c2">
-        <video muted loop playsinline preload="metadata" poster="media/rv2.webp" data-src="media/rv2.mp4" aria-hidden="true"></video>
+        <!-- Plays once and holds on the chip: the film itself goes from the card to the robot's own key. -->
+        <video muted playsinline preload="metadata" poster="media/f2.webp" data-src="media/f2.mp4" data-once aria-hidden="true"></video>
         <div class="words">
-          <h2 id="c2">A robot that does things has to pay for them.</h2>
-          <p class="lede">Chai at the corner stall, a charge at the kerb, a parcel at the locker. Real errands cost real money, paid on the spot.</p>
-        </div>
-      </section>
-
-      <section class="chapter plain" tabindex="-1" aria-labelledby="c3">
-        <div class="inner">
-          <h2 id="c3">Today it has two bad ways to pay.</h2>
-          <div class="options">
-            <div class="option bad">
-              <h3>Your card</h3>
-              <p>It can spend everything you have, and you find out afterwards.</p>
-            </div>
-            <div class="option bad">
-              <h3>A wallet in someone's cloud</h3>
-              <p>A company holds the keys. It can freeze them, lose them or shut down, and your robot stops paying.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="chapter film" tabindex="-1" aria-labelledby="c4">
-        <video muted loop playsinline preload="metadata" poster="media/rv3.webp" data-src="media/rv3.mp4" aria-hidden="true"></video>
-        <div class="words">
-          <h2 id="c4">The key belongs on the robot.</h2>
-          <p class="lede">The robot carries its own key on its own chip, and it never leaves. Your rules sit on a public chain, not on our servers. Your money stays in your wallet: the robot only gets permission to spend it.</p>
-        </div>
-      </section>
-
-      <section class="chapter plain" tabindex="-1" aria-labelledby="c5">
-        <div class="inner">
-          <h2 id="c5">Who holds what</h2>
-          <dl class="where">
-            <div class="device"><dt>Your key</dt><dd>A passkey on your phone. No seed phrase, no password.</dd></div>
-            <div class="device"><dt>The robot's key</dt><dd>On the robot's own chip. It signs every payment and never leaves the chip.</dd></div>
-            <div class="chain"><dt>Your money</dt><dd>In your own wallet on Arc, in USDC. Nobody else can move it.</dd></div>
-            <div class="chain"><dt>The rules</dt><dd>A contract on Arc: how much a day, how much at once, where, until when. Arc checks every payment.</dd></div>
-            <div class="chain"><dt>Its decisions</dt><dd>Made by AI on 0G, each one logged, and every errand kept on 0G Storage.</dd></div>
-            <div class="device"><dt>The big yeses</dt><dd>You, on your phone, proving with World ID that a real person approved.</dd></div>
-            <div class="cloud"><dt>Our servers</dt><dd>Pass messages along. They can't spend a cent, and if they vanish your money is still yours. Next, the robot's agent moves onto the robot too.</dd></div>
-          </dl>
-          <p class="key"><span class="k-device">on a device you hold</span><span class="k-chain">on a public network</span></p>
+          <h2 id="c2">Not your card. Not a company's wallet. Its own key.</h2>
+          <p class="lede">Today a robot can only pay with your card, or from a wallet a company holds for it. Either way, someone else is in control. So the key lives on the robot, your rules live on a public chain, and your money stays in your own wallet.</p>
         </div>
       </section>
 
       <!-- Part 2: what we built -->
-      <section class="chapter film" tabindex="-1" aria-labelledby="c6">
+      <section class="chapter film" tabindex="-1" aria-labelledby="c3">
         <video muted loop playsinline preload="metadata" poster="media/rv4.webp" data-src="media/rv4.mp4" aria-hidden="true"></video>
-        <div class="words">
+        <div class="words wide">
           <p class="part">What we built this weekend</p>
-          <h2 id="c6">The first version works, with real money.</h2>
-          <p class="lede">A passkey wallet, a robot with its own key, a budget it can't break and you in the loop for the big ones. Live on Arc mainnet with real USDC.</p>
+          <h2 id="c3">The first version works, with real money.</h2>
+          <p class="lede">A passkey wallet, a robot with its own key, a budget it can't break, and you in the loop for the big ones. Live on Arc mainnet with real USDC.</p>
+          <ul class="strip" aria-label="Photos from the build">
+            <li><img src="media/build-radxa.webp" alt="The robot's brain, a Radxa Zero 3W board, held in a hand" loading="lazy" /></li>
+            <li><img src="media/build-esp32.webp" alt="The gate's ESP32 board" loading="lazy" /></li>
+            <li><img src="media/build-display.webp" alt="The gate's little display wired to its board on the table" loading="lazy" /></li>
+            <li><img src="media/build-printer.webp" alt="The 3D printer printing the duck's parts" loading="lazy" /></li>
+            <li><img src="media/build-car.webp" alt="The 3D printer riding in a car through Mumbai" loading="lazy" /></li>
+            <li><img src="media/build-team.webp" alt="The team at the hackathon table" loading="lazy" /></li>
+          </ul>
         </div>
       </section>
 
-
-      <section class="chapter live" tabindex="-1" aria-labelledby="c8">
+      <section class="chapter film" tabindex="-1" aria-labelledby="c4">
+        <video muted loop playsinline preload="metadata" poster="media/f4.webp" data-src="media/f4.mp4" aria-hidden="true"></video>
         <div class="words">
-          <h2 id="c8">Now, live.</h2>
-          <p class="lede" style="margin-inline: auto">A chai within budget, a bigger buy that asks, and the off switch.</p>
+          <h2 id="c4">You give it a budget, not your wallet.</h2>
+          <p class="lede">One tap: three dollars a day, one dollar a go, only at the stall you pick. The money stays in your wallet. The rules sit on Arc, and not even we can bend them.</p>
+          <p class="credit">Enforced on Arc</p>
+        </div>
+      </section>
+
+      <section class="chapter film" tabindex="-1" aria-labelledby="c5">
+        <video muted loop playsinline preload="metadata" poster="media/rv2.webp" data-src="media/rv2.mp4" aria-hidden="true"></video>
+        <div class="words">
+          <h2 id="c5">It shops for you.</h2>
+          <p class="lede">Chai at the stall: it decides, its chip signs, Arc settles, the gate opens. Every decision comes with a reason you can read later.</p>
+          <p class="credit">Decided by 0G, every errand kept on 0G Storage</p>
+        </div>
+      </section>
+
+      <section class="chapter film" tabindex="-1" aria-labelledby="c6">
+        <video muted loop playsinline preload="metadata" poster="media/f6.webp" data-src="media/f6.mp4" aria-hidden="true"></video>
+        <div class="words">
+          <h2 id="c6">Bigger things ask you first.</h2>
+          <p class="lede">A two-dollar thali is over its limit, so your phone asks. You prove it's really you with World ID and say yes or no. Say no and nothing is paid. Over the day's budget it simply walks away. And one tap switches it off; not even our servers can undo that.</p>
+          <p class="credit">A verified human, with World ID</p>
+        </div>
+      </section>
+
+      <!-- Part 3: live, then the close -->
+      <section class="chapter live" tabindex="-1" aria-labelledby="c7">
+        <div class="words">
+          <h2 id="c7">Now, live.</h2>
+          <p class="lede">A chai within budget, a thali that asks, and the off switch.</p>
           <nav class="buttons" aria-label="Open">
             <a href="https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev/">Open the wallet</a>
             <a class="quiet" href="/architecture/">How it works</a>
@@ -168,12 +147,11 @@
         </div>
       </section>
 
-      <!-- Part 3: what's next -->
-      <section class="chapter film" tabindex="-1" aria-labelledby="c9">
+      <section class="chapter film" tabindex="-1" aria-labelledby="c8">
         <video muted loop playsinline preload="metadata" poster="media/rv5.webp" data-src="media/rv5.mp4" aria-hidden="true"></video>
         <div class="words">
           <p class="part">Next</p>
-          <h2 id="c9">A robot for everyone, with a budget, not your wallet.</h2>
+          <h2 id="c8">A robot for everyone, with a budget, not your wallet.</h2>
           <ul class="next">
             <li>The robot's agent runs on the robot, not on our servers</li>
             <li>Several robots on one wallet, each with its own budget</li>
@@ -183,7 +161,7 @@
       </section>
     </main>
     <footer>
-      <p>The films are illustrations, generated with Qwen Image and Wan. In today's demo the robot's chip software runs on a laptop beside the duck; signing on the duck's own board (a Radxa Zero 3W) works in a bench test.</p>
+      <p>The films are illustrations, generated with Qwen Image and Wan. The six photos are from the build. In today's demo the robot's chip software runs on a laptop beside the duck; signing on the duck's own board (a Radxa Zero 3W) works in a bench test.</p>
       <p>The duck is our modified <a href="https://github.com/apirrone/Open_Duck_Mini">Open Duck Mini</a> (Apache-2.0). Built at ETHGlobal Mumbai 2026 on Arc, 0G and World. <a href="https://github.com/grmkris/eth-global-mumbai-2026">Source on GitHub</a>.</p>
     </footer>
     <p class="hint">Space or arrow keys for the next screen</p>
@@ -199,6 +177,8 @@
               if (!video) continue
               if (isIntersecting) {
                 if (!video.src) video.src = video.dataset.src
+                // A play-once film restarts each time its screen comes back, then holds its last frame.
+                if (video.hasAttribute('data-once')) video.currentTime = 0
                 video.play().catch(() => {})
               } else video.pause()
             }
