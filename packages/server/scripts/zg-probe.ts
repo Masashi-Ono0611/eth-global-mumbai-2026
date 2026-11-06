@@ -77,7 +77,7 @@ const probe = Effect.gen(function* () {
   const { call } = outcome
   yield* Console.log(`status  ${call.httpStatus ?? 'no answer'}`)
   yield* Console.log(`latency ${call.latencyMs} ms`)
-  yield* Console.log(`request ${call.requestId ?? '-'}   chat ${call.chatId ?? '-'}   provider ${call.provider ?? '-'}`)
+  yield* Console.log(`request ${call.requestId ?? '-'}   chat ${call.chatId ?? '-'}   brain ${call.provider}`)
   if (outcome.ok) {
     yield* Console.log(`decision ${outcome.result.action}: ${outcome.result.reason}`)
     return 0

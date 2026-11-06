@@ -46,7 +46,7 @@ describe('0G decide call', () => {
     expect(outcome).toMatchObject({
       ok: true,
       result: { action: 'pay' },
-      call: { requestId: 'trace-1', chatId: 'chat-1' },
+      call: { requestId: 'trace-1', chatId: 'chat-1', provider: 'brain.example/m@0xabc' },
     })
     expect(stub.sent[0]?.url).toBe('https://brain.example/v1/chat/completions')
   })
@@ -55,7 +55,7 @@ describe('0G decide call', () => {
     const outcome = await run(
       answering({ id: 'body-id', choices: [{ message: toolCall }] }, { 'zg-res-key': 'chat-2' }),
     )
-    expect(outcome.call).toMatchObject({ requestId: 'chat-2', chatId: 'chat-2' })
+    expect(outcome.call).toMatchObject({ requestId: 'chat-2', chatId: 'chat-2', provider: 'brain.example/m' })
   })
 
   test('without the ZG-Res-Key header the body id is the chat id and the request id', async () => {

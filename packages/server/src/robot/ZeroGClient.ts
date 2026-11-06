@@ -65,7 +65,11 @@ export interface ZeroGCall {
   readonly model: string
   readonly requestId: string | null
   readonly chatId: string | null
-  readonly provider: string | null
+  /**
+   * The brain that answered, `<host>/<model>` (plus `@<0G provider>` when the router names one), so the evidence tells
+   * a 0G decision from a rehearsal brain. Stored in `decisions.provider`.
+   */
+  readonly provider: string
   readonly latencyMs: number
   readonly promptSha256: string
   readonly inputJson: string
@@ -99,6 +103,7 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
     model: config.model,
     promptSha256: yield* sha256Hex(bodyJson),
     inputJson: JSON.stringify(input),
+    brain: `${new URL(config.baseUrl).host}/${config.model}`,
   }
   const reply = yield* client
     .execute(
@@ -127,19 +132,20 @@ const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknow
 
 /** Classify the router's answer; every way it can be wrong is a failure with a reason, never a guessed decision. */
 const outcomeOf = (
-  base: Omit<ZeroGCall, 'requestId' | 'chatId' | 'provider' | 'httpStatus'>,
+  base: Omit<ZeroGCall, 'requestId' | 'chatId' | 'provider' | 'httpStatus'> & { readonly brain: string },
   reply: Result.Result<Reply, unknown>,
 ): ZeroGOutcome => {
+  const { brain, ...fields } = base
   const call = (
     requestId: string | null,
     chatId: string | null,
-    provider: string | null,
+    routedTo: string | null,
     httpStatus: number | null,
-  ) => ({
-    ...base,
+  ): ZeroGCall => ({
+    ...fields,
     requestId,
     chatId,
-    provider,
+    provider: routedTo === null ? brain : `${brain}@${routedTo}`,
     httpStatus,
   })
   if (Result.isFailure(reply))
