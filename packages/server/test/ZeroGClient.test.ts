@@ -1,23 +1,11 @@
-import type { DecideInput } from '@ethmumbai/protocol/Errand'
 import { Effect, Layer, Redacted } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientResponse from 'effect/http/HttpClientResponse'
 import { describe, expect, test } from 'vitest'
 import { APPROVAL_RULE, decide, decideRequestBody } from '../src/robot/ZeroGClient.ts'
+import { chaiDecideInput } from './DecideSamples.ts'
 
-const input: DecideInput = {
-  requested: 'chai',
-  catalogue: { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false },
-  invoice: {
-    id: 'abcdefghijklmnopqrstuvwxya',
-    payTo: '0x000000000000000000000000000000000000c0de',
-    amount: '100000',
-    expiresAt: 4_000_000_000,
-  },
-  budget: { dailyCap: '1000000', spentToday: '0', remainingToday: '1000000', perPaymentCap: '300000' },
-  policy: { payeeAllowlisted: true, restricted: false, approvalRequired: false },
-  merchant: { id: 'duck-cafe', trust: 'known' },
-}
+const input = chaiDecideInput
 const config = { baseUrl: 'https://brain.example/v1', apiKey: Redacted.make('test-only-key-0123'), model: 'm' }
 const toolCall = { tool_calls: [{ function: { name: 'decide', arguments: '{"action":"pay","reason":"ok"}' } }] }
 

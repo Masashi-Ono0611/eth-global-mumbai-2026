@@ -5,6 +5,7 @@ import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { encodeAbiParameters, getAddress, type Hex, keccak256, stringToHex } from 'viem'
 import { freshConnections, randomId } from './AgentSamples.ts'
+import { chaiDecideInput } from './DecideSamples.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
 import type { ZeroGStub } from './RobotAcceptance.ts'
 
@@ -78,20 +79,6 @@ const Replayed = Schema.Struct({
   }),
 })
 
-const chaiInput = {
-  requested: 'chai',
-  catalogue: { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false },
-  invoice: {
-    id: 'abcdefghijklmnopqrstuvwxya',
-    payTo: '0x000000000000000000000000000000000000c0de',
-    amount: '100000',
-    expiresAt: 4_000_000_000,
-  },
-  budget: { dailyCap: '1000000', spentToday: '0', remainingToday: '1000000', perPaymentCap: '300000' },
-  policy: { payeeAllowlisted: true, restricted: false, approvalRequired: false },
-  merchant: { id: 'duck-cafe', trust: 'known' },
-}
-
 /** Audit acceptance: verify compares D1 with the chain record (stub RPC), replay re-asks the stub brain and writes nothing. */
 export const registerAuditAcceptance = (
   test: TestApi['test'],
@@ -121,7 +108,7 @@ export const registerAuditAcceptance = (
               episodeId,
               accountId: owner,
               requestId: 'orig-request-1',
-              inputJson: JSON.stringify(chaiInput),
+              inputJson: JSON.stringify(chaiDecideInput),
               provider: 'router-api.0g.ai/qwen3-vl-plus',
               rootHash: `0x${'aa'.repeat(32)}`,
               storageTx: `0x${'bb'.repeat(32)}`,
