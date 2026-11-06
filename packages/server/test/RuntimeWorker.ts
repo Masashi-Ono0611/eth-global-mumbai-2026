@@ -38,10 +38,9 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
         if (url.pathname === '/intl')
           return yield* HttpServerResponse.json({
             en: format('en', 'catalog.pieces', { count: 2 }),
-            sl: format('sl', 'catalog.pieces', { count: 102 }),
-            plural: new Intl.PluralRules('sl').select(2),
+            plural: new Intl.PluralRules('en').select(1),
             date: new Intl.DateTimeFormat('en', { timeZone: 'UTC', year: 'numeric' }).format(0),
-            currency: new Intl.NumberFormat('sl', { style: 'currency', currency: 'EUR' }).format(12.5),
+            currency: new Intl.NumberFormat('en', { style: 'currency', currency: 'USD' }).format(12.5),
           })
         if (url.pathname === '/storage') return yield* storageHealth(database, media)
         return HttpServerResponse.empty({ status: 404 })

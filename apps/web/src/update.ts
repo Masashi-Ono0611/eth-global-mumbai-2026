@@ -1,10 +1,9 @@
 import { Option, String } from 'effect'
 import type { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
-import { CreatePasskeyWallet, ReadSession, SaveLocale, SignInWithPasskey, SignOut, type Services } from './command.ts'
-import { parseLocale } from './Locale.ts'
+import { CreatePasskeyWallet, ReadSession, SignInWithPasskey, SignOut, type Services } from './command.ts'
 import { Message } from './message.ts'
-import { AuthState, type Flags, LocaleSave, type Model } from './model.ts'
+import { AuthState, type Flags, type Model } from './model.ts'
 import {
   foldApproval,
   foldConsole,
@@ -27,7 +26,6 @@ export const init = (context: Flags): UpdateReturn => {
     model: {
       context,
       route,
-      localeSave: LocaleSave.Saved(),
       auth: AuthState.Checking(),
       displayName: '',
       ...pages.pages,
@@ -39,28 +37,8 @@ export const init = (context: Flags): UpdateReturn => {
 /** A passkey ceremony may start only from a signed-out page that is not already running one. */
 const canStartCeremony = (auth: AuthState) => AuthState.guards.SignedOut(auth) || AuthState.guards.Refused(auth)
 
-/** A language change saves once at a time; an unknown value is ignored. */
-const selectLocale = (model: Model, value: string): UpdateReturn => {
-  const locale = parseLocale(value)
-  if (locale === undefined || LocaleSave.guards.Saving(model.localeSave)) {
-    return { model }
-  }
-  return {
-    model: modifyFields(model, { localeSave: () => LocaleSave.Saving({ locale }) }),
-    commands: [SaveLocale({ locale })],
-  }
-}
-
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SelectedLocale: ({ value }) => selectLocale(model, value),
-    SucceededSaveLocale: ({ locale }) => ({
-      model: modifyFields(model, {
-        context: () => modifyFields(model.context, { locale: () => locale }),
-        localeSave: () => LocaleSave.Saved(),
-      }),
-    }),
-    FailedSaveLocale: () => ({ model: modifyFields(model, { localeSave: () => LocaleSave.Failed() }) }),
     UpdatedDisplayName: ({ value }) => ({ model: modifyFields(model, { displayName: () => value }) }),
     SubmittedCreateWallet: () => {
       const displayName = String.trim(model.displayName)

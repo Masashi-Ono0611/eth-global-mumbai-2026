@@ -1,9 +1,7 @@
 import { Effect, Option, Predicate, Schema } from 'effect'
 import * as AuthClient from '@ethmumbai/auth/client'
-import * as HttpClient from 'effect/http/HttpClient'
-import * as HttpClientRequest from 'effect/http/HttpClientRequest'
+import type * as HttpClient from 'effect/http/HttpClient'
 import { Command } from 'foldkit'
-import { Locale, localeEndpoint } from './Locale.ts'
 import { Message } from './message.ts'
 import type { Clipboard } from './Clipboard.ts'
 import { Passkeys } from './Passkey.ts'
@@ -51,19 +49,6 @@ export const SignOut = Command.define('SignOut', {
     Effect.as(Message.SucceededSignOut()),
     Effect.catch(() => Effect.succeed(Message.FailedSignOut())),
   ),
-})
-
-export const SaveLocale = Command.define('SaveLocale', {
-  args: { locale: Locale },
-  messages: [Message.SucceededSaveLocale, Message.FailedSaveLocale],
-  execute: ({ locale }) =>
-    Effect.gen(function* () {
-      const client = yield* HttpClient.HttpClient
-      yield* HttpClient.filterStatusOk(client).execute(
-        HttpClientRequest.post(localeEndpoint).pipe(HttpClientRequest.bodyUrlParams({ locale })),
-      )
-      return Message.SucceededSaveLocale({ locale })
-    }).pipe(Effect.catchTag('HttpClientError', () => Effect.succeed(Message.FailedSaveLocale()))),
 })
 
 /** What the Commands run against: the browser provides these in entry.ts. */

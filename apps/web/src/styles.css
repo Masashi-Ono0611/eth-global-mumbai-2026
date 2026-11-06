@@ -86,19 +86,6 @@
       text-decoration-thickness: 2px;
     }
   }
-  /* The Latin faces above have no CJK or Devanagari glyphs, so these scripts prefer their system face. */
-  :lang(ja) {
-    font-family: 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', system-ui, sans-serif;
-  }
-  :lang(hi),
-  :lang(mr) {
-    font-family: 'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Nirmala UI', system-ui, sans-serif;
-  }
-  :lang(ja) :is(h1, h2),
-  :lang(hi) :is(h1, h2),
-  :lang(mr) :is(h1, h2) {
-    font-family: inherit;
-  }
 }
 
 /* The foundation's class rules, kept so every page renders as before until the redesign restyles it with utilities
@@ -122,16 +109,6 @@
   }
   .brand img {
     display: block;
-  }
-  .language-picker {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.6rem;
-    margin-inline-start: auto;
-  }
-  .language-picker p {
-    flex-basis: 100%;
   }
   .intro {
     display: flex;

@@ -141,7 +141,7 @@ const inBrowser = (verify: (browser: Browser, appUrl: string) => Promise<void>) 
     }),
   )
 
-test('hydrates the built website and persists locale changes in a browser', inBrowser(verifyBrowser), {
+test('hydrates the built website in a browser', inBrowser(verifyBrowser), {
   timeout: 60000,
 })
 
@@ -152,12 +152,12 @@ test(
 )
 
 test(
-  'formats Slovenian with the real Worker Intl implementation',
+  'formats with the real Worker Intl implementation',
   Effect.gen(function* () {
     const { url } = yield* stack
     const response = yield* HttpClient.get(`${url}/intl`)
     expect(response.status).toBe(200)
-    expect(yield* response.json).toMatchObject({ en: '2 pieces', sl: '102 kosa', plural: 'two', date: '1970' })
+    expect(yield* response.json).toMatchObject({ en: '2 pieces', plural: 'one', date: '1970' })
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 60000 },
 )
@@ -239,6 +239,7 @@ test(
           'evidence_uploads',
           'grants',
           'invoices',
+          'observations',
           'passkeys',
           'payments',
           'relayer_txs',

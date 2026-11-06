@@ -7,7 +7,6 @@
     "./*": "./src/*.ts"
   },
   "dependencies": {
-    "@formatjs/icu-messageformat-parser": "catalog:",
     "intl-messageformat": "catalog:"
   }
 }

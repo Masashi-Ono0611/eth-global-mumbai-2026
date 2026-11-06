@@ -11,22 +11,7 @@ export const verifyBrowser = async (browser: Browser, origin: string): Promise<v
     const documentResponse = await page.goto(origin, { waitUntil: 'networkidle' })
     expect(documentResponse?.status()).toBe(200)
     expect(await page.locator('h1').textContent()).toBe('A duck with a budget.')
-    expect(await page.locator('.masthead').evaluate((element) => getComputedStyle(element).display)).toBe('flex')
-    await page.selectOption('#language', 'sl')
-    await page.waitForFunction(() => document.documentElement.lang === 'sl')
-    expect(await page.locator('h1').textContent()).toBe('Raca s proračunom.')
-    expect((await context.cookies()).find((cookie) => cookie.name === 'app_locale')).toMatchObject({
-      value: 'sl',
-      httpOnly: true,
-      sameSite: 'Lax',
-    })
-    await page.reload({ waitUntil: 'networkidle' })
-    expect(await page.locator('html').getAttribute('lang')).toBe('sl')
-    await page.selectOption('#language', 'ar-XB')
-    await page.waitForFunction(() => document.documentElement.dir === 'rtl')
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-    await page.selectOption('#language', 'en')
-    await page.waitForFunction(() => document.documentElement.lang === 'en')
+    expect(await page.locator('html').getAttribute('lang')).toBe('en')
     await page.locator('#display-name').waitFor({ state: 'visible' })
     expect(await page.getByRole('button', { name: 'Create passkey wallet' }).isEnabled()).toBe(true)
     expect(await page.getByRole('button', { name: 'Sign in with passkey' }).isEnabled()).toBe(true)

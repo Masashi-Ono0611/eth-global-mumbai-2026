@@ -1,7 +1,6 @@
 # Demo walkthrough (deployed app)
 
-Click-by-click for the 4-minute slot and the video (plan §0 "Demo script"). Every label below is the English UI text;
-the language picker (top right) switches all five catalogs. Times are what we expect on Arc mainnet, not measured on
+Click-by-click for the 4-minute slot and the video (plan §0 "Demo script"). The app is English only (6 Nov). Times are what we expect on Arc mainnet, not measured on
 the final run: replace them with the recorded ones in `docs/evidence/demo-run.md`.
 
 `$APP` = <https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev>

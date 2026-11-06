@@ -1,8 +1,8 @@
-import { direction, format, type Locale } from '@ethmumbai/i18n'
+import { format, type Locale } from '@ethmumbai/i18n'
 import { Option } from 'effect'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { Message } from './message.ts'
-import { AuthState, LocaleSave, type Model } from './model.ts'
+import { AuthState, type Model } from './model.ts'
 import { homeView } from './pages/Home.ts'
 import * as Approval from './pages/Approval.ts'
 import { episodeView } from './pages/EpisodeView.ts'
@@ -13,40 +13,6 @@ import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { robotsView } from './pages/RobotsView.ts'
 import * as Wallet from './pages/Wallet.ts'
 import { AppRoute, episodesRouter, homeRouter, robotsRouter, walletRouter } from './route.ts'
-const languages: ReadonlyArray<Readonly<{ locale: Locale; label: string }>> = [
-  { locale: 'en', label: 'English' },
-  { locale: 'sl', label: 'Slovenščina' },
-  { locale: 'ja', label: '日本語' },
-  { locale: 'hi', label: 'हिन्दी' },
-  { locale: 'mr', label: 'मराठी' },
-  { locale: 'en-XA', label: 'English (expanded)' },
-  { locale: 'ar-XB', label: 'English (RTL)' },
-]
-
-const languagePicker = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const { locale } = model.context
-  const pending = LocaleSave.guards.Saving(model.localeSave)
-  return h.div(
-    [h.Class('language-picker')],
-    [
-      h.label([h.For('language')], [format(locale, 'auth.language', {})]),
-      h.select(
-        [
-          h.Id('language'),
-          h.Value(locale),
-          h.Disabled(pending),
-          h.AriaBusy(pending),
-          h.OnChange((value) => Message.SelectedLocale({ value })),
-        ],
-        languages.map((language) => h.keyed('option')(language.locale, [h.Value(language.locale)], [language.label])),
-      ),
-      LocaleSave.guards.Failed(model.localeSave)
-        ? h.p([h.Role('alert')], [format(locale, 'common.error', {})])
-        : h.empty,
-    ],
-  )
-}
-
 /** Links to the owner pages once the session is known. */
 const ownerNav = (model: Model, h: HtmlBuilder<Message>): Html => {
   const { locale } = model.context
@@ -240,13 +206,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   return {
     title: `${page.title} | Vitaquack`,
     lang: locale,
-    dir: direction(locale) === 'rtl' ? 'Rtl' : 'Ltr',
+    dir: 'Ltr',
     body: h.div(
       [h.Class('site')],
       [
         h.header(
           [h.Class('masthead')],
-          [h.a([h.Href(homeRouter()), h.Class('brand')], ['Vitaquack']), ownerNav(model, h), languagePicker(model, h)],
+          [h.a([h.Href(homeRouter()), h.Class('brand')], ['Vitaquack']), ownerNav(model, h)],
         ),
         page.body,
         h.footer(

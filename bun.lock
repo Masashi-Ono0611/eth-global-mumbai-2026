@@ -140,7 +140,6 @@
     "packages/i18n": {
       "name": "@ethmumbai/i18n",
       "dependencies": {
-        "@formatjs/icu-messageformat-parser": "catalog:",
         "intl-messageformat": "catalog:",
       },
     },

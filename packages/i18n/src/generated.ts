@@ -21,7 +21,6 @@ export interface MessageArgumentsByKey<T = string> {
   'auth.createWallet': Readonly<Record<string, never>>
   'auth.creatingWallet': Readonly<Record<string, never>>
   'auth.displayName': Readonly<Record<string, never>>
-  'auth.language': Readonly<Record<string, never>>
   'auth.passkeyFailed': Readonly<Record<string, never>>
   'auth.passkeyHint': Readonly<Record<string, never>>
   'auth.serverFailed': Readonly<Record<string, never>>
@@ -170,4 +169,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '0b2cee9c1e31588af41f5a682f9fd3545f72ee372d8d9e240cc38330acb9695c'
+export const catalogVersion = '610f0f028e136ef74c25164ce361e74b0d42eb0e748afa2a5b0813ecf85a3cb6'

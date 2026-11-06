@@ -1,9 +1,9 @@
 import { catalogVersion } from '@ethmumbai/i18n'
 import { Option } from 'effect'
-import { Command, change, click, expect, given, label, role, scene, selector, submit, text, type } from 'foldkit/scene'
+import { Command, click, expect, given, label, role, scene, selector, submit, text, type } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect as vitestExpect, test } from 'vitest'
-import { CreatePasskeyWallet, ReadSession, SaveLocale, SignInWithPasskey, SignOut } from '../src/command.ts'
+import { CreatePasskeyWallet, ReadSession, SignInWithPasskey, SignOut } from '../src/command.ts'
 import { Message } from '../src/message.ts'
 import { AuthState } from '../src/model.ts'
 import { AppRoute } from '../src/route.ts'
@@ -141,39 +141,6 @@ describe('passkey wallet', () => {
       click(role('button', { name: 'Retry' })),
       Command.resolve(ReadSession, Message.SucceededReadSession({ maybeSession: Option.some(session) })),
       expect(text('Signed in as Ana')).toExist(),
-    )
-  })
-})
-
-describe('language', () => {
-  test('choosing a language saves it and renders the page in that language', () => {
-    scene(
-      { update, view },
-      given(signedOut('/')),
-      expect(label('Language')).toHaveValue('en'),
-      change(label('Language'), 'sl'),
-      Command.expectExact(SaveLocale({ locale: 'sl' })),
-      Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'sl' })),
-      expect(role('heading', { name: 'Raca s proračunom.' })).toExist(),
-      expect(role('button', { name: 'Ustvari denarnico s ključem za dostop' })).toExist(),
-    )
-  })
-
-  test('Japanese, Hindi and Marathi are offered and render the page', () => {
-    scene(
-      { update, view },
-      given(signedOut('/')),
-      change(label('Language'), 'ja'),
-      Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'ja' })),
-      expect(role('heading', { name: '予算を持ったアヒル。' })).toExist(),
-      expect(role('button', { name: 'パスキーでサインイン' })).toExist(),
-      change(label('言語'), 'hi'),
-      Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'hi' })),
-      expect(role('heading', { name: 'बजट वाली बत्तख।' })).toExist(),
-      change(label('भाषा'), 'mr'),
-      Command.resolve(SaveLocale, Message.SucceededSaveLocale({ locale: 'mr' })),
-      expect(role('heading', { name: 'बजेट असलेले बदक.' })).toExist(),
-      expect(role('button', { name: 'पासकी वॉलेट तयार करा' })).toExist(),
     )
   })
 })

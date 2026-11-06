@@ -61,7 +61,7 @@ payment, only delay it.
   bound `sub`; `amr` recorded) and co-signs that one approval (`docs/world-debrief.md`).
 - **Foundation.** Bun workspaces, Effect 4, Foldkit (Elm-style TypeScript UI with server rendering), Alchemy on
   Cloudflare Workers, D1. Robot coordination is Effect services over D1 with HTTPS long-polling (35 s chip lease: no
-  lease → the chip stops its motors and refuses to sign). Five languages (English, Slovenian, Japanese, Hindi, Marathi).
+  lease → the chip stops its motors and refuses to sign).
 - **The chip.** `apps/chip` (Bun) holds a secp256k1 key, pairs with an 8-character code and an EIP-191 proof,
   long-polls for sign requests and enforces its own policy before touching the key. The Radxa Zero 3W on the duck is the
   hardware seam for the same protocol (bench C1 signed the payment voucher on it, `docs/spikes/hardware-results.md`); the

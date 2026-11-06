@@ -20,7 +20,6 @@
     "createWallet": "Create passkey wallet",
     "creatingWallet": "Creating your wallet...",
     "displayName": "Your name",
-    "language": "Language",
     "passkeyFailed": "The passkey step did not finish. Please try again.",
     "passkeyHint": "Your passkey is your login and the key of your wallet. It never leaves your device.",
     "serverFailed": "The wallet service did not answer. Please try again.",

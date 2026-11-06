@@ -20,7 +20,6 @@ export type Flags = typeof Flags.Type
 export const AuthFailure = Schema.Literals(['passkey', 'server'])
 export type AuthFailure = typeof AuthFailure.Type
 
-export const LocaleSave = defineTaggedUnion({ Saved: {}, Saving: { locale: Locale }, Failed: {} })
 export const AuthState = defineTaggedUnion({
   Checking: {},
   SignedOut: {},
@@ -35,7 +34,6 @@ export type AuthState = typeof AuthState.Type
 export const Model = Schema.Struct({
   context: Flags,
   route: AppRoute,
-  localeSave: LocaleSave,
   auth: AuthState,
   displayName: Schema.String,
   /** The owner pages keep their own state; only the current route's is present. */

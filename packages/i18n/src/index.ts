@@ -1,64 +1,34 @@
 import { IntlMessageFormat } from 'intl-messageformat'
 
-import { en, hi, ja, mr, sl } from './catalogs.ts'
+import { en } from './catalogs.ts'
 import type { MessageKey, MessageValues } from './generated.ts'
-import { pseudoMessage } from './pseudo.ts'
 
 export type { MessageKey, MessageValues, RichTextValue } from './generated.ts'
 export { catalogVersion } from './generated.ts'
-/** Translated languages; the pseudo-locales en-XA and ar-XB exercise layout with English text. */
-export type Language = 'en' | 'sl' | 'ja' | 'hi' | 'mr'
-export type Locale = Language | 'en-XA' | 'ar-XB'
-const catalogs: Readonly<Record<Language, Readonly<Record<MessageKey, string>>>> = { en, sl, ja, hi, mr }
-const languages: ReadonlyArray<Language> = ['en', 'sl', 'ja', 'hi', 'mr']
+/** The app is English only (Kris, 6 Nov 2026); the locale stays explicit so rendering and Intl remain deterministic. */
+export type Locale = 'en'
 
 const defaultLocale: Locale = 'en'
-const formatterLimit = 4096
-const formatters = new Map<string, IntlMessageFormat>()
+const formatters = new Map<MessageKey, IntlMessageFormat>()
 
-const baseLocale = (locale: Locale): Language => (locale === 'en-XA' || locale === 'ar-XB' ? 'en' : locale)
-
-const formatterFor = (locale: Locale, key: MessageKey): IntlMessageFormat => {
-  const cacheKey = `${locale}:${key}`
-  const cached = formatters.get(cacheKey)
+const formatterFor = (key: MessageKey): IntlMessageFormat => {
+  const cached = formatters.get(key)
   if (cached !== undefined) return cached
-  const catalog = catalogs[baseLocale(locale)]
-  const source = new IntlMessageFormat(catalog[key], baseLocale(locale))
-  const formatter =
-    locale === 'en-XA' || locale === 'ar-XB'
-      ? new IntlMessageFormat(pseudoMessage(source.getAst(), locale), 'en')
-      : source
-  if (formatters.size >= formatterLimit) {
-    const oldest = formatters.keys().next().value
-    if (oldest !== undefined) formatters.delete(oldest)
-  }
-  formatters.set(cacheKey, formatter)
+  const formatter = new IntlMessageFormat(en[key], defaultLocale)
+  formatters.set(key, formatter)
   return formatter
 }
 
-export const normalizeLocale = (input: string | undefined): Locale => {
-  if (input === 'en-XA' || input === 'ar-XB') return input
-  const language = languages.find((candidate) => new RegExp(`^${candidate}(?:-[a-z0-9]{2,8})*$`, 'i').test(input ?? ''))
-  if (language !== undefined) return language
-  return defaultLocale
-}
-
-export const direction = (locale: Locale): 'ltr' | 'rtl' => (locale === 'ar-XB' ? 'rtl' : 'ltr')
-
 export const formatRich = <K extends MessageKey, T = string>(
-  locale: Locale,
+  _locale: Locale,
   key: K,
   values: MessageValues<K, T>,
-): string | T | (string | T)[] => {
-  const rendered = formatterFor(locale, key).format<T>(values)
-  return rendered
-}
+): string | T | (string | T)[] => formatterFor(key).format<T>(values)
 
 export const format = <K extends MessageKey>(locale: Locale, key: K, values: MessageValues<K>): string => {
   const rendered = formatRich(locale, key, values)
   return typeof rendered === 'string' ? rendered : rendered.join('')
 }
 
-export const text = <K extends MessageKey>(key: K, values: MessageValues<K>): string => {
-  return format(defaultLocale, key, values)
-}
+export const text = <K extends MessageKey>(key: K, values: MessageValues<K>): string =>
+  format(defaultLocale, key, values)

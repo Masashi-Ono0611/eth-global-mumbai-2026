@@ -6,9 +6,7 @@ import { makeObservabilityBase, metadataFromHeaders, withObservability } from '@
 import { Flags } from './model.ts'
 import { AppRoute, routeFromPathname } from './route.ts'
 import { init } from './update.ts'
-import { localeEndpoint, requestLocale } from './Locale.ts'
 import { view } from './View.ts'
-import { saveLocale } from './server/LocalePreference.ts'
 
 export const application = { Flags, init, view }
 
@@ -18,7 +16,6 @@ const renderApplication = (
 ) =>
   Effect.gen(function* () {
     const url = new URL(request.url)
-    if (url.pathname === localeEndpoint) return yield* saveLocale(request)
     // A preflight reaches the entry too; the app allows no cross-origin calls, so it only reports the methods.
     if (request.method === 'OPTIONS') {
       return Server.Responded(new Response(null, { status: 204, headers: { allow: Server.HOST_METHOD_ANSWERS.allow } }))
@@ -27,7 +24,7 @@ const renderApplication = (
       return Server.Responded(new Response(null, { status: 405, headers: { allow: 'GET, HEAD' } }))
     }
     const flags: Flags = {
-      locale: requestLocale(request),
+      locale: 'en',
       catalogVersion,
       timeZone: 'UTC',
       referenceTime: yield* Clock.currentTimeMillis,
@@ -38,7 +35,6 @@ const renderApplication = (
       status: AppRoute.guards.NotFound(routeFromPathname(url.pathname)) ? 404 : 200,
       headers: {
         'cache-control': 'private, no-store',
-        vary: 'Accept-Language, Cookie',
         'content-language': flags.locale,
         'x-content-type-options': 'nosniff',
         'referrer-policy': 'strict-origin-when-cross-origin',
