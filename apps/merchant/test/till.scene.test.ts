@@ -15,6 +15,7 @@ const catalogue = {
   items: [
     chai,
     { itemId: 'samosa', name: 'Samosa', amount: '250000', restricted: false },
+    { itemId: 'thali', name: 'Thali', amount: '2000000', restricted: false },
     { itemId: 'cigarettes', name: 'Cigarettes', amount: '500000', restricted: true },
   ],
 }
@@ -99,6 +100,25 @@ describe('the till', () => {
     const late = update(cancelled, Message.ReceivedStatus({ invoiceId: 'inv1', status: 'paid', trusted: true }))
     vitestExpect(Till.guards.Ready(late.model.till) && Sale.guards.Choosing(late.model.till.sale)).toBe(true)
     vitestExpect(late.commands ?? []).toEqual([])
+  })
+
+  test('items over 1 USDC are marked for World ID approval, and their sale says so while it waits', () => {
+    const thaliInvoice = { id: 'inv2', url: 'https://app.test/api/i/inv2', amount: '2000000', expiresAt: 1_800_000_000 }
+    scene(
+      { update, view },
+      given(ready),
+      expect(role('button', { name: /Thali.*Needs owner approval · World ID/ })).toExist(),
+      expect(role('button', { name: /Chai.*World ID/ })).not.toExist(),
+      click(role('button', { name: /Thali/ })),
+      Command.expectExact(OpenInvoice({ merchantId: MERCHANT_ID, itemId: 'thali' })),
+      Command.resolve(OpenInvoice, Message.SucceededOpenInvoice({ invoice: thaliInvoice })),
+      expect(text(/approve with World ID/)).toExist(),
+      Command.resolve(
+        ReadStatus({ invoiceId: 'inv2', publicKey, delayMillis: POLL_MILLIS }),
+        Message.ReceivedStatus({ invoiceId: 'inv2', status: 'paid', trusted: true }),
+      ),
+      expect(role('heading', { name: 'Paid' })).toExist(),
+    )
   })
 
   test('formats USDC base units', () => {

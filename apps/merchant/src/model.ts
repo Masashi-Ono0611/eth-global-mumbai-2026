@@ -5,6 +5,13 @@ import { Catalogue, Invoice, Item } from './api.ts'
 /** The demo merchant (packages/server/src/merchant/Catalogue.ts). */
 export const MERCHANT_ID = 'duck-cafe'
 
+/**
+ * Above this (USDC base units) the buyer's owner must approve with World ID: the demo grants cap each payment at
+ * 1 USDC, and the robot routes anything over its grant's per-payment cap through a World approval (robot/Budget.ts).
+ * The real threshold is the buyer's own cap; the till only predicts it for the demo grant.
+ */
+export const APPROVAL_ABOVE = 1_000_000n
+
 /** How often the till asks whether the invoice on screen was paid. */
 export const POLL_MILLIS = 1000
 

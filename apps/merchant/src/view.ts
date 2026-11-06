@@ -2,12 +2,13 @@ import { Option } from 'effect'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { type Catalogue, type Invoice, type Item, usdc } from './api.ts'
 import { Message } from './message.ts'
-import { type Hitch, type Model, Sale, Till } from './model.ts'
+import { APPROVAL_ABOVE, type Hitch, type Model, Sale, Till } from './model.ts'
 import { qrDataUrl } from './qr.ts'
 
 type H = HtmlBuilder<Message>
 
 const price = (amount: string) => `${usdc(amount)} USDC`
+const needsApproval = (amount: string) => BigInt(amount) > APPROVAL_ABOVE
 
 const button = (h: H, label: string, onClick: Message, kind: 'primary' | 'quiet' = 'primary') =>
   h.button([h.Type('button'), h.Class(`button ${kind}`), h.OnClick(onClick)], [label])
@@ -21,7 +22,11 @@ const menu = (h: H, catalogue: Catalogue): Html =>
       .map((item) =>
         h.button(
           [h.Type('button'), h.Class('menu-item'), h.OnClick(Message.ClickedItem({ itemId: item.itemId }))],
-          [h.span([h.Class('menu-name')], [item.name]), h.span([h.Class('menu-price')], [price(item.amount)])],
+          [
+            h.span([h.Class('menu-name')], [item.name]),
+            h.span([h.Class('menu-price')], [price(item.amount)]),
+            needsApproval(item.amount) ? h.span([h.Class('badge')], ['Needs owner approval · World ID']) : h.empty,
+          ],
         ),
       ),
   )
@@ -44,6 +49,14 @@ const qr = (h: H, item: Item, invoice: Invoice, hitch: Option.Option<Hitch>): Ht
         h.Height('320'),
       ]),
       h.p([h.Class('hint')], ['Scan to pay in USDC on Arc (x402).']),
+      needsApproval(invoice.amount)
+        ? h.p(
+            [h.Class('approval')],
+            [
+              `Over ${usdc(APPROVAL_ABOVE.toString())} USDC: the robot first asks its owner to approve with World ID. This can take a minute.`,
+            ],
+          )
+        : h.empty,
       h.p([h.Role('status'), h.Class('waiting')], ['Waiting for payment…']),
       Option.match(hitch, {
         onNone: () => h.empty,
