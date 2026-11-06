@@ -64,7 +64,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episode.field':
     '{field, select, requestId {Request id} brain {Brain} latency {Latency} promptHash {Prompt SHA-256} outcome {Outcome} error {Error} leafHash {Leaf hash} status {Status} gas {Gas used} payer {Payer} reason {Reason} acr {Assurance (acr)} amr {Methods (amr)} rootHash {Root hash} requestIdsHash {Request-ids hash} recorder {Recorded by} recordedAt {Recorded at} capturedAt {Captured} sha256 {SHA-256} signer {Signed by} teeSigner {TEE signer} teeFetched {Proof fetched} other {{field}}}',
   'episode.input': 'Input sent to the brain (exact JSON)',
-  'episode.meta': '{robot} · started {started}',
+  'episode.meta': '{robot} started it {started}',
   'episode.none':
     '{card, select, decision {No decision was recorded.} chip {No sign request was sent to the chip.} payment {Nothing was paid for this errand.} approval {No approval was needed.} evidence {No evidence record yet.} other {—}}',
   'episode.notOnChain': 'No EpisodeLog record on 0G Chain yet.',
@@ -88,17 +88,25 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episode.title': 'Errand: {item}',
   'episode.verifyMatch':
     '{field, select, rootHash {Root hash} other {Request-ids hash}}: {matches, select, yes {matches the EpisodeLog record on 0G Chain} other {does not match the EpisodeLog record}}',
+  'episode.back': 'Back to {robot}',
+  'episode.allRecords': 'All payment records',
+  'episode.frameCheck':
+    '{check, select, matches {Downloaded back from 0G Storage and re-hashed: it matches} differs {The copy on 0G Storage does not match this hash} other {Could not download the frame from 0G Storage}}',
   'episodes.allRobots': 'All robots',
-  'episodes.column':
-    '{column, select, when {When} robot {Robot} item {Item} state {State} decision {Decision} payment {Payment} world {World} evidence {Evidence} open {Details} other {{column}}}',
   'episodes.decision':
     '{brain}: {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}',
   'episodes.empty': 'No errands yet.',
   'episodes.explainer':
-    'Every errand your robots ran: what decided it, what was paid on Arc, what World approved and where the evidence is on 0G.',
+    'Every errand your robots ran: who decided, what was paid on Arc, what World approved, and its record on 0G.',
   'episodes.filter': 'Robot',
-  'episodes.inspect': 'Inspect',
-  'episodes.title': 'Episodes',
+  'episodes.inspect': 'Show proof',
+  'episodes.title': 'Payment records',
+  'episodes.backToWallet': 'Back to wallet',
+  'episodes.state':
+    '{state, select, paid {Paid} walked_away {Walked away, nothing paid} safe_stop {Stopped safely, nothing paid} denied {You said no, nothing paid} refused {The chip refused, nothing paid} failed {Failed, nothing paid} expired {Expired, nothing paid} awaiting_approval {Waiting for you} other {In progress}}',
+  'episodes.world':
+    '{status, select, consumed {World approved it} approved {World approved it} denied {You said no in World App} failed {World approval failed} expired {World approval expired} other {Waiting for World}}{level, select, orb { (Orb-verified)} other {}}',
+  'episodes.inspectFor': 'Show proof: {item} by {robot}',
   'gate.badSignature': 'The status signature did not verify; the gate stays closed.',
   'gate.closed': 'CLOSED',
   'gate.invoice': 'Invoice',

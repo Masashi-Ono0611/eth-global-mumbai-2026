@@ -4,7 +4,7 @@ import { clsx } from 'clsx'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
-import { type EpisodeActivity, leftToday, type RobotView, usdc } from '../api/Wallet.ts'
+import { type EpisodeActivity, leftToday, type RobotView, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
 import { qrDataUri } from '../Qr.ts'
 import { robotConsoleRouter, robotsRouter } from '../route.ts'
@@ -63,8 +63,6 @@ const sheetButtonClassName =
 const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
-
-const itemName = (item: string) => item.slice(0, 1).toUpperCase() + item.slice(1)
 
 const balanceView = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.section(

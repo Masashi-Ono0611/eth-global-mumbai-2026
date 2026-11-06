@@ -115,9 +115,12 @@ export interface MessageArgumentsByKey<T = string> {
   'console.storage': Readonly<Record<string, never>>
   'console.title': Readonly<Record<string, never>>
   'episode.action': { readonly action: string | number }
+  'episode.allRecords': Readonly<Record<string, never>>
+  'episode.back': { readonly robot: string | number }
   'episode.card': { readonly card: string | number }
   'episode.event': { readonly kind: string | number }
   'episode.field': { readonly field: string | number }
+  'episode.frameCheck': { readonly check: string | number }
   'episode.input': Readonly<Record<string, never>>
   'episode.meta': { readonly robot: string | number; readonly started: string | number }
   'episode.none': { readonly card: string | number }
@@ -139,13 +142,16 @@ export interface MessageArgumentsByKey<T = string> {
   'episode.title': { readonly item: string | number }
   'episode.verifyMatch': { readonly field: string | number; readonly matches: string | number }
   'episodes.allRobots': Readonly<Record<string, never>>
-  'episodes.column': { readonly column: string | number }
+  'episodes.backToWallet': Readonly<Record<string, never>>
   'episodes.decision': { readonly brain: string | number; readonly action: string | number }
   'episodes.empty': Readonly<Record<string, never>>
   'episodes.explainer': Readonly<Record<string, never>>
   'episodes.filter': Readonly<Record<string, never>>
   'episodes.inspect': Readonly<Record<string, never>>
+  'episodes.inspectFor': { readonly item: string | number; readonly robot: string | number }
+  'episodes.state': { readonly state: string | number }
   'episodes.title': Readonly<Record<string, never>>
+  'episodes.world': { readonly status: string | number; readonly level: string | number }
   'gate.badSignature': Readonly<Record<string, never>>
   'gate.closed': Readonly<Record<string, never>>
   'gate.invoice': Readonly<Record<string, never>>
@@ -307,4 +313,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '3ac56d902fe3f9e71998d6fe4949ffb0ad58ed7496f6faab899afaf7edb71205'
+export const catalogVersion = '7127fdebe433f21c9c45d3582ea09e3cd2f8b1e9c172f793adb90bcb4d0bc921'

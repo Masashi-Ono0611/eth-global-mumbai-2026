@@ -9,19 +9,29 @@ import type * as HttpClient from 'effect/http/HttpClient'
 import { clockTime, EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
 import { isSignedOut } from '../api/Http.ts'
 import { isZeroGDecision } from '../api/Robot.ts'
-import { explorerTx, listRobots } from '../api/Wallet.ts'
-import { episodeRouter } from '../route.ts'
-import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
+import { explorerTx, itemName, listRobots } from '../api/Wallet.ts'
+import { episodeRouter, robotConsoleRouter, walletRouter } from '../route.ts'
+import { teeMark, zeroGLine } from './ProofParts.ts'
+import { failedView, loadingView, signedOutView } from './Shared.ts'
 
 // STYLES
 
-/** The robot filter above the errand table. */
-const filterRowClassName = 'my-6 flex flex-wrap items-center gap-[0.6rem]'
-/** The table scrolls sideways on a phone instead of squeezing its columns. */
-const tableScrollClassName = 'mb-8 overflow-x-auto'
-
-const episodeTableClassName =
-  'w-full border-collapse [&_td]:border-b [&_td]:border-rule [&_td]:py-[0.65rem] [&_td]:ps-3 [&_td]:align-top [&_td:first-child]:text-sm [&_td:first-child]:whitespace-nowrap [&_td:first-child]:text-muted [&_td:first-child]:tabular-nums [&_th]:border-b [&_th]:border-ink [&_th]:py-2 [&_th]:ps-3 [&_th]:text-start [&_th]:text-sm [&_th]:font-semibold [&_th]:whitespace-nowrap [&_th]:text-muted [&_:is(th,td):first-child]:ps-0'
+const pageClassName = 'grid gap-4 px-1 pt-4 pb-12'
+const backClassName =
+  'inline-flex min-h-11 items-center gap-1.5 justify-self-start rounded-full bg-surface px-3.5 font-semibold no-underline transition-transform active:scale-[0.96]'
+const titleClassName = 'font-display text-[1.7rem] leading-tight font-bold text-balance'
+const mutedClassName = 'text-[0.92rem] text-muted text-pretty'
+const filterRowClassName = 'grid gap-1 text-[0.9rem] text-muted'
+const selectClassName = 'min-h-11 w-full rounded-control border border-rule bg-surface px-3 text-base text-ink'
+const listClassName = 'm-0 grid list-none gap-2 p-0'
+const rowClassName = 'grid gap-1.5 rounded-card bg-surface p-4 wrap-break-word'
+const rowTopClassName = 'flex items-baseline justify-between gap-3'
+const itemClassName = 'min-w-0 font-display text-lg leading-tight font-bold'
+const robotClassName = 'ms-1.5 inline-block font-sans text-[0.95rem] font-normal text-muted'
+const timeClassName = 'shrink-0 text-[0.8rem] text-muted tabular-nums'
+const stateClassName = 'font-semibold'
+const linksClassName =
+  'flex flex-wrap gap-x-4 gap-y-1 pt-1 [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center [&_a]:font-semibold [&_a]:text-paid [&_a]:decoration-paid/40'
 
 // MODEL
 
@@ -114,6 +124,24 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
 type Inputs = { readonly locale: Locale; readonly timeZone: string }
 
+const robotNameOf = (model: Model, robotId: string): string | null =>
+  model.robots.find((robot) => robot.id === robotId)?.name ?? null
+
+/** One robot's records go back to its conversation; all of them go back to the wallet. */
+const back = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => {
+  const robotId = Option.getOrNull(model.maybeRobotId)
+  const name = robotId === null ? null : robotNameOf(model, robotId)
+  return h.a(
+    [h.Href(robotId === null ? walletRouter() : robotConsoleRouter({ robotId })), h.Class(backClassName)],
+    [
+      h.span([h.AriaHidden(true)], ['‹']),
+      name === null || robotId === null
+        ? format(locale, 'episodes.backToWallet', {})
+        : format(locale, 'episode.back', { robot: name }),
+    ],
+  )
+}
+
 const filter = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const selected = Option.getOrElse(model.maybeRobotId, () => '')
   // The robot in the URL is an option even before the robot list arrives.
@@ -124,7 +152,12 @@ const filter = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => 
     [
       h.label([h.For('episode-robot')], [format(locale, 'episodes.filter', {})]),
       h.select(
-        [h.Id('episode-robot'), h.Value(selected), h.OnChange((value) => Message.ChangedRobotFilter({ value }))],
+        [
+          h.Id('episode-robot'),
+          h.Class(selectClassName),
+          h.Value(selected),
+          h.OnChange((value) => Message.ChangedRobotFilter({ value })),
+        ],
         [
           h.keyed('option')('', [h.Value('')], [format(locale, 'episodes.allRobots', {})]),
           ...options.map((robot) => h.keyed('option')(robot.id, [h.Value(robot.id)], [robot.name])),
@@ -137,106 +170,98 @@ const filter = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html => 
 const brainLabel = (provider: string | null, locale: Locale) =>
   format(locale, isZeroGDecision(provider) ? 'console.brainZeroG' : 'console.brainRehearsal', {})
 
-const row = (episode: EpisodeSummary, inputs: Inputs, h: HtmlBuilder<Message>): Html => {
-  const { locale } = inputs
-  const cell = (content: ReadonlyArray<Html | string>) => h.td([], content)
-  return h.keyed('tr')(
-    episode.id,
-    [],
+/** What World said: approved at which assurance (`orb`), or how the approval ended. */
+const worldLine = (episode: EpisodeSummary, locale: Locale, h: HtmlBuilder<Message>): Html => {
+  const { approval } = episode
+  if (approval === null) return h.empty
+  return h.p(
+    [h.Class(mutedClassName)],
     [
-      cell([clockTime(episode.createdAt, locale, inputs.timeZone)]),
-      cell([episode.robotName]),
-      cell([episode.item]),
-      cell([format(locale, 'robot.state', { state: episode.state })]),
-      cell(
-        episode.decision === null
-          ? ['—']
-          : [
-              format(locale, 'episodes.decision', {
-                brain: brainLabel(episode.decision.provider, locale),
-                action: episode.decision.action,
-              }),
-            ],
-      ),
-      cell(
-        episode.payment === null
-          ? ['—']
-          : [
-              episode.payment.txHash === null
-                ? episode.payment.status
-                : h.a([h.Href(explorerTx(episode.payment.txHash))], [episode.payment.status]),
-            ],
-      ),
-      cell([
-        episode.approval === null
-          ? '—'
-          : [episode.approval.status, episode.approval.world?.acr?.split('/').at(-1)]
-              .filter((part): part is string => part !== undefined)
-              .join(' · '),
-      ]),
-      cell([episode.evidence?.status ?? '—']),
-      cell([h.a([h.Href(episodeRouter({ episodeId: episode.id }))], [format(locale, 'episodes.inspect', {})])]),
+      format(locale, 'episodes.world', {
+        status: approval.status,
+        level: approval.world?.acr?.split('/').at(-1) ?? '',
+      }),
     ],
   )
 }
 
-const table = (episodes: ReadonlyArray<EpisodeSummary>, inputs: Inputs, h: HtmlBuilder<Message>): Html => {
+/** One errand: what it was for, how it ended, who decided, what World said, where its record is, and its links. */
+const row = (episode: EpisodeSummary, inputs: Inputs, h: HtmlBuilder<Message>): Html => {
   const { locale } = inputs
-  if (episodes.length === 0) return h.p([h.Class('hint')], [format(locale, 'episodes.empty', {})])
-  const heading = (key: 'when' | 'robot' | 'item' | 'state' | 'decision' | 'payment' | 'world' | 'evidence' | 'open') =>
-    h.th([], [format(locale, 'episodes.column', { column: key })])
-  return h.div(
-    [h.Class(tableScrollClassName)],
+  const { decision, payment } = episode
+  return h.keyed('li')(
+    episode.id,
+    [h.Class(rowClassName)],
     [
-      h.table(
-        [h.Class(episodeTableClassName)],
+      h.div(
+        [h.Class(rowTopClassName)],
         [
-          h.thead(
-            [],
+          h.p(
+            [h.Class(itemClassName)],
+            [itemName(episode.item), h.span([h.Class(robotClassName)], [episode.robotName])],
+          ),
+          h.time([h.Class(timeClassName)], [clockTime(episode.createdAt, locale, inputs.timeZone)]),
+        ],
+      ),
+      h.p([h.Class(stateClassName)], [format(locale, 'episodes.state', { state: episode.state })]),
+      decision === null
+        ? h.empty
+        : h.p(
+            [h.Class(mutedClassName)],
             [
-              h.tr(
-                [],
-                [
-                  heading('when'),
-                  heading('robot'),
-                  heading('item'),
-                  heading('state'),
-                  heading('decision'),
-                  heading('payment'),
-                  heading('world'),
-                  heading('evidence'),
-                  heading('open'),
-                ],
-              ),
+              format(locale, 'episodes.decision', {
+                brain: brainLabel(decision.provider, locale),
+                action: decision.action,
+              }),
+              teeMark(decision.tee?.verified ?? false, locale, h),
             ],
           ),
-          h.tbody(
-            [],
-            episodes.map((episode) => row(episode, inputs, h)),
+      worldLine(episode, locale, h),
+      zeroGLine(episode.evidence, locale, h),
+      h.div(
+        [h.Class(linksClassName)],
+        [
+          h.a(
+            [
+              h.Href(episodeRouter({ episodeId: episode.id })),
+              h.AriaLabel(
+                format(locale, 'episodes.inspectFor', { item: itemName(episode.item), robot: episode.robotName }),
+              ),
+            ],
+            [format(locale, 'episodes.inspect', {})],
           ),
+          payment?.txHash === undefined || payment.txHash === null
+            ? h.empty
+            : h.a([h.Href(explorerTx(payment.txHash))], [format(locale, 'console.paymentTx', {})]),
         ],
       ),
     ],
   )
 }
 
+const list = (episodes: ReadonlyArray<EpisodeSummary>, inputs: Inputs, h: HtmlBuilder<Message>): Html =>
+  episodes.length === 0
+    ? h.p([h.Class(mutedClassName)], [format(inputs.locale, 'episodes.empty', {})])
+    : h.ul(
+        [h.Class(listClassName)],
+        episodes.map((episode) => row(episode, inputs, h)),
+      )
+
 /** `/wallet/episodes`: every errand of the owner's robots with what decided it, what it paid and what proves it. */
 export const view = Submodel.defineView<Model, Message, Inputs>((model, inputs, h) =>
-  ownerMain(
-    format(inputs.locale, 'episodes.title', {}),
-    h.div(
-      [],
-      [
-        h.p([h.Class('lead')], [format(inputs.locale, 'episodes.explainer', {})]),
-        filter(model, inputs.locale, h),
-        ListState.match(model.state, {
-          Loading: () => loadingView(inputs.locale, h),
-          SignedOut: () => signedOutView(inputs.locale, h),
-          Failed: ({ error }) => failedView(error, Message.ClickedReload(), inputs.locale, h),
-          Loaded: ({ episodes }) => table(episodes, inputs, h),
-        }),
-      ],
-    ),
-    h,
+  h.main(
+    [h.Id('main'), h.Class(pageClassName)],
+    [
+      back(model, inputs.locale, h),
+      h.h1([h.Class(titleClassName)], [format(inputs.locale, 'episodes.title', {})]),
+      h.p([h.Class(mutedClassName)], [format(inputs.locale, 'episodes.explainer', {})]),
+      filter(model, inputs.locale, h),
+      ListState.match(model.state, {
+        Loading: () => loadingView(inputs.locale, h),
+        SignedOut: () => signedOutView(inputs.locale, h),
+        Failed: ({ error }) => failedView(error, Message.ClickedReload(), inputs.locale, h),
+        Loaded: ({ episodes }) => list(episodes, inputs, h),
+      }),
+    ],
   ),
 )

@@ -4,7 +4,7 @@ import { Option, Schema } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { clockTime } from '../api/Episodes.ts'
 import { type Message, type Model, Verify } from './Episode.ts'
-import { fields, type Inputs, inputDetailsClassName, stackClassName } from './EpisodeParts.ts'
+import { fields, type Inputs, inputDetailsClassName, mutedClassName, stackClassName } from './EpisodeParts.ts'
 
 // STYLES
 
@@ -68,7 +68,7 @@ export const teeView = (
             [h.Class(inputDetailsClassName)],
             [
               h.summary([], [format(locale, 'episode.teeText', {})]),
-              h.p([h.Class('hint')], [format(locale, 'episode.teeNote', {})]),
+              h.p([h.Class(mutedClassName)], [format(locale, 'episode.teeNote', {})]),
               fields([['teeSigner', signer]], locale, h),
               h.pre([], [text]),
             ],

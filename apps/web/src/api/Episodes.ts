@@ -62,6 +62,9 @@ const Observation = Schema.Struct({
   bytes: Schema.Number,
   capturedAt: Schema.Number,
   chipSig: Schema.String,
+  /** The frame on 0G Storage once the uploader stored it (null until then; absent on older Workers). */
+  rootHash: Schema.optionalKey(Text),
+  storageTx: Schema.optionalKey(Text),
 })
 export type Observation = typeof Observation.Type
 
@@ -138,7 +141,17 @@ export const VerifyResult = Schema.Struct({
   tee: Schema.optionalKey(Schema.Struct({ present: Schema.Boolean, signerMatches: Schema.Boolean })),
   /** Each observation's bytes against its hash, and its signature against the robot's chip (absent before M+R's change). */
   observations: Schema.optionalKey(
-    Schema.Array(Schema.Struct({ sha256: Schema.String, hashMatches: Schema.Boolean, signerMatches: Schema.Boolean })),
+    Schema.Array(
+      Schema.Struct({
+        sha256: Schema.String,
+        hashMatches: Schema.Boolean,
+        signerMatches: Schema.Boolean,
+        /** The frame downloaded back from 0G Storage and re-hashed (null before its upload). */
+        zeroG: Schema.optionalKey(
+          Schema.NullOr(Schema.Struct({ downloaded: Schema.Boolean, hashMatches: Schema.Boolean })),
+        ),
+      }),
+    ),
   ),
   downloadCheckedBy: Schema.String,
 })
@@ -186,6 +199,8 @@ export const observationImage = (episodeId: string, sha256: string) =>
   `/api/wallet/episodes/${encodeURIComponent(episodeId)}/observations/${encodeURIComponent(sha256)}`
 
 export const storageScan = (rootHash: string) => `https://storagescan-galileo.0g.ai/file/${rootHash}`
+/** A 0G Storage upload by its transaction (the form the Worker's verify links use). */
+export const storageScanTx = (storageTx: string) => `https://storagescan-galileo.0g.ai/tx/${storageTx}`
 export const chainScan = (hash: string) => `https://chainscan-galileo.0g.ai/tx/${hash}`
 
 /** A clock time in the page's time zone (the server renders in UTC and the browser hydrates with the same flags). */

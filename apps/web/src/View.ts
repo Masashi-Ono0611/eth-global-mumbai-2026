@@ -31,7 +31,7 @@ const signOutClassName =
   'min-h-12 cursor-pointer rounded-control bg-error-soft font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
 const wideNavClassName = 'flex gap-4'
 
-/** The audit, merchant and gate pages keep the wide layout and a small masthead until they are redesigned. */
+/** The merchant and gate pages keep the wide layout and a small masthead until they are redesigned. */
 const wideNav = (model: Model, h: HtmlBuilder<Message>): Html => {
   const { locale } = model.context
   return AuthState.guards.SignedIn(model.auth)
@@ -300,7 +300,7 @@ const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
   })
 }
 
-/** The owner's app: sign-in, the wallet, robots and approvals, in one phone-width column. */
+/** The owner's app: sign-in, the wallet, robots, approvals and payment records, in one phone-width column. */
 const isOwnerRoute = (route: AppRoute): boolean =>
   AppRoute.match(route, {
     Home: () => true,
@@ -308,9 +308,9 @@ const isOwnerRoute = (route: AppRoute): boolean =>
     Robots: () => true,
     RobotConsole: () => true,
     Approval: () => true,
-    Episodes: () => false,
-    RobotEpisodes: () => false,
-    Episode: () => false,
+    Episodes: () => true,
+    RobotEpisodes: () => true,
+    Episode: () => true,
     Merchant: () => false,
     Gate: () => false,
     NotFound: () => false,

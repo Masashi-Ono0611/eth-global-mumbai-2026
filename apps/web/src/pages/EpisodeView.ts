@@ -12,25 +12,27 @@ import {
 } from '../api/Episodes.ts'
 import { isZeroGDecision } from '../api/Robot.ts'
 import { explorerTx } from '../api/Wallet.ts'
-import { episodesRouter, robotConsoleRouter } from '../route.ts'
+import { episodesRouter, robotConsoleRouter, walletRouter } from '../route.ts'
 import { AuditState, Message, type Model, Replay, Verify } from './Episode.ts'
 import { observationCard } from './ObservationCard.ts'
 import { teeView } from './TeeBadge.ts'
-import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
+import { failedView, loadingView, signedOutView } from './Shared.ts'
 import {
-  actionRowClassName,
   alertTextClassName,
   auditButtonClassName,
   auditLayoutClassName,
+  backClassName,
   card,
   checkListClassName,
   fields,
   inputDetailsClassName,
   link,
+  mutedClassName,
   none,
   replayBoxClassName,
   stackClassName,
   timelineListClassName,
+  titleClassName,
 } from './EpisodeParts.ts'
 import type { Inputs } from './EpisodeParts.ts'
 
@@ -87,7 +89,7 @@ const replayResultView = (result: ReplayResult, locale: Locale, h: HtmlBuilder<M
           )
         : h.empty,
       replay.ok
-        ? h.p([h.Class('hint')], [format(locale, 'episode.replaySame', { same: result.same ? 'yes' : 'no' })])
+        ? h.p([h.Class(mutedClassName)], [format(locale, 'episode.replaySame', { same: result.same ? 'yes' : 'no' })])
         : h.empty,
     ],
   )
@@ -151,7 +153,7 @@ const decisionCard = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: Html
             ],
             [format(locale, 'episode.action', { action: 'replay' })],
           ),
-      h.p([h.Class('hint')], [format(locale, 'episode.replayNote', {})]),
+      h.p([h.Class(mutedClassName)], [format(locale, 'episode.replayNote', {})]),
       replayView(model, locale, h),
     ],
     h,
@@ -322,6 +324,10 @@ const evidenceCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
   )
 }
 
+/** A hash in the timeline is shortened (the cards below show it whole); anything else is shown as it is. */
+const shortDetail = (detail: string) =>
+  /^0x[0-9a-f]{40,}$/i.test(detail) ? `${detail.slice(0, 10)}…${detail.slice(-6)}` : detail
+
 const timelineCard = (audit: EpisodeAudit, inputs: Inputs, h: HtmlBuilder<Message>): Html =>
   card(
     'timeline',
@@ -337,7 +343,7 @@ const timelineCard = (audit: EpisodeAudit, inputs: Inputs, h: HtmlBuilder<Messag
               h.time([], [clockTime(entry.at, inputs.locale, inputs.timeZone)]),
               ' ',
               format(inputs.locale, 'episode.event', { kind: entry.kind }),
-              entry.detail === null ? '' : ` · ${entry.detail}`,
+              entry.detail === null ? '' : ` · ${shortDetail(entry.detail)}`,
             ],
           ),
         ),
@@ -352,8 +358,13 @@ const auditView = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBui
   return h.div(
     [h.Class(auditLayoutClassName)],
     [
+      h.a(
+        [h.Href(robotConsoleRouter({ robotId: episode.robotId })), h.Class(backClassName)],
+        [h.span([h.AriaHidden(true)], ['‹']), format(locale, 'episode.back', { robot: episode.robotName })],
+      ),
+      h.h1([h.Class(titleClassName)], [format(locale, 'episode.title', { item: episode.item })]),
       h.p(
-        [h.Class('lead')],
+        [h.Class(mutedClassName)],
         [
           format(locale, 'episode.meta', {
             robot: episode.robotName,
@@ -361,10 +372,10 @@ const auditView = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBui
           }),
         ],
       ),
-      h.p([h.Role('status')], [format(locale, 'robot.state', { state: episode.state })]),
+      h.p([h.Role('status'), h.Class('font-semibold')], [format(locale, 'episodes.state', { state: episode.state })]),
       episode.result === null
         ? h.empty
-        : h.p([h.Class('hint')], [format(locale, 'console.reason', { reason: episode.result })]),
+        : h.p([h.Class(mutedClassName)], [format(locale, 'console.reason', { reason: episode.result })]),
       timelineCard(audit, inputs, h),
       observationCard(model, audit, inputs, h),
       decisionCard(model, audit, inputs, h),
@@ -372,32 +383,40 @@ const auditView = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBui
       paymentCard(audit, locale, h),
       approvalCard(audit, locale, h),
       evidenceCard(model, audit, locale, h),
-      h.div(
-        [h.Class(actionRowClassName)],
-        [
-          h.a([h.Href(episodesRouter()), h.Class('secondary-action')], [format(locale, 'episodes.title', {})]),
-          h.a(
-            [h.Href(robotConsoleRouter({ robotId: episode.robotId })), h.Class('secondary-action')],
-            [format(locale, 'robots.openConsole', {})],
-          ),
-        ],
+      h.a(
+        [h.Href(episodesRouter()), h.Class('justify-self-center py-3 font-semibold text-muted')],
+        [format(locale, 'episode.allRecords', {})],
       ),
     ],
   )
 }
 
+/** The page before its audit arrives: loading, signed out or failed, under the same back link to the wallet. */
+const pendingView = (content: Html, locale: Locale, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class(auditLayoutClassName)],
+    [
+      h.a(
+        [h.Href(walletRouter()), h.Class(backClassName)],
+        [h.span([h.AriaHidden(true)], ['‹']), format(locale, 'episodes.backToWallet', {})],
+      ),
+      h.h1([h.Class(titleClassName)], [format(locale, 'episodes.title', {})]),
+      content,
+    ],
+  )
+
 /** `/wallet/episodes/:id`: one errand after the fact, every recorded step with what proves it. */
 export const episodeView = Submodel.defineView<Model, Message, Inputs>((model, inputs, h) =>
-  ownerMain(
-    AuditState.guards.Loaded(model.state)
-      ? format(inputs.locale, 'episode.title', { item: model.state.audit.episode.item })
-      : format(inputs.locale, 'episodes.title', {}),
-    AuditState.match(model.state, {
-      Loading: () => loadingView(inputs.locale, h),
-      SignedOut: () => signedOutView(inputs.locale, h),
-      Failed: ({ error }) => failedView(error, Message.ClickedReload(), inputs.locale, h),
-      Loaded: ({ audit }) => auditView(model, audit, inputs, h),
-    }),
-    h,
+  h.main(
+    [h.Id('main')],
+    [
+      AuditState.match(model.state, {
+        Loading: () => pendingView(loadingView(inputs.locale, h), inputs.locale, h),
+        SignedOut: () => pendingView(signedOutView(inputs.locale, h), inputs.locale, h),
+        Failed: ({ error }) =>
+          pendingView(failedView(error, Message.ClickedReload(), inputs.locale, h), inputs.locale, h),
+        Loaded: ({ audit }) => auditView(model, audit, inputs, h),
+      }),
+    ],
   ),
 )

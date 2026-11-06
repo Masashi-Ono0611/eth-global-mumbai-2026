@@ -63,20 +63,23 @@ describe('/wallet/episodes', () => {
     scene(
       { update: Episodes.update, view },
       given(loaded),
-      expect(role('heading', { name: 'Episodes' })).toExist(),
-      expect(role('columnheader', { name: 'Decision' })).toExist(),
-      expect(text('0G: ask you first')).toExist(),
+      expect(role('heading', { name: 'Payment records' })).toExist(),
+      expect(role('link', { name: 'Back to wallet' })).toHaveAttr('href', '/app/wallet'),
+      expect(role('list')).toContainText(/Cigarettes.*Duck.*Paid.*Chai.*Goose.*Stopped safely, nothing paid/s),
+      expect(text('0G: ask you first', { exact: false })).toExist(),
       expect(text('The rehearsal brain (not 0G): pay')).toExist(),
-      expect(role('link', { name: 'settled' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
-      expect(text('consumed · orb')).toExist(),
-      expect(role('link', { name: 'Inspect' })).toHaveAttr('href', '/app/wallet/episodes/ep1'),
+      expect(role('link', { name: 'Payment on Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
+      expect(text('World approved it (Orb-verified)')).toExist(),
+      expect(text('Saved on 0G')).toExist(),
+      expect(role('link', { name: 'Show proof: Cigarettes by Duck' })).toHaveAttr('href', '/app/wallet/episodes/ep1'),
       change(label('Robot'), 'r2'),
       Command.expectExact(Episodes.LoadEpisodes({ robotId: 'r2' })),
       Command.resolve(
         Episodes.LoadEpisodes,
         Episodes.Message.SucceededLoadEpisodes({ episodes: [summary('ep2', 'r2', { item: 'chai' })] }),
       ),
-      expect(role('link', { name: 'Inspect' })).toHaveAttr('href', '/app/wallet/episodes/ep2'),
+      expect(role('link', { name: 'Show proof: Chai by Goose' })).toHaveAttr('href', '/app/wallet/episodes/ep2'),
+      expect(role('link', { name: 'Back to Goose' })).toHaveAttr('href', '/app/robot/r2'),
       change(label('Robot'), ''),
       Command.expectExact(Episodes.LoadEpisodes({ robotId: null })),
       Command.resolve(Episodes.LoadEpisodes, Episodes.Message.SucceededLoadEpisodes({ episodes: [] })),
@@ -204,7 +207,8 @@ describe('/wallet/episodes/:id', () => {
       given(loaded),
       expect(role('heading', { name: 'Errand: cigarettes' })).toExist(),
       expect(role('list')).toContainText('Errand started · cigarettes'),
-      expect(role('list')).toContainText(`Settled on Arc · ${txHash}`),
+      expect(role('list')).toContainText(`Settled on Arc · ${txHash.slice(0, 10)}…${txHash.slice(-6)}`),
+      expect(role('status')).toHaveText('Paid'),
       expect(text('0G decided to ask you first: Restricted item the owner asked for')).toExist(),
       expect(text('Input sent to the brain (exact JSON)')).toExist(),
       expect(text('"requested": "cigarettes"', { exact: false })).toExist(),
@@ -216,7 +220,8 @@ describe('/wallet/episodes/:id', () => {
         'href',
         `https://chainscan-galileo.0g.ai/tx/${logTx}`,
       ),
-      expect(role('link', { name: 'Open console' })).toHaveAttr('href', '/app/robot/r1'),
+      expect(role('link', { name: 'Back to Duck' })).toHaveAttr('href', '/app/robot/r1'),
+      expect(role('link', { name: 'All payment records' })).toHaveAttr('href', '/app/wallet/episodes'),
     )
   })
 
@@ -285,6 +290,8 @@ describe('/wallet/episodes/:id', () => {
       bytes: 18_204,
       capturedAt: at - 2000,
       chipSig: `0x${'5a'.repeat(65)}`,
+      rootHash: null,
+      storageTx: null,
     }
     const withScan = Episode.update(
       Episode.init('ep1').model,
@@ -312,6 +319,7 @@ describe('/wallet/episodes/:id', () => {
       expect(text('chip 0x700664bc…8fcc8e')).toExist(),
       expect(role('list')).toContainText('The robot scanned the QR'),
       expect(text('Not checked yet: press Verify under Evidence on 0G')).toExist(),
+      expect(text('Saving the frame to 0G...')).toExist(),
       click(role('button', { name: 'Verify' })),
       Command.resolve(Episode.VerifyEvidence, checked(true, true)),
       expect(text("Verified: the image matches its hash and this robot's chip signed it")).toExist(),
@@ -364,6 +372,48 @@ describe('/wallet/episodes/:id', () => {
       click(role('button', { name: 'Verify' })),
       Command.resolve(Episode.VerifyEvidence, verifiedTee(false)),
       expect(text("TEE proof present, but its signature does not match the provider's TEE signer")).toExist(),
+    )
+  })
+
+  test('the frame on 0G Storage: its upload link, and Verify downloads it back and re-hashes it', () => {
+    const storageTx = `0x${'e4'.repeat(32)}`
+    const frameRoot = `0x${'f7'.repeat(32)}`
+    const stored = {
+      kind: 'qr_crop',
+      sha256: frame,
+      bytes: 18_204,
+      capturedAt: at - 2000,
+      chipSig: `0x${'5a'.repeat(65)}`,
+      rootHash: frameRoot,
+      storageTx,
+    }
+    const withFrame = Episode.update(
+      Episode.init('ep1').model,
+      Episode.Message.SucceededLoadAudit({ audit: { ...audit, observations: [stored] } }),
+    ).model
+    const reDownloaded = (downloaded: boolean, hashMatches: boolean) =>
+      Episode.Message.SucceededVerify({
+        result: {
+          ...verified,
+          observations: [{ sha256: frame, hashMatches: true, signerMatches: true, zeroG: { downloaded, hashMatches } }],
+        },
+      })
+    scene(
+      { update: Episode.update, view },
+      given(withFrame),
+      expect(role('link', { name: 'Frame on 0G Storage' })).toHaveAttr(
+        'href',
+        `https://storagescan-galileo.0g.ai/tx/${storageTx}`,
+      ),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, reDownloaded(true, true)),
+      expect(text('Downloaded back from 0G Storage and re-hashed: it matches')).toExist(),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, reDownloaded(true, false)),
+      expect(text('The copy on 0G Storage does not match this hash')).toExist(),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, reDownloaded(false, false)),
+      expect(text('Could not download the frame from 0G Storage')).toExist(),
     )
   })
 })

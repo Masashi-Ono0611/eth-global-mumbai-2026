@@ -142,6 +142,9 @@ export const usdc = (units: string): string => {
   return `${whole}.${fraction}`
 }
 
+/** A catalogue item id as a name (`chai` → `Chai`), where only the id is at hand. */
+export const itemName = (item: string) => item.slice(0, 1).toUpperCase() + item.slice(1)
+
 export const explorerTx = (hash: string) => `https://explorer.arc.io/tx/${hash}`
 
 /** "No" to a waiting approval (spec §9): the errand ends `denied`, nothing is signed. */

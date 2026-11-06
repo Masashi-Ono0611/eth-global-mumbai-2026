@@ -12,7 +12,7 @@ import {
   terminalStates,
   worldAuthorizeUrl,
 } from '../api/Robot.ts'
-import { type Catalogue, explorerTx, type GrantView, leftToday, usdc } from '../api/Wallet.ts'
+import { type Catalogue, explorerTx, type GrantView, leftToday, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
 import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
@@ -55,8 +55,6 @@ const approveClassName =
 const declineClassName =
   'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
 // VIEW
-
-const itemName = (item: string) => item.slice(0, 1).toUpperCase() + item.slice(1)
 
 /** The header pill: what is left today when the Worker reports the day, otherwise the daily allowance. */
 const allowancePill = (grant: GrantView, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
