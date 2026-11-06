@@ -7,6 +7,17 @@ import { ARC_CHAIN_ID } from './Env.ts'
 /** USDC base units (6 dp) as Arc's native value (18 dp). */
 export const nativeValueOf = (units: bigint) => units * 1_000_000_000_000n
 
+/** A plain transfer to an account without code costs exactly this much gas. */
+export const PLAIN_TRANSFER_GAS = 21_000n
+
+/**
+ * The gas limit for a USDC transfer: a deployed recipient (a HybridDeleGator owner after its first grant) runs its
+ * `receive` logic, so a fixed 21,000 reverts out of gas there. Use the node's estimate plus 25% headroom, never less than
+ * a plain transfer (whose estimate is exact).
+ */
+export const transferGasLimit = (estimate: bigint) =>
+  estimate <= PLAIN_TRANSFER_GAS ? PLAIN_TRANSFER_GAS : (estimate * 125n + 99n) / 100n
+
 /**
  * A plain USDC transfer from a key (scripts only: funding a demo owner from the relayer before a run). Outside the
  * keyed relayer store on purpose, so run it only while nothing else sends from that key.
@@ -22,14 +33,18 @@ export const sendUsdc = Effect.fn('EthMumbai.Chain.sendUsdc')(function* (input: 
   const nonce = yield* rpc('getTransactionCount', () =>
     client.getTransactionCount({ address: account.address, blockTag: 'pending' }),
   )
+  const value = nativeValueOf(input.units)
+  const estimate = yield* rpc('estimateGas', () =>
+    client.estimateGas({ account: account.address, to: input.to, value }),
+  )
   const serialized = yield* Effect.promise(() =>
     account.signTransaction({
       chainId: ARC_CHAIN_ID,
       type: 'eip1559',
       nonce,
       to: input.to,
-      value: nativeValueOf(input.units),
-      gas: 21_000n,
+      value,
+      gas: transferGasLimit(estimate),
       ...GAS_POLICY,
     }),
   )

@@ -365,8 +365,8 @@ const main = async () => {
     const page = await context.newPage()
     await addVirtualAuthenticator(context, page)
     const owner = await signup(page)
-    // Fund while the account is still counterfactual: sendUsdc is a 21,000-gas plain transfer, which reverts out of gas
-    // once the grant has deployed the account (6 Nov run, tx 0xa691c2ea…0acf).
+    // Fund right after signup. (A fixed 21,000-gas transfer reverted once the grant had deployed the account, 6 Nov run,
+    // tx 0xa691c2ea…0acf; sendUsdc now estimates gas, so funding a deployed owner works too.)
     if (runs('chai')) await fundOwner(owner)
     const { robotId, sim } = await addSimulator(page, context)
     await grant(page)
