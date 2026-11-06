@@ -20,6 +20,35 @@ projects. Alchemy stays at **2.0.0-beta.84** (state store v7) for the same reaso
 and beta.84 in turn holds Effect at 4.0.x (it imports `effect/Crypto`, removed in 4.1). Upgrading means checking first
 that a v8 bootstrap of the named store leaves the default store alone.
 
+### Incident 6 Nov 2026: the state store re-keyed itself, and the guard
+
+**What happened.** The CI deploy of `c164d57` (09:32Z) logged "Cloudflare State Store … not found; deploying it". In
+beta.84, `isStateStoreServing` turns any failure of its `getSubdomain` or `/version` probe into "missing", and with
+`--yes` (CI must pass it to apply) a missing store is bootstrapped. That bootstrap generated a new
+`StateStoreEncryptionKeyValue`, overwrote the store's encryption-key and token secrets in the Secrets Store, and then
+failed. The store Worker itself was not redeployed. Every record of both stacks stayed encrypted with the old key,
+which existed nowhere else: it was only in the store's own records (encrypted with itself) and in the overwritten,
+write-only secret. Every deploy then failed with `getState (RpcCallError)`. The live app kept serving.
+
+**Recovery: adoption, no data touched.**
+1. Pin the live physical names (`packages/server/src/ProductionNames.ts`, used on stage `main`; the site's comments
+   D1 on `prod`).
+2. Delete the unreadable records with `alchemy state delete EthMumbai/main -r` and `… EthMumbaiSite/prod -r`. This
+   removes state only.
+3. Deploy once by hand with `--adopt` from a clean worktree. Api, Website, D1 and R2 were adopted, and Edge was adopted
+   at apply time. No delete, no replace. URLs and every D1 row were unchanged, and D1 migrations did not re-run:
+   their bookkeeping lives in the database's own `__alchemy_migrations`.
+
+**Guard.** `patches/@alchemy.run%2Fcloudflare@2.0.0-beta.84.patch`: when the store's Worker script exists, a failed
+probe now fails the deploy ("refusing to re-bootstrap it") instead of bootstrapping, and a failure of the existence
+check fails too. A retry finds the store serving.
+
+**Rules.**
+- Never bootstrap or upgrade the state store from CI. Only a person runs `alchemy state bootstrap`, by hand.
+- Keep the pinned names. Without them, a lost state would mint a second app instead of adopting this one.
+- Before a deploy with `--adopt`, dry-run it and read the plan: only `adopted`/`update`, and `create` only where
+  Apply adopts it by name.
+
 ## Secrets
 
 GitHub Actions secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `APP_AUTH_SECRET`, `APP_AUTH_SESSION_KEYS`.
