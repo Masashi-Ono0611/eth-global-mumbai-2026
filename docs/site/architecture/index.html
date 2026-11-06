@@ -56,7 +56,7 @@
 <body>
 <main>
   <nav class="tabs"><a href="/architecture/" aria-current="page">Architecture</a><a href="/plan/">Plan</a></nav>
-  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.4 · Fri 6 Nov 06:30 IST · comment with 💬 (blocks, diagram nodes, selected text)</div>
+  <div class="kicker">ETHGlobal Mumbai 2026 · architecture plan v3.5 · Fri 6 Nov 06:55 IST · first mainnet payment and passkey grant done · comment with 💬 (blocks, diagram nodes, selected text)</div>
   <h1>Don't give a robot your wallet.<br>Give it a budget.</h1>
   <p class="lead"><strong>Vitaquack.</strong> A passkey wallet on Arc grants a budget to a robot's chip. One Robot Agent per robot asks 0G what to buy, pays our merchant over x402, and asks a human through World Agent Pass when a purchase is over the limit or restricted. The chip always signs. The wallet never needs to know the grantee is a robot. Build order: <code>docs/spec.md</code>.</p>
 
@@ -459,23 +459,26 @@ flowchart LR
   <h3>Known (with the evidence level)</h3>
   <ul>
     <li><strong>Verified on-chain:</strong> HybridDeleGator, SimpleFactory, DelegationManager and the enforcers are live on Arc, byte-identical to Base; the P-256 precompile works.</li>
-    <li><strong>Simulated</strong> (eth_call with state overrides on live Arc state, nothing broadcast yet): a passkey-signed grant → chip voucher chain settles; over-cap, replay, expiry and revoke revert with the right reasons (S2: 14 / 14).</li>
+    <li><strong>Broadcast on Arc mainnet (6 Nov 06:10 IST):</strong> a $0.01 chip-signed voucher under a grant settled, replay refused (<code>IdEnforcer:id-already-used</code>), revoke broadcast, the next payment refused (<code>CannotUseADisabledDelegation</code>); <code>docs/evidence/2026-11-06-smoke.md</code>. The <code>RobotPaymentPolicyEnforcer</code> is deployed at <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code>, on-chain code = build, 8 approval cases pass against it (<code>docs/evidence/contracts.md</code>).</li>
+    <li><strong>Broadcast from the deployed app (06:32 IST):</strong> a passkey-signed grant accepted on-chain (the Worker's relayer deploys the Hybrid account, Arc's ERC-1271 check accepts the passkey signature), through the API driver and through the real UI with a virtual authenticator; the mock chip pairs and long-polls (25 s) through the deployed edge; <code>docs/evidence/2026-11-06-deployed-e2e.md</code>, <code>2026-11-06-deployed-browser.md</code>.</li>
+    <li><strong>Deployed merchant:</strong> invoice → x402 402 → garbage payment 400 with named checks (nothing broadcast) → Ed25519 gate status; <code>docs/evidence/2026-11-06-deployed-merchant.md</code>.</li>
+    <li><strong>Native, with stubs:</strong> 0G decide → signing, timeout → safe_stop (never faked), World token checks (10 cases incl. <code>amr</code> pop/mfa), console reload; 17 / 17.</li>
     <li><strong>Bench:</strong> the real Radxa builds and signs the voucher the kit expects (C1: 20 / 20).</li>
     <li><strong>Prototype:</strong> a World RS256 token can be verified in an Arc contract bound to one payment (S5b, 43 tests); no real World token yet; stretch.</li>
     <li><strong>Verified:</strong> Agent Pass is plain OIDC with no chain involved; deny / expire give no token.</li>
-    <li><strong>Not run yet:</strong> real passkeys on phones, a real broadcast, 0G decisions, 0G Storage uploads. Nothing "works end to end" until the smoke evidence is in <code>docs/evidence/</code>.</li>
+    <li><strong>Not run yet:</strong> a real 0G decision and a paid errand on the deployed app (needs the 0G key: every errand answers 503 until then), 0G Storage uploads and <code>EpisodeLog</code> on Galileo (needs gas), World approve / deny live (needs the IdP client), real passkeys on phones, the Arc Studio project. The MUST loop is not "end to end" until <code>docs/evidence/demo-run.md</code> exists.</li>
   </ul>
   <h3>Uncertain: one spike settles it</h3>
   <table>
     <tr><th>#</th><th>Spike</th></tr>
-    <tr><td>S1</td><td>Real-device passkey → HybridDeleGator on Arc → passkey-signed grant → $0.01 relayed payment</td></tr>
-    <tr><td>S2</td><td><strong>Done (simulated):</strong> our facilitator settles a chip-signed voucher on live Arc state, 14 / 14 cases with the right revert reasons. Left: a real broadcast and the x402 envelope</td></tr>
-    <tr><td>S2b</td><td>Float path: pull to chip → EIP-3009 through Circle's facilitator, $0.01</td></tr>
-    <tr><td>S3</td><td>0G with the team's credits: a tool-calling model (ideally with images), latency, request ids</td></tr>
+    <tr><td>S1</td><td><strong>Done (virtual authenticator):</strong> passkey → HybridDeleGator deployed by the relayer → passkey-signed grant accepted on Arc mainnet. Left: a real phone, and the $0.01 payment under that grant (needs 0G)</td></tr>
+    <tr><td>S2</td><td><strong>Done (broadcast):</strong> $0.01 settled on Arc mainnet through our facilitator, replay and post-revoke refused; the x402 envelope verified on the deployed merchant</td></tr>
+    <tr><td>S2b</td><td>Dropped: the float path (authority gap after the pull)</td></tr>
+    <tr><td>S3</td><td>Open, blocked on the 0G key: <code>packages/server/scripts/zg-probe.ts</code> runs the exact <code>decide</code> call and reports model, latency and request id</td></tr>
     <tr><td>S4</td><td>Dropped: MCP is off the critical path; the agent calls wallet services in-process</td></tr>
     <tr><td>S5</td><td>Agent Pass browser flow with <code>nonce</code> (approve and deny) using Kris's Orb-verified ID: does the token echo the nonce, and which <code>acr</code> / <code>amr</code> values come back</td></tr>
     <tr><td>S5b</td><td><strong>Done (prototype):</strong> a contract verifies World's RS256 token on Arc, 43 tests, also run on live Arc; ≈ 409k gas ≈ $0.008. Left: a real World token with our nonce (S5, Kris's phone), key rotation</td></tr>
-    <tr><td>S6</td><td>Mock chip ↔ Robot Agent over HTTPS long-polling (pairing, sign requests, lease); then the real Radxa with Bun + viem</td></tr>
+    <tr><td>S6</td><td><strong>Done (deployed):</strong> mock chip pairs and long-polls through the deployed edge (24.8 s holds, 35 s lease). Left: the Radxa running the same client (<code>apps/chip/README.md</code>, <code>docs/hardware-handoff.md</code>)</td></tr>
     <tr><td>S7</td><td>The <code>duckbench</code> hotspot with the Radxa, ESP32 and laptops; then H2, H5, H6 on it</td></tr>
     <tr><td>S8</td><td>Walking policy on the new servos (teammate)</td></tr>
   </table>
@@ -514,7 +517,7 @@ flowchart LR
   </table>
 
   <footer>
-    Plan v3.4, 6 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/decisions.md</code> the decisions, <code>docs/research/</code> the evidence ·
+    Plan v3.5, 6 Nov 2026 · <code>docs/plan.md</code> has the detail, <code>docs/decisions.md</code> the decisions, <code>docs/research/</code> the evidence ·
     <a href="https://github.com/grmkris/eth-global-mumbai-2026">github.com/grmkris/eth-global-mumbai-2026</a>
   </footer>
 </main>
