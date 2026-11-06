@@ -54,7 +54,7 @@
     <main>
       <header>
         <h1>Talk to Vita, live</h1>
-        <p class="sub">GPT-Live: start once, then just talk. Interrupt any time.</p>
+        <p class="sub">GPT-Live, for comparison only (not the team's pick: the voice runs on OpenAI, not 0G). <a href="/" style="color:var(--duck)">Back to A</a></p>
       </header>
 
       <div class="stage">
