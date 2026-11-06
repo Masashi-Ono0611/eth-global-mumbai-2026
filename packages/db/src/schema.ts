@@ -427,6 +427,17 @@ export const navTurns = sqliteTable(
   (table) => [uniqueIndex('nav_turns_intent_step').on(table.intentId, table.step)],
 )
 
+/**
+ * What the café's counter screen (the ESP32) shows (spec §7): the one invoice the till last put on display, per
+ * merchant. Only `POST /api/merchants/:id/counter` writes it, so invoices minted through `POST …/invoices` (the sim's
+ * stalls, the web gate) never take over the screen. `set_at` is seconds.
+ */
+export const counterDisplay = sqliteTable('counter_display', {
+  merchantId: text('merchant_id').primaryKey(),
+  invoiceId: text('invoice_id').notNull(),
+  setAt: integer('set_at').notNull(),
+})
+
 export const appSchema = {
   accounts,
   passkeys,
@@ -447,4 +458,5 @@ export const appSchema = {
   notifications,
   intents,
   navTurns,
+  counterDisplay,
 }

@@ -2,6 +2,7 @@ import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDataba
 import { generateId } from '@ethmumbai/protocol/Base32'
 import { Address, Bytes32, type Hex } from '@ethmumbai/protocol/Hex'
 import { ARC_USDC, type Invoice, invoiceHash, jsonHash } from '@ethmumbai/protocol/Invoice'
+import type { RuntimeContext } from 'alchemy/RuntimeContext'
 import { Clock, Effect, Option, Schema } from 'effect'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
@@ -145,6 +146,30 @@ const catalogueBody = (merchant: Merchant, payees: Option.Option<Payees>) => ({
 
 const CreateInvoiceBody = Schema.Struct({ itemId: Schema.String.check(Schema.isMaxLength(64)) })
 
+/**
+ * The mint behind `POST /api/merchants/:id/invoices` and the counter's `POST …/counter {itemId}`: 404 for an unknown
+ * merchant or item, 503 without a payee, 400 for a bad body, else 201 with the invoice once `onMinted` has run.
+ */
+export const mintRoute = (
+  database: QueryDatabaseClient,
+  origin: string,
+  payees: Option.Option<Payees>,
+  onMinted: (row: InvoiceRow) => Effect.Effect<void, never, RuntimeContext> = () => Effect.void,
+) =>
+  Effect.gen(function* () {
+    const { merchantId } = yield* HttpRouter.params
+    const merchant = findMerchant(merchantId ?? '')
+    if (Option.isNone(merchant)) return yield* jsonError(404, 'unknown merchant')
+    if (Option.isNone(payees)) return yield* notConfigured('MERCHANT_PAY_TO')
+    const body = yield* HttpServerRequest.schemaBodyJson(CreateInvoiceBody).pipe(Effect.option)
+    if (Option.isNone(body)) return yield* jsonError(400, 'expected {"itemId": string}')
+    const item = findItem(merchant.value, body.value.itemId)
+    if (Option.isNone(item)) return yield* jsonError(404, 'unknown item')
+    const row = yield* createInvoice(database, payees.value, merchant.value, item.value)
+    yield* onMinted(row)
+    return yield* json(toInvoice(row, origin), 201)
+  })
+
 /** `GET /api/merchants/:id/items` and `POST /api/merchants/:id/invoices {itemId}` → 201 invoice. */
 export const invoiceRoutes = (database: QueryDatabaseClient, origin: string, payees: Option.Option<Payees>) =>
   HttpRouter.addAll([
@@ -158,20 +183,5 @@ export const invoiceRoutes = (database: QueryDatabaseClient, origin: string, pay
         return yield* json(catalogueBody(merchant.value, payees))
       }),
     ),
-    HttpRouter.route(
-      'POST',
-      '/api/merchants/:merchantId/invoices',
-      Effect.gen(function* () {
-        const { merchantId } = yield* HttpRouter.params
-        const merchant = findMerchant(merchantId ?? '')
-        if (Option.isNone(merchant)) return yield* jsonError(404, 'unknown merchant')
-        if (Option.isNone(payees)) return yield* notConfigured('MERCHANT_PAY_TO')
-        const body = yield* HttpServerRequest.schemaBodyJson(CreateInvoiceBody).pipe(Effect.option)
-        if (Option.isNone(body)) return yield* jsonError(400, 'expected {"itemId": string}')
-        const item = findItem(merchant.value, body.value.itemId)
-        if (Option.isNone(item)) return yield* jsonError(404, 'unknown item')
-        const row = yield* createInvoice(database, payees.value, merchant.value, item.value)
-        return yield* json(toInvoice(row, origin), 201)
-      }),
-    ),
+    HttpRouter.route('POST', '/api/merchants/:merchantId/invoices', mintRoute(database, origin, payees)),
   ])

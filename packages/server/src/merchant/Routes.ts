@@ -2,6 +2,7 @@ import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDataba
 import { Address } from '@ethmumbai/protocol/Hex'
 import { Effect, Layer, Option } from 'effect'
 import type { Payees } from './Catalogue.ts'
+import { counterRoutes } from './Counter.ts'
 import { GateSeed, gateKeyRoute, makeGateSigner } from './GateKey.ts'
 import { invoiceRoutes } from './Invoices.ts'
 import { statusRoute } from './Status.ts'
@@ -16,7 +17,7 @@ export const merchantPayees = (env: Bindings) =>
     return Option.all({ merchant, restricted }) satisfies Option.Option<Payees>
   })
 
-/** Catalogue, invoices, x402 and the gate (spec §7), merged into the API Worker's router. */
+/** Catalogue, invoices, the counter screen, x402 and the gate (spec §7), merged into the API Worker's router. */
 export const merchantRoutes = Effect.fn('EthMumbai.Merchant.routes')(function* (
   database: QueryDatabaseClient,
   env: Bindings,
@@ -28,6 +29,7 @@ export const merchantRoutes = Effect.fn('EthMumbai.Merchant.routes')(function* (
   const signer = Option.isSome(seed) ? Option.some(yield* makeGateSigner(seed.value)) : Option.none()
   return Layer.mergeAll(
     invoiceRoutes(database, origin, payees),
+    counterRoutes(database, origin, payees),
     x402Routes(database, origin, settlement),
     statusRoute(database, signer),
     gateKeyRoute(signer),

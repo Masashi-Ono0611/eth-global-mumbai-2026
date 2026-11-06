@@ -133,16 +133,19 @@ const forcePaidRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
-/** An invoice whose QR has gone stale: its expiry is already behind the server clock. */
+const ExpiresIn = Schema.Struct({ inSeconds: Schema.optionalKey(Schema.Finite) })
+
+/** An invoice whose QR has gone stale: its expiry is already behind the server clock (or only `inSeconds` ahead). */
 const expireInvoiceRoute = (database: QueryDatabaseClient) =>
   HttpRouter.route(
     'POST',
     '/test/vq/invoices/:invoiceId/expire',
     Effect.gen(function* () {
       const { invoiceId } = yield* HttpRouter.params
+      const { inSeconds } = yield* body(ExpiresIn)
       const result = yield* database
-        .prepare('UPDATE invoices SET expires_at = unixepoch() - 1 WHERE id = ?')
-        .bind(invoiceId ?? '')
+        .prepare('UPDATE invoices SET expires_at = unixepoch() + ? WHERE id = ?')
+        .bind(inSeconds ?? -1, invoiceId ?? '')
         .run()
       return HttpServerResponse.empty({ status: result.meta.changes === 1 ? 204 : 404 })
     }),
