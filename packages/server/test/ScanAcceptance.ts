@@ -31,7 +31,7 @@ const sampleCrop = (size = 96) => {
 }
 
 /** A paired robot of `accountId` with a signed grant, and the throwaway key its chip signs with. */
-const seedScanningRobot = (url: string, accountId: string) =>
+export const seedScanningRobot = (url: string, accountId: string) =>
   Effect.gen(function* () {
     const chipKey = generatePrivateKey()
     const robotId = yield* seedRobot(url, accountId, privateKeyToAccount(chipKey).address)
@@ -77,7 +77,7 @@ const postSignedScan = (input: ScanInput) =>
 const Started = Schema.Struct({ episodeId: Schema.String, state: Schema.String, observationId: Schema.String })
 
 /** A scan that must start its errand (201): the episode it started and the crop's digest. */
-const scanErrand = (input: ScanInput) =>
+export const scanErrand = (input: ScanInput) =>
   postSignedScan(input).pipe(
     Effect.tap(({ status }) => Effect.sync(() => expect(status).toBe(201))),
     Effect.flatMap(({ body, sha256: digest }) =>

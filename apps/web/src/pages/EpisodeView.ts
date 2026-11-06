@@ -14,78 +14,24 @@ import { isZeroGDecision } from '../api/Robot.ts'
 import { explorerTx } from '../api/Wallet.ts'
 import { episodesRouter, robotConsoleRouter } from '../route.ts'
 import { AuditState, Message, type Model, Replay, Verify } from './Episode.ts'
+import { observationCard } from './ObservationCard.ts'
 import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
-
-// STYLES
-
-/** One errand after the fact: the summary, the timeline, then one card per party. */
-const auditLayoutClassName = 'grid gap-3 pb-12'
-
-const auditCardClassName = 'grid justify-items-start gap-3 border-t border-rule py-6 wrap-anywhere *:max-w-full'
-/** Label and value pairs; values are ids, hashes and amounts, so they are monospaced and may break anywhere. */
-const fieldListClassName =
-  'm-0 grid w-full grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-[0.35rem] max-[560px]:grid-cols-[minmax(0,1fr)] [&_dd]:m-0 [&_dd]:font-mono [&_dd]:text-sm [&_dd]:wrap-anywhere max-[560px]:[&_dd]:mb-2 [&_dt]:text-sm [&_dt]:text-muted'
-/** The exact JSON the brain received, folded away until asked for. */
-const inputDetailsClassName =
-  'w-full [&_pre]:m-0 [&_pre]:max-h-96 [&_pre]:overflow-auto [&_pre]:rounded-control [&_pre]:border [&_pre]:border-rule [&_pre]:px-4 [&_pre]:py-3 [&_pre]:font-mono [&_pre]:text-sm [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-[0.6rem]'
-
-const timelineListClassName =
-  'm-0 grid list-none gap-2 border-s-2 border-rule ps-4 wrap-anywhere [&_time]:me-3 [&_time]:font-mono [&_time]:text-sm [&_time]:text-muted [&_time]:tabular-nums'
-/** A column of related lines (one decision, one verify answer). */
-const stackClassName = 'grid w-full justify-items-start gap-2'
-/** A replay's answer, set off from the original decision above it. */
-const replayBoxClassName = 'grid w-full gap-2 border-s-3 border-ink ps-4'
-/** Verify's checks: each says whether the stored value matches the EpisodeLog record. */
-const checkListClassName =
-  "m-0 grid list-none gap-[0.35rem] p-0 [&_[data-match=no]]:text-error [&_[data-match=no]]:before:content-['✗_'] [&_[data-match=yes]]:text-online [&_[data-match=yes]]:before:content-['✓_']"
-
-const alertTextClassName = 'text-error'
-
-const actionRowClassName = 'flex flex-wrap gap-3'
-/** Verify and Replay: a secondary action, dimmed while its request runs. */
-const auditButtonClassName =
-  'inline-flex min-h-12 cursor-pointer items-center rounded-control border border-rule bg-transparent px-6 py-[0.65rem] text-ink not-disabled:hover:border-ink active:opacity-80 disabled:cursor-progress disabled:opacity-55'
-
-type Inputs = { readonly locale: Locale; readonly timeZone: string }
-type Field =
-  | 'requestId'
-  | 'brain'
-  | 'latency'
-  | 'promptHash'
-  | 'outcome'
-  | 'error'
-  | 'leafHash'
-  | 'status'
-  | 'gas'
-  | 'payer'
-  | 'reason'
-  | 'acr'
-  | 'amr'
-  | 'rootHash'
-  | 'requestIdsHash'
-  | 'recorder'
-  | 'recordedAt'
-type Card = 'decision' | 'chip' | 'payment' | 'approval' | 'evidence' | 'timeline'
-
-const link = (href: string, label: string, h: HtmlBuilder<Message>): Html => h.a([h.Href(href)], [label])
-
-/** A definition list of the fields that have a value. */
-const fields = (
-  rows: ReadonlyArray<readonly [Field, string | Html | null]>,
-  locale: Locale,
-  h: HtmlBuilder<Message>,
-): Html =>
-  h.dl(
-    [h.Class(fieldListClassName)],
-    rows.flatMap(([field, value]) =>
-      value === null ? [] : [h.dt([], [format(locale, 'episode.field', { field })]), h.dd([], [value])],
-    ),
-  )
-
-const card = (kind: Card, locale: Locale, content: ReadonlyArray<Html>, h: HtmlBuilder<Message>): Html =>
-  h.section([h.Class(auditCardClassName)], [h.h2([], [format(locale, 'episode.card', { card: kind })]), ...content])
-const none = (kind: Card, locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.p([h.Class('hint')], [format(locale, 'episode.none', { card: kind })])
+import {
+  actionRowClassName,
+  alertTextClassName,
+  auditButtonClassName,
+  auditLayoutClassName,
+  card,
+  checkListClassName,
+  fields,
+  inputDetailsClassName,
+  link,
+  none,
+  replayBoxClassName,
+  stackClassName,
+  timelineListClassName,
+} from './EpisodeParts.ts'
+import type { Inputs } from './EpisodeParts.ts'
 
 const brainOf = (provider: string | null, locale: Locale) =>
   format(locale, isZeroGDecision(provider) ? 'console.brainZeroG' : 'console.brainRehearsal', {})
@@ -414,6 +360,7 @@ const auditView = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: HtmlBui
         ? h.empty
         : h.p([h.Class('hint')], [format(locale, 'console.reason', { reason: episode.result })]),
       timelineCard(audit, inputs, h),
+      observationCard(model, audit, inputs, h),
       decisionCard(model, audit, locale, h),
       chipCard(audit, locale, h),
       paymentCard(audit, locale, h),

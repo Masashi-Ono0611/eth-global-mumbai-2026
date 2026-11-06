@@ -1,4 +1,5 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
+import type { ReadBucketClient } from '@alchemy.run/cloudflare/R2'
 import type { ArcClient } from '@ethmumbai/chain/Arc'
 import type { Relayer } from '@ethmumbai/chain/Relayer'
 import type { Option } from 'effect'
@@ -14,4 +15,6 @@ export interface WalletDeps {
   readonly enforcer: Option.Option<Address>
   /** The approver's address (from `APPROVER_PRIVATE_KEY`): the enforcer term that signs approvals. */
   readonly approver: Option.Option<Address>
+  /** The app's R2 bucket (`AppMedia`), for the owner-only observation images. */
+  readonly media: Option.Option<ReadBucketClient>
 }

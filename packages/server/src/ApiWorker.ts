@@ -88,6 +88,8 @@ export default ApiWorker.make(
             relayer: chain.relayer,
             enforcer: chain.enforcer,
             approver: chain.approverAddress,
+            // The same media handle the scan route writes with; the owner reads observation crops through it.
+            media: Option.some(media),
           }),
           worldRoutes({
             database,

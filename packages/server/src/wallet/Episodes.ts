@@ -5,6 +5,7 @@ import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { json, jsonError } from '../Respond.ts'
 import { allRows, firstRow } from '../Sql.ts'
 import type { WalletDeps } from './Deps.ts'
+import { type ObservationView, observationsOfEpisode } from './Observations.ts'
 import {
   ApprovalAuditRow,
   ChipAuditRow,
@@ -133,6 +134,7 @@ const readRows = Effect.fn('EthMumbai.Wallet.episodeRows')(function* (deps: Wall
          FROM approvals WHERE episode_id = ? ORDER BY created_at`,
       ApprovalAuditRow,
     ),
+    observations: yield* observationsOfEpisode(deps.database, episodeId),
     evidence: Option.getOrNull(
       yield* firstRow(
         deps.database
@@ -159,7 +161,8 @@ const readEpisodeAudit = (deps: WalletDeps) =>
     const episode = yield* firstRow(
       deps.database
         .prepare(
-          `SELECT e.id, e.robot_id, r.name AS robot_name, e.item, e.invoice_id, e.state, e.result, e.decision_count,
+          `SELECT e.id, e.robot_id, r.name AS robot_name, r.chip_address, e.item, e.invoice_id, e.state, e.result,
+             e.decision_count,
              e.request_ids_hash, e.state_changed_at, e.created_at
            FROM episodes e JOIN robots r ON r.id = e.robot_id WHERE e.id = ? AND e.account_id = ?`,
         )
@@ -183,13 +186,16 @@ const readEpisodeAudit = (deps: WalletDeps) =>
     return yield* json(auditView(rows, Option.getOrNull(invoice)))
   })
 
-const auditView = (rows: Parameters<typeof timelineOf>[0], invoice: typeof InvoiceAuditRow.Type | null) => {
+type AuditRows = Parameters<typeof timelineOf>[0] & { readonly observations: ReadonlyArray<ObservationView> }
+
+const auditView = (rows: AuditRows, invoice: typeof InvoiceAuditRow.Type | null) => {
   const { episode } = rows
   return {
     episode: {
       id: episode.id,
       robotId: episode.robot_id,
       robotName: episode.robot_name,
+      chipAddress: episode.chip_address,
       item: episode.item,
       state: episode.state,
       result: episode.result,
@@ -203,6 +209,7 @@ const auditView = (rows: Parameters<typeof timelineOf>[0], invoice: typeof Invoi
     payments: rows.payments,
     approvals: rows.approvals.map(({ amr_json, ...approval }) => ({ ...approval, world: worldClaims(amr_json) })),
     evidence: rows.evidence,
+    observations: rows.observations,
     timeline: timelineOf(rows),
   }
 }

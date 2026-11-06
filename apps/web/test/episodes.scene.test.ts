@@ -7,6 +7,8 @@ import { episodeView } from '../src/pages/EpisodeView.ts'
 import * as Episodes from '../src/pages/Episodes.ts'
 
 const txHash = `0x${'ab'.repeat(32)}`
+const chip = '0x700664bc402cde77f0a8bcee215d06f3548fcc8e'
+const frame = `0x${'9f'.repeat(32)}`
 const rootHash = `0x${'0c'.repeat(32)}`
 const logTx = `0x${'d1'.repeat(32)}`
 const zeroG = 'router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044'
@@ -105,6 +107,7 @@ const audit: EpisodeAudit = {
     id: 'ep1',
     robotId: 'r1',
     robotName: 'Duck',
+    chipAddress: chip,
     item: 'cigarettes',
     state: 'paid',
     result: null,
@@ -151,6 +154,7 @@ const audit: EpisodeAudit = {
     request_ids_hash: `0x${'77'.repeat(32)}`,
     error: null,
   },
+  observations: [],
   timeline: [
     { at, kind: 'errand_started', detail: 'cigarettes' },
     { at: at + 3000, kind: 'decision', detail: 'ask_human' },
@@ -257,6 +261,61 @@ describe('/wallet/episodes/:id', () => {
         }),
       ),
       expect(role('alert')).toHaveText('Something went wrong: 0G call timed out (10 s)'),
+    )
+  })
+
+  test('no observations: the card is absent, so an errand started without a scan looks as before', () => {
+    scene(
+      { update: Episode.update, view },
+      given(loaded),
+      expect(role('heading', { name: 'What the robot saw' })).toBeAbsent(),
+      expect(role('img')).toBeAbsent(),
+    )
+  })
+
+  test('what the robot saw: the owner-only crop, when, its hash, the signing chip, and Verify sets the badge', () => {
+    const observation = {
+      kind: 'qr_crop',
+      sha256: frame,
+      bytes: 18_204,
+      capturedAt: at - 2000,
+      chipSig: `0x${'5a'.repeat(65)}`,
+    }
+    const withScan = Episode.update(
+      Episode.init('ep1').model,
+      Episode.Message.SucceededLoadAudit({
+        audit: {
+          ...audit,
+          observations: [observation],
+          timeline: [{ at: at - 2000, kind: 'observation', detail: frame }, ...audit.timeline],
+        },
+      }),
+    ).model
+    const checked = (hashMatches: boolean, signerMatches: boolean) =>
+      Episode.Message.SucceededVerify({
+        result: { ...verified, observations: [{ sha256: frame, hashMatches, signerMatches }] },
+      })
+    scene(
+      { update: Episode.update, view },
+      given(withScan),
+      expect(role('heading', { name: 'What the robot saw' })).toExist(),
+      expect(role('img', { name: "The QR crop the robot's chip scanned and signed" })).toHaveAttr(
+        'src',
+        `/api/wallet/episodes/ep1/observations/${frame}`,
+      ),
+      expect(text(`${frame.slice(0, 10)}…${frame.slice(-6)}`)).toExist(),
+      expect(text('chip 0x700664bc…8fcc8e')).toExist(),
+      expect(role('list')).toContainText('The robot scanned the QR'),
+      expect(text('Not checked yet: press Verify under Evidence on 0G')).toExist(),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, checked(true, true)),
+      expect(text("Verified: the image matches its hash and this robot's chip signed it")).toExist(),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, checked(true, false)),
+      expect(text("Not verified: it was not signed by this robot's chip")).toExist(),
+      click(role('button', { name: 'Verify' })),
+      Command.resolve(Episode.VerifyEvidence, checked(false, true)),
+      expect(text('Not verified: the image does not match its recorded hash')).toExist(),
     )
   })
 })

@@ -15,6 +15,7 @@ export const EpisodeAuditRow = Schema.Struct({
   id: Schema.String,
   robot_id: Schema.String,
   robot_name: Schema.String,
+  chip_address: Text,
   item: Schema.String,
   invoice_id: Text,
   state: Schema.String,
@@ -109,6 +110,7 @@ export const endedAt = (episode: { readonly state: string; readonly state_change
 
 export type TimelineKind =
   | 'errand_started'
+  | 'observation'
   | 'decision'
   | 'chip_requested'
   | 'chip_delivered'
@@ -134,6 +136,8 @@ export interface EpisodeRows {
   readonly payments: ReadonlyArray<typeof PaymentAuditRow.Type>
   readonly approvals: ReadonlyArray<typeof ApprovalAuditRow.Type>
   readonly evidence: typeof EvidenceAuditRow.Type | null
+  /** When the chip captured each scanned QR crop (milliseconds) and the crop's hash. */
+  readonly observations: ReadonlyArray<{ readonly capturedAt: number; readonly sha256: string }>
 }
 
 const event = (at: number | null, kind: TimelineKind, detail: string | null = null): ReadonlyArray<TimelineEvent> =>
@@ -162,6 +166,8 @@ export const timelineOf = (rows: EpisodeRows): ReadonlyArray<TimelineEvent> =>
     .map(({ entry }) => entry)
 
 const causalOrder = (rows: EpisodeRows): ReadonlyArray<TimelineEvent> => [
+  // The scan comes first: the chip captured the QR before it started the errand.
+  ...rows.observations.flatMap((row) => event(row.capturedAt, 'observation', row.sha256)),
   ...event(rows.episode.created_at, 'errand_started', rows.episode.item),
   ...rows.decisions.flatMap((row) => event(row.created_at, 'decision', row.action)),
   ...rows.chipRequests.flatMap(chipEvents),

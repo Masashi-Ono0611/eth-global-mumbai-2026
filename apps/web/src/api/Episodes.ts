@@ -30,11 +30,22 @@ export const EpisodeSummary = Schema.Struct({
 })
 export type EpisodeSummary = typeof EpisodeSummary.Type
 
+const Observation = Schema.Struct({
+  kind: Schema.String,
+  sha256: Schema.String,
+  bytes: Schema.Number,
+  capturedAt: Schema.Number,
+  chipSig: Schema.String,
+})
+export type Observation = typeof Observation.Type
+
 export const EpisodeAudit = Schema.Struct({
   episode: Schema.Struct({
     id: Schema.String,
     robotId: Schema.String,
     robotName: Schema.String,
+    /** The robot's chip, the key that signs its payments and its scanned QR crops. */
+    chipAddress: Text,
     item: Schema.String,
     state: Schema.String,
     result: Text,
@@ -71,6 +82,8 @@ export const EpisodeAudit = Schema.Struct({
       error: Text,
     }),
   ),
+  /** What the robot saw: chip-signed QR crops; the image is owner-only (`observationImage`), only its hash is evidence. */
+  observations: Schema.Array(Observation),
   timeline: Schema.Array(Schema.Struct({ at: Schema.Number, kind: Schema.String, detail: Text })),
 })
 export type EpisodeAudit = typeof EpisodeAudit.Type
@@ -95,6 +108,10 @@ export const VerifyResult = Schema.Struct({
   ),
   matches: Schema.Struct({ rootHash: Schema.Boolean, requestIdsHash: Schema.Boolean }),
   links: Schema.Struct({ storagescan: Text, chainscan: Text, arcTx: Schema.optionalKey(Schema.String) }),
+  /** Each observation's bytes against its hash, and its signature against the robot's chip (absent before M+R's change). */
+  observations: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ sha256: Schema.String, hashMatches: Schema.Boolean, signerMatches: Schema.Boolean })),
+  ),
   downloadCheckedBy: Schema.String,
 })
 export type VerifyResult = typeof VerifyResult.Type
@@ -135,6 +152,10 @@ export const verifyEpisode = (episodeId: string) =>
   postJson(`/api/wallet/episodes/${encodeURIComponent(episodeId)}/verify`, {}, VerifyResult)
 export const replayDecision = (episodeId: string) =>
   postJson(`/api/wallet/episodes/${encodeURIComponent(episodeId)}/replay`, {}, ReplayResult)
+
+/** The owner-only JPEG of one observation (session cookie; never cached). */
+export const observationImage = (episodeId: string, sha256: string) =>
+  `/api/wallet/episodes/${encodeURIComponent(episodeId)}/observations/${encodeURIComponent(sha256)}`
 
 export const storageScan = (rootHash: string) => `https://storagescan-galileo.0g.ai/file/${rootHash}`
 export const chainScan = (hash: string) => `https://chainscan-galileo.0g.ai/tx/${hash}`
