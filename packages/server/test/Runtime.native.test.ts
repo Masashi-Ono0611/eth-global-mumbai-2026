@@ -6,7 +6,7 @@ import { Effect, Redacted, Schedule, Schema } from 'effect'
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
-import { chromium } from 'playwright'
+import { type Browser, chromium } from 'playwright'
 import { verifyBrowser } from './BrowserAcceptance.ts'
 import { verifyPasskeyBrowser } from './PasskeyBrowserAcceptance.ts'
 import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
@@ -83,8 +83,8 @@ const stack = beforeAll(
 )
 afterAll(destroy(Stack), { timeout: 60000 })
 
-test(
-  'hydrates the built website and persists locale changes in a browser',
+/** One headless Chromium per browser test, closed with the test's scope, pointed at the public edge. */
+const inBrowser = (verify: (browser: Browser, appUrl: string) => Promise<void>) =>
   Effect.scoped(
     Effect.gen(function* () {
       const { appUrl } = yield* stack
@@ -92,24 +92,17 @@ test(
         Effect.promise(() => chromium.launch({ headless: true })),
         (browser) => Effect.promise(() => browser.close()),
       )
-      yield* Effect.promise(() => verifyBrowser(browserInstance, appUrl))
+      yield* Effect.promise(() => verify(browserInstance, appUrl))
     }),
-  ),
-  { timeout: 60000 },
-)
+  )
+
+test('hydrates the built website and persists locale changes in a browser', inBrowser(verifyBrowser), {
+  timeout: 60000,
+})
 
 test(
   'creates a passkey wallet in a real browser, keeps the session across reloads and revokes it on logout',
-  Effect.scoped(
-    Effect.gen(function* () {
-      const { appUrl } = yield* stack
-      const browserInstance = yield* Effect.acquireRelease(
-        Effect.promise(() => chromium.launch({ headless: true })),
-        (browser) => Effect.promise(() => browser.close()),
-      )
-      yield* Effect.promise(() => verifyPasskeyBrowser(browserInstance, appUrl))
-    }),
-  ),
+  inBrowser(verifyPasskeyBrowser),
   { timeout: 60000 },
 )
 

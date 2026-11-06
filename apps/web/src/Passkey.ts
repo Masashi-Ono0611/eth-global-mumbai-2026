@@ -114,7 +114,10 @@ export const passkeysLayer = (navigator: Navigator) =>
     }),
   )
 
-/** For scene tests and headless screenshots, where no authenticator exists: fixed, well-formed answers. */
+/**
+ * For scene tests and headless screenshots, where no authenticator exists: fixed, well-formed answers.
+ * @internal Test and screenshot harnesses only; production entries provide `passkeysLayer(navigator)`.
+ */
 export const fixturePasskeysLayer = Layer.succeed(
   Passkeys,
   Passkeys.of({

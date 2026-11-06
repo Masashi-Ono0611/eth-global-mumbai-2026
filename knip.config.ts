@@ -12,7 +12,7 @@ export default {
     'apps/chip': { entry: ['src/main.ts!', 'test/**/*.test.ts'], project: ['src/**/*.ts', 'test/**/*.ts'] },
     'apps/web': {
       entry: ['src/entry.ts!', 'src/entry.server.ts!', 'test/**/*.test.ts'],
-      project: ['src/**/*.ts', 'test/**/*.ts'],
+      project: ['src/**/*.ts!', 'test/**/*.ts'],
     },
     ...Object.fromEntries(
       ['auth', 'domain', 'observability', 'protocol', 'server'].map((name) => [
