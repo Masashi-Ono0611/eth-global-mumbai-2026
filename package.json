@@ -12,7 +12,6 @@
       "@effect/platform-bun": "4.0.7",
       "@effect/platform-node": "4.0.7",
       "@effect/vitest": "4.0.7",
-      "@effect/sql-d1": "4.0.7",
       "alchemy": "2.0.0-beta.84",
       "@alchemy.run/cloudflare": "2.0.0-beta.84",
       "@alchemy.run/domain": "2.0.0-beta.84",
@@ -99,7 +98,6 @@
     "@effect/platform-bun": "4.0.7",
     "@effect/platform-node": "4.0.7",
     "@effect/platform-node-shared": "4.0.7",
-    "@effect/sql-d1": "4.0.7",
     "@effect/sql-sqlite-do": "4.0.7",
     "@effect/vitest": "4.0.7",
     "effect": "4.0.7"
