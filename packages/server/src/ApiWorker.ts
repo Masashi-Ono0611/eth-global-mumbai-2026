@@ -9,6 +9,7 @@ import { authRoutes } from './auth/Routes.ts'
 import { makeSessionAuth, SessionAuth } from './auth/Session.ts'
 import { makeChainServices } from './chain/Services.ts'
 import { DomainLive } from './DomainLive.ts'
+import { features } from './Features.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
 import { AppDatabase } from './Resources.ts'
@@ -88,7 +89,7 @@ export default ApiWorker.make(
             enforcer: chain.enforcer,
             errands: robotAgent.errands,
           }),
-          HttpRouter.add('GET', '/api/health', health(observabilityBase.release)),
+          HttpRouter.add('GET', '/api/health', health(observabilityBase.release, features(env))),
         ).pipe(Layer.provide(AlchemyHttp.Platform))
         const handle = yield* HttpRouter.toHttpEffect(routes).pipe(Effect.orDie)
         return { handle: Effect.provideContext(handle, services), observabilityBase }
