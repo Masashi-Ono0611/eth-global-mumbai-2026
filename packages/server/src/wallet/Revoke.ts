@@ -15,6 +15,7 @@ import { changes, firstRow } from '../Sql.ts'
 import type { WalletDeps } from './Deps.ts'
 import { answerWalletErrors, ChainFailed, Conflict, required } from './Errors.ts'
 import { readGrant } from './Grants.ts'
+import { enqueueNotification } from '../telegram/Enqueue.ts'
 import { ownerSignature, ownerSignatureOptions } from './OwnerSignature.ts'
 
 const GrantPath = Schema.Struct({ id: Schema.String })
@@ -58,6 +59,10 @@ const setStatus = (deps: WalletDeps, grantId: string, from: string, to: string, 
 
 const revokeKey = (row: GrantRow) => `revoke:${row.delegation_hash}`
 
+/** The grant is revoked on Arc: the owner hears it in Telegram (spec §14); queuing never fails the revoke. */
+const revokedNotice = (deps: WalletDeps, row: GrantRow) =>
+  enqueueNotification(deps.database, { accountId: row.account_id, kind: 'grant_revoked', subjectId: row.id })
+
 const RelayerRow = Schema.Struct({ status: Schema.String, tx_hash: Schema.NullOr(Schema.String) })
 
 /**
@@ -88,7 +93,7 @@ export const finalizeRevoke = Effect.fn('EthMumbai.Wallet.finalizeRevoke')(funct
   )
   if (disabled) {
     const tx = Option.getOrNull(Option.flatMap(relayed, (relayer) => Option.fromNullishOr(relayer.tx_hash)))
-    yield* setStatus(deps, row.id, 'revoking', 'revoked', tx)
+    if ((yield* setStatus(deps, row.id, 'revoking', 'revoked', tx)) === 1) yield* revokedNotice(deps, row)
     return 'revoked' as const
   }
   if (Option.isNone(relayed) || relayed.value.status === 'failed') {
@@ -139,7 +144,12 @@ const revokeSign = (deps: WalletDeps) =>
       )
     if (Option.isSome(sent) && !sent.value.success) return yield* restoreAndFail('revoke reverted on chain')
     const status = Option.isSome(sent)
-      ? yield* Effect.as(setStatus(deps, row.id, 'revoking', 'revoked', sent.value.txHash), 'revoked' as const)
+      ? yield* Effect.as(
+          Effect.tap(setStatus(deps, row.id, 'revoking', 'revoked', sent.value.txHash), (moved) =>
+            moved === 1 ? revokedNotice(deps, row) : Effect.void,
+          ),
+          'revoked' as const,
+        )
       : yield* finalizeRevoke(deps, row)
     yield* Effect.logInfo('grant revoke').pipe(Effect.annotateLogs({ grantId: row.id, status }))
     const revokeTx = Option.isSome(sent) ? sent.value.txHash : null

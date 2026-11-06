@@ -36,6 +36,12 @@ import {
   registerScanAcceptance,
   registerScansOffAcceptance,
 } from './ScanAcceptance.ts'
+import {
+  registerTelegramAcceptance,
+  startTelegramStub,
+  TEST_TELEGRAM_SECRET,
+  TEST_TELEGRAM_TOKEN,
+} from './TelegramAcceptance.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
 import { registerWorldStubAcceptance, TEST_ENFORCER_ADDRESS, TEST_WORLD_STUB_JWK } from './WorldStubAcceptance.ts'
@@ -44,6 +50,8 @@ import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 // The 0G router stand-in runs in this process; the Worker reaches it on 127.0.0.1.
 const zeroG = startZeroGStub()
 // The 0G Chain stand-in answers EpisodeLog.records (audit) and the provider registry (decisions' TEE proofs).
+// The Telegram Bot API stand-in: records every call; the acceptance can take it down (spec §14).
+const telegram = startTelegramStub()
 const chainStub = startChainStub({ url: zeroG.serviceUrl, model: TEST_ZG_MODEL, signer: TEST_TEE_SIGNER })
 
 const makeStack = (generation: string) =>
@@ -97,6 +105,9 @@ const makeStack = (generation: string) =>
           ZG_INFERENCE_CONTRACT: TEST_INFERENCE,
           // Off in the first generation (the flag-off 404 runs there), on after the restart test (ScanAcceptance.ts).
           SCANS_ENABLED: generation === 'after' ? 'true' : 'pending',
+          TELEGRAM_BOT_TOKEN: Redacted.make(TEST_TELEGRAM_TOKEN),
+          TELEGRAM_WEBHOOK_SECRET: Redacted.make(TEST_TELEGRAM_SECRET),
+          TELEGRAM_API_BASE_URL: telegram.baseUrl,
           // Derived throwaway keys (no literal, never funded): with a relayer the x402 402 and the errand paths run;
           // no ARC_RPC_URL, so only POST /pay reaches the public Arc RPC, and only to simulate.
           RELAYER_PRIVATE_KEY: Redacted.make(keccak256(stringToHex('vitaquack native test relayer'))),
@@ -251,11 +262,13 @@ test(
           'evidence_uploads',
           'grants',
           'invoices',
+          'notifications',
           'observations',
           'passkeys',
           'payments',
           'relayer_txs',
           'robots',
+          'telegram_links',
           'used_nonces',
         ],
       },
@@ -362,4 +375,5 @@ registerChipScanListenerAcceptance(test, stack)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
 registerWorldStubAcceptance(test, stack, zeroG)
+registerTelegramAcceptance(test, stack, zeroG, telegram)
 registerChainAcceptance(test, stack)

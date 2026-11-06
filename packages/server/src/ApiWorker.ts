@@ -15,6 +15,9 @@ import { onFirstUse } from './IsolateCache.ts'
 import { PRODUCTION_NAMES, pinnedOnMain } from './ProductionNames.ts'
 import { AppDatabase, AppMedia } from './Resources.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
+import { makeTelegramConfig } from './telegram/Config.ts'
+import { flushIfDue } from './telegram/Deliver.ts'
+import { telegramRoutes } from './telegram/Routes.ts'
 import { walletRoutes } from './wallet/Routes.ts'
 import { makeApprovalPort } from './world/Approve.ts'
 import { makeWorldClient } from './world/Config.ts'
@@ -79,6 +82,8 @@ export default ApiWorker.make(
           approvals: makeApprovalPort({ database, enforcer: chain.enforcer, approver: chain.approver }),
         })
         const worldStub = yield* makeWorldStub(database, env, authOrigin)
+        // Telegram notifications (spec §14): off, routes answering 503, until both APP_TELEGRAM_* secrets are set.
+        const telegram = yield* makeTelegramConfig(env)
         const routes = Layer.mergeAll(
           authRoutes(database),
           robotAgent.layer,
@@ -101,18 +106,28 @@ export default ApiWorker.make(
             errands: robotAgent.errands,
           }),
           Option.match(worldStub, { onNone: () => Layer.empty, onSome: ({ routes: stubRoutes }) => stubRoutes }),
+          telegramRoutes({ database, config: telegram, world: { database, errands: robotAgent.errands } }),
           HttpRouter.add('GET', '/api/health', health(observabilityBase.release, features(env))),
         ).pipe(Layer.provide(AlchemyHttp.Platform))
         const handle = yield* HttpRouter.toHttpEffect(routes).pipe(Effect.orDie)
-        return { handle: Effect.provideContext(handle, services), observabilityBase }
+        // Sends queued notifications after the response (never during it); does nothing without news or config.
+        const notify = Option.match(telegram, {
+          onNone: () => Effect.void,
+          onSome: (config) => flushIfDue({ database, origin: authOrigin, config }),
+        })
+        return { handle: Effect.provideContext(handle, services), observabilityBase, notify }
       }),
     )
     const fetch = Effect.gen(function* () {
       const env = yield* Cloudflare.Workers.WorkerEnvironment
-      const { handle, observabilityBase } = yield* application(env)
+      const { handle, observabilityBase, notify } = yield* application(env)
       const request = yield* HttpServerRequest
       const metadata = metadataFromHeaders(observabilityBase, request.headers)
-      return yield* handle.pipe(withObservability('app.http', metadata))
+      const response = yield* handle.pipe(withObservability('app.http', metadata))
+      // The execution context is per event, so it is read here, never cached with the application.
+      const execution = yield* Cloudflare.WorkerExecutionContext
+      yield* execution.waitUntil(notify)
+      return response
     })
     return { fetch }
   }).pipe(Effect.provide(Runtime)),

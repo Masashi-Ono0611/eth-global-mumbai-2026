@@ -14,6 +14,7 @@ import { Clock, Effect, Option, Schema } from 'effect'
 import { type Grant, latestSignedGrant } from './Budget.ts'
 import { settleDecision } from './Decide.ts'
 import { enqueueEvidence } from './Evidence.ts'
+import { enqueueEpisodeOutcome } from '../telegram/Enqueue.ts'
 import type { TeeRegistry } from './TeeProof.ts'
 import type { ZeroGConfig } from './ZeroGClient.ts'
 import type { ChipHooks, PaymentReport } from '../chip/Hooks.ts'
@@ -111,7 +112,11 @@ export const transition = Effect.fnUntraced(function* (
   if (decision !== undefined) yield* settleDecision(database, episodeId, decision.outcome, decision.ref)
   if (isTerminalState(to)) {
     const episode = yield* readEpisode(database, episodeId)
-    if (Option.isSome(episode)) yield* enqueueEvidence(database, episode.value)
+    if (Option.isSome(episode)) {
+      yield* enqueueEvidence(database, episode.value)
+      // Paid, denied or an unanswered approval: the owner hears it in Telegram (spec §14); never fails the move.
+      yield* enqueueEpisodeOutcome(database, episode.value, from)
+    }
   }
   return true
 })

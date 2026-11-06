@@ -24,5 +24,8 @@ export const features = (env: Bindings) => ({
   gate: shaped(/^(0x)?[0-9a-fA-F]{64}$/)(env.GATE_ED25519_SEED),
   evidence: longer(16)(env.EVIDENCE_TOKEN),
   scans: scansEnabled(env),
+  telegram:
+    shaped(/^\d{5,}:[A-Za-z0-9_-]{30,}$/)(env.TELEGRAM_BOT_TOKEN) &&
+    shaped(/^[A-Za-z0-9_-]{16,256}$/)(env.TELEGRAM_WEBHOOK_SECRET),
 })
 export type Features = ReturnType<typeof features>

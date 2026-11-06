@@ -9,6 +9,7 @@ import type { Address } from 'viem'
 import type { ApprovalPort } from '../robot/Errands.ts'
 import { nowSeconds, randomBytes } from '../Respond.ts'
 import { changes, firstRow } from '../Sql.ts'
+import { enqueueNotification } from '../telegram/Enqueue.ts'
 
 /** An approval is answered within 300 s of the request (spec §9 step 4), or it expires and nothing is signed. */
 export const APPROVAL_SECONDS = 300
@@ -73,6 +74,9 @@ export const expireIfLate = Effect.fn('EthMumbai.World.expireIfLate')(function* 
   return row
 })
 
+/** What the errand answers for an approval: its id and the owner's page. */
+const approvalPageRef = (approvalId: string) => ({ approvalId, approvalUrl: `/wallet/approvals/${approvalId}` })
+
 /**
  * The Robot Agent's approval seam (§9 step 1): one `approvals` row per invoice, keyed by its nonce (the EIP-712 digest
  * of {invoiceHash, payee, amount, expiry} with the invoice hash as nonce), which is also the World OIDC `nonce`.
@@ -97,33 +101,40 @@ export const makeApprovalPort = (deps: {
       })
       const id = idFromBytes16(yield* randomBytes(16))
       const state = Base64Url.encode(yield* randomBytes(32))
-      yield* deps.database
-        .prepare(
-          `INSERT INTO approvals (id, account_id, robot_id, episode_id, invoice_id, invoice_hash, payee, amount, expiry,
+      const inserted = yield* changes(
+        deps.database
+          .prepare(
+            `INSERT INTO approvals (id, account_id, robot_id, episode_id, invoice_id, invoice_hash, payee, amount, expiry,
             nonce, oidc_state, oidc_nonce, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'requested', ?)
           ON CONFLICT (nonce) DO NOTHING`,
-        )
-        .bind(
-          id,
-          accountId,
-          robotId,
-          episodeId,
-          invoice.id,
-          invoice.invoiceHash,
-          invoice.payTo,
-          invoice.amount,
-          invoice.expiresAt,
-          nonce,
-          state,
-          nonce,
-          yield* Clock.currentTimeMillis,
-        )
-        .run()
+          )
+          .bind(
+            id,
+            accountId,
+            robotId,
+            episodeId,
+            invoice.id,
+            invoice.invoiceHash,
+            invoice.payTo,
+            invoice.amount,
+            invoice.expiresAt,
+            nonce,
+            state,
+            nonce,
+            yield* Clock.currentTimeMillis,
+          ),
+      )
+      if (inserted === 1) {
+        // A new approval: tell the owner in Telegram (spec §14); queuing never fails this request.
+        yield* enqueueNotification(deps.database, { accountId, kind: 'approval_needed', subjectId: id })
+        return Option.some(approvalPageRef(id))
+      }
+      // The nonce already has an approval: reuse it only for a retry of this same errand, never another errand's.
       const row = yield* firstRow(
-        deps.database.prepare('SELECT id FROM approvals WHERE nonce = ?').bind(nonce),
+        deps.database.prepare('SELECT id FROM approvals WHERE nonce = ? AND episode_id = ?').bind(nonce, episodeId),
         Schema.Struct({ id: Schema.String }),
       )
-      return Option.map(row, ({ id: approvalId }) => ({ approvalId, approvalUrl: `/wallet/approvals/${approvalId}` }))
+      return Option.map(row, ({ id: approvalId }) => approvalPageRef(approvalId))
     }).pipe(Effect.withSpan('EthMumbai.World.requestApproval')),
 })
 

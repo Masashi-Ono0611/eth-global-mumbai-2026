@@ -63,6 +63,10 @@ const afterDecision = Effect.fnUntraced(function* (
   }
   yield* transition(database, episodeId, 'deciding', 'awaiting_approval')
   const approval = yield* deps.approvals.request({ episodeId, robotId: robot.id, accountId: robot.account_id, invoice })
+  // No approval to show the owner (no approver configured, or this invoice's approval belongs to another errand):
+  // stop now with a reason instead of waiting 300 s for an answer nobody can give.
+  if (Option.isNone(approval))
+    yield* transition(database, episodeId, 'awaiting_approval', 'failed', 'no approval could be requested')
   return Option.map(approval, (requested) => requested.approvalUrl)
 })
 

@@ -171,13 +171,26 @@ export const approvalForEpisode = (deps: WorldDeps) =>
     return yield* json({ ...row.value, approvalUrl: `/wallet/approvals/${row.value.id}` })
   })
 
+/**
+ * The owner's no without World, for an approval the caller has already checked belongs to them (the wallet's Deny, or
+ * Telegram's, spec §14): the errand ends `denied` and nothing is signed. False when it was already decided.
+ */
+export const denyApproval = Effect.fn('EthMumbai.World.denyApproval')(function* (
+  deps: Pick<WorldDeps, 'database' | 'errands'>,
+  row: ApprovalRow,
+  reason: string,
+) {
+  const moved = yield* moveApproval(deps.database, row.id, ['requested', 'opened'], 'denied', reason)
+  if (moved) yield* denyErrand(deps.errands, row.episode_id, reason)
+  return moved
+})
+
 /** `POST /api/approvals/:id/deny`: the owner says no without World; the errand ends `denied`, nothing is signed. */
 export const denyByOwner = (deps: WorldDeps) =>
   Effect.gen(function* () {
     const session = yield* CurrentSession
     const { id } = yield* HttpRouter.schemaPathParams(IdPath).pipe(Effect.orDie)
     const row = yield* ownApproval(deps.database, session, id)
-    const moved = yield* moveApproval(deps.database, row.id, ['requested', 'opened'], 'denied', 'denied by the owner')
-    if (moved) yield* denyErrand(deps.errands, row.episode_id, 'denied by the owner')
+    const moved = yield* denyApproval(deps, row, 'denied by the owner')
     return yield* json({ id: row.id, status: moved ? 'denied' : row.status })
   })

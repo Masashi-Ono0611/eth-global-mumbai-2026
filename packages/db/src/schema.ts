@@ -326,6 +326,54 @@ export const observations = sqliteTable(
   ],
 )
 
+/**
+ * An owner's Telegram chat (spec §14). `chat_id` is null until the bot sees `/start <code>`; the code itself is never
+ * stored, only its sha256, and it is single-use and lives 10 minutes. `linked_at` and `code_expires_at` are seconds.
+ */
+export const telegramLinks = sqliteTable(
+  'telegram_links',
+  {
+    accountId: text('account_id').primaryKey(),
+    chatId: text('chat_id'),
+    username: text('username'),
+    codeHash: text('code_hash'),
+    codeExpiresAt: integer('code_expires_at'),
+    linkedAt: integer('linked_at'),
+  },
+  (table) => [
+    index('telegram_links_chat_id').on(table.chatId),
+    uniqueIndex('telegram_links_code_hash').on(table.codeHash),
+  ],
+)
+
+/**
+ * The Telegram outbox (spec §14): one row per event, unique per (kind, subject) so an event is delivered once. Rows
+ * are written by the event's own writer and sent after the response; a failure here never touches a payment.
+ * `claimed_at` and `sent_at` are seconds.
+ */
+export const notifications = sqliteTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    kind: text('kind', {
+      enum: ['approval_needed', 'payment_settled', 'approval_denied', 'approval_expired', 'grant_revoked'],
+    }).notNull(),
+    subjectId: text('subject_id').notNull(),
+    payloadJson: text('payload_json'),
+    status: text('status', { enum: ['pending', 'sending', 'sent', 'failed'] }).notNull(),
+    attempts: integer('attempts').notNull(),
+    lastError: text('last_error'),
+    claimedAt: integer('claimed_at'),
+    createdAt: createdAt(),
+    sentAt: integer('sent_at'),
+  },
+  (table) => [
+    uniqueIndex('notifications_kind_subject').on(table.kind, table.subjectId),
+    index('notifications_status_created').on(table.status, table.createdAt),
+  ],
+)
+
 export const appSchema = {
   accounts,
   passkeys,
@@ -342,4 +390,6 @@ export const appSchema = {
   relayerTxs,
   usedNonces,
   observations,
+  telegramLinks,
+  notifications,
 }
