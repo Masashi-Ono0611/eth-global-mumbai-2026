@@ -1,5 +1,6 @@
+import { LiveFrame } from '@ethmumbai/protocol/Frame'
 import { IntentView, RobotKind } from '@ethmumbai/protocol/Intent'
-import { Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { SeenCrop } from './Episodes.ts'
 import { getJson, postJson } from './Http.ts'
 import { GrantView } from './Wallet.ts'
@@ -136,6 +137,15 @@ export const createIntent = (robotId: string, instruction: string, item: string 
   )
 export const loadIntent = (robotId: string, intentId: string) =>
   getJson(`/api/robots/${encodeURIComponent(robotId)}/intents/${encodeURIComponent(intentId)}`, IntentView)
+/** The robot's latest live frame (`None` while there is no fresh one: the Worker answers 404). */
+export const loadLive = (robotId: string) =>
+  getJson(`/api/robots/${encodeURIComponent(robotId)}/live`, LiveFrame).pipe(
+    Effect.map(Option.some),
+    Effect.catchIf(
+      (failure) => failure.status === 404,
+      () => Effect.succeed(Option.none<LiveFrame>()),
+    ),
+  )
 export const stopIntent = (robotId: string, intentId: string) =>
   postJson(`/api/robots/${encodeURIComponent(robotId)}/intents/${encodeURIComponent(intentId)}/stop`, {}, IntentView)
 

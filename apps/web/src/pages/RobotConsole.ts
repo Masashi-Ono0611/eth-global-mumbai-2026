@@ -14,6 +14,7 @@ import {
   createIntent,
   loadEpisodeApproval,
   loadIntent,
+  loadLive,
   stopIntent,
   loadErrand,
   startErrand,
@@ -22,6 +23,7 @@ import {
 import { EpisodeSummary, listEpisodes } from '../api/Episodes.ts'
 import { Catalogue, denyApproval, loadActivity, loadCatalogue } from '../api/Wallet.ts'
 import { format } from '@ethmumbai/i18n'
+import { LiveFrame } from '@ethmumbai/protocol/Frame'
 import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
@@ -72,6 +74,8 @@ export const Model = Schema.Struct({
   allowanceSheet: Dialog.Model,
   intent: Intent,
   instruction: Schema.String,
+  /** The open intent whose live camera loop is running, so one intent never gets two loops. */
+  maybeLiveIntentId: Schema.Option(Schema.String),
 })
 export type Model = typeof Model.Type
 
@@ -106,6 +110,8 @@ export const Message = defineMessageUnion({
   FailedCreateIntent: { error: Schema.String },
   SucceededLoadIntent: { intent: IntentView },
   FailedLoadIntent: { intentId: Schema.String },
+  SucceededLoadLive: { intentId: Schema.String, maybeLive: Schema.Option(LiveFrame) },
+  FailedLoadLive: { intentId: Schema.String },
   ClickedStopIntent: { intentId: Schema.String },
   SucceededStopIntent: { intent: IntentView },
   FailedStopIntent: { error: Schema.String },
@@ -234,6 +240,19 @@ export const PollIntent = Command.define('PollIntent', {
     ),
 })
 
+/** The robot's latest live frame, read every ~500 ms while its intent is open (the intent poll is only every 2 s).
+ * @internal Exported for the scene tests. */
+export const PollLive = Command.define('PollLive', {
+  args: { robotId: Schema.String, intentId: Schema.String, delayMillis: Schema.Number },
+  messages: [Message.SucceededLoadLive, Message.FailedLoadLive],
+  execute: ({ robotId, intentId, delayMillis }) =>
+    Effect.sleep(delayMillis).pipe(
+      Effect.andThen(loadLive(robotId)),
+      Effect.map((maybeLive) => Message.SucceededLoadLive({ intentId, maybeLive })),
+      Effect.catch(() => Effect.succeed(Message.FailedLoadLive({ intentId }))),
+    ),
+})
+
 /** The owner stops the duck; the sim halts on its next turn. @internal Exported for the scene tests. */
 export const HaltIntent = Command.define('HaltIntent', {
   args: { robotId: Schema.String, intentId: Schema.String },
@@ -263,6 +282,7 @@ export const init = (robotId: string): UpdateReturn => ({
     allowanceSheet: Dialog.init({ id: 'allowance', isAnimated: true }),
     intent: Intent.Idle(),
     instruction: '',
+    maybeLiveIntentId: Option.none(),
   },
   commands: [LoadConsole({ robotId })],
 })
@@ -290,6 +310,25 @@ const itemNameOf = (model: Model, itemId: string): string =>
 const isSim = (model: Model) => ConsoleState.guards.Loaded(model.state) && model.state.robot.robot.kind === 'sim'
 
 const INTENT_POLL_MILLIS = 2000
+/** How often the open intent's live frame is read: about two frames a second at most reach the chat. */
+const LIVE_POLL_MILLIS = 500
+
+/** A live read for the open intent: show the frame, and read again while the intent stays open; else stop the loop. */
+const liveRead = (
+  model: Model,
+  intentId: string,
+  maybeLive: Option.Option<LiveFrame>,
+  delayMillis: number,
+): UpdateReturn => {
+  const { intent } = model
+  if (!Intent.guards.Open(intent) || intent.intent.id !== intentId || !isOpenIntent(intent.intent.state))
+    return { model: modifyFields(model, { maybeLiveIntentId: () => Option.none() }) }
+  const live = Option.isSome(maybeLive) ? maybeLive.value : (intent.intent.live ?? null)
+  return {
+    model: modifyFields(model, { intent: () => Intent.Open({ ...intent, intent: { ...intent.intent, live } }) }),
+    commands: [PollLive({ robotId: model.robotId, intentId, delayMillis })],
+  }
+}
 
 /** A simulator robot gets an intent (the owner's words, and the item from a Buy chip); the duck walks and scans. */
 const sendIntent = (model: Model, instruction: string, item: string | null): UpdateReturn =>
@@ -303,9 +342,22 @@ const sendIntent = (model: Model, instruction: string, item: string | null): Upd
 /** A fresh read of the intent: once the duck's scan made an errand, the errand's own messages take over. */
 const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
   const stopping = Intent.guards.Open(model.intent) && model.intent.stopping && isOpenIntent(intent.state)
-  const next = modifyFields(model, { intent: () => Intent.Open({ intent, stopping }) })
+  // The first read that carries a live frame starts the faster live loop for this intent (once).
+  const startLive =
+    isOpenIntent(intent.state) &&
+    (intent.live ?? null) !== null &&
+    !Option.exists(model.maybeLiveIntentId, (id) => id === intent.id)
+  const next = modifyFields(model, {
+    intent: () => Intent.Open({ intent, stopping }),
+    maybeLiveIntentId: () => (startLive ? Option.some(intent.id) : model.maybeLiveIntentId),
+  })
   const poll = isOpenIntent(intent.state)
-    ? [PollIntent({ robotId: model.robotId, intentId: intent.id, delayMillis: INTENT_POLL_MILLIS })]
+    ? [
+        PollIntent({ robotId: model.robotId, intentId: intent.id, delayMillis: INTENT_POLL_MILLIS }),
+        ...(startLive
+          ? [PollLive({ robotId: model.robotId, intentId: intent.id, delayMillis: LIVE_POLL_MILLIS })]
+          : []),
+      ]
     : []
   const episodeId = intent.episodeId
   const following = Errand.guards.Running(model.errand) && model.errand.episodeId === episodeId
@@ -427,6 +479,10 @@ const intentHandlers = (model: Model) => ({
     Intent.guards.Open(model.intent) && model.intent.intent.id === intentId
       ? { model, commands: [PollIntent({ robotId: model.robotId, intentId, delayMillis: INTENT_POLL_MILLIS * 2 })] }
       : { model },
+  SucceededLoadLive: ({ intentId, maybeLive }: Of<'SucceededLoadLive'>) =>
+    liveRead(model, intentId, maybeLive, LIVE_POLL_MILLIS),
+  FailedLoadLive: ({ intentId }: Of<'FailedLoadLive'>) =>
+    liveRead(model, intentId, Option.none(), LIVE_POLL_MILLIS * 4),
   ClickedStopIntent: ({ intentId }: Of<'ClickedStopIntent'>) => haltIntent(model, intentId),
   SucceededStopIntent: ({ intent }: Of<'SucceededStopIntent'>) => ({
     model: modifyFields(model, { intent: () => Intent.Open({ intent, stopping: false }) }),

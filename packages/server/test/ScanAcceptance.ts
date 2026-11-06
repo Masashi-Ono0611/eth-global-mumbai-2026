@@ -405,14 +405,16 @@ export const registerChipScanListenerAcceptance = (test: TestApi['test'], stack:
         readLines(chip.stdout, /scan \S+ 0x[0-9a-f]{8}… → 201/, started + 25_000),
       )).join('\n')
       expect(logged).toMatch(new RegExp(`scan ${invoiceId} 0x[0-9a-f]{8}… → 201`))
-      // The same listener signs a live frame (its own message, never a scan) and forwards it.
+      // The same listener signs a live frame (its own message, never a scan) and forwards it; with no open intent the
+      // Worker checks it and does not keep it (202).
       expect(lines).toContain(`frame listener on http://127.0.0.1:${port}/frame`)
       expect(yield* postLocal(port, { jpegBase64: Base64.encode(Uint8Array.from([1, 2, 3])) }, '/frame')).toEqual({
         status: 400,
         json: { error: 'frame is not a JPEG' },
       })
       expect(yield* postLocal(port, { jpegBase64: Base64.encode(sampleCrop(4096)) }, '/frame')).toMatchObject({
-        status: 201,
+        status: 202,
+        json: { stored: false },
       })
       expect([...lines, logged].join('\n')).not.toContain(key.slice(2))
     }).pipe(Effect.scoped, Effect.provide(freshConnections)),

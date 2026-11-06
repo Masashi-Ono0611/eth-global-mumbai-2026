@@ -1,5 +1,6 @@
 import { Command, click, expect, given, label, role, scene, selector, submit, text, type } from 'foldkit/scene'
 import { describe, expect as vitestExpect, test } from 'vitest'
+import { Option } from 'effect'
 import type { IntentView } from '@ethmumbai/protocol/Intent'
 import type { ConsoleRobot } from '../src/api/Robot.ts'
 import * as RobotConsole from '../src/pages/RobotConsole.ts'
@@ -133,6 +134,16 @@ describe('/robot/:id, a simulator robot', () => {
       ),
       expect(role('img', { name: 'What Duck sees right now' })).toHaveAttr('src', liveSrc('a')),
       expect(text("Live from Duck's camera · 1 second ago")).toExist(),
+      // The intent's first live frame starts the faster live loop, which swaps the picture between intent polls.
+      Command.resolve(
+        RobotConsole.PollLive,
+        RobotConsole.Message.SucceededLoadLive({
+          intentId,
+          maybeLive: Option.some({ sha256: sha('c'), bytes: 30_000, capturedAt: 2, ageMs: 600 }),
+        }),
+      ),
+      expect(role('img', { name: 'What Duck sees right now' })).toHaveAttr('src', liveSrc('c')),
+      expect(text("Live from Duck's camera · just now")).toExist(),
       Command.resolve(
         RobotConsole.PollIntent,
         RobotConsole.Message.SucceededLoadIntent({ intent: withLive('b', 300) }),
@@ -144,6 +155,9 @@ describe('/robot/:id, a simulator robot', () => {
         RobotConsole.Message.SucceededLoadIntent({ intent: intent('stopped', null) }),
       ),
       expect(role('img', { name: 'What Duck sees right now' })).not.toExist(),
+      // The live loop's next read finds the intent closed and stops: no further command.
+      Command.resolve(RobotConsole.PollLive, RobotConsole.Message.FailedLoadLive({ intentId })),
+      Command.expectNone(),
     )
   })
 
