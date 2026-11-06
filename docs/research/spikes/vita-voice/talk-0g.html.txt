@@ -100,7 +100,7 @@
         <button class="talk" id="talk" aria-pressed="false">Hold to talk</button>
         <div class="lines" role="group" aria-label="Demo lines: tap one to say it">
           <button type="button" data-line="Can you buy me a chai?">Buy me a chai</button>
-          <button type="button" data-line="Get me a pack of cigarettes">Get me cigarettes</button>
+          <button type="button" data-line="Get me a thali">Get me a thali</button>
           <button type="button" data-line="Who decides what you buy?">Who decides?</button>
           <button type="button" data-line="Can I switch you off?">Can I switch you off?</button>
         </div>

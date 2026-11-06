@@ -44,6 +44,7 @@ test('a `pending` placeholder, a missing or a malformed binding turns only its o
     gate: false,
     evidence: false,
     scans: false,
+    voice: false,
     live: false,
     telegram: false,
   })
@@ -53,6 +54,11 @@ test('scans are on only for the exact string `true`', () => {
   expect(features({ ...configured, SCANS_ENABLED: 'pending' })).toMatchObject({ scans: false, gate: true })
   expect(features({ ...configured, SCANS_ENABLED: 'TRUE' }).scans).toBe(false)
   expect(features({ ...configured, SCANS_ENABLED: '1' }).scans).toBe(false)
+})
+
+test('voice has no flag: it follows the 0G router binding', () => {
+  expect(features(configured)).toMatchObject({ zg: true, voice: true })
+  expect(features({ ...configured, ZG_API_KEY: 'pending' })).toMatchObject({ zg: false, voice: false, scans: true })
 })
 
 test('the live view is on only for the exact string `true`', () => {

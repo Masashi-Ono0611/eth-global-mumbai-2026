@@ -3,9 +3,9 @@
 import type { MessageKey } from './generated.ts'
 export const en: Readonly<Record<MessageKey, string>> = {
   'approval.errandEnded':
-    '{state, select, refused {Refused by the chip: nothing is paid} failed {The payment failed: nothing is paid} expired {Expired: nothing is paid} safe_stop {Stopped safely: nothing is paid} walked_away {The robot walked away: nothing is paid} other {Ended ({state}): nothing is paid}}',
+    '{state, select, refused {Refused by the chip: nothing is paid} failed {The payment failed: nothing is paid} expired {Timed out: nothing is paid} safe_stop {Stopped safely: nothing is paid} walked_away {The robot walked away: nothing is paid} other {Ended ({state}): nothing is paid}}',
   'approval.explainer':
-    "{why, select, restricted {This is a restricted item, so it needs your fresh approval in World App. Nothing is paid without it.} overCap {This payment is over the robot's per-payment limit ({amount} > {cap} USDC), so it needs your fresh approval in World App. Nothing is paid without it.} offList {This payee is not on the robot's allowlist, so the payment needs your fresh approval in World App. Nothing is paid without it.} other {This payment needs your fresh approval in World App. Nothing is paid without it.}}",
+    "{why, select, restricted {A restricted item: approve it in World App. Nothing is paid until you do.} overCap {Over the per-payment limit ({amount} > {cap} USDC): approve it in World App. Nothing is paid until you do.} offList {A payee not on the robot's list: approve it in World App. Nothing is paid until you do.} other {Approve it in World App. Nothing is paid until you do.}}",
   'approval.followStopped': 'No final state after 2 minutes; the conversation shows the latest.',
   'approval.following': "Following the robot's payment…",
   'approval.heading':
@@ -44,7 +44,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'console.brainRehearsal': 'The rehearsal brain (not 0G)',
   'console.brainZeroG': '0G',
   'console.chipState':
-    '{status, select, queued {Waiting for the chip to poll} delivered {The chip is checking the invoice and signing} signed {The chip signed the payment} refused {The chip refused: {refusal}} expired {The chip did not answer in time} other {{status}}}',
+    '{status, select, queued {Waiting for the chip to poll} unclaimed {The chip never picked this up} delivered {The chip is checking the invoice and signing} signed {The chip signed the payment} refused {The chip refused: {refusal}} expired {The chip did not answer in time} other {{status}}}',
   'console.decision':
     '{brain} decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
   'console.episodeLog': 'EpisodeLog record on 0G Chain',
@@ -53,7 +53,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'console.storage': 'Episode on 0G Storage',
   'console.title': 'Robot console',
   'episode.action':
-    '{action, select, verify {Verify} verifying {Verifying…} replay {Replay decision (non-binding)} replaying {Replaying…} other {{action}}}',
+    '{action, select, verify {Verify} verifying {Verifying…} replay {Replay decision} replaying {Replaying…} other {{action}}}',
   'episode.card':
     '{card, select, decision {Decision} chip {Chip} payment {Payment on Arc} approval {World approval} evidence {Evidence on 0G} timeline {Timeline} observation {What the robot saw} other {{card}}}',
   'episode.event':
@@ -67,18 +67,17 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episode.notOnChain': 'No EpisodeLog record on 0G Chain yet.',
   'episode.observationAlt': "The QR crop the robot's chip scanned and signed",
   'episode.observationCheck':
-    "{check, select, verified {Verified: the image matches its hash and this robot's chip signed it} hash {Not verified: the image does not match its recorded hash} signer {Not verified: it was not signed by this robot's chip} other {Not checked yet: press Verify under Evidence on 0G}}",
+    "{check, select, verified {Verified: the image matches its hash and this robot's chip signed it} hash {Not verified: the image does not match its recorded hash} signer {Not verified: it was not signed by this robot's chip} other {Not checked yet: Verify is under Evidence on 0G}}",
   'episode.observationNote':
-    "Only this crop of the scanned QR left the robot's chip. It stays private to you; the evidence on 0G holds only its hash and the chip's signature.",
-  'episode.replayNote':
-    'A replay sends the same input to the brain again. It is non-binding: it never pays and never changes the errand.',
+    "Only this crop left the chip. It is private to you: 0G keeps just its hash and the chip's signature.",
+  'episode.replayNote': 'Asks the brain again with the same input. It never pays or changes the errand.',
   'episode.replayResult':
     'Replay: {brain} would {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
   'episode.replaySame':
     '{same, select, yes {Same action as the original.} other {A different action from the original.}}',
   'episode.signedBy': 'chip {chip}',
   'episode.tee':
-    "{state, select, sealed {Sealed in a TEE ✓ (0G chat {chat})} unchecked {TEE proof present, not yet checked: press Verify under Evidence on 0G} mismatch {TEE proof present, but its signature does not match the provider's TEE signer} other {Not TEE-verifiable: this brain publishes no TEE proof}}",
+    "{state, select, sealed {Sealed in a TEE ✓ (0G chat {chat})} unchecked {TEE proof present: Verify is under Evidence on 0G} mismatch {TEE proof present, but its signature does not match the provider's TEE signer} other {Not TEE-verifiable: this brain publishes no TEE proof}}",
   'episode.teeNote':
     "The provider's registered TEE signed that it answered this 0G chat. The signed text commits to the encrypted request and response, not to the wording of the reply.",
   'episode.teeText': 'Text the TEE signed',
@@ -94,14 +93,13 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'episodes.decision':
     '{brain}: {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}',
   'episodes.empty': 'No errands yet.',
-  'episodes.explainer':
-    'Every errand your robots ran: who decided, what was paid on Arc, what World approved, and its record on 0G.',
+  'episodes.explainer': 'Every errand, with its proof.',
   'episodes.filter': 'Robot',
   'episodes.inspect': 'Show proof',
   'episodes.title': 'Payment records',
   'episodes.backToWallet': 'Back to wallet',
   'episodes.state':
-    '{state, select, paid {Paid} walked_away {Walked away, nothing paid} safe_stop {Stopped safely, nothing paid} denied {You said no, nothing paid} refused {The chip refused, nothing paid} failed {Failed, nothing paid} expired {Expired, nothing paid} awaiting_approval {Waiting for you} other {In progress}}',
+    '{state, select, paid {Paid} walked_away {Walked away, nothing paid} safe_stop {Stopped safely, nothing paid} denied {You said no, nothing paid} refused {The chip refused, nothing paid} failed {Failed, nothing paid} expired {Timed out, nothing paid} awaiting_approval {Waiting for you} other {In progress}}',
   'episodes.world':
     '{status, select, consumed {World approved it} approved {World approved it} denied {You said no in World App} failed {World approval failed} expired {World approval expired} other {Waiting for World}}{level, select, orb { (Orb-verified)} other {}}',
   'episodes.inspectFor': 'Show proof: {item} by {robot}',
@@ -144,7 +142,6 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'home.balanceLabel': 'Balance',
   'home.balanceUnknown': 'Balance unavailable right now',
   'home.spent': 'Your robots spent {amount} USDC in the last 24 hours',
-  'home.spentNone': 'Your robots spent nothing in the last 24 hours',
   'home.actions': 'Wallet actions',
   'home.send': 'Send',
   'home.soon': 'Soon',
@@ -170,7 +167,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'home.lineBusy': 'Buying {item}...',
   'home.linePaid': 'Bought {item}',
   'home.lineDenied': 'You said no to {item}',
-  'home.lineOffline': 'Offline. Start its chip to wake it.',
+  'home.lineOffline': 'Offline. Start its chip.',
   'home.lineNoAllowance': 'No allowance yet',
   'home.lineReady': 'Ready for an errand',
   'home.payments': 'Payments',
@@ -198,7 +195,9 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'receive.copy': 'Copy address',
   'receive.copied': 'Address copied',
   'receive.copyFailed': 'Copy did not work. Select the address instead.',
-  'receive.note': 'Send only USDC on the Arc network. Your robots spend from this balance, never more than you allow.',
+  'receive.note': 'Send only USDC on Arc.',
+  'receive.sendOnly': 'Send only',
+  'receive.on': 'on',
   'thread.back': 'Back to the wallet',
   'thread.offline': 'Offline',
   'thread.noAllowance': 'No allowance',
@@ -255,6 +254,8 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.leftOf': 'of {daily} today',
   'thread.waitingScan': 'Waiting for {name} to scan the QR code at the counter.',
   'thread.askChip': 'Get me a {item}',
+  'thread.askChipLabel':
+    '{restricted, select, yes {Get me a {item}, {amount} USDC, asks you first} other {Get me a {item}, {amount} USDC}}',
   'thread.liveAlt': 'What {name} sees right now',
   'thread.liveSeen':
     "Live from {name}'s camera · {seconds, plural, =0 {just now} one {# second ago} other {# seconds ago}}",
@@ -266,26 +267,25 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'allowance.for': 'For',
   'allowance.hours': '{hours, plural, =24 {1 day} =168 {1 week} one {# hour} other {# hours}}',
   'allowance.summary':
-    '{name} can spend up to {daily} USDC a day, only at {payee}, for {hours, plural, =24 {the next day} =168 {the next week} one {the next hour} other {the next # hours}}. A purchase over {perPayment} asks you first in World App; nothing goes past {daily} a day. Arc enforces this, so not even our server can go past it.',
+    '{name} can spend up to {daily} USDC a day at {payee}, for {hours, plural, =24 {the next day} =168 {the next week} one {the next hour} other {the next # hours}}. Over {perPayment} asks you in World App. Arc enforces it; not even our server can go past.',
   'allowance.overBalance':
     'Your wallet has {balance} USDC, so {name} can only spend that much until you add money to the wallet.',
   'allowance.confirm': 'Confirm with passkey',
   'allowance.signing': 'Signing and activating on Arc...',
-  'allowance.aDay': 'a day',
-  'allowance.rulePerPurchase': 'At most {amount} for one purchase',
-  'allowance.ruleWhere': 'Only at {payee}',
+  'allowance.aDay': 'USDC a day',
+  'allowance.rulePerPurchase': '{amount} USDC max per purchase',
+  'allowance.ruleWhere': '{payee} only',
   'allowance.ruleUntil': 'Until {time}',
-  'allowance.ruleAsks': 'A purchase over {perPayment} asks you first in World App; nothing goes past {daily} a day',
+  'allowance.ruleAsks': 'Over {perPayment} USDC: asks you in World App',
   'allowance.change': 'Change allowance',
   'allowance.stop': "Stop {name}'s allowance",
   'allowance.stopping': 'Stopping on Arc...',
-  'allowance.arcNote':
-    'Arc enforces every limit. Stopping takes one passkey tap and works even if the robot is offline.',
+  'allowance.arcNote': 'Arc enforces every limit. Stop works even if the robot is offline.',
   'allowance.open': 'Allowance: {amount} a day',
   'allowance.openNone': 'No allowance: give one',
   'allowance.close': 'Close',
   'allowance.openLeft': 'Allowance: {left} of {daily} USDC left today',
-  'allowance.leftOf': 'left of {daily} today',
+  'allowance.leftOf': 'USDC left of {daily} today',
   'allowance.spent': 'Spent today: {spent} of {daily} USDC',
   'allowance.resets': 'Resets at {time}',
   'allowance.details': 'Robot details',
@@ -323,8 +323,6 @@ export const en: Readonly<Record<MessageKey, string>> = {
     'Your robot messages you on Telegram when it needs your OK, and tells you what it paid. You can say no right in the chat.',
   'welcome.skip': 'Not now',
   'welcome.fundTitle': 'Add money',
-  'welcome.fundLead':
-    'Your robots spend from this wallet, never more than you allow. Send USDC on the Arc network to it.',
   'welcome.fundWaiting': 'Watching for your USDC…',
   'welcome.later': "I'll add money later",
   'welcome.robotTitle': 'Add your robot',
@@ -358,6 +356,23 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'proof.seenBySim': "Seen by the simulator's camera",
   'proof.frameOnZeroG': 'Frame on 0G Storage',
   'proof.frameSaving': 'Saving the frame to 0G...',
+  'voice.hold': 'Hold to talk to {name}',
+  'voice.listeningLabel': 'Listening, let go to send',
+  'voice.listening': 'Listening',
+  'voice.letGo': 'let go to send',
+  'voice.thinking': '{name} is listening to you…',
+  'voice.speaking': '{name} is speaking…',
+  'voice.youSaid': 'you said',
+  'voice.vitaSaid': '{name} said',
+  'voice.reason': "0G's reason",
+  'voice.micOnlyWhileHeld': 'The mic is on only while you hold',
+  'voice.failed':
+    '{reason, select, blocked {Microphone blocked. Allow it in the address bar, or tap an item.} unsupported {This browser has no microphone access. Tap an item instead.} tooShort {Hold the button while you speak.} speech {Vita could not speak ({detail}); the line is shown as text.} other {{detail}. Try again, or tap an item.}}',
+  'voice.headerListening': 'Listening…',
+  'voice.headerSpeaking': 'Speaking…',
+  'voice.pending': 'listening',
+  'voice.empty': 'Nothing yet. Ask {name} below, or hold the mic.',
+  'voice.sent': 'sent',
   'proofs.title': 'Proofs on 0G',
   'proofs.explainer':
     'Every errand a Vitaquack robot has finished, as it is stored on 0G Storage and anchored in the EpisodeLog contract on 0G Chain. Open one to check it yourself.',

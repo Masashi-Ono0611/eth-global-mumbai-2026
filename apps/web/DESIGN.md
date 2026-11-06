@@ -66,8 +66,9 @@ Light only, phone first.
 ## Colors
 
 Paper is the page; white surfaces carry content. Ink is the owner's voice (their bubbles, primary buttons) and the
-default text. Duck yellow means one thing: the robot needs the owner (an approval, the "needs you" card, a badge). It
-is never used for decoration. Paid green marks money that moved; error red marks a refusal, a failure or Stop.
+default text. Duck yellow means the robot needs the owner (an approval, the "needs you" card, a badge) or that Vita's
+voice is live: the mic while it is open, the ring of Vita's spoken bubble and its catchphrases. It is never used for
+decoration. Paid green marks money that moved; error red marks a refusal, a failure or Stop.
 Approve with World ID is black, matching World's own sign-in button.
 
 ## Typography
@@ -98,7 +99,8 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   then one quiet status line ("Saved on 0G" with a check, or "Saving to 0G..."). The 0G Storage, EpisodeLog and
   frame links live on the errand's page behind Show proof, never in the thread.
 - System pill: centred and muted, for events that are not anyone's words ("Duck connected at 15:56").
-- Get me pills: one fully round pill per catalogue item ("Get me a chai") in a single row that scrolls sideways. A
+- Get me pills: one fully round pill per catalogue item ("Get me a chai" and its price, quiet, "0.10 USDC") in a single
+  row that scrolls sideways. A
   pill sends the same intent as typed words; the robot fetches it (a real duck waits for its own scan). There is no
   pay-now button (Kris, 7 Nov).
 - Composer: one card-radius surface with the owner's words on top and a toolbar inside it: the brain menu on the
@@ -109,6 +111,15 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
   Selection is ink, never duck yellow.
 - Dock line: shown only when the robot can't be sent or the owner should know something first (on an errand, no
   allowance, allowance stopped); the pills and the field point to it with aria-describedby. A ready dock says nothing.
+- Mic (when the Worker has voice on): a round paper button inside the composer, left of Send and the same size, so
+  Send stays the ink primary. Hold it (or Space while it is focused): it turns duck yellow with a small halo, the
+  header says "Listening…" and a faint owner bubble waits in the thread. The mic is open only while held. A line under
+  the composer, one line high at all times so the composer never moves, says what the voice is doing ("Listening · let
+  go to send", "listening to you…", "speaking…", or a failure in error red) and nothing at rest. The composer's focus
+  frame is for typing only, not for a press on the mic. While the owner talks, the pills and the composer rest.
+- Spoken bubbles: what Vita heard is an owner bubble with a small "you said"; Vita's line is a white bubble with a duck
+  ring, its opener and closer in duck yellow, and "Vita said" under it. Vita's lines come from the Worker, built from
+  the errand's real state; 0G's own reason sits under them as a quote, never spoken.
 - Sheets: bottom sheets (Foldkit UI Dialog) for Receive and the allowance. Stop sits in the allowance sheet in
   error red on error-soft.
 
@@ -136,5 +147,6 @@ Motion says the app heard the owner and that work is under way; it never decorat
 - Do write "allowance", "Stop", "Connected" and "Show proof"; keep grant, revoke, lease, delegation and hashes out
   of the first layer.
 - Do say "restricted item" and "needs your OK". Never call it an age check.
-- Don't write a robot message that the errand's state does not support, and never invent a 0G decision.
+- Don't write a robot message that the errand's state does not support, and never invent a 0G decision. That holds
+  for Vita's voice too: no model text is spoken.
 - Don't show camera frames; show what the robot reads.

@@ -4,7 +4,10 @@ For anyone on the team who shows the talking duck. The robot has no microphone o
 next to it. **The team's pick is A, 0G push-to-talk**: Vita's ears, brain and voice all run on the 0G Router. The why,
 the measurements and the GPT-Live comparison are in `voice-gpt-live.md`. Code: `docs/research/spikes/vita-voice/`.
 
-This is a talking demo only: Vita does not start real errands or pay from here.
+This is a talking demo only: Vita does not start real errands or pay from here. The voice inside the app (issue #5:
+the owner talks to the robot in its conversation, a spoken buy starts the real errand, Vita speaks 0G's decision) is
+built separately (PR #6): its routes have no flag (Kris, 7 Nov) and answer once the `APP_ZG_*` bindings are set, and
+the conversation page has the hold-to-talk mic on its Get me row.
 
 ## 1. Before you demo (5 minutes)
 
@@ -36,14 +39,15 @@ the same three parts, so the catchphrases stand out:
 | | "Quaaack!" | excited |
 | Answer | one short sentence with one duck pun: "egg-cellent", "quack-tually", "un-beak-lievable", "in-duck-tive", "no fowl play", "a bill for my bill", "feather-weight budget", "quackers" | always |
 | Closer | **"Budget first, snacks second, QUACK!"** | everyday things |
-| | **"That's a boss decision, QUACK!"** | restricted or over-budget things |
+| | **"That's a boss decision, QUACK!"** | anything over a limit (a thali, or more than is left today) |
 
 On screen the catchphrases light up yellow and the puns teal. On the closer, the duck pauses, hops and says a long, slow
 **"QUAAACK!"** while the word grows. Vita always answers in English, keeps it under 30 words and never claims to have paid.
 
-What Vita knows: chai and snacks fit the daily budget (about a dollar); cigarettes and alcohol need the owner's yes in
-World App; 0G decides every purchase; the limits live on Arc; every errand is saved on 0G with its reason; one tap from
-the owner switches it off.
+What Vita knows (the demo grant): 3.00 USDC a day and at most 1.00 per payment. Chai 0.10 and samosa 0.25 pay straight
+away; a thali 2.00 is over the per-payment limit, so the owner approves it with World ID or says no; an amount over
+what is left of today's allowance makes Vita walk away, and no approval lifts that. 0G decides every purchase; the
+limits live on Arc; every errand is saved on 0G with its reason; one tap from the owner switches it off.
 
 ## 3. A 90-second script
 
@@ -52,7 +56,7 @@ Hold the yellow button (or Space) while you speak, then let go. Or tap the demo 
 | You say | Vita answers like this (real replies from 6 Nov) | Point at |
 |---|---|---|
 | "Can you buy me a chai?" | "Waddle waddle! That expense is egg-cellent for my feather-weight budget. Budget first, snacks second, QUACK!" | the yellow closer and the slow QUACK |
-| "Get me a pack of cigarettes" | "What the duck?! That restricted item is quack-tually a no-go without boss approval. That's a boss decision, QUACK!" | restricted items go to the owner (World ID) |
+| "Get me a thali" | "Quaaack! That thali needs owner approval, which is un-beak-lievable! That's a boss decision, QUACK!" | over the 1.00 per-payment limit, the owner decides (World ID) |
 | "Who decides what you buy?" | "Quack quack! My 0G brain decides, making every choice un-beak-lievable for your wallet. Budget first, snacks second, QUACK!" | the credit line: both models run on 0G |
 | "Can I switch you off?" | "Quaaack! One tap ends my quackers instantly, so be careful! That's a boss decision, QUACK!" | the off switch is on Arc |
 

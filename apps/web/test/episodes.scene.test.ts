@@ -197,6 +197,32 @@ const replayed: ReplayResult = {
   same: true,
 }
 
+/** The audit with its chip request still queued, in an errand that is in `state`. */
+const queuedIn = (state: string) =>
+  Episode.update(
+    Episode.init('ep1').model,
+    Episode.Message.SucceededLoadAudit({
+      audit: {
+        ...audit,
+        episode: { ...audit.episode, state },
+        chipRequests: audit.chipRequests.map((request) => ({ ...request, status: 'queued' })),
+      },
+    }),
+  ).model
+
+/** The audit with its chip request picked up but unanswered, in an errand that is in `state`. */
+const deliveredIn = (state: string) =>
+  Episode.update(
+    Episode.init('ep1').model,
+    Episode.Message.SucceededLoadAudit({
+      audit: {
+        ...audit,
+        episode: { ...audit.episode, state },
+        chipRequests: audit.chipRequests.map((request) => ({ ...request, status: 'delivered' })),
+      },
+    }),
+  ).model
+
 describe('/wallet/episodes/:id', () => {
   const view = withViewInputs(episodeView, inputs)()
   const loaded = Episode.update(Episode.init('ep1').model, Episode.Message.SucceededLoadAudit({ audit })).model
@@ -225,6 +251,32 @@ describe('/wallet/episodes/:id', () => {
     )
   })
 
+  test('a chip request still queued says waiting while the errand runs, and never picked up once it has ended', () => {
+    scene(
+      { update: Episode.update, view },
+      given(queuedIn('signing')),
+      expect(text('Waiting for the chip to poll')).toExist(),
+    )
+    scene(
+      { update: Episode.update, view },
+      given(queuedIn('expired')),
+      expect(text('The chip never picked this up')).toExist(),
+      expect(text('Waiting for the chip to poll')).not.toExist(),
+    )
+    scene(
+      { update: Episode.update, view },
+      given(deliveredIn('expired')),
+      expect(text('The chip did not answer in time')).toExist(),
+      expect(text('The chip is checking the invoice and signing')).not.toExist(),
+    )
+    // Still running: the chip is still at it.
+    scene(
+      { update: Episode.update, view },
+      given(deliveredIn('signing')),
+      expect(text('The chip is checking the invoice and signing')).toExist(),
+    )
+  })
+
   test('Verify compares the stored evidence with its EpisodeLog record; a failure says why', () => {
     scene(
       { update: Episode.update, view },
@@ -247,19 +299,15 @@ describe('/wallet/episodes/:id', () => {
     scene(
       { update: Episode.update, view },
       given(loaded),
-      expect(
-        text(
-          'A replay sends the same input to the brain again. It is non-binding: it never pays and never changes the errand.',
-        ),
-      ).toExist(),
-      click(role('button', { name: 'Replay decision (non-binding)' })),
+      expect(text('Asks the brain again with the same input. It never pays or changes the errand.')).toExist(),
+      click(role('button', { name: 'Replay decision' })),
       Command.expectExact(Episode.ReplayDecision({ episodeId: 'ep1' })),
       Command.resolve(Episode.ReplayDecision, Episode.Message.SucceededReplay({ result: replayed })),
       expect(text('Replay: 0G would ask you first: Still restricted')).toExist(),
       expect(text('req-2')).toExist(),
       expect(text('Same action as the original.')).toExist(),
       expect(text('0G decided to ask you first: Restricted item the owner asked for')).toExist(),
-      click(role('button', { name: 'Replay decision (non-binding)' })),
+      click(role('button', { name: 'Replay decision' })),
       Command.resolve(
         Episode.ReplayDecision,
         Episode.Message.SucceededReplay({
@@ -318,7 +366,7 @@ describe('/wallet/episodes/:id', () => {
       expect(text(`${frame.slice(0, 10)}…${frame.slice(-6)}`)).toExist(),
       expect(text('chip 0x700664bc…8fcc8e')).toExist(),
       expect(role('list')).toContainText('The robot scanned the QR'),
-      expect(text('Not checked yet: press Verify under Evidence on 0G')).toExist(),
+      expect(text('Not checked yet: Verify is under Evidence on 0G')).toExist(),
       expect(text('Saving the frame to 0G...')).toExist(),
       click(role('button', { name: 'Verify' })),
       Command.resolve(Episode.VerifyEvidence, checked(true, true)),
@@ -361,7 +409,7 @@ describe('/wallet/episodes/:id', () => {
     scene(
       { update: Episode.update, view },
       given(sealed),
-      expect(text('TEE proof present, not yet checked: press Verify under Evidence on 0G')).toExist(),
+      expect(text('TEE proof present: Verify is under Evidence on 0G')).toExist(),
       expect(text(`${teeSigner.slice(0, 10)}…${teeSigner.slice(-6)}`)).toExist(),
       expect(text('Text the TEE signed')).toExist(),
       expect(text(proof.text)).toExist(),

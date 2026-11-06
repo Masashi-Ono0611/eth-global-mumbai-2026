@@ -44,7 +44,7 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.perDay': Readonly<Record<string, never>>
   'allowance.perPurchase': Readonly<Record<string, never>>
   'allowance.resets': { readonly time: string | number }
-  'allowance.ruleAsks': { readonly perPayment: string | number; readonly daily: string | number }
+  'allowance.ruleAsks': { readonly perPayment: string | number }
   'allowance.rulePerPurchase': { readonly amount: string | number }
   'allowance.ruleUntil': { readonly time: string | number }
   'allowance.ruleWhere': { readonly payee: string | number }
@@ -203,7 +203,6 @@ export interface MessageArgumentsByKey<T = string> {
   'home.sendSoon': Readonly<Record<string, never>>
   'home.soon': Readonly<Record<string, never>>
   'home.spent': { readonly amount: string | number }
-  'home.spentNone': Readonly<Record<string, never>>
   'home.stepAdd': Readonly<Record<string, never>>
   'home.stepAllowance': Readonly<Record<string, never>>
   'home.stepConnect': Readonly<Record<string, never>>
@@ -277,7 +276,9 @@ export interface MessageArgumentsByKey<T = string> {
   'receive.copy': Readonly<Record<string, never>>
   'receive.copyFailed': Readonly<Record<string, never>>
   'receive.note': Readonly<Record<string, never>>
+  'receive.on': Readonly<Record<string, never>>
   'receive.qrAlt': Readonly<Record<string, never>>
+  'receive.sendOnly': Readonly<Record<string, never>>
   'receive.title': Readonly<Record<string, never>>
   'robot.state': { readonly state: string | number }
   'robots.openConsole': Readonly<Record<string, never>>
@@ -295,6 +296,11 @@ export interface MessageArgumentsByKey<T = string> {
   'telegram.title': Readonly<Record<string, never>>
   'telegram.waiting': Readonly<Record<string, never>>
   'thread.askChip': { readonly item: string | number }
+  'thread.askChipLabel': {
+    readonly restricted: string | number
+    readonly item: string | number
+    readonly amount: string | number
+  }
   'thread.askOk': { readonly item: string | number }
   'thread.asksYou': Readonly<Record<string, never>>
   'thread.atCounter': Readonly<Record<string, never>>
@@ -347,11 +353,26 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.walkedAway': Readonly<Record<string, never>>
   'thread.walking': { readonly name: string | number }
   'thread.zeroGDecided': { readonly action: string | number }
+  'voice.empty': { readonly name: string | number }
+  'voice.failed': { readonly reason: string | number; readonly detail: string | number }
+  'voice.headerListening': Readonly<Record<string, never>>
+  'voice.headerSpeaking': Readonly<Record<string, never>>
+  'voice.hold': { readonly name: string | number }
+  'voice.letGo': Readonly<Record<string, never>>
+  'voice.listening': Readonly<Record<string, never>>
+  'voice.listeningLabel': Readonly<Record<string, never>>
+  'voice.micOnlyWhileHeld': Readonly<Record<string, never>>
+  'voice.pending': Readonly<Record<string, never>>
+  'voice.reason': Readonly<Record<string, never>>
+  'voice.sent': Readonly<Record<string, never>>
+  'voice.speaking': { readonly name: string | number }
+  'voice.thinking': { readonly name: string | number }
+  'voice.vitaSaid': { readonly name: string | number }
+  'voice.youSaid': Readonly<Record<string, never>>
   'wallet.open': Readonly<Record<string, never>>
   'wallet.signInFirst': Readonly<Record<string, never>>
   'wallet.title': Readonly<Record<string, never>>
   'welcome.addRobot': Readonly<Record<string, never>>
-  'welcome.fundLead': Readonly<Record<string, never>>
   'welcome.fundTitle': Readonly<Record<string, never>>
   'welcome.fundWaiting': Readonly<Record<string, never>>
   'welcome.funded': { readonly balance: string | number }
@@ -367,4 +388,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '08cc60056f260d318b8d462f62eb64c68eb32db619fb9ede6d3e351b1b1024b1'
+export const catalogVersion = 'e656c7c034f11d26c459cd64875f10a444a23b7cb8b9b00c1948fdf5115f1558'

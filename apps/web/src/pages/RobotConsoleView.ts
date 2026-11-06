@@ -18,13 +18,15 @@ import { duck } from '../Duck.ts'
 import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
-import { dock } from './RobotDockView.ts'
+import { dock, voiceIn } from './RobotDockView.ts'
 import { seenBubble, teeMark, zeroGStatus, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 import { workingDots } from '../Busy.ts'
 import { threadSkeleton } from '../Skeleton.ts'
 import { busyLabel } from '../Busy.ts'
+import { narrationView, turnsView } from './RobotVoiceView.ts'
+import * as RobotVoice from './RobotVoice.ts'
 
 // STYLES
 
@@ -87,8 +89,16 @@ const allowancePillLabel = (grant: GrantView, locale: Locale): string => {
     : format(locale, 'allowance.openLeft', { left: usdc(left), daily: usdc(grant.dailyCap) })
 }
 
+/** The status under the name: what Vita's voice is doing while she listens or speaks, else Connected or Offline. */
+const headerStatus = (model: Model, online: boolean, locale: Locale): string =>
+  RobotVoice.Status.guards.Listening(model.voice.status)
+    ? format(locale, 'voice.headerListening', {})
+    : RobotVoice.Status.guards.Speaking(model.voice.status)
+      ? format(locale, 'voice.headerSpeaking', {})
+      : format(locale, online ? 'home.connected' : 'thread.offline', {})
+
 /** The robot's header; its duck hops once when the live errand is paid. */
-const header = (view: ConsoleRobot, paid: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
+const header = (model: Model, view: ConsoleRobot, paid: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const online = view.lease.online
   return h.header(
     [h.Class(headerClassName)],
@@ -105,10 +115,7 @@ const header = (view: ConsoleRobot, paid: boolean, locale: Locale, h: HtmlBuilde
         [h.Class('min-w-0')],
         [
           h.h1([h.Class(nameClassName), h.Title(view.robot.name)], [view.robot.name]),
-          h.span(
-            [h.Class(statusClassName), h.Role('status')],
-            [format(locale, online ? 'home.connected' : 'thread.offline', {})],
-          ),
+          h.span([h.Class(statusClassName), h.Role('status')], [headerStatus(model, online, locale)]),
         ],
       ),
       view.grant === null || view.grant.status !== 'active'
@@ -450,7 +457,7 @@ const loadedView = (
   return h.div(
     [h.Class(pageClassName)],
     [
-      header(view, isPaid(model.errand), locale, h),
+      header(model, view, isPaid(model.errand), locale, h),
       h.section(
         [
           h.Class(threadClassName),
@@ -460,12 +467,22 @@ const loadedView = (
         [
           view.robot.kind === 'sim' ? simulatorLink(view.robot.id, locale, h) : h.empty,
           past.length === 0 && Errand.guards.Idle(model.errand) && Intent.guards.Idle(model.intent)
-            ? h.p([h.Class(systemClassName)], [format(locale, 'thread.empty', { name: view.robot.name })])
+            ? h.p(
+                [h.Class(systemClassName)],
+                [
+                  format(
+                    locale,
+                    RobotVoice.Status.guards.Unavailable(model.voice.status) ? 'thread.empty' : 'voice.empty',
+                    { name: view.robot.name },
+                  ),
+                ],
+              )
             : h.a(
                 [h.Href(robotEpisodesRouter({ robotId: view.robot.id })), h.Class(systemClassName)],
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
+          voiceIn(model, view, 'turns', turnsView, locale, h),
           // Keyed by the history's length: stable while an errand runs, new when the next errand begins.
           h.keyed('div')(
             `live-${past.length}`,
@@ -479,6 +496,7 @@ const loadedView = (
               h,
             ),
           ),
+          voiceIn(model, view, 'narration', narrationView, locale, h),
         ],
       ),
       dock(model, view, catalogue, locale, h),

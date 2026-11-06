@@ -30,6 +30,8 @@ const pageReads = (route: AppRoute): ReadonlyArray<string> =>
         '/api/merchants/duck-cafe/items',
         '/api/wallet/activity',
         episodesOf(id),
+        // Whether Vita's voice is on (RobotVoice's CheckVoice reads it at start).
+        '/api/health',
       ]),
     Approval: ({ approvalId }) => withId(approvalId, (id) => [`/api/approvals/${id}`]),
     Episodes: () => ['/api/wallet/episodes', '/api/robots'],

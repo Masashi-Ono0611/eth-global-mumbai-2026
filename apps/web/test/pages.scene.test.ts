@@ -47,6 +47,20 @@ describe('/wallet', () => {
     )
   })
 
+  test("a payment row opens its errand's proof, and All payment records opens the list", () => {
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(home())),
+      expect(role('link', { name: /Chai/ })).toHaveAttr('href', '/app/wallet/episodes/e1'),
+      expect(role('link', { name: 'All payment records' })).toHaveAttr('href', '/app/wallet/episodes'),
+    )
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(home({ activity: { episodes: [], grants: [] } }))),
+      expect(role('link', { name: 'All payment records' })).not.toExist(),
+    )
+  })
+
   test("a ready robot's row says what is left of today's allowance", () => {
     scene(
       { update: Wallet.update, view },
@@ -55,7 +69,7 @@ describe('/wallet', () => {
       ),
       expect(text('0.60 USDC left today')).toExist(),
       expect(text('Chai')).toExist(),
-      expect(text('−0.10')).toExist(),
+      expect(text('−0.10 USDC')).toExist(),
       expect(text('Paid')).toExist(),
     )
   })
@@ -73,6 +87,8 @@ describe('/wallet', () => {
       { update: Wallet.update, view },
       given(loadedHome(fresh)),
       expect(role('heading', { name: 'Getting started' })).toExist(),
+      // Nothing spent: no line about it (the empty Payments list says so).
+      expect(text('Your robots spent', { exact: false })).not.toExist(),
       expect(role('link', { name: 'Connect' })).toHaveAttr('href', '/app/welcome'),
       expect(role('link', { name: 'Add' })).not.toExist(),
     )
@@ -93,7 +109,7 @@ describe('/wallet', () => {
     scene({ update: Wallet.update, view }, given(loadedHome(home())), expect(text('Getting started')).not.toExist())
   })
 
-  test('Receive opens a sheet with the address as a QR code, in groups, and a copy button', () => {
+  test('Receive opens a sheet with the address as a QR code, printed whole as wallets print it, and a copy button', () => {
     scene(
       { update: Wallet.update, view },
       given(loadedHome(home())),
@@ -109,11 +125,13 @@ describe('/wallet', () => {
         'src',
         qrDataUri(`ethereum:${address}@5042`),
       ),
-      expect(text('0x1234 5678 90ab cdef 1234 5678 90AB CDEF 1234 5678')).toExist(),
+      // One unbroken string, so a hand-copied selection pastes as a valid address.
+      expect(text(address)).toExist(),
       click(role('button', { name: 'Copy address' })),
       Command.expectExact(Wallet.CopyAddress({ address })),
       Command.resolve(Wallet.CopyAddress, Wallet.Message.CompletedCopyAddress({ copied: true })),
       expect(text('Address copied')).toExist(),
+      expect(text('Send only USDC on Arc.')).toExist(),
     )
   })
 

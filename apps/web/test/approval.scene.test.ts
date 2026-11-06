@@ -51,6 +51,21 @@ const commandNames = (commands: ReturnType<typeof tick>['commands']) => (command
 describe('/wallet/approvals/:id', () => {
   const view = withViewInputs(Approval.view, { locale: 'en' })()
 
+  test('an approval that cannot be read offers a retry and a way back to the wallet', () => {
+    scene(
+      { update: Approval.update, view },
+      given(
+        Approval.update(
+          Approval.init('ap1').model,
+          Approval.Message.FailedLoadApproval({ error: 'approval not found', signedOut: false }),
+        ).model,
+      ),
+      expect(role('alert')).toHaveText('Something went wrong: approval not found'),
+      expect(role('button', { name: 'Retry' })).toExist(),
+      expect(role('link', { name: 'Back to wallet' })).toHaveAttr('href', '/app/wallet'),
+    )
+  })
+
   test('a restricted item asks for World approval; the owner can deny it and the page ends on the denial', () => {
     scene(
       { update: Approval.update, view },
@@ -139,9 +154,7 @@ describe('/wallet/approvals/:id', () => {
       ),
       expect(role('heading', { name: 'Approval for a payment over the limit' })).toExist(),
       expect(
-        text(
-          "This payment is over the robot's per-payment limit (2.00 > 1.00 USDC), so it needs your fresh approval in World App. Nothing is paid without it.",
-        ),
+        text('Over the per-payment limit (2.00 > 1.00 USDC): approve it in World App. Nothing is paid until you do.'),
       ).toExist(),
       expect(text('restricted', { exact: false })).toBeAbsent(),
       expect(role('heading', { name: 'Duck wants to buy thali' })).toExist(),

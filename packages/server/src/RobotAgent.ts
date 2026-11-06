@@ -17,6 +17,7 @@ import { navRoutes } from './robot/Nav.ts'
 import { ZG_COMPUTE_RPC_DEFAULT, ZG_INFERENCE_CONTRACT_DEFAULT } from './robot/TeeProof.ts'
 import { robotRoutes } from './robot/routes.ts'
 import { scanRoutes } from './robot/Scans.ts'
+import { voiceRoutes } from './robot/Voice.ts'
 import { ZeroGBindings, ZeroGExtraBody } from './robot/ZeroGClient.ts'
 import { type Bindings, optionalBinding } from './Respond.ts'
 
@@ -101,6 +102,8 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     scansEnabled(env)
       ? Layer.mergeAll(scanRoutes(errands, media), intentRoutes(errands), navRoutes(errands))
       : Layer.empty,
+    // Vita's voice is always mounted (no flag); without 0G it answers 503. Its `buy` turns create intents.
+    voiceRoutes({ ...errands, media }),
     // The robot's live camera view exists only while LIVE_ENABLED is `true`; otherwise its paths are 404.
     liveEnabled(env) ? liveRoutes(errands, media) : Layer.empty,
   )

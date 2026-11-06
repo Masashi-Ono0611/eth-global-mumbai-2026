@@ -121,7 +121,7 @@ version, so all three workflows (each runs `bun install --frozen-lockfile` at th
 
 GitHub Actions secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (all three stacks), and for the app only
 `APP_AUTH_SESSION_KEYS` plus the feature bindings `alchemy.run.ts` lists (`APP_RELAYER_PRIVATE_KEY` …
-`APP_SCANS_ENABLED`, `APP_LIVE_ENABLED`). A feature binding left unset defaults to `pending`, and then only its routes answer 503 "not
+`APP_SCANS_ENABLED`, `APP_LIVE_ENABLED`; Vita's voice has no flag and uses the `APP_ZG_*` bindings). A feature binding left unset defaults to `pending`, and then only its routes answer 503 "not
 configured"; `/api/health` reports which are set, as booleans. The site and the till take no app secrets. Locally the
 app's live in the ignored `.env.main.local` (mode 600; never print or commit it). `APP_AUTH_SESSION_KEYS` is JSON
 `{ "activeKeyId": "k1", "keys": [{ "id": "k1", "material": … }] }`, material at least 32 random bytes as unpadded

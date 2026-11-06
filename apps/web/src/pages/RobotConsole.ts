@@ -2,7 +2,6 @@ import { Effect, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
 import { Dialog, Listbox } from '@foldkit/ui'
 import { defineMessageUnion } from 'foldkit/message'
-import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import type * as HttpClient from 'effect/http/HttpClient'
 import { isSignedOut } from '../api/Http.ts'
@@ -25,42 +24,14 @@ import { LiveFrame } from '@ethmumbai/protocol/Frame'
 import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
+import * as RobotVoice from './RobotVoice.ts'
 import { sheetFolds } from '../Sheet.ts'
 import { BrainListbox, initBrainPicker, RequestModel, requestModel } from './RobotBrain.ts'
 
 // MODEL
 
-export const ConsoleState = defineTaggedUnion({
-  Loading: {},
-  SignedOut: {},
-  Loaded: {
-    robot: ConsoleRobot,
-    catalogue: Catalogue,
-    /** The robot's errands, oldest first: the conversation's history. */
-    history: Schema.Array(EpisodeSummary),
-    /** What each errand paid or asked for (USDC base units), by errand id. */
-    amounts: Schema.Record(Schema.String, Schema.String),
-  },
-  Failed: { error: Schema.String },
-})
-export const Decline = defineTaggedUnion({ Idle: {}, Declining: {}, Failed: { error: Schema.String } })
-/** A simulator robot's errand intent: the owner's instruction, while 0G walks the duck to the counter (sim-plan.md). */
-export const Intent = defineTaggedUnion({
-  Idle: {},
-  Sending: { instruction: Schema.String },
-  Open: { intent: IntentView, stopping: Schema.Boolean },
-  Failed: { error: Schema.String },
-})
-export type Intent = typeof Intent.Type
-export const Errand = defineTaggedUnion({
-  Idle: {},
-  Running: {
-    episodeId: Schema.String,
-    maybeDetail: Schema.Option(ErrandDetail),
-    maybeApprovalUrl: Schema.Option(Schema.String),
-  },
-})
-export type Errand = typeof Errand.Type
+export { ConsoleState, Decline, Errand, Intent } from './RobotConsoleState.ts'
+import { ConsoleState, Decline, Errand, Intent } from './RobotConsoleState.ts'
 export const Model = Schema.Struct({
   robotId: Schema.String,
   state: ConsoleState,
@@ -70,6 +41,7 @@ export const Model = Schema.Struct({
   allowanceSheet: Dialog.Model,
   intent: Intent,
   instruction: Schema.String,
+  voice: RobotVoice.Model,
   /** The open intent whose live camera loop is running, so one intent never gets two loops. */
   maybeLiveIntentId: Schema.Option(Schema.String),
   /** The 0G brain the owner picked for the next messages (RobotBrain.ts); none = the Worker's ZG_MODEL. */
@@ -112,6 +84,7 @@ export const Message = defineMessageUnion({
   FailedStopIntent: { error: Schema.String },
   GotAllowanceSheetMessage: { message: Dialog.Message },
   GotAllowanceMessage: { message: Allowance.Message },
+  GotVoiceMessage: { message: RobotVoice.Message },
   GotBrainPickerMessage: { message: Listbox.Message },
 })
 export type Message = typeof Message.Type
@@ -258,11 +231,12 @@ export const init = (robotId: string): UpdateReturn => ({
     allowanceSheet: Dialog.init({ id: 'allowance', isAnimated: true }),
     intent: Intent.Idle(),
     instruction: '',
+    voice: RobotVoice.init(robotId),
     maybeLiveIntentId: Option.none(),
     maybeBrain: Option.none(),
     brainPicker: initBrainPicker(),
   },
-  commands: [LoadConsole({ robotId })],
+  commands: [LoadConsole({ robotId }), ...Command.mapMessages([RobotVoice.CheckVoice()], toVoice)],
 })
 
 // UPDATE
@@ -318,7 +292,7 @@ const sendIntent = (model: Model, instruction: string, item: string | null): Upd
       }
 
 /** A fresh read of the intent: once the duck's scan made an errand, the errand's own messages take over. */
-const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
+const intentStep = (model: Model, intent: IntentView): UpdateReturn => {
   const stopping = Intent.guards.Open(model.intent) && model.intent.stopping && isOpenIntent(intent.state)
   // The first read that carries a live frame starts the faster live loop for this intent (once).
   const startLive =
@@ -344,6 +318,28 @@ const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
     model: modifyFields(next, { errand: () => running(episodeId, Option.none()) }),
     commands: [...poll, PollErrand({ robotId: model.robotId, episodeId, delayMillis: 0 })],
   }
+}
+
+const toVoice = (message: RobotVoice.Message) => Message.GotVoiceMessage({ message })
+
+/** Vita's voice: a spoken buy's intent joins the conversation like a "Get me" chip's; Vita speaks its new states. */
+const voiceChild = {
+  read: (model: Model) => Option.some(model.voice),
+  write: (model: Model, next: RobotVoice.Model) => modifyFields(model, { voice: () => next }),
+  toParentMessage: toVoice,
+  foldOutMessage: RobotVoice.OutMessage.match<Update.Step<Model, Message, Services>>({
+    StartedIntent:
+      ({ intent }) =>
+      (model) =>
+        intentRead(model, intent),
+  }),
+}
+const foldVoice = Update.foldChild({ update: RobotVoice.update, ...voiceChild })
+
+const intentRead = (model: Model, intent: IntentView): UpdateReturn => {
+  const followed = Update.foldChildStep({ update: RobotVoice.followIntent(intent), ...voiceChild })(model)
+  const read = intentStep(followed.model, intent)
+  return { model: read.model, commands: [...(followed.commands ?? []), ...(read.commands ?? [])] }
 }
 
 /** Stop the duck once; its next turn sees the stopped intent and halts. */
@@ -415,7 +411,13 @@ const foldBrainPicker = Update.foldChild({
   foldOutMessage: Listbox.OutMessage.match<Update.Step<Model, Message, Services>>({
     Selected:
       ({ value }) =>
-      (model) => ({ model: modifyFields(model, { maybeBrain: () => Option.some(value) }) }),
+      (model) => ({
+        model: modifyFields(model, {
+          maybeBrain: () => Option.some(value),
+          // A spoken buy goes with the same brain as the typed message beside the mic.
+          voice: () => modifyFields(model.voice, { maybeBrain: () => Option.some(value) }),
+        }),
+      }),
   }),
 })
 const configureAllowance = (model: Model, catalogue: Catalogue, robot: ConsoleRobot) =>
@@ -530,5 +532,6 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     ...intentHandlers(model),
     GotAllowanceSheetMessage: ({ message: sheetMessage }) => allowanceSheet.fold(model, sheetMessage),
     GotAllowanceMessage: ({ message: allowanceMessage }) => foldAllowance(model, allowanceMessage),
+    GotVoiceMessage: ({ message: voiceMessage }) => foldVoice(model, voiceMessage),
     GotBrainPickerMessage: ({ message: pickerMessage }) => foldBrainPicker(model, pickerMessage),
   })

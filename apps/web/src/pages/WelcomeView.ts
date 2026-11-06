@@ -3,7 +3,7 @@ import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { usdc } from '../api/Wallet.ts'
 import { workingDots } from '../Busy.ts'
-import { receiveBody } from '../Receive.ts'
+import { onlyUsdcOnArc, receiveBody } from '../Receive.ts'
 import { robotsRouter, walletRouter } from '../route.ts'
 import * as Telegram from '../Telegram.ts'
 import { failedView, loadingView, signedOutView } from './Shared.ts'
@@ -23,7 +23,6 @@ const actionClassName =
 const quietClassName =
   'min-h-11 cursor-pointer justify-self-center rounded-control px-4 font-semibold text-ink underline underline-offset-2 transition-transform active:scale-[0.96]'
 const statusClassName = 'text-center text-sm text-muted'
-const noteClassName = 'text-center text-sm text-balance text-muted'
 
 type ViewInputs = { readonly locale: Locale }
 
@@ -59,7 +58,7 @@ const telegramStep = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Re
 ]
 
 const fundStep = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  ...intro(format(locale, 'welcome.fundTitle', {}), format(locale, 'welcome.fundLead', {}), h),
+  h.h1([h.Class(titleClassName)], [format(locale, 'welcome.fundTitle', {})]),
   Funds.match(model.funds, {
     Loading: () => loadingView(locale, h),
     SignedOut: () => signedOutView(locale, h),
@@ -73,7 +72,7 @@ const fundStep = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
             [h.Role('status'), h.Class(statusClassName)],
             [workingDots(h), format(locale, 'welcome.fundWaiting', {})],
           ),
-          h.p([h.Class(noteClassName)], [format(locale, 'receive.note', {})]),
+          onlyUsdcOnArc(locale, h),
         ],
       ),
   }),

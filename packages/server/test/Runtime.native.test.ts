@@ -46,6 +46,11 @@ import {
   TEST_TELEGRAM_SECRET,
   TEST_TELEGRAM_TOKEN,
 } from './TelegramAcceptance.ts'
+import {
+  registerVoiceAcceptance,
+  registerVoiceOnByDefaultAcceptance,
+  registerVoiceStopAcceptance,
+} from './VoiceAcceptance.ts'
 import { registerWalletAcceptance } from './WalletAcceptance.ts'
 import { registerConsoleAcceptance } from './ConsoleBrowserAcceptance.ts'
 import { registerWorldStubAcceptance, TEST_ENFORCER_ADDRESS, TEST_WORLD_STUB_JWK } from './WorldStubAcceptance.ts'
@@ -338,6 +343,7 @@ test(
 )
 
 registerScansOffAcceptance(test, stack)
+registerVoiceOnByDefaultAcceptance(test, stack)
 registerLiveOffAcceptance(test, stack)
 
 test(
@@ -390,6 +396,8 @@ registerAuditAcceptance(test, stack, zeroG, chainStub)
 registerScanAcceptance(test, stack, zeroG, storageStub)
 registerCounterAcceptance(test, stack)
 registerChipIntentAcceptance(test, stack, zeroG)
+registerVoiceAcceptance(test, stack, zeroG)
+registerVoiceStopAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)
 registerLiveAcceptance(test, stack)
 registerWalletAcceptance(test, stack)

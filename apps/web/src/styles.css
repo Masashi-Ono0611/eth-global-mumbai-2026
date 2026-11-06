@@ -78,6 +78,18 @@
   --radius-card: 22px;
   --radius-sheet: 30px;
 
+  /* Vita's voice: the listening wave's bars (RobotVoiceView.ts); off under reduced motion. */
+  --animate-voice-wave: voice-wave 0.9s ease-in-out infinite;
+  @keyframes voice-wave {
+    0%,
+    100% {
+      transform: scaleY(0.45);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+
   /* Motion (DESIGN.md "Motion"): strong custom curves, UI motion under 300ms, transform and opacity only. Every
    * transition-* utility without its own ease uses the ease-out, so a press answers on the first frame. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
