@@ -3,7 +3,7 @@ import * as Alchemy from 'alchemy'
 import { Effect } from 'effect'
 
 /** The app's public edge; the till forwards its /api/* calls there (worker.ts). */
-const APP_ORIGIN = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
+const APP_ORIGIN = 'https://vitaquack.com'
 
 /**
  * The merchant till: a separate small app (point of sale → x402 QR → signed status), its own stack and URL.

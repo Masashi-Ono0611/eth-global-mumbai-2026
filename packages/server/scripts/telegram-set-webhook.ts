@@ -8,7 +8,7 @@ import process from 'node:process'
 
 /** Statuses go to stdout and problems to stderr (scripts do not use `console`). */
 const say = (line: string) => process.stdout.write(`${line}\n`)
-const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
+const DEPLOYED = 'https://vitaquack.com'
 const flag = (name: string) => {
   const index = Bun.argv.indexOf(`--${name}`)
   return index < 0 ? undefined : Bun.argv[index + 1]

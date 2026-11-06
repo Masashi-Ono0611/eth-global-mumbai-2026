@@ -205,7 +205,7 @@ const scenario = async (urls: Urls, owner: Owner, stub: TelegramStub) => {
   const approvalId = thali.approvalUrl?.split('/').at(-1) ?? ''
   const asked = await awaitMessage(urls, stub, /Thali.*per-payment limit/s)
   const buttons = JSON.stringify(asked.body.reply_markup)
-  expect(buttons).toContain(`/wallet/approvals/${approvalId}`)
+  expect(buttons).toContain(`/app/wallet/approvals/${approvalId}`)
   expect(buttons).toContain(`deny:${approvalId}`)
   // A chat that is not the owner's changes nothing; the owner's tap denies; a second tap is "already decided".
   expect(await denyTap(urls, STRANGER_CHAT, approvalId)).toBe('This approval is not yours.')

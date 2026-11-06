@@ -1,4 +1,5 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
+import { APP_BASE, approvalPagePath } from '@ethmumbai/protocol/Pages'
 import { Effect, Option, Schema } from 'effect'
 import { findItem, findMerchant } from '../merchant/Catalogue.ts'
 import { nowSeconds } from '../Respond.ts'
@@ -79,7 +80,7 @@ const approvalNeeded = Effect.fn('EthMumbai.Telegram.renderApproval')(function* 
   const grant = facts.robot_id === null ? Option.none() : yield* latestSignedGrant(database, facts.robot_id)
   const { merchant, item } = names(facts.merchant_id, facts.item_id)
   const buttons: ReadonlyArray<ReadonlyArray<Button>> = [
-    [{ text: 'Review and approve', url: `${new URL(origin).origin}/wallet/approvals/${facts.id}` }],
+    [{ text: 'Review and approve', url: `${new URL(origin).origin}${approvalPagePath(facts.id)}` }],
     [{ text: 'Deny', callback_data: `deny:${facts.id}` }],
   ]
   return Option.some<OutgoingMessage>({
@@ -175,7 +176,7 @@ const grantRevoked = Effect.fn('EthMumbai.Telegram.renderRevoke')(function* (
   if (Option.isNone(found)) return Option.none<OutgoingMessage>()
   return Option.some<OutgoingMessage>({
     text: [header(found.value.robot), "🔒 You revoked my spending. I can't pay for anything now."].join('\n'),
-    buttons: [[{ text: 'Open wallet', url: `${new URL(origin).origin}/wallet` }]],
+    buttons: [[{ text: 'Open wallet', url: `${new URL(origin).origin}${APP_BASE}/wallet` }]],
   })
 })
 
