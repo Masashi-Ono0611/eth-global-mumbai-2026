@@ -68,6 +68,21 @@ app's live in the ignored `.env.main.local` (mode 600; never print or commit it)
 `{ "activeKeyId": "k1", "keys": [{ "id": "k1", "material": … }] }`, material at least 32 random bytes as unpadded
 base64url. `APP_RELEASE` is the commit, set by CI or on the command line.
 
+### Telegram (spec §14)
+
+`APP_TELEGRAM_BOT_TOKEN` (the @vitaquack_bot token from BotFather) and `APP_TELEGRAM_WEBHOOK_SECRET` (16–256 of
+`[A-Za-z0-9_-]`, random) are GitHub secrets and lines in `.env.main.local`. Both set turns the feature on
+(`/api/health` → `telegram: true`); either missing or `pending` turns it off and its routes answer 503. After a deploy
+that changes the edge URL, or after rotating either value, point the bot at the app by hand (never from CI):
+
+```sh
+bun --env-file=.env.main.local packages/server/scripts/telegram-set-webhook.ts         # setWebhook + commands
+bun --env-file=.env.main.local packages/server/scripts/telegram-set-webhook.ts --info  # read the current webhook
+```
+
+Owners link a chat only through the wallet's one-time code (avatar → Connect Telegram); no chat id is configured
+anywhere. Once a webhook is set, Telegram's `getUpdates` stops answering.
+
 ## Deploy by hand
 
 After `heavy --wait bun run check` is green, with `CLOUDFLARE_API_TOKEN` in the environment:
