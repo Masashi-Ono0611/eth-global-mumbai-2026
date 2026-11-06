@@ -117,3 +117,94 @@ Worker's own origin instead (a config change, not code).
    verify with `crypto_ed25519_check`. Run the tamper test (flip one byte of `sig`: rejected) and a replay test (an
    old answer with another nonce: rejected).
 7. Then the loop with one gate only: "buy chai" pays the ESP32's invoice, and the ESP32 shows PAID on its next read.
+
+## 5. Scans: the duck pays the QR it read (behind `APP_SCANS_ENABLED`)
+
+The camera reads the gate's QR (`vq1:<invoiceId>`) and keeps only a JPEG crop of the QR, at most 64 KB (no scene
+frames: spec rule 4). The chip hashes and signs the crop, and the Worker starts the errand for exactly that invoice,
+as the console's "buy" would (0G decides, then the chip signs the payment). The crop is stored owner-private in R2.
+It is never sent to 0G; the episode evidence (and so the `EpisodeLog` anchor) carries only
+`{sha256, bytes, capturedAt, chipSig}`. The route exists only while `APP_SCANS_ENABLED` is `true`. Until then it
+answers 404, and `GET $APP/api/health` shows `features.scans: false`.
+
+The examples below are exact request/response pairs from the native run on `688209b`, against the local Worker, with
+throwaway keys. The ids are local; `<chipToken>` is the `pairing.json` token.
+
+### 5.1 Local listener on the chip (`--local-port N`)
+
+The easiest path from the camera process. Run the chip with `./vitaquack-chip --server $APP --local-port 8787`; it
+logs `scan listener on http://127.0.0.1:8787/scan` and binds 127.0.0.1 only. The chip signs, forwards to `/scans`
+and returns the Worker's status and JSON unchanged.
+
+```sh
+curl -s -w ' %{http_code}\n' http://127.0.0.1:8787/scan -H 'content-type: application/json' \
+  -d '{"invoiceId":"2hl53glbtki6ntppjt72xbe4oq","jpegBase64":"/9j/4Gm/ACBR2qAVymzcUtKhNNB5IfsN26fE1n2tHFIoLCvWLGoCrJZUfJZY2tTb2EZDIrSEK1/+JtktVkUjao6jL+gmCjo1TexdsiX2WGNkuWg441fMRwsQ/oA81v/Z"}'
+{"episodeId":"zmycnkz4e7zza5y2loctktokcq","state":"signing","observationId":"g6l2aegnkhl6o3ybysbgrkyfbu"} 201
+```
+
+`capturedAt` (unix ms) may be sent; when absent the chip uses its own clock. The chip log line is
+`scan 2hl53glbtki6ntppjt72xbe4oq 0x<first 8 hex>… → 201`. The chip refuses these locally, before touching the key
+(400, nothing is sent):
+
+```text
+{"invoiceId":"2hl53glbtki6ntppjt72xbe4oq","jpegBase64":"AQID"}  →  400 {"error":"crop is not a JPEG"}
+also: "jpegBase64 is not base64" · "crop is larger than 64 KB" · "expected {\"invoiceId\", \"jpegBase64\", \"capturedAt\"?}"
+the Worker did not answer within 60 s  →  502 {"error":"the Worker did not answer the scan"}
+```
+
+### 5.2 The Worker route (what the listener sends; for a client of your own)
+
+`POST $APP/api/chips/<robotId>/scans` with `Authorization: Bearer <chipToken>`. The body, with `capturedAt` in unix
+ms, `sha256` as `0x` + 64 lowercase hex of the decoded bytes, and `bytes` as the decoded length:
+
+```sh
+curl -s -w ' %{http_code}\n' $APP/api/chips/d2ji3kky7sgfbvqzqp6lpkvbdi/scans \
+  -H 'authorization: Bearer <chipToken>' -H 'content-type: application/json' -d '{
+  "invoiceId": "g2xvzkre5gphl7dwvedzsmchnm",
+  "capturedAt": 1793963768769,
+  "frame": {
+    "mime": "image/jpeg",
+    "sha256": "0x6e9de8ddddf31995bd715d2ff31c4f3dcf1376a3400c6abf99bafa16aec487b3",
+    "bytes": 96,
+    "b64": "/9j/4E0Cmp/TSQzvO62dpUKaPXOGP/xRwPmDTcUstyM5aBTvKAYIkf3lxaULlqbXlWtniPPXdXo2YT8OYBPEBpeeRp86N43+cXITxbAL6EZvesHvhp8sn/VR8HejrP/Z"
+  },
+  "sig": "0xbc1e39bdd292b09461f03a76cea75e39e786fad12c34eeecef4b22d5498b7e594df8c227276675fa43901a0ea58b7ea775843d8f8ee545771b3960f65e66e0941b"
+}'
+{"episodeId":"bt4vh5kg7rhsol6uben4kmvepq","state":"signing","observationId":"tt2s377y5mi5nsx4ichlptlrni"} 201
+```
+
+`sig` is the chip key's EIP-191 `personal_sign` of the UTF-8 string
+`vitaquack-scan:v1|<invoiceId>|<sha256 exactly as sent>|<capturedAt ms>|<robotId>`. To check a signer bit-exactly, use
+the golden vector in `packages/protocol/test/fixtures/golden.json` → `scan`. For the message
+`vitaquack-scan:v1|lsqaaaaaaaaaaaaaaaaaaaga3y|0x0936618c04c6c867c2b88b42599f873be1586da262bb2afaf127849fd5f873fe|1794000123456|bmdqaaaaaaaaaaaaaaaaadimaa`
+its digest is `0x79a9d05f784615f16df3ccf8c0b4e8d282ebd7909876c0378ece6d30f9e4da5b` and its signer
+`0xa7c317EFb8892F3da98Daf78Ac6653015be7a17B`. In Python: `Account.sign_message(encode_defunct(text=message), key)`.
+
+The Worker checks in this order and answers with the first refusal. The bodies are the Worker's exact strings. The
+201, the 200, the signer 401, the sha256, size and capturedAt 400s, the 404 and the "not open" 409 were captured in the
+run above.
+
+| Status | Body                                                                                                                                       | When                                                                         |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 401    | `{"error":"bad chip token"}`                                                                                                               | missing or wrong bearer, or the robot is not paired                          |
+| 400    | `{"error":"expected {\"invoiceId\", \"capturedAt\" (unix ms), \"frame\": {\"mime\", \"sha256\", \"bytes\", \"b64\"}, \"sig\"}"}`           | body does not match the shape                                                |
+| 401    | `{"error":"scan is not signed by this robot’s chip"}`                                                                                      | `sig` does not recover to the paired chip address                            |
+| 200    | `{"episodeId":"bt4vh5kg7rhsol6uben4kmvepq","state":"signing","observationId":"tt2s377y5mi5nsx4ichlptlrni"}`                                 | a repeat: this robot already scanned this invoice (same errand, current state) |
+| 429    | `{"error":"too many scans: at most 10 a minute per robot"}`                                                                                 | more than 10 stored scans in the last minute                                 |
+| 400    | `{"error":"capturedAt is more than 120 s from the server clock"}`                                                                          | stale or future capture                                                      |
+| 400    | `{"error":"frame is larger than 64 KB"}`                                                                                                    | `bytes` above 65536                                                          |
+| 400    | `{"error":"frame.b64 is not base64"}` / `{"error":"frame.bytes does not match the decoded frame"}` / `{"error":"frame is not a JPEG"}`     | decode, length, SOI marker `FF D8 FF`                                        |
+| 400    | `{"error":"frame.sha256 does not match the frame"}`                                                                                         | the digest is not that of the bytes                                          |
+| 404    | `{"error":"unknown invoice"}`                                                                                                               | no such invoice                                                              |
+| 503    | `{"error":"not configured: …"}`                                                                                                             | the deploy lacks a merchant, 0G or relayer binding                           |
+| 409    | `{"error":"invoice is not for this merchant"}`                                                                                              | another merchant's invoice                                                   |
+| 409    | `{"error":"robot has no signed grant"}`                                                                                                     | no budget granted yet                                                        |
+| 409    | `{"error":"invoice is not open for this item"}`                                                                                             | paid, expired, within 60 s of expiry, or claimed by another errand           |
+| 409    | `{"error":"this robot already has an errand in progress"}`                                                                                  | finish (or wait out) the current errand                                      |
+| 502    | `{"error":"R2 did not store the frame"}`                                                                                                    | storage failed; the errand ends `safe_stop` and the invoice is released      |
+| 201    | `{"episodeId":"…","state":"signing","observationId":"…"}`                                                                                   | errand started; `state` is the state after the 0G decision                   |
+
+On 201 the `state` is `signing` (the chip's poll gets the payment to sign), `awaiting_approval` (World approval
+needed), `walked_away` or `safe_stop`. Follow it on `$APP/robot/<robotId>`, or let the gate show PAID. The owner sees
+the crop at `/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
+`observations: [{sha256, hashMatches, signerMatches}]`.
