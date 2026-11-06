@@ -2,6 +2,7 @@ import { DecideInput, DecideToolResult } from '@ethmumbai/protocol/Errand'
 import { Clock, Effect, Option, Redacted, Result, Schema } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
+import { parseDecision, ReplyMessage } from './DecideReply.ts'
 import { sha256Hex } from '../Respond.ts'
 
 /** `ZG_BASE_URL`, `ZG_API_KEY`, `ZG_MODEL`: the 0G router (OpenAI-compatible, `…/v1`). */
@@ -20,7 +21,26 @@ export const ZEROG_TIMEOUT = '10 seconds'
 export const APPROVAL_RULE =
   'Never pay when approvalRequired is true. When approvalRequired is true and the owner asked for this item, answer ask_human so the owner can approve it in World App; answer walk_away only when the item is not what the owner asked for, the price is wrong, or the merchant is unknown.'
 
-const SYSTEM_PROMPT = `You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool. Never pay when merchant trust is untrusted. ${APPROVAL_RULE}`
+/** The rule as a table first (models read "over the cap" as "unpayable" from prose alone), then one example per row. */
+const SYSTEM_PROMPT = [
+  'You are the purchasing brain of a robot with a USDC budget. Decide only with the decide tool: call it once with {"action": "pay" | "ask_human" | "walk_away", "reason": one short sentence}.',
+  'Decision table, apply the first row that matches:',
+  '1. The item, the price or the merchant does not match (requested differs from catalogue.itemId, invoice.amount differs from catalogue.amount, or merchant.trust is untrusted) → walk_away.',
+  "2. policy.approvalRequired=true and the item is what the owner asked for → ask_human. The per-payment cap and the allowlist never justify walk_away: the owner's approval in World App lifts them (see the approval field).",
+  '3. policy.approvalRequired=false and invoice.amount is within budget.remainingToday → pay.',
+  '4. Otherwise → walk_away.',
+  'Examples:',
+  '- requested chai, catalogue chai 100000, invoice 100000, approvalRequired false, remainingToday 1000000 → {"action":"pay","reason":"Chai as asked, within budget."}',
+  '- requested cigarettes, catalogue cigarettes 500000 restricted, invoice 500000, approvalRequired true → {"action":"ask_human","reason":"Restricted item the owner asked for; the owner approves it in World App."}',
+  '- requested chai, catalogue samosa → {"action":"walk_away","reason":"Not the item the owner asked for."}',
+  APPROVAL_RULE,
+].join('\n')
+
+/** When approval is required the input says so as structure, not only as a flag the model may read as a refusal. */
+export const promptInput = (input: DecideInput) =>
+  input.policy.approvalRequired
+    ? { ...input, approval: { required: true, canBeGrantedBy: 'the owner in World App', capsDoNotBlock: true } }
+    : input
 
 const DECIDE_TOOL = {
   type: 'function',
@@ -43,7 +63,7 @@ export const decideRequestBody = (model: string, input: DecideInput) => ({
   temperature: 0,
   messages: [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: JSON.stringify(input) },
+    { role: 'user', content: JSON.stringify(promptInput(input)) },
   ],
   tools: [DECIDE_TOOL],
   tool_choice: { type: 'function', function: { name: 'decide' } },
@@ -53,18 +73,14 @@ const Trace = Schema.Struct({
   request_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
   provider: Schema.optionalKey(Schema.NullOr(Schema.String)),
 })
-const ToolCall = Schema.Struct({ function: Schema.Struct({ name: Schema.String, arguments: Schema.String }) })
 const Completion = Schema.Struct({
   id: Schema.optionalKey(Schema.NullOr(Schema.String)),
   model: Schema.optionalKey(Schema.NullOr(Schema.String)),
-  choices: Schema.Array(
-    Schema.Struct({ message: Schema.Struct({ tool_calls: Schema.optionalKey(Schema.Array(ToolCall)) }) }),
-  ),
+  choices: Schema.Array(Schema.Struct({ message: ReplyMessage })),
   x_0g_trace: Schema.optionalKey(Schema.NullOr(Trace)),
 })
 /** Error bodies carry a top-level `request_id`. */
 const ErrorBody = Schema.Struct({ request_id: Schema.optionalKey(Schema.NullOr(Schema.String)) })
-const decideArguments = Schema.decodeUnknownOption(Schema.fromJsonString(DecideToolResult))
 
 /** What is logged per call (spec §6 `decisions`): never the key, never the prompt itself, only its hash. */
 export interface ZeroGCall {
@@ -93,9 +109,6 @@ export type ZeroGOutcome =
       readonly detail: string | null
     }
 
-const decideCall = (completion: typeof Completion.Type) =>
-  Option.fromNullishOr(completion.choices[0]?.message.tool_calls?.find((tool) => tool.function.name === 'decide'))
-
 /**
  * One 0G decision. It never fails: a transport error, a non-2xx, a timeout (10 s) or arguments that do not decode are
  * an `ok: false` outcome, which the errand turns into `safe_stop` (never a local fallback decision).
@@ -108,7 +121,7 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
   const base = {
     model: config.model,
     promptSha256: yield* sha256Hex(bodyJson),
-    inputJson: JSON.stringify(input),
+    inputJson: JSON.stringify(promptInput(input)),
     brain: `${new URL(config.baseUrl).host}/${config.model}`,
   }
   const reply = yield* client
@@ -130,7 +143,11 @@ export const decide = Effect.fn('EthMumbai.Robot.decide')(function* (config: Zer
       Effect.result,
     )
   const latencyMs = (yield* Clock.currentTimeMillis) - started
-  return outcomeOf({ ...base, latencyMs }, reply)
+  const outcome = outcomeOf({ ...base, latencyMs }, reply)
+  // The reason names the reply's shape (tool calls, text length), never its text or the prompt.
+  if (!outcome.ok)
+    yield* Effect.logWarning(`0G decide failed: ${outcome.error}`).pipe(Effect.annotateLogs({ brain: base.brain }))
+  return outcome
 })
 
 type Reply = { readonly status: number; readonly text: string; readonly chatId: string | undefined }
@@ -181,12 +198,11 @@ const outcomeOf = (
   // (ZG-Res-Key, else the body id), which then is the per-decision request id.
   const chat = chatId ?? completion.value.id ?? null
   const logged = call(trace?.request_id ?? chat, chat, trace?.provider ?? null, status)
-  const tool = decideCall(completion.value)
-  if (Option.isNone(tool)) return { ok: false, call: logged, error: 'no decide tool call in the reply', detail }
-  const result = decideArguments(tool.value.function.arguments)
-  return Option.isSome(result)
-    ? { ok: true, call: logged, result: result.value }
-    : { ok: false, call: logged, error: 'decide arguments are not {action, reason}', detail }
+  const message = completion.value.choices[0]?.message
+  const parsed = message === undefined ? { ok: false as const, error: 'reply has no choices' } : parseDecision(message)
+  return parsed.ok
+    ? { ok: true, call: logged, result: parsed.result }
+    : { ok: false, call: logged, error: parsed.error, detail }
 }
 
 const Tagged = Schema.Struct({

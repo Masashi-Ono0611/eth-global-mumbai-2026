@@ -74,6 +74,72 @@ describe('0G decide call', () => {
 
   test('a reply without the decide tool call is a failure, never a decision', async () => {
     const outcome = await run(answering({ id: 'x', choices: [{ message: { content: 'buy it' } }] }))
-    expect(outcome).toMatchObject({ ok: false, error: 'no decide tool call in the reply', call: { httpStatus: 200 } })
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: 'no decide tool call in the reply (0 tool call(s), no function_call, text 6 chars)',
+      call: { httpStatus: 200 },
+    })
+  })
+})
+
+const decision = (message: unknown) =>
+  run(answering({ id: 'x', choices: [{ message }] })).then((outcome) =>
+    outcome.ok ? { ok: true, ...outcome.result } : { ok: false, error: outcome.error },
+  )
+const call = (args: unknown, name = 'decide') => ({
+  tool_calls: [{ id: 't1', type: 'function', function: { name, arguments: args } }],
+})
+
+describe('reading the decide call tolerantly, never inventing one', () => {
+  test('arguments as an object, extra fields, an upper-case action and a missing reason', async () => {
+    expect(await decision(call({ action: 'ASK_HUMAN', confidence: 0.9 }))).toEqual({
+      ok: true,
+      action: 'ask_human',
+      reason: '',
+    })
+    expect(await decision(call('{"action":"Ask Human","reason":"owner decides","extra":1}'))).toEqual({
+      ok: true,
+      action: 'ask_human',
+      reason: 'owner decides',
+    })
+    expect(await decision(call('{"action":"walk-away","reason":"' + 'x'.repeat(300) + '"}'))).toMatchObject({
+      ok: true,
+      action: 'walk_away',
+    })
+    expect(await decision({ function_call: { name: 'Decide', arguments: '{"action":"pay","reason":"ok"}' } })).toEqual({
+      ok: true,
+      action: 'pay',
+      reason: 'ok',
+    })
+  })
+
+  test('what is still refused, with the reply shape in the reason', async () => {
+    expect(await decision(call('{"action":"buy"}'))).toEqual({
+      ok: false,
+      error: 'decide action "buy" is not pay, ask_human or walk_away',
+    })
+    expect(await decision(call('not json'))).toEqual({
+      ok: false,
+      error: 'decide arguments are not a JSON object (string 8 chars)',
+    })
+    expect(await decision(call({ verdict: 'pay' }))).toEqual({
+      ok: false,
+      error: 'decide arguments have no action (keys: verdict)',
+    })
+    expect(await decision(call('{"action":"pay"}', 'purchase'))).toEqual({
+      ok: false,
+      error: 'no decide tool call in the reply (1 tool call(s) [purchase], no function_call, no text)',
+    })
+  })
+
+  test('an approval-required input carries the approval as structure', () => {
+    const restricted = { ...input, policy: { payeeAllowlisted: false, restricted: true, approvalRequired: true } }
+    expect(JSON.parse(decideRequestBody('m', restricted).messages[1]?.content ?? '{}')).toMatchObject({
+      approval: { required: true, canBeGrantedBy: 'the owner in World App', capsDoNotBlock: true },
+    })
+    expect(JSON.parse(decideRequestBody('m', input).messages[1]?.content ?? '{}')).not.toHaveProperty('approval')
+    expect(decideRequestBody('m', input).messages[0]?.content).toContain(
+      'Decision table, apply the first row that matches:',
+    )
   })
 })
