@@ -182,6 +182,55 @@ decision, recorded and not overridden. It means the approval beat needs a brain 
 restricted items: the spec §6 prompt says only "never pay when approvalRequired is true". The World stub
 (rehearsal only, not World) approve/deny path was therefore not reached in this run.
 
+## Runs 7–8 (release 0532509): the first approved payment through the enforcer (World stub, rehearsal only; brain = LiteLLM)
+
+Release `0532509` carries M+R's `ask_human` prompt change. The approval is answered on the **in-Worker World stub
+issuer** (`/api/dev/world`: "STUB IdP — not World — rehearsal only"). The callback's token checks are unchanged. The
+brain is the rehearsal LiteLLM → DeepSeek router, not 0G.
+
+### Run 7 (`--restricted-only`): approve → paid through `RobotPaymentPolicyEnforcer`'s approval path
+
+```text
+e2e  owner 0xAa30F9D6f398FB858E67D5da623E8EA5489cb346 (account h5phzb6zho2mxue4srzgthowqq)
+e2e  funded https://explorer.arc.io/tx/0x625a2ec9c433f271870095dc8644937947a3d4051563f1c65a7d1fc13be8e311
+e2e  robot snmmcknv5yliaguzm3fioxjr6q pairing code 2YVWS2NC
+chip chip 0xE666ac4381Eeb5A49cCf8C451945F215e1c1eaB5 (new key)
+chip paired snmmcknv5yliaguzm3fioxjr6q
+e2e  chip paired
+e2e  grant ayqlwkz3z66k7t4t2wjibcnmu4 active; account deploy https://explorer.arc.io/tx/0xd58a5d43fe461f59203e17acc3d6efe00ed55ddc98fd7311ff8a14a5d2f6a61b
+e2e  errand oqb3oy7jfknmgzttqoombnnjhq (cigarettes) started in awaiting_approval
+e2e  approval wwuxwor7oh5mhfcfpspzfk7dkm: approve on the stub IdP (rehearsal only, not World)
+e2e  approval wwuxwor7oh5mhfcfpspzfk7dkm is approved
+chip lease ok
+chip signed jntdi5krd7wsd4l3z3hxk33nze
+chip payment settled 0x11c3715e9c24842b585f2a29bc8be319da1dfe97df221dd6b61bda26b6f96a84
+e2e  errand ended paid; decision ask_human by deepseek-v4.1-flash via litellm-production-f53d.up.railway.app/deepseek-v4.1-flash, request_id chatcmpl-3987c820-7878-461c-b647-df485209a721
+e2e  settled https://explorer.arc.io/tx/0x11c3715e9c24842b585f2a29bc8be319da1dfe97df221dd6b61bda26b6f96a84
+e2e  approve path as expected
+```
+
+Settle [0x11c3715e…6a84](https://explorer.arc.io/tx/0x11c3715e9c24842b585f2a29bc8be319da1dfe97df221dd6b61bda26b6f96a84):
+status 1, block 29798105, gas 568948. Cigarettes cost 0.50, over the 0.25 per-payment cap and paid to the restricted
+payee `0x0166…8f52`, which no grant allowlists. The enforcer at `0x7c2167B0…e4D3` emitted `PaymentApproved` (topic
+`0xa8a09da3…`) in this transaction, so the payment landed because Arc verified the approver's EIP-712 signature
+carried in the caveat args. The restricted payee's USDC balance is now 500000. Decision `ask_human`: "Cigarettes are a
+restricted item and policy requires approval; the owner asked for this item and the merchant is trusted, so the owner
+must approve in World App." The episode evidence records `approvalId wwuxwor7oh5mhfcfpspzfk7dkm`.
+
+### Run 8 (`--restricted-only` second errand, then `--deny-only` ×3): the deny path was not reached
+
+In every attempt the rehearsal brain ended the cigarettes errand before an approval existed, so there was nothing to
+deny:
+- the second errand of run 7: `walk_away`, "Invoice 500000 exceeds perPaymentCap of 250000, so the price is not
+  payable as presented."
+- `--deny-only` attempts 1 and 2: `safe_stop` (the brain's answer did not decode; request ids
+  `chatcmpl-aedc9c97…`, and the second attempt's)
+- `--deny-only` attempt 3: `walk_away`
+
+Each ending is the brain's own, recorded with its request id and never overridden. Nothing was paid in any of them.
+Deny on the stub page needs a brain that answers `ask_human` reliably for restricted items, or the real 0G model; the
+driver's deny step is built: `/api/world/authorize` → stub page → Deny link → callback → errand `denied`.
+
 ## Not proven by this run
 
 - a payment under a passkey grant (needs `APP_ZG_*`; then `paid` with the settle tx link)

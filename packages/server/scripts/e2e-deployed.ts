@@ -16,9 +16,9 @@ import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie 
 // new smart account, "Add robot", the mock chip pairs, the passkey signs a grant (with the enforcer), one errand,
 // polled to its end. Prints addresses, ids and explorer links only; never a key, a token, a cookie or a signature.
 // Usage: bun --env-file=.env.main.local packages/server/scripts/e2e-deployed.ts [--base-url URL] [--fund 0.15]
-//        [--item chai] [--no-chip] [--invoice <id> | --gate] [--restricted | --restricted-only]
+//        [--item chai] [--no-chip] [--invoice <id> | --gate] [--restricted | --restricted-only | --deny-only]
 // --no-chip: pair your own chip (otherwise the mock chip runs as a child process with a fresh key).
-// --restricted-only: the same without the chai (cheaper reruns). --restricted: after a paid chai, a cigarettes errand approved on the World IdP page (paid through the enforcer's
+// --restricted-only: the same without the chai (cheaper reruns); --deny-only: just the denied one (funds 0.01). --restricted: after a paid chai, a cigarettes errand approved on the World IdP page (paid through the enforcer's
 // approval path), then one denied (nothing paid). --invoice <id>: the errand pays that counter invoice. --gate: mint the gate's invoice first, pay it, then read the
 // signed gate status like /gate/duck-cafe does (pending before, paid on the first read after, used on the next).
 // Exit 0: paid, or the expected end while 0G is not configured (503 / safe_stop "not configured"). Otherwise 1.
@@ -33,12 +33,14 @@ const item = flag('item') ?? 'chai'
 const spawnChip = !Bun.argv.includes('--no-chip')
 const gate = Bun.argv.includes('--gate')
 const namedInvoice = flag('invoice')
-const restrictedOnly = Bun.argv.includes('--restricted-only')
+const denyOnly = Bun.argv.includes('--deny-only')
+const restrictedOnly = denyOnly || Bun.argv.includes('--restricted-only')
 const restricted = restrictedOnly || Bun.argv.includes('--restricted')
 // Chai is 0.10; cigarettes 0.50 (over the 0.25 per-payment cap, to an unlisted payee: approval required). An approval
 // never lifts Arc's daily period cap, so the restricted run grants 1.00/day and funds chai + cigarettes.
 const dailyCap = restricted ? '1.00' : '0.50'
-const fundUnits = usdcToUnits(flag('fund') ?? (restrictedOnly ? '0.55' : restricted ? '0.65' : '0.15'))
+const defaultFund = denyOnly ? '0.01' : restrictedOnly ? '0.55' : restricted ? '0.65' : '0.15'
+const fundUnits = usdcToUnits(flag('fund') ?? defaultFund)
 const relayerKey = process.env.APP_RELAYER_PRIVATE_KEY ?? ''
 if (!/^0x[0-9a-f]{64}$/.test(relayerKey)) throw new Error('APP_RELAYER_PRIVATE_KEY missing: run with --env-file')
 if (fundUnits > 1_000_000n) throw new Error('--fund is capped at 1.00 USDC')
@@ -269,8 +271,10 @@ const restrictedErrand = Effect.fn('e2e.restrictedErrand')(function* (
   const started = yield* startErrand(robotId, cookie, { item: 'cigarettes' })
   if (started.refused !== undefined) return false
   const approvalId = started.approvalUrl?.split('/').pop()
-  if (started.state !== 'awaiting_approval' || approvalId === undefined)
-    return yield* fail(`cigarettes errand is ${started.state} without an approval`)
+  if (started.state !== 'awaiting_approval' || approvalId === undefined) {
+    const end = yield* awaitEnd(robotId, cookie, started.episodeId)
+    return yield* fail(`cigarettes errand ended ${end.state} before any approval (${end.decisionError || 'no error'})`)
+  }
   yield* answerApproval(approvalId, cookie, answer)
   const end = yield* awaitEnd(robotId, cookie, started.episodeId)
   const expected = answer === 'approve' ? end.state === 'paid' && end.txHash !== null : end.state === 'denied'
@@ -279,6 +283,7 @@ const restrictedErrand = Effect.fn('e2e.restrictedErrand')(function* (
 })
 
 const approveAndDeny = Effect.fn('e2e.approveAndDeny')(function* (robotId: string, cookie: string) {
+  if (denyOnly) return yield* restrictedErrand(robotId, cookie, 'deny')
   const approved = yield* restrictedErrand(robotId, cookie, 'approve')
   const denied = yield* restrictedErrand(robotId, cookie, 'deny')
   return approved && denied
