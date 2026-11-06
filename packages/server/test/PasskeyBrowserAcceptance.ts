@@ -1,5 +1,21 @@
 import { expect } from 'bun:test'
-import type { Browser, Page } from 'playwright'
+import type { Browser, BrowserContext, Page } from 'playwright'
+
+/** Chrome's CDP virtual authenticator: a platform passkey with user verification that answers every prompt. */
+export const addVirtualAuthenticator = async (context: BrowserContext, page: Page) => {
+  const cdp = await context.newCDPSession(page)
+  await cdp.send('WebAuthn.enable')
+  await cdp.send('WebAuthn.addVirtualAuthenticator', {
+    options: {
+      protocol: 'ctap2',
+      transport: 'internal',
+      hasResidentKey: true,
+      hasUserVerification: true,
+      isUserVerified: true,
+      automaticPresenceSimulation: true,
+    },
+  })
+}
 
 const smartAccount = async (page: Page) => {
   const address = page.locator('.smart-account')
@@ -16,18 +32,7 @@ export const verifyPasskeyBrowser = async (browser: Browser, origin: string): Pr
     const page = await context.newPage()
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
-    const cdp = await context.newCDPSession(page)
-    await cdp.send('WebAuthn.enable')
-    await cdp.send('WebAuthn.addVirtualAuthenticator', {
-      options: {
-        protocol: 'ctap2',
-        transport: 'internal',
-        hasResidentKey: true,
-        hasUserVerification: true,
-        isUserVerified: true,
-        automaticPresenceSimulation: true,
-      },
-    })
+    await addVirtualAuthenticator(context, page)
     await page.goto(origin, { waitUntil: 'networkidle' })
     await page.locator('#display-name').fill('Browser Owner')
     await page.getByRole('button', { name: 'Create passkey wallet' }).click()
