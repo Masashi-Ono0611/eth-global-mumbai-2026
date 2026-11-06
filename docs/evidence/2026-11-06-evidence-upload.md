@@ -103,3 +103,24 @@ reads `litellm-production-f53d.up.railway.app/deepseek-v4.1-flash` and their req
 in `EpisodeLog` like the others, and their JSON names the brain. One of them, `z4ttr5zmvvkwx7is3kzmoriaaq`, predates
 the fix and shows `outcome: null`, like the first upload above. Per-episode roots and transactions:
 `GET $APP/api/evidence/<id>`.
+
+# First episodes with a real World approval — Kris's live run, uploaded 15:00 IST
+
+Release `0b279caf3345996b8f5fa69df9f786cff64c6a11`. The owner was a **real passkey on a Mac**, the brain the **0G
+router** (`router-api.0g.ai/qwen3-vl-plus@0x000000003f486c7198d6203568a98d02b91f8044`, router request ids), and
+World the **production IdP**, not the stub. One `heavy --wait bun tools/evidence-uploader/main.ts --once --server $APP`
+uploaded the three pending episodes, 0 failures. The log contains no storage key, evidence token or 0G API key (checked).
+
+| Episode | Item → errand | 0G decision → outcome (router request id, latency) | Arc tx / approval | 0G Storage root | Storage tx | EpisodeLog.record tx |
+| --- | --- | --- | --- | --- | --- | --- |
+| `te43j36jcumegzazr245lyefey` | chai → paid | pay → paid (`e2beb465-3c17-4148-aa7e-7fb414acd26d`, 2435 ms) | [`0x652cae43…05de`](https://explorer.arc.io/tx/0x652cae43690a95ddeedfe7a8b14085ac5d16ebf90d15a3dcdfc7f410a30705de) | `0xe85851dd42d7b541228aea3c04fdbc0179b96d5dd365e7fdd94e4b6f318e3b3f` | [`0x5129071c…b615`](https://chainscan-galileo.0g.ai/tx/0x5129071cde61cace51b93a4f068e37399d29d2737589b7d61314ec9a119eb615) | [`0x25bbcaa9…d0ab`](https://chainscan-galileo.0g.ai/tx/0x25bbcaa9044354d591f554e844c7bc29f419e65581664defde3cb1f86dbed0ab) |
+| `hha4g3lnwtpta7rwlepkczcjwm` | cigarettes → denied (the World token was refused: its `amr` named `mfa`, as reported by the run) | ask_human → denied (`8bb404ea-8cf5-446f-8517-f930a3902e87`, 1957 ms) | nothing signed or paid | `0xe9ccb999e852fb85fe9fd4fa67b627b2e927684b2ef5bcd82266ff1b27d04597` | [`0x0349ce7a…00e3`](https://chainscan-galileo.0g.ai/tx/0x0349ce7a23f09851170d523a920c2ce1a2159a14a089f68c53de651a2db200e3) | [`0x294d2d67…b5d0`](https://chainscan-galileo.0g.ai/tx/0x294d2d678089be10a17c0feffd855112d3316a414f5b1efed7afe7641657b5d0) |
+| `geyvf2s6nh63zdgkpxf4lntlvm` | cigarettes → paid after a **real World approval** | ask_human → paid (`4ae4a3b6-3cdd-46ee-8382-8f80195c4272`, 3151 ms) | [`0xae55688e…ffa9`](https://explorer.arc.io/tx/0xae55688e158c399fb763b517fad4d1c690d2fdb54cd0ae74f85b88d8c604ffa9), approval `cuf5a4h4avnmt22rddepzdoqoa` | `0x03cd841f9a192627f9076cd51fa4a1f46885fb36f18711ab550227bd6b4a850f` | [`0x21599251…18f4`](https://chainscan-galileo.0g.ai/tx/0x215992518b95da10e6743b8a69d5e486d668a815eca5c62dc148b3bc4c6018f4) | [`0x37e58556…fbb9`](https://chainscan-galileo.0g.ai/tx/0x37e58556337f8b9e036acac8ff10ebfe6396bb62c3a8f7692f9e82767681fbb9) |
+
+Checks, for each of the three:
+- `GET $APP/api/evidence/<id>` → `uploaded`.
+- On Galileo, `EpisodeLog.records(keccak256(id))` holds that root, and its `requestIdsHash` equals the recomputed hash of
+  the router request ids. Both transactions have status 1 (blocks 64144872–64144967).
+- The file downloaded back from the turbo indexer equals the app's payload.
+- `decisions[0].outcome` is set (`paid`, `denied`, `paid`), and the approved episode names its `approvalId`. Uploaded
+  15:00:16, 15:00:33 and 15:00:51 IST.
