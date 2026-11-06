@@ -269,7 +269,8 @@ const historyMessages = (
     locale,
     h,
   ),
-  episode.decision === null
+  // A failed 0G call is stored as safe_stop without a reason: 0G decided nothing, and the outcome says why it stopped.
+  episode.decision === null || (episode.decision.action === 'safe_stop' && episode.decision.reason === null)
     ? h.empty
     : decisionBubble(
         episode.id,
@@ -385,7 +386,10 @@ const liveMessages = (
               }),
             ],
           ),
-    ...detail.decisions.map((decision) => decisionOf(decision, episodeId, locale, h)),
+    // A decision row with an error is a 0G call that failed (Decide.actionOf): no decision to show.
+    ...detail.decisions
+      .filter((decision) => decision.error === null)
+      .map((decision) => decisionOf(decision, episodeId, locale, h)),
     episode.state === 'awaiting_approval'
       ? Option.match(approvalId, {
           onNone: () =>

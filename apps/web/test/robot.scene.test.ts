@@ -56,13 +56,21 @@ describe('/robot/:id', () => {
       result: '0G did not answer',
       decision: { action: 'pay', reason: 'cheap', requestId: null, provider: 'litellm.example/deepseek', latencyMs: 1 },
     }
+    // A 0G call that failed is stored as safe_stop without a reason: 0G decided nothing, so no decision is shown.
+    const busy = {
+      ...summary('e6', 'chai', 'safe_stop', 'unused'),
+      result: '0G answered 429',
+      decision: { action: 'safe_stop', reason: null, requestId: null, provider: 'router-api.0g.ai/m', latencyMs: 1 },
+    }
     scene(
       { update: RobotConsole.update, view },
-      given(loadedConsole([summary('e1', 'chai', 'paid', 'within budget'), rehearsal])),
+      given(loadedConsole([summary('e1', 'chai', 'paid', 'within budget'), rehearsal, busy])),
       expect(text('0G decided: buy it')).toExist(),
       expect(text('Paid with my chip')).toExist(),
       expect(text('The rehearsal brain (not 0G) decided: buy it')).toExist(),
       expect(text('I stopped safely and paid nothing: 0G did not answer')).toExist(),
+      expect(text('I stopped safely and paid nothing: 0G answered 429')).toExist(),
+      expect(text('0G decided: stop')).not.toExist(),
     )
   })
 
