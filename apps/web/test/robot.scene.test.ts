@@ -16,7 +16,7 @@ describe('/robot/:id', () => {
       given(loadedConsole()),
       expect(text('Nothing yet. Tap something below and Duck goes to buy it.')).toExist(),
       click(role('button', { name: 'Buy Chai for 0.10 USDC' })),
-      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId: null })),
+      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId: null, model: null })),
       expect(text('Buy chai')).toExist(),
       Command.resolve(
         RobotConsole.StartErrand,
@@ -160,7 +160,7 @@ describe('/robot/:id', () => {
       type(label('Invoice from the gate (optional)'), `https://app.example/api/i/${invoiceId}`),
       expect(role('alert')).toBeAbsent(),
       click(role('button', { name: 'Buy Chai for 0.10 USDC' })),
-      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId })),
+      Command.expectExact(RobotConsole.StartErrand({ robotId, item: 'chai', invoiceId, model: null })),
       Command.resolve(
         RobotConsole.StartErrand,
         RobotConsole.Message.FailedStartErrand({ error: 'invoice already paid' }),
@@ -363,7 +363,9 @@ describe('/robot/:id', () => {
       given(loadedConsole()),
       expect(role('link', { name: 'Open simulator' })).not.toExist(),
       click(role('button', { name: 'Get me a chai' })),
-      Command.expectExact(RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai' })),
+      Command.expectExact(
+        RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai', model: null }),
+      ),
       Command.resolve(RobotConsole.SendIntent, RobotConsole.Message.SucceededCreateIntent({ intent: waiting })),
       expect(text('Waiting for Duck to scan the QR code at the counter.')).toExist(),
       expect(role('button', { name: 'Stop Duck' })).toBeEnabled(),

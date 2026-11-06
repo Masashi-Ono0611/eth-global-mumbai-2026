@@ -273,6 +273,10 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.asksYou': Readonly<Record<string, never>>
   'thread.atCounter': Readonly<Record<string, never>>
   'thread.back': Readonly<Record<string, never>>
+  'thread.brainGroup': Readonly<Record<string, never>>
+  'thread.brainLabel': Readonly<Record<string, never>>
+  'thread.brainNote': { readonly tee: string | number }
+  'thread.brainOption': { readonly tee: string | number; readonly model: string | number }
   'thread.buy': { readonly item: string | number }
   'thread.buyChip': { readonly item: string | number; readonly amount: string | number }
   'thread.buyRowHint': Readonly<Record<string, never>>
@@ -342,4 +346,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '0c97f0a5efe8bed06c1ec2a9b21927db2bb65402eeb02b2d59a51a04183609ca'
+export const catalogVersion = '1b3fcddf4d7325e9d8974e1884bc5e81dbacaccd46ac8e12ceca5d51ab75714f'

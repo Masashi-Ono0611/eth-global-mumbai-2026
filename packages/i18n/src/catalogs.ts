@@ -241,6 +241,11 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'thread.openSimulator': 'Open simulator',
   'thread.instructionLabel': 'Tell {name} what to get',
   'thread.instructionPlaceholder': 'Get me a chai',
+  'thread.brainLabel': 'Brain',
+  'thread.brainGroup': '0G brain for your next message',
+  'thread.brainOption': '{tee, select, yes {{model} · TEE} other {{model}}}',
+  'thread.brainNote':
+    '{tee, select, yes {Sealed in a TEE: its answers carry a TEE proof} other {Faster, no TEE: its answers are not TEE-verifiable}}',
   'thread.send': 'Send',
   'thread.walking': '{name} is on its way. 0G drives it in the simulator.',
   'thread.stop': 'Stop {name}',

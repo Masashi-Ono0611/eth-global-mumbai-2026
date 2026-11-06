@@ -1,6 +1,6 @@
 import { Effect, Option, Schema } from 'effect'
 import { Command, Update } from 'foldkit'
-import { Dialog } from '@foldkit/ui'
+import { Dialog, RadioGroup } from '@foldkit/ui'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -28,6 +28,7 @@ import { IntentView, isOpenIntent } from '@ethmumbai/protocol/Intent'
 import type { Passkeys } from '../Passkey.ts'
 import * as Allowance from './Allowance.ts'
 import { sheetFolds } from '../Sheet.ts'
+import { BrainRadioGroup, initBrainPicker, RequestModel, requestModel } from './RobotBrain.ts'
 
 // MODEL
 
@@ -76,6 +77,9 @@ export const Model = Schema.Struct({
   instruction: Schema.String,
   /** The open intent whose live camera loop is running, so one intent never gets two loops. */
   maybeLiveIntentId: Schema.Option(Schema.String),
+  /** The 0G brain the owner picked for the next messages (RobotBrain.ts); none = the Worker's ZG_MODEL. */
+  maybeBrain: Schema.Option(Schema.String),
+  brainPicker: RadioGroup.Model,
 })
 export type Model = typeof Model.Type
 
@@ -117,6 +121,7 @@ export const Message = defineMessageUnion({
   FailedStopIntent: { error: Schema.String },
   GotAllowanceSheetMessage: { message: Dialog.Message },
   GotAllowanceMessage: { message: Allowance.Message },
+  GotBrainPickerMessage: { message: RadioGroup.Message },
 })
 export type Message = typeof Message.Type
 
@@ -160,10 +165,10 @@ export const LoadConsole = Command.define('LoadConsole', {
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const StartErrand = Command.define('StartErrand', {
-  args: { robotId: Schema.String, item: Schema.String, invoiceId: Schema.NullOr(Schema.String) },
+  args: { robotId: Schema.String, item: Schema.String, invoiceId: Schema.NullOr(Schema.String), model: RequestModel },
   messages: [Message.SucceededStartErrand, Message.FailedStartErrand],
-  execute: ({ robotId, item, invoiceId }) =>
-    startErrand(robotId, item, invoiceId).pipe(
+  execute: ({ robotId, item, invoiceId, model }) =>
+    startErrand(robotId, item, invoiceId, model).pipe(
       Effect.map((created) =>
         Message.SucceededStartErrand({
           episodeId: created.episodeId,
@@ -219,10 +224,10 @@ export const DeclineInThread = Command.define('DeclineInThread', {
 
 /** @internal Exported for the scene tests; the page update is its only production caller. */
 export const SendIntent = Command.define('SendIntent', {
-  args: { robotId: Schema.String, instruction: Schema.String, item: Schema.NullOr(Schema.String) },
+  args: { robotId: Schema.String, instruction: Schema.String, item: Schema.NullOr(Schema.String), model: RequestModel },
   messages: [Message.SucceededCreateIntent, Message.FailedCreateIntent],
-  execute: ({ robotId, instruction, item }) =>
-    Effect.match(createIntent(robotId, instruction, item), {
+  execute: ({ robotId, instruction, item, model }) =>
+    Effect.match(createIntent(robotId, instruction, item, model), {
       onSuccess: (intent) => Message.SucceededCreateIntent({ intent }),
       onFailure: (failure) => Message.FailedCreateIntent({ error: failure.error }),
     }),
@@ -283,6 +288,8 @@ export const init = (robotId: string): UpdateReturn => ({
     intent: Intent.Idle(),
     instruction: '',
     maybeLiveIntentId: Option.none(),
+    maybeBrain: Option.none(),
+    brainPicker: initBrainPicker(),
   },
   commands: [LoadConsole({ robotId })],
 })
@@ -308,6 +315,9 @@ const itemNameOf = (model: Model, itemId: string): string =>
     : itemId
 
 const isSim = (model: Model) => ConsoleState.guards.Loaded(model.state) && model.state.robot.robot.kind === 'sim'
+
+/** Who a message goes to and which brain answers it (the owner's pick, else the Worker's ZG_MODEL). */
+const addressed = (model: Model) => ({ robotId: model.robotId, model: requestModel(model.maybeBrain) })
 
 const INTENT_POLL_MILLIS = 2000
 /** How often the open intent's live frame is read: about two frames a second at most reach the chat. */
@@ -336,7 +346,7 @@ const sendIntent = (model: Model, instruction: string, item: string | null): Upd
     ? { model }
     : {
         model: modifyFields(model, { intent: () => Intent.Sending({ instruction }), instruction: () => '' }),
-        commands: [SendIntent({ robotId: model.robotId, instruction: instruction.trim(), item })],
+        commands: [SendIntent({ ...addressed(model), instruction: instruction.trim(), item })],
       }
 
 /** A fresh read of the intent: once the duck's scan made an errand, the errand's own messages take over. */
@@ -427,6 +437,19 @@ const allowanceChild = {
   foldOutMessage: afterAllowance,
 }
 const foldAllowance = Update.foldChild({ update: Allowance.update, ...allowanceChild })
+
+/** The owner's pick goes with every next message (a Buy chip, Get me, typed words) until changed. */
+const foldBrainPicker = Update.foldChild({
+  update: BrainRadioGroup.update,
+  read: (model: Model) => Option.some(model.brainPicker),
+  write: (model: Model, next: RadioGroup.Model) => modifyFields(model, { brainPicker: () => next }),
+  toParentMessage: (message: RadioGroup.Message) => Message.GotBrainPickerMessage({ message }),
+  foldOutMessage:
+    ({ value }: RadioGroup.Selected) =>
+    (model: Model) => ({
+      model: modifyFields(model, { maybeBrain: () => Option.some(value) }),
+    }),
+})
 const configureAllowance = (model: Model, catalogue: Catalogue, robot: ConsoleRobot) =>
   Update.foldChildStep({
     update: Allowance.configure(
@@ -533,7 +556,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
           ? { model }
           : {
               model: modifyFields(model, { errand: () => Errand.Starting({ item }) }),
-              commands: [StartErrand({ robotId: model.robotId, item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
+              commands: [StartErrand({ ...addressed(model), item, invoiceId: invoiceIdFrom(model.invoiceInput) })],
             },
     UpdatedInvoiceInput: ({ value }) => ({ model: modifyFields(model, { invoiceInput: () => value }) }),
     SucceededStartErrand: ({ episodeId, maybeApprovalUrl }) => ({
@@ -558,4 +581,5 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     ...intentHandlers(model),
     GotAllowanceSheetMessage: ({ message: sheetMessage }) => allowanceSheet.fold(model, sheetMessage),
     GotAllowanceMessage: ({ message: allowanceMessage }) => foldAllowance(model, allowanceMessage),
+    GotBrainPickerMessage: ({ message: pickerMessage }) => foldBrainPicker(model, pickerMessage),
   })

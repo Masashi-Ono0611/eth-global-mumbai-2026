@@ -63,7 +63,9 @@ describe('/robot/:id, a simulator robot', () => {
       given(loadedConsole([], simRobot)),
       expect(role('link', { name: 'Open simulator' })).toHaveAttr('href', `/sim/?robot=${robotId}`),
       click(role('button', { name: 'Buy Chai for 0.10 USDC' })),
-      Command.expectExact(RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai' })),
+      Command.expectExact(
+        RobotConsole.SendIntent({ robotId, instruction: 'Get me a chai', item: 'chai', model: null }),
+      ),
       Command.resolve(
         RobotConsole.SendIntent,
         RobotConsole.Message.SucceededCreateIntent({ intent: intent('running', null) }),
@@ -84,7 +86,9 @@ describe('/robot/:id, a simulator robot', () => {
       given(loadedConsole([], simRobot)),
       type(label('Tell Duck what to get'), 'a samosa please'),
       submit(selector('form')),
-      Command.expectExact(RobotConsole.SendIntent({ robotId, instruction: 'a samosa please', item: null })),
+      Command.expectExact(
+        RobotConsole.SendIntent({ robotId, instruction: 'a samosa please', item: null, model: null }),
+      ),
       Command.resolve(
         RobotConsole.SendIntent,
         RobotConsole.Message.FailedCreateIntent({ error: 'not configured: sim' }),
