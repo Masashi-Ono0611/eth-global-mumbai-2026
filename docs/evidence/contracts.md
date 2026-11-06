@@ -25,16 +25,14 @@ Verification:
 
 ## EpisodeLog (0G Galileo, chain 16602)
 
-Not deployed yet: it needs the 0G storage signer's Galileo gas (Kris). `contracts/script/DeployZg.s.sol` prints
-`EPISODE_LOG_ADDRESS` (`contracts/README.md`).
+| | |
+| --- | --- |
+| Address (`APP_EPISODE_LOG_ADDRESS`) | `0x4C947E6D794C78d0F684e46EFC97f712E51a206A` ([chainscan](https://chainscan-galileo.0g.ai/address/0x4C947E6D794C78d0F684e46EFC97f712E51a206A)) |
+| Deploy tx | [0xe4eb07f3…bf69](https://chainscan-galileo.0g.ai/tx/0xe4eb07f387cc5a767c019f150cc7abca7424fa68ae092ab50fe1bc49b2bebf69), block 64122644, `status 1`, gas 282232 at ≈ 4 gwei, 6 Nov ≈ 06:50 IST |
+| Deployer | the 0G storage signer `0xc6fF8A666f4C7F674C1D129C73b46D61f2891fcD` (nonce 0; funded 0.5 0G by Kris, [0xbfc30ee8…9651](https://chainscan-galileo.0g.ai/tx/0xbfc30ee8fa193c6aa144cf2d635efaf5b61c6d8d03d43a6f9b40180b1df69651)); ≈ 0.4988 0G left for uploads |
+| Command | dry run, then `cd contracts && DEPLOYER_PRIVATE_KEY=<APP_ZG_STORAGE_PRIVATE_KEY from .env.main.local, never printed> forge script script/DeployZg.s.sol --rpc-url https://evmrpc-testnet.0g.ai --broadcast` |
+| Sources | `contracts/src/EpisodeLog.sol` at `39ecb5e`, solc 0.8.23, `paris` |
 
-## Arc Studio (6 Nov 11:40 IST)
-
-Project: https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75 (created with `arc-studio run --prompt-file … --file <flattened>.sol:contracts/…`, one turn, 254 s). Studio compiled both flattened contracts unchanged on solc 0.8.23 / paris, wrote 42 Foundry tests (enforcer 33 incl. 2 fuzz; EpisodeLog 9), and deployed both to **Arc testnet** with its shared deployer:
-
-| Contract | Arc testnet address | Deploy tx |
-| --- | --- | --- |
-| `RobotPaymentPolicyEnforcer` | `0xf334227646b3372f46b4d9d6b562189b7e35d711` | `0x2683071f952db97277b824675c1fb402a924c6363ec0a202075ce7d3adefadb2` |
-| `EpisodeLog` | `0xe7019b50c2a519b1e61b0a46df695bc9b5333579` | `0x065dcf1012396fecfaf7c1554a026db58ec6e0e6c796ae2dbf072a2438e9c2b8` |
-
-The Studio page reads `USDC()` (= `0x3600…0000`) and `domainSeparator()` from the live testnet enforcer, cross-checks `approvalDigest` against an EIP-712 hash computed in the browser, and has a `record()` form for the EpisodeLog. The app's approval digests are bound to chain 5042 and the mainnet enforcer, so the testnet deployment is for the Studio showcase only.
+Verification: `keccak256(cast code 0x4C94…206A)` = `0xc855393071a1cda13d3c0aa07f0b8c6ba644404b00fdabefb7937af0e1a5beb9`
+= `keccak256(contracts/out/EpisodeLog.sol/EpisodeLog.json deployedBytecode)`. No explorer source verification attempted
+yet (`contracts/README.md` lists the chainscan verifier URL).
