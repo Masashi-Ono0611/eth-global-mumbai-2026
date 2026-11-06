@@ -18,7 +18,23 @@ Rules every worker follows:
    from the invoice and refuses anything that doesn't match its policy.
 3. **Never fake a 0G decision.** If the 0G call fails, times out or returns garbage, the errand ends in `safe_stop` and
    nothing is paid. No local fallback decision.
-4. **Camera frames are evidence, not decision input** (Kris dropped the "no scene frames leave the chip" rule on 6 Nov 20:00 IST; it had been a privacy choice for a robot filming a public place and a way to keep the decision cheap and deterministic). The chip may attach **chip-signed frames or short clips** to an episode: R2 is the fast copy (served to the owner), and the evidence uploader also uploads each frame plain to 0G Storage as proof of the robot's work (Kris, 6 Nov evening: these frames carry no privacy constraint); their sha256, chip signature and 0G Storage root are in the episode JSON that `EpisodeLog` anchors, and Verify downloads each frame from 0G by root and re-hashes it. Today only the scan's JPEG crop (≤ 64 KB, `APP_SCANS_ENABLED`) is implemented; more frames per episode are the next step, same route and storage, larger size limit. The **0G decision stays over structured input and never receives an image**: that keeps it deterministic at temperature 0, replayable, and sealed in the glm-5.3 TEE (the vision models on the router carry no TEE claim). Vision from 0G would be a separate, explicitly labelled call. **Live view** (Kris, 6 Nov 22:00 IST; behind `APP_LIVE_ENABLED`): while the robot is out, its chip signs about one whole camera frame a second (`vitaquack-frame:v1|robotId|sha256|capturedAt`, never a scan message) to `POST /api/chips/:robotId/frames`. The Worker keeps only the latest frame per robot (R2 `live/<robotId>.jpg`, `live_frames` row, at most one per 200 ms, written only while the robot has an open intent). The owner's open-intent poll carries it, and while a frame is live the conversation also reads it every 500 ms, so the picture moves at about two frames a second. It is owner-only, never evidence, never on 0G.
+4. **Camera frames are evidence, not decision input.** Kris dropped the "no scene frames leave the chip" rule on 6 Nov
+   20:00 IST. It had been a privacy choice for a robot filming a public place and a way to keep the decision cheap and
+   deterministic. The chip may attach **chip-signed frames or short clips** to an episode. R2 is the fast copy, served
+   to the owner, and the evidence uploader also uploads each frame plain to 0G Storage as proof of the robot's work
+   (Kris, 6 Nov evening: these frames carry no privacy constraint). Each frame's sha256, chip signature and 0G Storage
+   root (`observations[].rootHash`) are in the episode JSON that `EpisodeLog` anchors, and Verify downloads each frame
+   from 0G by root and re-hashes it. Today only the scan's JPEG crop (≤ 64 KB, `APP_SCANS_ENABLED`) is implemented.
+   More frames per episode are the next step, on the same route and storage with a larger size limit.
+   The **0G decision stays over structured input and never receives an image**. That keeps it deterministic at
+   temperature 0, replayable, and sealed in the glm-5.3 TEE (the vision models on the router carry no TEE claim).
+   Vision from 0G would be a separate, explicitly labelled call.
+   **Live view** (Kris, 6 Nov 22:00 IST; behind `APP_LIVE_ENABLED`): while the robot is out, its chip signs about one
+   whole camera frame a second (`vitaquack-frame:v1|robotId|sha256|capturedAt`, never a scan message) and posts it to
+   `POST /api/chips/:robotId/frames`. The Worker keeps only the latest frame per robot (R2 `live/<robotId>.jpg`, a
+   `live_frames` row, at most one per 200 ms, written only while the robot has an open intent). The owner's
+   open-intent poll carries it, and while a frame is live the conversation also reads it every 500 ms, so the picture
+   moves at about two frames a second. The live view is owner-only. It is never evidence and never goes to 0G.
 5. **Restricted items need a human approval, never an "age check".** Say "approval for a restricted item".
 6. **No keys, tokens, signatures' private inputs, World ID tokens or prompts in logs, commits or tool output.**
 7. **Foundation rules apply** (`AGENTS.md`): Effect 4, Foldkit, Alchemy, gates. Commit per milestone with
@@ -80,7 +96,7 @@ No `Date` or `crypto.randomUUID` in server code (Effect diagnostics): use `Clock
 | Table | Columns | Keys | States |
 | --- | --- | --- | --- |
 | `accounts` | `id`, `display_name text NOT NULL`, `security_revision text NOT NULL`, `smart_account text NOT NULL`, `deploy_salt text NOT NULL`, `eoa_owner text`, `deploy_status text NOT NULL`, `deploy_tx text`, `world_sub text`, `created_at` | unique `smart_account` | `deploy_status`: `counterfactual` `deploying` `deployed` `failed` |
-| `passkeys` | `credential_id text PK` (base64url), `account_id text NOT NULL`, `alg integer NOT NULL`, `spki text NOT NULL` (base64), `x text NOT NULL`, `y text NOT NULL`, `sign_count integer NOT NULL`, `created_at`, `last_used_at integer` | index `account_id` | — |
+| `passkeys` | `credential_id text PK` (base64url), `account_id text NOT NULL`, `alg integer NOT NULL`, `spki text NOT NULL` (base64), `x text NOT NULL`, `y text NOT NULL`, `sign_count integer NOT NULL`, `created_at`, `last_used_at integer` | index `account_id` | none |
 | `auth_challenges` | `id text PK` (= challenge base64url), `kind text NOT NULL`, `account_id text`, `ref text`, `expires_at integer`, `used integer(boolean)`, `created_at` | index `expires_at` | `kind`: `register` `login` `grant` `revoke` |
 | `robots` | `id`, `account_id`, `name`, `pairing_code text`, `pairing_expires_at integer`, `chip_address text`, `chip_token_hash text`, `paired_at integer`, `last_poll_at integer`, `lease_until integer`, `status text NOT NULL`, `created_at` | unique `pairing_code`, unique `chip_address`, index `account_id` | `status`: `unpaired` `paired` `revoked` |
 | `grants` | `id`, `robot_id`, `account_id`, `delegation_hash text NOT NULL`, `delegation_json text` (signed; salt as a decimal string; null until signed), `daily_cap`, `per_payment_cap`, `allowlist_json`, `start_at`, `expires_at`, `status text NOT NULL`, `revoke_tx text`, `created_at` | unique `delegation_hash`, index `(robot_id, status)` | `status`: `unsigned` `active` `revoking` `revoked` `expired` |
@@ -90,11 +106,11 @@ No `Date` or `crypto.randomUUID` in server code (Effect diagnostics): use `Clock
 | `episodes` (= errands) | `id`, `robot_id`, `account_id`, `item`, `invoice_id`, `state text NOT NULL`, `decision_count integer`, `result text`, `request_ids_hash text`, `state_changed_at integer`, `created_at` | index `(robot_id, created_at)` | `state`: §6 |
 | `decisions` | `id`, `episode_id`, `step integer`, `model`, `request_id`, `chat_id` (ZG-Res-Key), `provider`, `latency_ms integer`, `prompt_sha256`, `input_json`, `action text NOT NULL`, `reason`, `outcome`, `outcome_ref`, `error`, `created_at` | unique `(episode_id, step)` | `action`: `pay` `ask_human` `walk_away` `safe_stop`; `outcome`: `paid` `approved` `denied` `refused` `failed` `walked_away` `safe_stop` |
 | `evidence_uploads` | `episode_id text PK`, `status text NOT NULL`, `payload_json`, `request_ids_hash`, `root_hash`, `storage_tx`, `log_tx`, `attempts integer`, `claimed_at integer`, `uploaded_at integer`, `error`, `created_at` | index `status` | `pending` `uploading` `uploaded` `failed` |
-| `live_frames` | `robot_id text PK`, `frame_sha256`, `bytes integer`, `captured_at integer` (unix ms, chip-signed), `received_at integer` (unix ms, Worker clock) | — | the robot's latest live frame only, written only while the robot has an open intent; the JPEG is R2 `live/<robotId>.jpg`, overwritten by each frame; `received_at` caps the rate (one per 200 ms) (feature flag `APP_LIVE_ENABLED`) |
-| `observations` | `id text PK`, `robot_id`, `episode_id`, `invoice_id`, `frame_sha256` (0x + 64 lowercase hex), `bytes integer`, `captured_at integer` (unix ms), `chip_sig` (0x + 65 B), `r2_key`, `created_at` | unique (`robot_id`, `invoice_id`); index `episode_id` | one chip-signed QR crop per scan-initiated errand; the JPEG lives in R2 under `r2_key`, only the hash and signature enter the evidence JSON (feature flag `APP_SCANS_ENABLED`) |
+| `live_frames` | `robot_id text PK`, `frame_sha256`, `bytes integer`, `captured_at integer` (unix ms, chip-signed), `received_at integer` (unix ms, Worker clock) | none | the robot's latest live frame only, written only while the robot has an open intent; the JPEG is R2 `live/<robotId>.jpg`, overwritten by each frame; `received_at` caps the rate (one per 200 ms) (feature flag `APP_LIVE_ENABLED`) |
+| `observations` | `id text PK`, `robot_id`, `episode_id`, `invoice_id`, `frame_sha256` (0x + 64 lowercase hex), `bytes integer`, `captured_at integer` (unix ms), `chip_sig` (0x + 65 B), `r2_key`, `zg_root_hash`, `zg_storage_tx`, `created_at` | unique (`robot_id`, `invoice_id`); index `episode_id` | one chip-signed QR crop per scan-initiated errand; the JPEG lives in R2 under `r2_key`, and the evidence uploader puts the same bytes on 0G Storage (`zg_root_hash`, `zg_storage_tx`, null until uploaded). The evidence JSON carries the hash, the signature and the 0G root, never the image (feature flag `APP_SCANS_ENABLED`) |
 | `chip_requests` | `id`, `robot_id`, `episode_id`, `kind text NOT NULL`, `payload_json text NOT NULL`, `status text NOT NULL`, `expires_at`, `delivered_at`, `responded_at`, `signature`, `leaf_hash`, `refusal_code`, `created_at` | index `(robot_id, status)`, unique `episode_id` | `kind`: `sign-invoice`; `status`: `queued` `delivered` `signed` `refused` `expired` |
 | `relayer_txs` | `key text PK` (`settle:<invoiceHash>` / `revoke:<delegationHash>` / `deploy:<smartAccount>`), `kind`, `nonce integer`, `to_address`, `data_sha256`, `tx_hash`, `status text NOT NULL`, `gas_used`, `error`, `created_at`, `updated_at integer` | unique `nonce` | `pending` `sent` `confirmed` `failed` |
-| `used_nonces` | `nonce text PK` (approval nonce or `keccak(jti)`), `kind`, `ref`, `created_at` | — | `kind`: `approval` `jti` |
+| `used_nonces` | `nonce text PK` (approval nonce or `keccak(jti)`), `kind`, `ref`, `created_at` | none | `kind`: `approval` `jti` |
 
 `relayer_txs` PK insert is the persistent per-invoice guard (a second settle → unique violation → 409). Relayer nonce =
 `eth_getTransactionCount(relayer, 'pending')`, inserted before the send; on conflict re-read and retry ≤ 3. The native
@@ -184,7 +200,7 @@ use Playwright's virtual authenticator.
   bytes32 linesHash,bytes32 rulesHash)`; `merchantId = keccak256(utf8(id))`; `invoiceId` = the first 16 bytes of the
   base32 (`a-z2-7`, lowercase, no padding) decode of the 26-char id; `linesHash`/`rulesHash` = keccak256 of
   sorted-key compact JSON of `lines` / `restrictions`. The Id caveat's term is this digest. Golden fixture: the S2
-  spike's invoice (`docs/research/spikes/s2-facilitator-spike.ts.txt` lines 271–274).
+  spike's invoice (`docs/research/spikes/s2-facilitator-spike.ts.txt` lines 271 to 274).
 - **Approval** (`packages/protocol/src/Approval.ts`): EIP-712 domain `{name:"VitaquackApproval", version:"1",
   chainId:5042, verifyingContract: ENFORCER_ADDRESS}`, struct `Approval(bytes32 invoiceHash,address payee,uint256
   amount,uint64 expiry,bytes32 nonce)`; signed by the approver key; travels in the enforcer caveat's `args =
@@ -199,7 +215,7 @@ use Playwright's virtual authenticator.
 - **Testing without broadcasting** (`packages/chain/test`, tag `live-arc`, skipped without `ARC_RPC_URL`): inject the
   owner's proxy code + storage via `stateOverride` and run `eth_call`/`eth_estimateGas` from the relayer; for multi-step
   cases (replay, cap, revoke) put Multicall3's code at the relayer address and `aggregate3` the steps. Technique and
-  fixtures: `docs/research/spikes/s2-facilitator-spike.ts.txt` lines 76–89, 216–243, 342.
+  fixtures: `docs/research/spikes/s2-facilitator-spike.ts.txt` lines 76 to 89, 216 to 243, 342.
 
 ## 6. Robot Agent: errand state machine and 0G (`packages/server/src/robot/`)
 
@@ -221,15 +237,17 @@ unallowlisted `payTo`, so they always require approval.
 Routes (session cookie + Origin check): `POST /api/robots/:robotId/errands {item}` → 201 `{episodeId, state,
 decision:{action, reason, requestId}, approvalUrl?}`; `GET /api/robots/:robotId/errands/:id` → `{episode, decisions[],
 chipRequest?, payment?, approval?, evidence?}`; `GET /api/robots/:robotId` → `{robot, lease:{until, online}, grant}`.
-Idempotency: unique `chip_requests.episode_id`; unique `approvals.nonce`; `relayer_txs.key`; the console disables
-"Start" while a non-terminal errand exists.
+Idempotency: unique `chip_requests.episode_id`, unique `approvals.nonce` and `relayer_txs.key`. The app has no
+pay-now button: an errand starts from the duck's scan or from an owner intent (§15), and a robot has at most one open
+intent.
 
 0G call (`packages/chain/src/ZeroG.ts`; `POST ${ZG_BASE_URL}/chat/completions`, `Authorization: Bearer ${ZG_API_KEY}`,
-timeout 10 s, `temperature 0`; one `429` is asked once more after 1 s with what is left of the 10 s, a second one is
-`safe_stop`). The owner picks the brain per message by hand, never as a fallback (Kris, 7 Nov): `POST …/errands` and
-`POST …/intents` take an optional `model`, ZG_MODEL (glm-5.3, its provider in a TEE) or the allowlisted
-`qwen3-vl-plus` (no TEE proof, so its decisions read "Not TEE-verifiable"), else 400; it is stored on the episode and
-the intent, the scan that claims the intent decides with it, and absent means ZG_MODEL:
+timeout 10 s, `temperature 0`). After a `429` the call is asked once more after 1 s with what is left of the 10 s; a
+second `429` is `safe_stop`. The owner picks the brain per message by hand, and there is no automatic fallback (Kris,
+7 Nov). `POST …/errands` and `POST …/intents` take an optional `model`: ZG_MODEL (glm-5.3, its provider in a TEE) or
+the allowlisted `qwen3-vl-plus` (no TEE proof, so its decisions read "Not TEE-verifiable"). Any other value is a 400.
+The model is stored on the episode and the intent, the scan that claims the intent decides with it, and an absent
+`model` means ZG_MODEL:
 
 ```json
 {"model":"<ZG_MODEL>","messages":[
@@ -243,8 +261,8 @@ the intent, the scan that claims the intent decides with it, and absent means ZG
 Input JSON: `{"requested","catalogue":{"itemId","name","amount","restricted"},"invoice":{"id","payTo","amount",
 "expiresAt"},"budget":{"dailyCap","spentToday","remainingToday","perPaymentCap"},"policy":{"payeeAllowlisted",
 "restricted","approvalRequired"},"merchant":{"id","trust":"known"|"untrusted"}}`. Logged per call: `request_id` (body
-`x_0g_trace.request_id`), `chat_id` (header `zg-res-key`), provider, model, `latency_ms`, `prompt_sha256`, `input_json`;
-never the key. Episode evidence JSON = `{episodeId, robotId, item, decisions[], outcome:{state, txHash?, approvalId?},
+`x_0g_trace.request_id`), `chat_id` (header `zg-res-key`), provider, model, `latency_ms`, `prompt_sha256`, `input_json`.
+The key is never logged. Episode evidence JSON = `{episodeId, robotId, item, decisions[], outcome:{state, txHash?, approvalId?},
 requestIds[]}`; `request_ids_hash = keccak256(requestIds.join(","))`. The uploader (`tools/evidence-uploader`, Bun, on
 netcup; it loads the repo's `.env.main.local` and falls back to the process environment, nothing is added to
 `~/.config/secrets.env`) polls `GET /api/evidence/pending` (bearer `APP_EVIDENCE_TOKEN`), uploads the JSON to 0G
@@ -252,7 +270,19 @@ Storage (`@0gfoundation/0g-storage-ts-sdk` 1.2.13, Galileo turbo indexer), calls
 bytes32 rootHash, bytes32 requestIdsHash)` on 0G Chain 16602 (event `EpisodeRecorded(address indexed recorder, bytes32
 indexed episodeKey, string episodeId, bytes32 rootHash, bytes32 requestIdsHash, uint64 recordedAt)`, `episodeKey =
 keccak256(bytes(episodeId))`, duplicate → `AlreadyRecorded`; the uploader reads `records(episodeKey)` first and never
-records twice), then `POST /api/evidence/:id/uploaded {rootHash, storageTx, logTx}`.
+records twice), then `POST /api/evidence/:id/uploaded {rootHash, storageTx, logTx}`. On netcup it runs as the systemd
+service `vitaquack-evidence-uploader` (`tools/evidence-uploader/README.md`).
+
+**Public proof pages** (no sign-in): `/app/proofs` lists uploaded episodes and `/app/proofs/:episodeId` shows one.
+`GET /api/proofs` answers newest first, 50 a page, with an `?after=<uploadedAt>.<episodeId>` cursor (400 for a bad
+cursor) and a 15 s public cache. `GET /api/proofs/:episodeId` is 404 until the episode is uploaded, then answers the
+root, the storage and `EpisodeLog` txs, the `EpisodeLog` contract, the 0G Chain RPC and the Storage indexer. The page
+downloads the episode JSON from the 0G Storage indexer by root and renders it. "Verify against 0G" runs in the
+browser: an `eth_call` of `EpisodeLog.records` checks that the episode is recorded, that the root matches, that the
+request-ids hash equals keccak256 of the downloaded `requestIds`, and that it is the same episode; each frame is
+re-hashed with SHA-256. The pages show only fields already public on 0G, such as the robot id. They never show the robot's
+name, the owner, the decision input or World claims. Code: `packages/server/src/robot/Proofs.ts`, `packages/protocol/src/Proof.ts`,
+`apps/web/src/pages/{Proofs,Proof,ProofView}.ts`, `apps/web/src/api/Proofs.ts`.
 
 ## 7. Merchant, x402 and the gate (`packages/server/src/merchant/`, `packages/protocol/src/X402.ts`)
 
@@ -296,7 +326,7 @@ records twice), then `POST /api/evidence/:id/uploaded {rootHash, storageTx, logT
 - **Gate status:** `GET /api/invoices/:id/status?nonce=<≤ 32 chars>` → `{"invoiceId","status","nonce","expiresAt",
   "sig"}`, `sig` = base64 Ed25519 over UTF-8 `<invoiceId>|<status>|<nonce>|<expiresAt>`; the first read of `paid`
   flips the invoice to `used`; `GET /api/merchants/:id/gate-key` → `{"alg":"ed25519","publicKey":"<base64>"}`. The
-  virtual gate page `/gate/:merchantId` creates an invoice, shows its id and QR URL, polls the status every second with
+  virtual gate page `/app/gate/:merchantId` creates an invoice, shows its id and QR URL, polls the status every second with
   a fresh nonce, verifies the signature (WebCrypto Ed25519) and shows OPEN on `paid`, then requests a fresh invoice.
 
 ## 8. Chip protocol and the mock chip (`packages/server/src/chip/`, `packages/protocol/src/Chip.ts`, `apps/chip`)
@@ -333,7 +363,7 @@ Nothing in the Worker changes for hardware.
 
 1. `POST /api/approvals {episodeId}` (or created by the errand) → `approvals` row: `nonce` = EIP-712 hash of
    `{invoiceHash, amount, payee, expiry}` (the `Approval` struct with the hash as nonce), `oidc_state` random,
-   `status = requested`; the console shows `/wallet/approvals/:id` with item, amount, payee, invoice and the button.
+   `status = requested`; the console shows `/app/wallet/approvals/:id` with item, amount, payee, invoice and the button.
 2. `GET /api/world/authorize?approval=:id` → 302 to `${WORLD_ISSUER}/authorize?response_type=code&client_id=…&redirect_uri=
    ${AUTH_ORIGIN}/api/world/callback&scope=openid&state=<oidc_state>&nonce=<nonce hex>&max_age=0&prompt=login
    &code_challenge=<S256 of a fresh verifier>&code_challenge_method=S256`; `status = opened` (6 Nov: World requires PKCE).
@@ -363,7 +393,7 @@ token on Arc.
 | `APP_ZG_API_KEY` / `APP_ZG_BASE_URL` / `APP_ZG_MODEL` | → `ZG_*` | `chain/ZeroG.ts` |
 | `APP_WORLD_CLIENT_ID` / `APP_WORLD_CLIENT_SECRET` / `APP_WORLD_ISSUER` (`https://auth.world.org`) | → `WORLD_*` | `world/*` |
 | `APP_ENFORCER_ADDRESS` / `APP_EPISODE_LOG_ADDRESS` / `APP_EVIDENCE_TOKEN` | plain env strings (the token redacted) | `chain/Grant.ts`, `robot/Evidence.ts`, `/api/evidence/*` bearer |
-| `APP_ZG_STORAGE_PRIVATE_KEY`, `ZG_STORAGE_INDEXER` (`https://indexer-storage-testnet-turbo.0g.ai`), `ZG_CHAIN_RPC` (`https://evmrpc-testnet.0g.ai`, 16602), `EPISODE_LOG_ADDRESS`, `EVIDENCE_SERVER_URL`, `EVIDENCE_TOKEN` | netcup `~/.config/secrets.env` only, never the Worker | `tools/evidence-uploader/main.ts` |
+| `APP_ZG_STORAGE_PRIVATE_KEY`, `ZG_STORAGE_INDEXER` (`https://indexer-storage-testnet-turbo.0g.ai`), `ZG_CHAIN_RPC` (`https://evmrpc-testnet.0g.ai`, 16602), `EPISODE_LOG_ADDRESS`, `EVIDENCE_SERVER_URL`, `EVIDENCE_TOKEN` | netcup, in the repo's `.env.main.local` (then the process environment), never the Worker | `tools/evidence-uploader/main.ts` |
 
 Only `AUTH_SESSION_KEYS` and `AUTH_ORIGIN` are decoded fatally in `onFirstUse`. **Every feature secret is decoded
 optionally** (missing or schema-invalid → absent, with a logged warning) and the feature's routes answer 503
@@ -388,16 +418,17 @@ generates fresh relayer, approver and gate keys (never reused from anywhere) and
    post-revoke revert.
 4. `heavy --wait bun run check`; `APP_RELEASE="$(git rev-parse HEAD)" heavy --wait bunx alchemy deploy --stage main
    --env-file .env.main.local --no-input --yes`; `curl $URL/api/health`.
-5. `$URL/` → "Create passkey wallet" (phone passkey) → the counterfactual address; send 2 USDC to it.
-6. `/wallet/robots` → "Add robot" → pairing code; `bun apps/chip/src/main.ts --server $URL --pair <CODE>`; grant daily
+5. `$URL/app` → "Create passkey wallet" (phone passkey) → the counterfactual address; send 2 USDC to it.
+6. `/app/wallet/robots` → "Add a robot" → pairing code; `bun apps/chip/src/main.ts --server $URL --pair <CODE>`; grant daily
    1.00 / per-payment 0.30 / allowlist `[merchant payTo]` / 24 h → the passkey signs (deploy tx, grant active).
-7. `/robot/<id>` → "buy chai" → `paid`; note `request_id`, invoice id, tx; `GET $URL/api/invoices/<id>/status?nonce=1`
-   → `paid`, again → `used`; `/gate/duck-cafe` shows OPEN.
-8. "buy thali" (over the per-payment cap) → `awaiting_approval` → `/wallet/approvals/<id>` → "Approve with World" → **deny** → `denied`, no
-   tx; repeat → **approve** → `paid`.
-9. Revoke on `/wallet/robots` → "buy chai" → `failed` (`CannotUseADisabledDelegation`).
-10. `heavy --wait bun tools/evidence-uploader/main.ts --once` → root hashes + `EpisodeLog.record` txs;
-    `curl -s $URL/api/evidence/<episodeId>`.
+7. `/app/robot/<id>` → "Get me a chai" (the duck or the mock chip scans the gate's QR) → `paid`; note `request_id`,
+   invoice id, tx; `GET $URL/api/invoices/<id>/status?nonce=1` → `paid`, again → `used`; `/app/gate/duck-cafe` shows
+   OPEN.
+8. "Get me a thali" (over the per-payment cap) → `awaiting_approval` → `/app/wallet/approvals/<id>` → "Approve with
+   World" → **deny** → `denied`, no tx; repeat → **approve** → `paid`.
+9. Revoke on `/app/wallet/robots` → "Get me a chai" → `failed` (`CannotUseADisabledDelegation`).
+10. The uploader service (or `heavy --wait bun tools/evidence-uploader/main.ts --once`) → root hashes +
+    `EpisodeLog.record` txs; `curl -s $URL/api/evidence/<episodeId>`; the episode appears on `$URL/app/proofs`.
 11. Write `docs/evidence/<date>-<run>.md`.
 
 Evidence file (indexed by `docs/evidence/README.md`): a header block with commit, deployed URL, `ENFORCER_ADDRESS`,
@@ -410,21 +441,23 @@ tokens, keys, signatures or World ID tokens.
 
 - ETHGlobal: name and description; public GitHub with real history (no large product commit); a README section on
   **code that predates the event** (the foundation boilerplate from the public `styld.app` repo, commit `370a0e23`,
-  imported as one commit on 5 Nov); demo video 2–4 min, ≥ 720p, real narration (no AI voice, not sped up, not filmed
+  imported as one commit on 5 Nov); demo video 2 to 4 min, ≥ 720p, real narration (no AI voice, not sped up, not filmed
   on a phone), ≤ 4 bullets per slide; up to 3 partner prizes (Arc, 0G, World), each with how we integrated it and
   feedback.
 - Arc (Advanced Stablecoin Logic): the shareable Studio URL; Studio shown in the demo; working frontend and backend; an
   architecture diagram (the site page); the video with the Arc/Circle tools used; name the bounty.
 - 0G (Physical AI): a 0G call in the decision loop; an episode log on 0G Storage with a request id per decision; a live
   demo at the booth or a replayable run; a safe-stop; **contract deployment addresses**; README setup steps; keep the
-  video under 3 minutes (2:30–2:59 satisfies both).
+  video under 3 minutes (2:30 to 2:59 satisfies both).
 - World (Agent Pass): the official Agent Pass; the full journey including a deny / expired path; validation in the
   backend; a debrief (time to first success, friction, one top improvement).
 
 ## 13. Stretch (only after §0's "done" is recorded)
 
-On-chain Agent Pass verification (S5b prototype) · camera frames and a vision decision · duck walking · a read-only
-MCP server over the wallet · the float path replaced by a policy-bound escrow · CCTP funding · ENS names · MPP.
+On-chain Agent Pass verification (S5b prototype) · a vision decision · the real duck walking · a read-only MCP server
+over the wallet · the float path replaced by a policy-bound escrow · CCTP funding · ENS names · MPP.
+
+Built since: camera frames to 0G Storage as evidence (rule 4) and the sim duck walking on 0G navigation turns (§15).
 
 ## 14. Telegram notifications (added 6 Nov 17:40 IST; Kris, via session -0f; built by -0f)
 
@@ -433,7 +466,7 @@ in real life that the robot wants an approval, paid, was refused, or lost its al
 Telegram informs and **may deny, never approve** (Kris, 18:30 IST): a **Deny** button under the approval message
 denies that approval only when the chat is linked to the approval's account and the approval is still waiting (the
 same `denyApproval` path the approval page uses; fail-safe, nothing is signed); approving stays World ID gated on
-`/wallet/approvals/:id`, the Arc enforcer is unchanged, and the chip never sees the token. **One-time World link from Telegram (built 6 Nov 23:15 IST by the onboarding session, Kris's ask):** once the owner's
+`/app/wallet/approvals/:id`, the Arc enforcer is unchanged, and the chip never sees the token. **One-time World link from Telegram (built 6 Nov 23:15 IST by the onboarding session, Kris's ask):** once the owner's
 account has a bound `world_sub` (from an earlier approval), the `approval_needed` message also carries **Approve with
 World ID**. Each render mints a fresh single-use link `/api/world/link?approval=<id>&t=<24 random bytes, base64url>`;
 only the token's sha256 is stored (`auth_challenges` kind `world_link`, ref = the approval). The link works for that one
@@ -490,8 +523,8 @@ Evidence for the design: `docs/spikes/sim-results.md`.
   It pairs with the Add-robot code, long-polls and signs every payment and every scan. Accepted for the proof of
   concept (only the team runs simulators); the Worker still never holds a robot key.
 - **Errand intents.** `POST /api/robots/:robotId/intents {instruction ≤ 200, item?}` (owner) creates the one open
-  intent per robot (`intents` table; 409 while one is open; lazy expiry after 10 min without a turn). The Buy chips,
-  typed text and voice all use `createIntent` (`robot/Intents.ts`). A scan by that robot claims the running intent
+  intent per robot (`intents` table; 409 while one is open; lazy expiry after 10 min without a turn). The dock's Get
+  me pills and typed text both use `createIntent` (`robot/Intents.ts`); voice is not built. A scan by that robot claims the running intent
   before `decide`, which then receives `owner: {instruction, item?}` and `requested = owner.item ?? item`; the decide
   prompt walks away when the invoice is not what the owner asked for. Without an intent a scan behaves as in §6. The
   instruction is logged and stored in decisions only as its hash.
@@ -500,7 +533,7 @@ Evidence for the design: `docs/spikes/sim-results.md`.
   brain (glm-5.3 unless the owner picked another, §6) (`reasoning_effort: "low"`, `tool_choice: "required"`, 12 s, one retry on 429), stores the turn (`nav_turns`: ids,
   calls, short reasoning, TEE proof) and returns the next calls: `go_to(place)`, `look()`, `scan_qr()`, `say(text)`,
   `wait(s)`, `finish(summary)`. Results of `scan_qr` and `wait` are written by the Worker from the real errand, never by
-  the sim. `look()` is text from sim state, never pixels; the only image that leaves the sim is the chip-signed QR
-  crop of the scan path. A 0G failure stops the intent ("0G brain busy/offline"), never a scripted fallback; at most 2
+  the sim. `look()` is text from sim state, never pixels. The images that leave the sim are the chip-signed QR
+  crop of the scan path and, with `APP_LIVE_ENABLED`, the owner-only live frames (rule 4). A 0G failure stops the intent ("0G brain busy/offline"), never a scripted fallback; at most 2
   nav turns are in flight globally and `decide` never waits for them. The episode evidence carries `navigation:
   {instructionSha256, turns}` (optional key).
