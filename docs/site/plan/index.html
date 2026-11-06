@@ -74,7 +74,7 @@
   <nav class="tabs"><a href="/architecture/">Architecture</a><a href="/plan/" aria-current="page">Plan</a></nav>
   <div class="kicker">ETHGlobal Mumbai 2026 · the plan in full (from docs/plan.md) · comment with 💬</div>
 <h1>Plan v3.4: Vitaquack at ETHGlobal Mumbai</h1>
-<nav class="toc"><a class="h2" href="#0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</a><a class="h3" href="#status-board-fri-6-nov-17-03-ist">Status board (Fri 6 Nov 17:03 IST)</a><a class="h3" href="#scope">Scope</a><a class="h3" href="#who-does-what">Who does what</a><a class="h3" href="#prerequisites-kris-they-block-m2-m5-m6">Prerequisites (Kris; they block M2/M5/M6)</a><a class="h3" href="#checkpoints-ist">Checkpoints (IST)</a><a class="h3" href="#demo-script-4-minute-finalist-slot-the-video-follows-the-sam">Demo script (4-minute finalist slot; the video follows the same story)</a><a class="h3" href="#fallbacks-decided-in-advance">Fallbacks, decided in advance</a><a class="h3" href="#submission-checklist">Submission checklist</a><a class="h2" href="#1-the-architecture-in-one-paragraph">1. The architecture, in one paragraph</a><a class="h2" href="#2-what-is-proven-what-is-not-honest-labels">2. What is proven, what is not (honest labels)</a><a class="h2" href="#3-spikes">3. Spikes</a><a class="h2" href="#4-booth-questions">4. Booth questions</a><a class="h2" href="#5-alternatives-considered-and-rejected">5. Alternatives considered and rejected</a></nav>
+<nav class="toc"><a class="h2" href="#0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</a><a class="h3" href="#status-board-fri-6-nov-17-31-ist">Status board (Fri 6 Nov 17:31 IST)</a><a class="h3" href="#scope">Scope</a><a class="h3" href="#who-does-what">Who does what</a><a class="h3" href="#prerequisites-kris-they-block-m2-m5-m6">Prerequisites (Kris; they block M2/M5/M6)</a><a class="h3" href="#checkpoints-ist">Checkpoints (IST)</a><a class="h3" href="#demo-script-4-minute-finalist-slot-the-video-follows-the-sam">Demo script (4-minute finalist slot; the video follows the same story)</a><a class="h3" href="#fallbacks-decided-in-advance">Fallbacks, decided in advance</a><a class="h3" href="#submission-checklist">Submission checklist</a><a class="h2" href="#1-the-architecture-in-one-paragraph">1. The architecture, in one paragraph</a><a class="h2" href="#2-what-is-proven-what-is-not-honest-labels">2. What is proven, what is not (honest labels)</a><a class="h2" href="#3-spikes">3. Spikes</a><a class="h2" href="#4-booth-questions">4. Booth questions</a><a class="h2" href="#5-alternatives-considered-and-rejected">5. Alternatives considered and rejected</a></nav>
 <p><strong>What this file is:</strong> the schedule, scope and story. <strong>What it is not:</strong> the build order (<code>docs/spec.md</code>) or the
 decision log (<code>docs/decisions.md</code>). Where this file and those disagree, they win. Evidence lives in <code>docs/research/</code>
 (index: <code>docs/research/README.md</code>), <code>docs/spikes/</code> and <code>docs/evidence/</code>.</p>
@@ -84,7 +84,7 @@ v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the fo
 <h2 id="0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</h2>
 <p><strong>Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.</strong> On Fri 05:00 no product code existed. Three Opus
 workers build from <code>docs/spec.md</code> while Kris does the prerequisites and the teammates build the physical duck.</p>
-<h3 id="status-board-fri-6-nov-17-03-ist">Status board (Fri 6 Nov 17:03 IST)</h3>
+<h3 id="status-board-fri-6-nov-17-31-ist">Status board (Fri 6 Nov 17:31 IST)</h3>
 <table>
 <thead>
 <tr>
@@ -130,8 +130,8 @@ workers build from <code>docs/spec.md</code> while Kris does the prerequisites a
 </tr>
 <tr>
 <td>0G</td>
-<td>router <code>qwen3-vl-plus</code> live; 0GM-1.0-35B TeeML switch ready when its provider recovers</td>
-<td>provider 502</td>
+<td><strong><code>glm-5.3</code> (TeeML) live since 17:15 IST</strong> via the router (provider <code>0xD179…E503</code>, 6/6 on the probe); the first two decisions&#39; TEE signatures verified with 0G&#39;s SDK (<code>docs/evidence/2026-11-06-tee-verification.md</code>); <strong>the Worker now fetches each decision&#39;s TEE proof at decision time</strong>, stores it with the decision and in the anchored evidence; the episode page shows &quot;Sealed in a TEE ✓ (0G chat …)&quot; after Verify</td>
+<td>first proof-carrying episode: the next glm-5.3 errand after release 2ecf188</td>
 </tr>
 <tr>
 <td>Next</td>

@@ -13,7 +13,7 @@ v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the fo
 **Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.** On Fri 05:00 no product code existed. Three Opus
 workers build from `docs/spec.md` while Kris does the prerequisites and the teammates build the physical duck.
 
-### Status board (Fri 6 Nov 17:03 IST)
+### Status board (Fri 6 Nov 17:31 IST)
 
 | Lane | State | Blocker |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ workers build from `docs/spec.md` while Kris does the prerequisites and the team
 | Demo rules | grant defaults **5.00/day, 1.00 per payment**; **thali 2.00** = the over-cap approval beat, cigarettes = the restricted beat; approval page names the reason | the two commits deploy in the next push |
 | Design | Tailwind v4 + @foldkit/ui replaced zyzz; the wallet redesign (steps 2–3: shell, wallet home) is live; the robot conversation (console) is being rewritten by the redesign session | — |
 | Contracts / infra | Arc Studio is the single source (pinned pull, 92 tests, byte-identical deploys); state-store incident resolved with a guard; three stacks in the named store | Kris revokes the Alchemy CLI OAuth grant after the event |
-| 0G | router `qwen3-vl-plus` live; 0GM-1.0-35B TeeML switch ready when its provider recovers | provider 502 |
+| 0G | **`glm-5.3` (TeeML) live since 17:15 IST** via the router (provider `0xD179…E503`, 6/6 on the probe); the first two decisions' TEE signatures verified with 0G's SDK (`docs/evidence/2026-11-06-tee-verification.md`); **the Worker now fetches each decision's TEE proof at decision time**, stores it with the decision and in the anchored evidence; the episode page shows "Sealed in a TEE ✓ (0G chat …)" after Verify | first proof-carrying episode: the next glm-5.3 errand after release 2ecf188 |
 | Next | deny/revoke → M+R uploads those episodes → demo rehearsal → video (`docs/video-script.md`) Sat 06:00 → submission (`docs/submission.md`) by 08:00 | Kris |
 
 ### Scope
