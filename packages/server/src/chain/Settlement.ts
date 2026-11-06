@@ -1,7 +1,7 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
 import type { ArcClient } from '@ethmumbai/chain/Arc'
 import { settlementCall, verifyPayment } from '@ethmumbai/chain/Facilitator'
-import { dataSha256, type Relayer } from '@ethmumbai/chain/Relayer'
+import { dataSha256, type Relayer, type RelayerError } from '@ethmumbai/chain/Relayer'
 import { ARC_NETWORK } from '@ethmumbai/protocol/Invoice'
 import type { Check, SettleSuccess } from '@ethmumbai/protocol/X402'
 import type { RuntimeContext } from 'alchemy/RuntimeContext'
@@ -82,6 +82,20 @@ const settled = (
   })
 
 /**
+ * A relayer failure before broadcast is a plain failure. After broadcast (stage `receipt`) the outcome is unknown: the
+ * row stays `settling` with the tx hash, so a reconcile can read the receipt instead of trusting a guess.
+ */
+const unsettled = (database: QueryDatabaseClient, invoiceHash: string, error: RelayerError) =>
+  error.stage === 'receipt' && error.txHash !== undefined
+    ? finish(database, invoiceHash, 'tx_hash = ?, fail_reason = ?', [error.txHash, `unknown outcome: ${error.message}`])
+    : fail(database, invoiceHash, error.message)
+
+const outcomeReason = (error: RelayerError) =>
+  error.stage === 'receipt' && error.txHash !== undefined
+    ? `unknown outcome: ${error.txHash} was sent, its receipt did not arrive (${error.message})`
+    : `${error.stage}: ${error.message}`
+
+/**
  * The facilitator behind the merchant's x402 route and the chip's inline settlement (§7): one `payments` row per
  * invoice hash, verify (structural checks + simulation from the relayer), then the relayer's keyed send
  * (`settle:<invoiceHash>`), then `payments.settled` and `invoices.paid`. Arc decides; these rows mirror it.
@@ -113,7 +127,12 @@ export const makeSettlement = Effect.fn('EthMumbai.Chain.settlement')(function* 
         })
         .pipe(
           Effect.catchTag('AlreadySubmitted', () => Effect.fail(new AlreadySettled())),
-          Effect.catchTag(['RelayerError', 'RelayerStoreError'], (error) =>
+          Effect.catchTag('RelayerError', (error) =>
+            unsettled(database, invoice.invoiceHash, error).pipe(
+              Effect.andThen(Effect.fail(reject(outcomeReason(error), verified.checks))),
+            ),
+          ),
+          Effect.catchTag('RelayerStoreError', (error) =>
             fail(database, invoice.invoiceHash, error.message).pipe(
               Effect.andThen(Effect.fail(reject(error.message, verified.checks))),
             ),

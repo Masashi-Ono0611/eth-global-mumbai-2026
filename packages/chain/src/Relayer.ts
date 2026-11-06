@@ -56,6 +56,8 @@ export class RelayerError extends Schema.TaggedError<RelayerError>()('RelayerErr
   key: Schema.String,
   stage: Schema.Literals(['simulate', 'nonce', 'send', 'receipt']),
   message: Schema.String,
+  /** Set at stage `receipt`: the transaction was broadcast, so its outcome is unknown, not failed. */
+  txHash: Schema.optionalKey(Schema.String),
 }) {}
 
 export type SendResult = { readonly txHash: Hex; readonly gasUsed: bigint; readonly success: boolean }
@@ -126,7 +128,9 @@ export const makeRelayer = (config: {
     yield* store.markSent(tx.key, txHash)
     const receipt = yield* rpc('waitForTransactionReceipt', () =>
       client.waitForTransactionReceipt({ hash: txHash, timeout: 60_000, pollingInterval: 1_000 }),
-    ).pipe(Effect.mapError((error) => new RelayerError({ key: tx.key, stage: 'receipt', message: error.message })))
+    ).pipe(
+      Effect.mapError((error) => new RelayerError({ key: tx.key, stage: 'receipt', message: error.message, txHash })),
+    )
     const success = receipt.status === 'success'
     yield* success ? store.markConfirmed(tx.key, receipt.gasUsed) : store.markFailed(tx.key, 'reverted on chain', false)
     const result: SendResult = { txHash, gasUsed: receipt.gasUsed, success }
