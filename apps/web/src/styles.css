@@ -250,3 +250,64 @@ footer a {
   border: 1px solid var(--rule);
   border-radius: 3px;
 }
+.copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.consent {
+  padding: 0.75rem 1rem;
+  border-inline-start: 3px solid var(--ink);
+  background: color-mix(in oklch, var(--paper) 92%, var(--ink));
+}
+.owner-nav {
+  display: flex;
+  gap: 1rem;
+}
+.online {
+  color: oklch(45% 0.12 150);
+}
+.offline {
+  color: var(--muted);
+}
+.robot-list,
+.activity-list,
+.decision-list {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+.robot-card,
+.wallet-card,
+.approval,
+.errand {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  padding-block: 1.5rem;
+  border-block-start: 1px solid var(--rule);
+  overflow-wrap: anywhere;
+}
+.pairing-code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 2rem;
+  letter-spacing: 0.2em;
+}
+.gate-light {
+  font-size: clamp(3rem, 2rem + 6vw, 7rem);
+  font-weight: 700;
+}
+.gate-open {
+  color: oklch(50% 0.15 150);
+}
+.gate-closed {
+  color: oklch(50% 0.16 25);
+}
+.item-buttons,
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

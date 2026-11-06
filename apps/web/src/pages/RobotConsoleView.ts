@@ -84,7 +84,9 @@ const errandDetailView = (detail: ErrandDetail, locale: Locale, h: HtmlBuilder<M
         [h.Class(`state state-${detail.episode.state}`), h.Role('status')],
         [format(locale, 'console.errandState', { item: detail.episode.item, state: detail.episode.state })],
       ),
-      detail.episode.result === null ? h.empty : h.p([h.Class('hint')], [detail.episode.result]),
+      detail.episode.result === null || detail.episode.state === 'paid'
+        ? h.empty
+        : h.p([h.Class('hint')], [format(locale, 'console.reason', { reason: detail.episode.result })]),
       h.ul(
         [h.Class('decision-list')],
         detail.decisions.map((decision) => decisionRow(decision, locale, h)),
@@ -92,9 +94,9 @@ const errandDetailView = (detail: ErrandDetail, locale: Locale, h: HtmlBuilder<M
       detail.chipRequest === null
         ? h.empty
         : h.p(
-            [],
+            [h.Class(`chip-state chip-${detail.chipRequest.status}`)],
             [
-              format(locale, 'console.chip', {
+              format(locale, 'console.chipState', {
                 status: detail.chipRequest.status,
                 refusal: detail.chipRequest.refusal_code ?? '—',
               }),

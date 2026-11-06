@@ -5,6 +5,7 @@ import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import { Command } from 'foldkit'
 import { Locale, localeEndpoint } from './Locale.ts'
 import { Message } from './message.ts'
+import type { Clipboard } from './Clipboard.ts'
 import { Passkeys } from './Passkey.ts'
 import type { AuthFailure } from './model.ts'
 
@@ -66,4 +67,4 @@ export const SaveLocale = Command.define('SaveLocale', {
 })
 
 /** What the Commands run against: the browser provides these in entry.ts. */
-export type Services = HttpClient.HttpClient | Passkeys
+export type Services = HttpClient.HttpClient | Passkeys | Clipboard

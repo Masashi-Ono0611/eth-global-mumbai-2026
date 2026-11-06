@@ -46,8 +46,10 @@ const pairedRobot = {
 }
 
 const loadedRobots = (robots: ReadonlyArray<RobotView>) =>
-  Robots.update(Robots.init().model, Robots.Message.SucceededLoadRobots({ robots, maybePayee: Option.some(payee) }))
-    .model
+  Robots.update(
+    Robots.init().model,
+    Robots.Message.SucceededLoadRobots({ robots, maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }) }),
+  ).model
 
 const detail = (state: string, paid: boolean) => ({
   episode: { id: 'e1', item: 'chai', state, result: null, invoice_id: 'i1' },
@@ -116,6 +118,15 @@ describe('/wallet', () => {
       expect(text('paid')).toExist(),
       expect(role('link', { name: 'View transaction' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
       expect(role('link', { name: 'Robots' })).toHaveAttr('href', '/wallet/robots'),
+      expect(
+        text(
+          'Send USDC on Arc to this address. Keep it small: your robots spend from it only within the limits you grant.',
+        ),
+      ).toExist(),
+      click(role('button', { name: 'Copy address' })),
+      Command.expectExact(Wallet.CopyAddress({ address })),
+      Command.resolve(Wallet.CopyAddress, Wallet.Message.CompletedCopyAddress({ copied: true })),
+      expect(text('Copied')).toExist(),
       click(role('button', { name: 'Refresh' })),
       Command.expectExact(Wallet.LoadWallet()),
       Command.resolve(Wallet.LoadWallet, Wallet.Message.FailedLoadWallet({ error: 'not signed in', signedOut: true })),
@@ -146,7 +157,10 @@ describe('/wallet/robots', () => {
       expect(text('K7Q2M9XZ')).toExist(),
       Command.resolve(
         Robots.LoadRobots,
-        Robots.Message.SucceededLoadRobots({ robots: [], maybePayee: Option.some(payee) }),
+        Robots.Message.SucceededLoadRobots({
+          robots: [],
+          maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }),
+        }),
       ),
     )
   })
@@ -158,6 +172,11 @@ describe('/wallet/robots', () => {
       expect(text('paired · online')).toExist(),
       click(role('button', { name: 'Grant a budget' })),
       expect(label('Allowed payees (addresses)')).toHaveValue(payee),
+      expect(
+        text(
+          'Vitaquack may spend up to 1.00 USDC a day, at most 0.30 USDC per payment, only at Duck Café, for the next 24 hours. You sign this with your passkey; Arc enforces it.',
+        ),
+      ).toExist(),
       type(label('Per-payment cap (USDC)'), '0.25'),
       submit(selector('form.grant-form')),
       expect(role('button', { name: 'Signing and activating on Arc...' })).toBeDisabled(),
@@ -181,7 +200,10 @@ describe('/wallet/robots', () => {
       Command.resolve(Robots.GrantBudget, Robots.Message.SucceededGrantBudget()),
       Command.resolve(
         Robots.LoadRobots,
-        Robots.Message.SucceededLoadRobots({ robots: [{ ...pairedRobot, grant }], maybePayee: Option.some(payee) }),
+        Robots.Message.SucceededLoadRobots({
+          robots: [{ ...pairedRobot, grant }],
+          maybeMerchant: Option.some({ name: 'Duck Café', payTo: payee }),
+        }),
       ),
       expect(role('button', { name: 'Revoke grant' })).toExist(),
     )
@@ -216,9 +238,11 @@ describe('/robot/:id', () => {
       },
       catalogue: {
         merchantId: 'duck-cafe',
+        name: 'Duck Café',
         items: [
-          { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false },
           { itemId: 'cigarettes', name: 'Cigarettes', amount: '500000', restricted: true },
+          { itemId: 'samosa', name: 'Samosa', amount: '250000', restricted: false },
+          { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false },
         ],
       },
       maybeLatestEpisode: Option.none(),
@@ -242,7 +266,8 @@ describe('/robot/:id', () => {
         RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e1', detail: detail('signing', false) }),
       ),
       expect(text('chai: chip signing')).toExist(),
-      expect(text('0G decided pay: under the cap')).toExist(),
+      expect(text('0G decided to pay: under the cap')).toExist(),
+      expect(text('The chip is checking the invoice and signing')).toExist(),
       expect(text('request id req-1 · zg-model · 812 ms')).toExist(),
       expect(role('button', { name: 'Buy Chai (0.10 USDC)' })).toBeDisabled(),
       Command.expectExact(RobotConsole.PollErrand({ robotId, episodeId: 'e1', delayMillis: 1500 })),
@@ -251,6 +276,7 @@ describe('/robot/:id', () => {
         RobotConsole.Message.SucceededLoadErrand({ episodeId: 'e1', detail: detail('paid', true) }),
       ),
       expect(text('chai: paid')).toExist(),
+      expect(text('The chip signed the payment')).toExist(),
       expect(role('link', { name: 'Payment on Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
       Command.expectExact(RobotConsole.LoadConsole({ robotId })),
       Command.resolve(

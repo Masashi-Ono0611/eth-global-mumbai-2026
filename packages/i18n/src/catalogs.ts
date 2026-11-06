@@ -35,8 +35,10 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'common.refresh': 'Refresh',
   'common.retry': 'Retry',
   'console.buy': 'Buy {item} ({amount} USDC)',
-  'console.chip': 'Chip: {status} (refusal: {refusal})',
-  'console.decision': '0G decided {action}: {reason}',
+  'console.chipState':
+    '{status, select, queued {Waiting for the chip to poll} delivered {The chip is checking the invoice and signing} signed {The chip signed the payment} refused {The chip refused: {refusal}} expired {The chip did not answer in time} other {{status}}}',
+  'console.decision':
+    '0G decided to {action, select, pay {pay} ask_human {ask you first} walk_away {walk away} safe_stop {stop safely} other {{action}}}: {reason}',
   'console.episodeLog': 'EpisodeLog record on 0G Chain',
   'console.errandState':
     '{item}: {state, select, queued {queued} deciding {deciding} awaiting_approval {waiting for approval} signing {chip signing} settling {settling} paid {paid} walked_away {walked away} safe_stop {safe stop} denied {denied} refused {refused by the chip} failed {failed} expired {expired} other {{state}}}',
@@ -46,6 +48,7 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'console.noGrant': 'No grant yet: grant a budget on the robots page first.',
   'console.openApproval': 'Approve in World App',
   'console.paymentTx': 'Payment on Arc',
+  'console.reason': 'Reason: {reason}',
   'console.requestId': 'request id {requestId} · {model} · {latency} ms',
   'console.starting': 'Asking 0G about {item}...',
   'console.storage': 'Episode on 0G Storage',
@@ -82,6 +85,8 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'robots.add': 'Add robot',
   'robots.allowlist': 'Allowed payees: {payees}',
   'robots.allowlistLabel': 'Allowed payees (addresses)',
+  'robots.consent':
+    'Vitaquack may spend up to {daily} USDC a day, at most {perPayment} USDC per payment, only at {payees}, {hours, plural, one {for the next hour} other {for the next # hours}}. You sign this with your passkey; Arc enforces it.',
   'robots.dailyCap': 'Daily cap (USDC)',
   'robots.grantBudget': 'Grant a budget',
   'robots.grantTerms':
@@ -107,9 +112,12 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'wallet.addressNote': 'This address exists before any transaction: the wallet is deployed with your first grant.',
   'wallet.balance': 'Balance',
   'wallet.balanceUnknown': 'Arc did not report a balance right now.',
+  'wallet.copied': 'Copied',
+  'wallet.copyAddress': 'Copy address',
+  'wallet.copyFailed': 'Copy did not work; select the address instead.',
   'wallet.deployed': 'Your smart account is deployed on Arc.',
   'wallet.fundInstructions':
-    'Send USDC on Arc mainnet to the address above. Keep it small: robots spend from it within the limits you grant.',
+    'Send USDC on Arc to this address. Keep it small: your robots spend from it only within the limits you grant.',
   'wallet.fundTitle': 'Add USDC',
   'wallet.noActivity': 'No errands yet.',
   'wallet.open': 'Open wallet',
@@ -152,8 +160,10 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'common.refresh': 'Osveži',
   'common.retry': 'Ponovi',
   'console.buy': 'Kupi {item} ({amount} USDC)',
-  'console.chip': 'Čip: {status} (zavrnitev: {refusal})',
-  'console.decision': '0G se je odločil za {action}: {reason}',
+  'console.chipState':
+    '{status, select, queued {Čakanje, da se čip oglasi} delivered {Čip preverja račun in podpisuje} signed {Čip je podpisal plačilo} refused {Čip je zavrnil: {refusal}} expired {Čip se ni pravočasno odzval} other {{status}}}',
+  'console.decision':
+    '0G se je odločil {action, select, pay {plačati} ask_human {najprej vprašati vas} walk_away {oditi} safe_stop {se varno ustaviti} other {{action}}}: {reason}',
   'console.episodeLog': 'Zapis EpisodeLog na 0G Chain',
   'console.errandState':
     '{item}: {state, select, queued {v vrsti} deciding {odloča} awaiting_approval {čaka na odobritev} signing {čip podpisuje} settling {poravnava} paid {plačano} walked_away {odšel} safe_stop {varna ustavitev} denied {zavrnjeno} refused {čip je zavrnil} failed {neuspešno} expired {poteklo} other {{state}}}',
@@ -163,6 +173,7 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'console.noGrant': 'Še ni pooblastila: najprej odobrite proračun na strani robotov.',
   'console.openApproval': 'Odobri v aplikaciji World',
   'console.paymentTx': 'Plačilo na Arcu',
+  'console.reason': 'Razlog: {reason}',
   'console.requestId': 'id zahteve {requestId} · {model} · {latency} ms',
   'console.starting': 'Vprašanje 0G glede: {item}...',
   'console.storage': 'Epizoda na 0G Storage',
@@ -199,6 +210,8 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'robots.add': 'Dodaj robota',
   'robots.allowlist': 'Dovoljeni prejemniki: {payees}',
   'robots.allowlistLabel': 'Dovoljeni prejemniki (naslovi)',
+  'robots.consent':
+    'Vitaquack lahko porabi do {daily} USDC na dan, največ {perPayment} USDC na plačilo, samo pri {payees}, {hours, plural, one {naslednjo # uro} two {naslednji # uri} few {naslednje # ure} other {naslednjih # ur}}. To podpišete s ključem za dostop; Arc to uveljavlja.',
   'robots.dailyCap': 'Dnevna meja (USDC)',
   'robots.grantBudget': 'Odobri proračun',
   'robots.grantTerms':
@@ -224,9 +237,12 @@ export const sl: Readonly<Record<MessageKey, string>> = {
   'wallet.addressNote': 'Ta naslov obstaja že pred prvo transakcijo: denarnica se namesti ob prvem pooblastilu.',
   'wallet.balance': 'Stanje',
   'wallet.balanceUnknown': 'Arc trenutno ni sporočil stanja.',
+  'wallet.copied': 'Kopirano',
+  'wallet.copyAddress': 'Kopiraj naslov',
+  'wallet.copyFailed': 'Kopiranje ni uspelo; naslov označite ročno.',
   'wallet.deployed': 'Vaš pametni račun je nameščen na Arcu.',
   'wallet.fundInstructions':
-    'Pošljite USDC na omrežju Arc mainnet na zgornji naslov. Naj bo znesek majhen: roboti iz njega porabljajo v mejah, ki jih odobrite.',
+    'Na ta naslov pošljite USDC na omrežju Arc. Naj bo znesek majhen: roboti iz njega porabljajo samo v mejah, ki jih odobrite.',
   'wallet.fundTitle': 'Dodajte USDC',
   'wallet.noActivity': 'Še ni opravkov.',
   'wallet.open': 'Odpri denarnico',
@@ -269,8 +285,10 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'common.refresh': '更新',
   'common.retry': '再試行',
   'console.buy': '{item} を買う（{amount} USDC）',
-  'console.chip': 'チップ：{status}（拒否：{refusal}）',
-  'console.decision': '0G の判断：{action}（{reason}）',
+  'console.chipState':
+    '{status, select, queued {チップの接続を待っています} delivered {チップが請求書を確認して署名しています} signed {チップが支払いに署名しました} refused {チップが拒否しました：{refusal}} expired {チップが時間内に応答しませんでした} other {{status}}}',
+  'console.decision':
+    '0G の判断：{action, select, pay {支払う} ask_human {まずあなたに確認する} walk_away {立ち去る} safe_stop {安全に停止する} other {{action}}}（{reason}）',
   'console.episodeLog': '0G Chain 上の EpisodeLog 記録',
   'console.errandState':
     '{item}：{state, select, queued {待機中} deciding {判断中} awaiting_approval {承認待ち} signing {チップが署名中} settling {決済中} paid {支払い済み} walked_away {立ち去った} safe_stop {安全停止} denied {拒否} refused {チップが拒否} failed {失敗} expired {期限切れ} other {{state}}}',
@@ -280,6 +298,7 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'console.noGrant': 'まだ権限がありません。先にロボットページで予算を付与してください。',
   'console.openApproval': 'World App で承認',
   'console.paymentTx': 'Arc 上の支払い',
+  'console.reason': '理由：{reason}',
   'console.requestId': 'リクエスト ID {requestId} · {model} · {latency} ms',
   'console.starting': '{item} について 0G に問い合わせています...',
   'console.storage': '0G Storage 上のエピソード',
@@ -316,6 +335,8 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'robots.add': 'ロボットを追加',
   'robots.allowlist': '許可された支払先：{payees}',
   'robots.allowlistLabel': '許可する支払先（アドレス）',
+  'robots.consent':
+    'Vitaquack は 1 日 {daily} USDC まで、1 回の支払いは最大 {perPayment} USDC、支払先は {payees} のみ、{hours, plural, other {今後 # 時間}}使えます。パスキーで署名し、Arc が上限を守らせます。',
   'robots.dailyCap': '1 日の上限（USDC）',
   'robots.grantBudget': '予算を付与',
   'robots.grantTerms':
@@ -341,9 +362,12 @@ export const ja: Readonly<Record<MessageKey, string>> = {
   'wallet.addressNote': 'このアドレスは取引の前から存在します。ウォレットは最初の権限付与と同時にデプロイされます。',
   'wallet.balance': '残高',
   'wallet.balanceUnknown': 'Arc から残高を取得できませんでした。',
+  'wallet.copied': 'コピーしました',
+  'wallet.copyAddress': 'アドレスをコピー',
+  'wallet.copyFailed': 'コピーできませんでした。アドレスを選択してください。',
   'wallet.deployed': 'スマートアカウントは Arc にデプロイ済みです。',
   'wallet.fundInstructions':
-    '上のアドレスに Arc メインネットで USDC を送ってください。少額にしてください。ロボットはあなたが許可した上限の範囲で使います。',
+    'このアドレスに Arc で USDC を送ってください。少額にしてください。ロボットはあなたが許可した上限の範囲でのみ使います。',
   'wallet.fundTitle': 'USDC を追加',
   'wallet.noActivity': 'まだおつかいはありません。',
   'wallet.open': 'ウォレットを開く',
@@ -386,8 +410,10 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'common.refresh': 'रीफ़्रेश करें',
   'common.retry': 'फिर से कोशिश करें',
   'console.buy': '{item} खरीदें ({amount} USDC)',
-  'console.chip': 'चिप: {status} (अस्वीकार: {refusal})',
-  'console.decision': '0G का निर्णय {action}: {reason}',
+  'console.chipState':
+    '{status, select, queued {चिप के जुड़ने की प्रतीक्षा} delivered {चिप इनवॉइस जाँचकर हस्ताक्षर कर रही है} signed {चिप ने भुगतान पर हस्ताक्षर किए} refused {चिप ने मना किया: {refusal}} expired {चिप ने समय पर जवाब नहीं दिया} other {{status}}}',
+  'console.decision':
+    '0G का निर्णय: {action, select, pay {भुगतान करना} ask_human {पहले आपसे पूछना} walk_away {चले जाना} safe_stop {सुरक्षित रूप से रुकना} other {{action}}} — {reason}',
   'console.episodeLog': '0G Chain पर EpisodeLog रिकॉर्ड',
   'console.errandState':
     '{item}: {state, select, queued {कतार में} deciding {निर्णय हो रहा है} awaiting_approval {मंज़ूरी की प्रतीक्षा} signing {चिप हस्ताक्षर कर रही है} settling {भुगतान निपट रहा है} paid {भुगतान हो गया} walked_away {चला गया} safe_stop {सुरक्षित रोक} denied {अस्वीकृत} refused {चिप ने मना किया} failed {विफल} expired {समय समाप्त} other {{state}}}',
@@ -397,6 +423,7 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'console.noGrant': 'अभी कोई अनुमति नहीं: पहले रोबोट पेज पर बजट दें।',
   'console.openApproval': 'World App में मंज़ूरी दें',
   'console.paymentTx': 'Arc पर भुगतान',
+  'console.reason': 'कारण: {reason}',
   'console.requestId': 'अनुरोध आईडी {requestId} · {model} · {latency} ms',
   'console.starting': '{item} के बारे में 0G से पूछ रहे हैं...',
   'console.storage': '0G Storage पर एपिसोड',
@@ -432,6 +459,8 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'robots.add': 'रोबोट जोड़ें',
   'robots.allowlist': 'अनुमत प्राप्तकर्ता: {payees}',
   'robots.allowlistLabel': 'अनुमत प्राप्तकर्ता (पते)',
+  'robots.consent':
+    'Vitaquack प्रतिदिन {daily} USDC तक, प्रति भुगतान अधिकतम {perPayment} USDC, सिर्फ़ {payees} पर, {hours, plural, one {अगले # घंटे} other {अगले # घंटों}} तक खर्च कर सकता है। आप इस पर पासकी से हस्ताक्षर करते हैं; Arc इसे लागू करता है।',
   'robots.dailyCap': 'दैनिक सीमा (USDC)',
   'robots.grantBudget': 'बजट दें',
   'robots.grantTerms':
@@ -457,9 +486,12 @@ export const hi: Readonly<Record<MessageKey, string>> = {
   'wallet.addressNote': 'यह पता किसी भी लेन-देन से पहले मौजूद है: वॉलेट आपकी पहली अनुमति के साथ डिप्लॉय होता है।',
   'wallet.balance': 'शेष राशि',
   'wallet.balanceUnknown': 'Arc ने अभी शेष राशि नहीं बताई।',
+  'wallet.copied': 'कॉपी हो गया',
+  'wallet.copyAddress': 'पता कॉपी करें',
+  'wallet.copyFailed': 'कॉपी नहीं हुआ; पता चुनकर कॉपी करें।',
   'wallet.deployed': 'आपका स्मार्ट अकाउंट Arc पर डिप्लॉय हो चुका है।',
   'wallet.fundInstructions':
-    'ऊपर दिए पते पर Arc मेननेट पर USDC भेजें। राशि कम रखें: रोबोट आपकी दी गई सीमा के भीतर इसी से खर्च करते हैं।',
+    'इस पते पर Arc पर USDC भेजें। राशि कम रखें: आपके रोबोट इसमें से सिर्फ़ आपकी दी गई सीमा के भीतर खर्च करते हैं।',
   'wallet.fundTitle': 'USDC जोड़ें',
   'wallet.noActivity': 'अभी कोई काम नहीं।',
   'wallet.open': 'वॉलेट खोलें',
@@ -502,8 +534,10 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'common.refresh': 'रीफ्रेश करा',
   'common.retry': 'पुन्हा प्रयत्न करा',
   'console.buy': '{item} विकत घ्या ({amount} USDC)',
-  'console.chip': 'चिप: {status} (नकार: {refusal})',
-  'console.decision': '0G चा निर्णय {action}: {reason}',
+  'console.chipState':
+    '{status, select, queued {चिप जोडली जाण्याची प्रतीक्षा} delivered {चिप बीजक तपासून स्वाक्षरी करत आहे} signed {चिपने पेमेंटवर स्वाक्षरी केली} refused {चिपने नकार दिला: {refusal}} expired {चिपने वेळेत उत्तर दिले नाही} other {{status}}}',
+  'console.decision':
+    '0G चा निर्णय: {action, select, pay {पेमेंट करणे} ask_human {आधी तुम्हाला विचारणे} walk_away {निघून जाणे} safe_stop {सुरक्षितपणे थांबणे} other {{action}}} — {reason}',
   'console.episodeLog': '0G Chain वरील EpisodeLog नोंद',
   'console.errandState':
     '{item}: {state, select, queued {रांगेत} deciding {निर्णय होत आहे} awaiting_approval {मंजुरीची प्रतीक्षा} signing {चिप स्वाक्षरी करत आहे} settling {पेमेंट पूर्ण होत आहे} paid {पेमेंट झाले} walked_away {निघून गेला} safe_stop {सुरक्षित थांबा} denied {नाकारले} refused {चिपने नकार दिला} failed {अयशस्वी} expired {मुदत संपली} other {{state}}}',
@@ -513,6 +547,7 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'console.noGrant': 'अजून परवानगी नाही: आधी रोबोट पानावर बजेट द्या.',
   'console.openApproval': 'World App मध्ये मंजुरी द्या',
   'console.paymentTx': 'Arc वरील पेमेंट',
+  'console.reason': 'कारण: {reason}',
   'console.requestId': 'विनंती आयडी {requestId} · {model} · {latency} ms',
   'console.starting': '{item} बद्दल 0G ला विचारत आहे...',
   'console.storage': '0G Storage वरील एपिसोड',
@@ -548,6 +583,8 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'robots.add': 'रोबोट जोडा',
   'robots.allowlist': 'परवानगी असलेले प्राप्तकर्ते: {payees}',
   'robots.allowlistLabel': 'परवानगी असलेले प्राप्तकर्ते (पत्ते)',
+  'robots.consent':
+    'Vitaquack दररोज {daily} USDC पर्यंत, प्रत्येक पेमेंटला कमाल {perPayment} USDC, फक्त {payees} येथे, {hours, plural, one {पुढील # तास} other {पुढील # तास}} खर्च करू शकते. तुम्ही यावर पासकीने स्वाक्षरी करता; Arc हे लागू करते.',
   'robots.dailyCap': 'दैनिक मर्यादा (USDC)',
   'robots.grantBudget': 'बजेट द्या',
   'robots.grantTerms':
@@ -573,9 +610,12 @@ export const mr: Readonly<Record<MessageKey, string>> = {
   'wallet.addressNote': 'हा पत्ता कोणत्याही व्यवहारापूर्वी अस्तित्वात आहे: वॉलेट तुमच्या पहिल्या परवानगीसोबत डिप्लॉय होते.',
   'wallet.balance': 'शिल्लक',
   'wallet.balanceUnknown': 'Arc ने आत्ता शिल्लक सांगितली नाही.',
+  'wallet.copied': 'कॉपी झाले',
+  'wallet.copyAddress': 'पत्ता कॉपी करा',
+  'wallet.copyFailed': 'कॉपी झाले नाही; पत्ता निवडून कॉपी करा.',
   'wallet.deployed': 'तुमचे स्मार्ट खाते Arc वर डिप्लॉय झाले आहे.',
   'wallet.fundInstructions':
-    'वरील पत्त्यावर Arc मेननेटवर USDC पाठवा. रक्कम कमी ठेवा: रोबोट तुम्ही दिलेल्या मर्यादेत यातूनच खर्च करतात.',
+    'या पत्त्यावर Arc वर USDC पाठवा. रक्कम कमी ठेवा: तुमचे रोबोट यातून फक्त तुम्ही दिलेल्या मर्यादेत खर्च करतात.',
   'wallet.fundTitle': 'USDC जोडा',
   'wallet.noActivity': 'अजून कोणतेही काम नाही.',
   'wallet.open': 'वॉलेट उघडा',

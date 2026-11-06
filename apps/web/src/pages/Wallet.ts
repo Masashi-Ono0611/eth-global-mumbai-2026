@@ -7,6 +7,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 import { isSignedOut } from '../api/Http.ts'
+import { Clipboard } from '../Clipboard.ts'
 import { robotsRouter } from '../route.ts'
 import { failedView, loadingView, ownerMain, signedOutView } from './Shared.ts'
 import {
@@ -28,7 +29,8 @@ const WalletState = defineTaggedUnion({
   Loaded: { wallet: WalletView, activity: ActivityView },
   Failed: { error: Schema.String },
 })
-export const Model = Schema.Struct({ state: WalletState })
+const Copy = defineTaggedUnion({ Idle: {}, Copied: {}, Failed: {} })
+export const Model = Schema.Struct({ state: WalletState, copy: Copy })
 export type Model = typeof Model.Type
 
 // MESSAGE
@@ -37,6 +39,8 @@ export const Message = defineMessageUnion({
   SucceededLoadWallet: { wallet: WalletView, activity: ActivityView },
   FailedLoadWallet: { error: Schema.String, signedOut: Schema.Boolean },
   ClickedReload: {},
+  ClickedCopyAddress: { address: Schema.String },
+  CompletedCopyAddress: { copied: Schema.Boolean },
 })
 export type Message = typeof Message.Type
 
@@ -55,10 +59,24 @@ export const LoadWallet = Command.define('LoadWallet', {
 
 // INIT
 
-type UpdateReturn = Update.Return<Model, Message, HttpClient.HttpClient>
+/** @internal Exported for the scene tests; the page update is its only production caller. */
+export const CopyAddress = Command.define('CopyAddress', {
+  args: { address: Schema.String },
+  messages: [Message.CompletedCopyAddress],
+  execute: ({ address }) =>
+    Effect.gen(function* () {
+      const clipboard = yield* Clipboard
+      yield* clipboard.copy(address)
+    }).pipe(
+      Effect.as(Message.CompletedCopyAddress({ copied: true })),
+      Effect.catch(() => Effect.succeed(Message.CompletedCopyAddress({ copied: false }))),
+    ),
+})
+
+type UpdateReturn = Update.Return<Model, Message, HttpClient.HttpClient | Clipboard>
 
 export const init = (): UpdateReturn => ({
-  model: { state: WalletState.Loading() },
+  model: { state: WalletState.Loading(), copy: Copy.Idle() },
   commands: [LoadWallet()],
 })
 
@@ -78,6 +96,10 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       model: modifyFields(model, { state: () => WalletState.Loading() }),
       commands: [LoadWallet()],
     }),
+    ClickedCopyAddress: ({ address }) => ({ model, commands: [CopyAddress({ address })] }),
+    CompletedCopyAddress: ({ copied }) => ({
+      model: modifyFields(model, { copy: () => (copied ? Copy.Copied() : Copy.Failed()) }),
+    }),
   })
 
 // VIEW
@@ -96,7 +118,29 @@ const episodeRow = (episode: EpisodeActivity, locale: Locale, h: HtmlBuilder<Mes
     ],
   )
 
-const loadedView = (wallet: WalletView, activity: ActivityView, locale: Locale, h: HtmlBuilder<Message>): Html =>
+const copyView = (model: Model, address: string, locale: Locale, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('copy-row')],
+    [
+      h.button(
+        [h.Type('button'), h.Class('secondary-action'), h.OnClick(Message.ClickedCopyAddress({ address }))],
+        [format(locale, 'wallet.copyAddress', {})],
+      ),
+      Copy.match(model.copy, {
+        Idle: () => h.empty,
+        Copied: () => h.span([h.Role('status')], [format(locale, 'wallet.copied', {})]),
+        Failed: () => h.span([h.Role('alert')], [format(locale, 'wallet.copyFailed', {})]),
+      }),
+    ],
+  )
+
+const loadedView = (
+  model: Model,
+  wallet: WalletView,
+  activity: ActivityView,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html =>
   h.div(
     [h.Class('wallet-page')],
     [
@@ -114,6 +158,7 @@ const loadedView = (wallet: WalletView, activity: ActivityView, locale: Locale, 
             [h.Href(explorerAddress(wallet.account.smartAccount)), h.Class('smart-account')],
             [wallet.account.smartAccount],
           ),
+          copyView(model, wallet.account.smartAccount, locale, h),
           h.p(
             [h.Class('hint')],
             [format(locale, wallet.account.deployStatus === 'deployed' ? 'wallet.deployed' : 'wallet.addressNote', {})],
@@ -149,7 +194,7 @@ export const view = Submodel.defineView<Model, Message, { readonly locale: Local
     WalletState.match(model.state, {
       Loading: () => loadingView(locale, h),
       SignedOut: () => signedOutView(locale, h),
-      Loaded: ({ wallet, activity }) => loadedView(wallet, activity, locale, h),
+      Loaded: ({ wallet, activity }) => loadedView(model, wallet, activity, locale, h),
       Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),
     }),
     h,

@@ -34,7 +34,7 @@ export interface MessageArgumentsByKey<T = string> {
   'common.refresh': Readonly<Record<string, never>>
   'common.retry': Readonly<Record<string, never>>
   'console.buy': { readonly item: string | number; readonly amount: string | number }
-  'console.chip': { readonly status: string | number; readonly refusal: string | number }
+  'console.chipState': { readonly status: string | number; readonly refusal: string | number }
   'console.decision': { readonly action: string | number; readonly reason: string | number }
   'console.episodeLog': Readonly<Record<string, never>>
   'console.errandState': { readonly item: string | number; readonly state: string | number }
@@ -44,6 +44,7 @@ export interface MessageArgumentsByKey<T = string> {
   'console.noGrant': Readonly<Record<string, never>>
   'console.openApproval': Readonly<Record<string, never>>
   'console.paymentTx': Readonly<Record<string, never>>
+  'console.reason': { readonly reason: string | number }
   'console.requestId': {
     readonly requestId: string | number
     readonly model: string | number
@@ -81,6 +82,12 @@ export interface MessageArgumentsByKey<T = string> {
   'robots.add': Readonly<Record<string, never>>
   'robots.allowlist': { readonly payees: string | number }
   'robots.allowlistLabel': Readonly<Record<string, never>>
+  'robots.consent': {
+    readonly daily: string | number
+    readonly perPayment: string | number
+    readonly payees: string | number
+    readonly hours: number
+  }
   'robots.dailyCap': Readonly<Record<string, never>>
   'robots.grantBudget': Readonly<Record<string, never>>
   'robots.grantTerms': {
@@ -108,6 +115,9 @@ export interface MessageArgumentsByKey<T = string> {
   'wallet.addressNote': Readonly<Record<string, never>>
   'wallet.balance': Readonly<Record<string, never>>
   'wallet.balanceUnknown': Readonly<Record<string, never>>
+  'wallet.copied': Readonly<Record<string, never>>
+  'wallet.copyAddress': Readonly<Record<string, never>>
+  'wallet.copyFailed': Readonly<Record<string, never>>
   'wallet.deployed': Readonly<Record<string, never>>
   'wallet.fundInstructions': Readonly<Record<string, never>>
   'wallet.fundTitle': Readonly<Record<string, never>>
@@ -120,4 +130,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'df398feef79050526303b92ac4036b17161bf8fd8d98ea4d84652ab5aa900fa2'
+export const catalogVersion = 'bdcdfb004398fa9a3517dcee5de761203cc4e6fdf5693ef40c960c722e26f06a'

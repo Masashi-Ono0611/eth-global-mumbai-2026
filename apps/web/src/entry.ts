@@ -5,6 +5,7 @@ import { Message } from './message.ts'
 import { Flags, Model } from './model.ts'
 import { init, update } from './update.ts'
 import { view } from './View.ts'
+import { clipboardLayer } from './Clipboard.ts'
 import { passkeysLayer } from './Passkey.ts'
 // oxlint-disable-next-line import/no-unassigned-import -- Vite loads the application stylesheet for its side effects
 import './styles.css'
@@ -17,7 +18,7 @@ const application = Runtime.makeApplication({
   view,
   container: document.getElementById('root'),
   devTools: { Message },
-  resources: Layer.mergeAll(FetchHttpClient.layer, passkeysLayer(navigator)),
+  resources: Layer.mergeAll(FetchHttpClient.layer, passkeysLayer(navigator), clipboardLayer(navigator)),
 })
 
 Runtime.hydrate(application)

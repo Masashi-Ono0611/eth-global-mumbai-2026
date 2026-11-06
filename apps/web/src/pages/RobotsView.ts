@@ -4,7 +4,17 @@ import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ActionFailure } from '../api/OwnerAction.ts'
 import { explorerTx, type GrantView, type RobotView, usdc } from '../api/Wallet.ts'
-import { Adding, type GrantForm, GrantStep, Message, type Model, Revoking, RobotsState } from './Robots.ts'
+import {
+  Adding,
+  addresses,
+  type GrantForm,
+  GrantStep,
+  type Merchant,
+  Message,
+  type Model,
+  Revoking,
+  RobotsState,
+} from './Robots.ts'
 import { robotConsoleRouter, walletRouter } from '../route.ts'
 import { failedView, loadingView, signedOutView } from './Shared.ts'
 
@@ -94,7 +104,40 @@ const grantSummary = (grant: GrantView, model: Model, locale: Locale, h: HtmlBui
   )
 }
 
-const grantFormView = (form: GrantForm, locale: Locale, h: HtmlBuilder<Message>): Html => {
+/** The grant read back as one sentence before the passkey signs it: caps, payees, window, who enforces it. */
+const consentView = (
+  form: GrantForm,
+  maybeMerchant: Option.Option<Merchant>,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+) => {
+  const hours = Number(form.hours)
+  if (!Number.isInteger(hours) || hours < 1 || hours > 720) return h.empty
+  const payees = addresses(form.allowlist)
+  const onlyMerchant = Option.match(maybeMerchant, {
+    onNone: () => Option.none<string>(),
+    onSome: ({ name, payTo }) =>
+      payees.length === 1 && payees[0]?.toLowerCase() === payTo.toLowerCase() ? Option.some(name) : Option.none(),
+  })
+  return h.p(
+    [h.Class('consent')],
+    [
+      format(locale, 'robots.consent', {
+        daily: form.dailyCap,
+        perPayment: form.perPaymentCap,
+        payees: Option.getOrElse(onlyMerchant, () => payees.join(', ')),
+        hours,
+      }),
+    ],
+  )
+}
+
+const grantFormView = (
+  form: GrantForm,
+  maybeMerchant: Option.Option<Merchant>,
+  locale: Locale,
+  h: HtmlBuilder<Message>,
+): Html => {
   const signing = GrantStep.guards.Signing(form.step)
   const field = (id: string, label: string, value: string, toMessage: (value: string) => Message) => [
     h.label([h.For(id)], [label]),
@@ -115,6 +158,7 @@ const grantFormView = (form: GrantForm, locale: Locale, h: HtmlBuilder<Message>)
       ...field('grant-hours', format(locale, 'robots.hours', {}), form.hours, (value) =>
         Message.UpdatedHours({ value }),
       ),
+      consentView(form, maybeMerchant, locale, h),
       GrantStep.guards.Failed(form.step)
         ? h.p([h.Role('alert'), h.Class('form-error')], [failureText(form.step.failure, locale)])
         : h.empty,
@@ -148,7 +192,7 @@ const robotCard = (robot: RobotView, model: Model, locale: Locale, h: HtmlBuilde
         : h.p([], [format(locale, 'robots.pairingCode', { code: robot.pairingCode })]),
       robot.grant === null ? h.empty : grantSummary(robot.grant, model, locale, h),
       Option.match(maybeForm, {
-        onSome: (form) => grantFormView(form, locale, h),
+        onSome: (form) => grantFormView(form, model.maybeMerchant, locale, h),
         onNone: () =>
           canGrant
             ? h.button(

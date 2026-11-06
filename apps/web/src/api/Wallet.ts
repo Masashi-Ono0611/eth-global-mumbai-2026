@@ -105,6 +105,7 @@ export const signRevoke = (grantId: string, assertion: AssertionRequest) =>
 
 export const Catalogue = Schema.Struct({
   merchantId: Schema.String,
+  name: Schema.String,
   payTo: Schema.optionalKey(Nullable(Schema.String)),
   items: Schema.Array(
     Schema.Struct({ itemId: Schema.String, name: Schema.String, amount: Schema.String, restricted: Schema.Boolean }),

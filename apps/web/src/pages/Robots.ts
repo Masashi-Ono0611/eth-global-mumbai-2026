@@ -48,20 +48,23 @@ export const Revoking = defineTaggedUnion({
   Signing: { grantId: Schema.String },
   Failed: { grantId: Schema.String, failure: ActionFailure },
 })
+/** The demo merchant whose receiving address a new grant allowlists by default. */
+const Merchant = Schema.Struct({ name: Schema.String, payTo: Schema.String })
+export type Merchant = typeof Merchant.Type
 export const Model = Schema.Struct({
   robots: RobotsState,
   newRobotName: Schema.String,
   adding: Adding,
   maybeGrantForm: Schema.Option(GrantForm),
   revoking: Revoking,
-  maybePayee: Schema.Option(Schema.String),
+  maybeMerchant: Schema.Option(Merchant),
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
 export const Message = defineMessageUnion({
-  SucceededLoadRobots: { robots: Schema.Array(RobotView), maybePayee: Schema.Option(Schema.String) },
+  SucceededLoadRobots: { robots: Schema.Array(RobotView), maybeMerchant: Schema.Option(Merchant) },
   FailedLoadRobots: { error: Schema.String, signedOut: Schema.Boolean },
   ClickedReload: {},
   UpdatedRobotName: { value: Schema.String },
@@ -91,8 +94,10 @@ export const LoadRobots = Command.define('LoadRobots', {
   execute: Effect.gen(function* () {
     const { robots } = yield* listRobots
     const catalogue = yield* Effect.option(loadCatalogue)
-    const maybePayee = Option.flatMap(catalogue, (found) => Option.fromNullishOr(found.payTo))
-    return Message.SucceededLoadRobots({ robots, maybePayee })
+    const maybeMerchant = Option.flatMap(catalogue, ({ name, payTo }) =>
+      Option.map(Option.fromNullishOr(payTo), (address) => ({ name, payTo: address })),
+    )
+    return Message.SucceededLoadRobots({ robots, maybeMerchant })
   }).pipe(
     Effect.catch((failure) =>
       Effect.succeed(Message.FailedLoadRobots({ error: failure.error, signedOut: isSignedOut(failure) })),
@@ -169,7 +174,7 @@ export const init = (): UpdateReturn => ({
     adding: Adding.Idle(),
     maybeGrantForm: Option.none(),
     revoking: Revoking.Idle(),
-    maybePayee: Option.none(),
+    maybeMerchant: Option.none(),
   },
   commands: [LoadRobots()],
 })
@@ -180,12 +185,12 @@ const openGrantForm = (model: Model, robotId: string): GrantForm => ({
   robotId,
   dailyCap: '1.00',
   perPaymentCap: '0.30',
-  allowlist: Option.getOrElse(model.maybePayee, () => ''),
+  allowlist: Option.match(model.maybeMerchant, { onNone: () => '', onSome: ({ payTo }) => payTo }),
   hours: '24',
   step: GrantStep.Editing(),
 })
 
-const addresses = (text: string) => text.split(/[\s,]+/).filter(String.isNonEmpty)
+export const addresses = (text: string) => text.split(/[\s,]+/).filter(String.isNonEmpty)
 
 const submitGrant = (model: Model): UpdateReturn =>
   Option.match(model.maybeGrantForm, {
@@ -218,8 +223,8 @@ const updateGrantForm = (model: Model, change: (form: GrantForm) => GrantForm): 
 
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match(message, {
-    SucceededLoadRobots: ({ robots, maybePayee }) => ({
-      model: modifyFields(model, { robots: () => RobotsState.Loaded({ robots }), maybePayee: () => maybePayee }),
+    SucceededLoadRobots: ({ robots, maybeMerchant }) => ({
+      model: modifyFields(model, { robots: () => RobotsState.Loaded({ robots }), maybeMerchant: () => maybeMerchant }),
     }),
     FailedLoadRobots: ({ error, signedOut }) => ({
       model: modifyFields(model, {
