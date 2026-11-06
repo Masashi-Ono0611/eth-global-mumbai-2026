@@ -7,7 +7,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { type EpisodeActivity, leftToday, type RobotView, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
-import { receiveBody } from '../Receive.ts'
+import { onlyUsdcOnArc, receiveBody } from '../Receive.ts'
 import { episodeRouter, episodesRouter, robotConsoleRouter, robotsRouter, welcomeRouter } from '../route.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
 import { walletSkeleton } from '../Skeleton.ts'
@@ -64,7 +64,6 @@ const stepsCardClassName = 'mx-1 mt-3 grid gap-2 rounded-card bg-surface p-4'
 const stepRowClassName = 'grid min-h-11 grid-cols-[1.25rem_1fr_auto] items-center gap-2'
 const stepActionClassName =
   'inline-flex min-h-10 cursor-pointer items-center rounded-control bg-ink px-3.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
-const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
 
@@ -75,14 +74,10 @@ const balanceView = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Html 
       home.wallet.balance === null
         ? h.p([h.Class('text-muted')], [format(locale, 'home.balanceUnknown', {})])
         : h.p([h.Class(amountClassName)], [home.wallet.balance.usdc, h.span([h.Class(amountUnitClassName)], ['USDC'])]),
-      h.p(
-        [h.Class(spentClassName)],
-        [
-          home.spentLastDay === '0'
-            ? format(locale, 'home.spentNone', {})
-            : format(locale, 'home.spent', { amount: usdc(home.spentLastDay) }),
-        ],
-      ),
+      // Nothing spent is said by the empty Payments list; the line shows only when money moved.
+      home.spentLastDay === '0'
+        ? h.empty
+        : h.p([h.Class(spentClassName)], [format(locale, 'home.spent', { amount: usdc(home.spentLastDay) })]),
     ],
   )
 
@@ -310,7 +305,7 @@ const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<M
           [
             h.h2([...render.title, h.Class(sheetTitleClassName)], [format(locale, 'receive.title', {})]),
             ...receiveBody({ address, copy: model.copy, onCopy: Message.ClickedCopyAddress({ address }), locale, h }),
-            h.p([...render.description, h.Class(noteClassName)], [format(locale, 'receive.note', {})]),
+            onlyUsdcOnArc(locale, h, render.description),
           ],
           format(locale, 'profile.close', {}),
           h,

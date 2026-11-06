@@ -87,6 +87,8 @@ describe('/wallet', () => {
       { update: Wallet.update, view },
       given(loadedHome(fresh)),
       expect(role('heading', { name: 'Getting started' })).toExist(),
+      // Nothing spent: no line about it (the empty Payments list says so).
+      expect(text('Your robots spent', { exact: false })).not.toExist(),
       expect(role('link', { name: 'Connect' })).toHaveAttr('href', '/app/welcome'),
       expect(role('link', { name: 'Add' })).not.toExist(),
     )
@@ -129,6 +131,7 @@ describe('/wallet', () => {
       Command.expectExact(Wallet.CopyAddress({ address })),
       Command.resolve(Wallet.CopyAddress, Wallet.Message.CompletedCopyAddress({ copied: true })),
       expect(text('Address copied')).toExist(),
+      expect(text('Send only USDC on Arc.')).toExist(),
     )
   })
 

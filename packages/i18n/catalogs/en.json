@@ -145,7 +145,6 @@
     "balanceLabel": "Balance",
     "balanceUnknown": "Balance unavailable right now",
     "spent": "Your robots spent {amount} USDC in the last 24 hours",
-    "spentNone": "Your robots spent nothing in the last 24 hours",
     "actions": "Wallet actions",
     "send": "Send",
     "soon": "Soon",
@@ -200,7 +199,9 @@
     "copy": "Copy address",
     "copied": "Address copied",
     "copyFailed": "Copy did not work. Select the address instead.",
-    "note": "Send only USDC on Arc."
+    "note": "Send only USDC on Arc.",
+    "sendOnly": "Send only",
+    "on": "on"
   },
   "thread": {
     "back": "Back to the wallet",
@@ -327,7 +328,6 @@
     "telegramLead": "Your robot messages you on Telegram when it needs your OK, and tells you what it paid. You can say no right in the chat.",
     "skip": "Not now",
     "fundTitle": "Add money",
-    "fundLead": "Your robots spend from here, never past their allowance. Send USDC on Arc.",
     "fundWaiting": "Watching for your USDC…",
     "later": "I'll add money later",
     "robotTitle": "Add your robot",
