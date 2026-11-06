@@ -4,7 +4,7 @@ import { BrainModel } from './Errand.ts'
 import { IntentView } from './Intent.ts'
 
 // Vita's voice in the robot conversation (no flag; on whenever 0G is configured). The owner holds to talk; the Worker sends the clip
-// to the 0G Router's omni model, which only says what it heard and what kind of turn it is. The voice never decides a
+// to the 0G Router's sealed whisper and its transcript to the sealed 0GM, which only says what kind of turn it is. The voice never decides a
 // purchase: a `buy` turn creates the same errand intent as a Buy chip, and 0G's `decide` stays the only decision.
 // Everything Vita says about an errand is built by code from the intent's real state, never by the voice model.
 
@@ -43,7 +43,7 @@ const VoiceSpeech = Schema.NullOr(Schema.Struct({ url: Schema.String }))
 
 /** The answer to one clip. */
 export const VoiceTurn = Schema.Struct({
-  /** What Vita heard (the omni model's English transcript), shown as the owner's bubble. Never stored or logged. */
+  /** What Vita heard (whisper's English transcript), shown as the owner's bubble. Never stored or logged. */
   heard: Schema.String,
   intent: VoiceIntent,
   /** The catalogue item of a `buy` turn. */

@@ -2,7 +2,7 @@ import { Effect, Option, Schema } from 'effect'
 
 // The push-to-talk microphone and Vita's speaker: the browser resources the voice Commands own (RobotVoice.ts). The mic
 // is open only between `startListening` and `stopListening` (the owner holds the button); the clip leaves as a 16 kHz
-// mono WAV data URI, the format the 0G Router's omni models take. Nothing here keeps audio after it is sent.
+// mono WAV data URI; the Worker hands its bytes to the 0G Router's whisper. Nothing here keeps audio after it is sent.
 
 class MicrophoneFailure extends Schema.TaggedError<MicrophoneFailure>()('MicrophoneFailure', {
   /** `superseded`: a newer hold asked for the mic while this one waited; `hidden`: the page was hidden by then. Either

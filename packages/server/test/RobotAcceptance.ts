@@ -65,15 +65,43 @@ const decisionFor = (mode: StubMode, body: unknown) =>
  * A stand-in for the 0G router on 127.0.0.1: answers the `decide` tool call with `pay`, `ask_human` or by the
  * prompt's decision table, hangs past the 10 s timeout, or returns something that is not a tool call. It records what it was sent so the test can check the request shape.
  */
-/** What the stub's omni model "hears" in the next clip (the voice route's JSON), or a failure. */
+/** What the stub "hears" in the next clip: `heard` is whisper's transcript, the whole object the classifier's JSON. */
 export type StubHearing =
   | { readonly heard: string; readonly intent: string; readonly item: string | null; readonly topic?: string | null }
   | 'down'
 
 /** A few bytes that start like an MP3 (ID3): the speech stand-in's answer. */
 export const STUB_SPEECH = new Uint8Array([0x49, 0x44, 0x33, 0x04, 0x00, 0x00])
+/** The provider the stub's transcription names in `x_0g_trace`. */
+const STUB_WHISPER_PROVIDER = '0x00000000000000000000000000000000000000e0'
 
 const isVoiceChat = Schema.is(Schema.Struct({ model: Schema.Literal(VOICE_MODEL) }))
+const ROUTER_PATHS = new Set(['/v1/audio/speech', '/v1/audio/transcriptions', '/v1/chat/completions'])
+
+/**
+ * What the stub keeps of a request: the JSON body, or for the multipart transcription (as OpenAI's) the form's text
+ * fields and the file's type, name and size.
+ */
+const bodyOf = async (request: Request, path: string): Promise<unknown> => {
+  if (path !== '/v1/audio/transcriptions') return request.json()
+  const form = await request.formData()
+  const file = form.get('file')
+  const fields = Object.fromEntries([...form.entries()].filter(([, value]) => typeof value === 'string'))
+  return { ...fields, file: file instanceof File ? { type: file.type, name: file.name, size: file.size } : null }
+}
+
+/** Whisper's transcript (`heard`), or the classifier's JSON for the hearing. */
+const hearingReply = (hearing: Exclude<StubHearing, 'down'>, path: string, count: number) =>
+  path === '/v1/audio/transcriptions'
+    ? Response.json({
+        text: hearing.heard,
+        x_0g_trace: { request_id: `stub-transcribe-request-${count}`, provider: STUB_WHISPER_PROVIDER },
+      })
+    : Response.json({
+        id: `stub-voice-${count}`,
+        choices: [{ message: { role: 'assistant', content: JSON.stringify(hearing) } }],
+        x_0g_trace: { request_id: `stub-voice-request-${count}` },
+      })
 
 export const startZeroGStub = () => {
   let mode: StubMode = 'pay'
@@ -82,20 +110,20 @@ export const startZeroGStub = () => {
   let hearing: StubHearing = 'down'
   let speech = true
   const seen: Array<{ readonly authorization: string | null; readonly body: unknown }> = []
-  /** The voice route's calls (omni and speech), apart from `decide`'s, so decision counts stay exact. */
+  /** The voice route's calls (transcription, classifier, speech), apart from `decide`'s, so decision counts stay exact. */
   const voiceSeen: Array<{ readonly path: string; readonly authorization: string | null; readonly body: unknown }> = []
-  /** The omni model's JSON for the current hearing, or the speech bytes; 'down' and speech off are provider errors. */
+  /**
+   * Whisper's transcript, the classifier's JSON for the current hearing, or the speech bytes; 'down' fails the
+   * transcription and speech off the speech, as provider errors.
+   */
   const voiceReply = (path: string, count: number) => {
     if (path === '/v1/audio/speech')
       return speech
         ? new Response(STUB_SPEECH, { headers: { 'content-type': 'audio/mpeg' } })
         : Response.json({ error: 'speech provider down' }, { status: 503 })
-    if (hearing === 'down') return Response.json({ error: 'provider_error' }, { status: 502 })
-    return Response.json({
-      id: `stub-voice-${count}`,
-      choices: [{ message: { role: 'assistant', content: JSON.stringify(hearing) } }],
-      x_0g_trace: { request_id: `stub-voice-request-${count}` },
-    })
+    return hearing === 'down'
+      ? Response.json({ error: 'provider_error' }, { status: 502 })
+      : hearingReply(hearing, path, count)
   }
   const server = Bun.serve({
     hostname: '127.0.0.1',
@@ -105,9 +133,9 @@ export const startZeroGStub = () => {
       if (path.startsWith('/v1/proxy/signature/'))
         return signatures ? Response.json(await teeSignature(path.slice('/v1/proxy/signature/'.length))) : notFound()
       const authorization = request.headers.get('authorization')
-      if (path !== '/v1/audio/speech' && path !== '/v1/chat/completions') return notFound()
-      const body: unknown = await request.json()
-      if (path === '/v1/audio/speech' || isVoiceChat(body)) {
+      if (!ROUTER_PATHS.has(path)) return notFound()
+      const body = await bodyOf(request, path)
+      if (path !== '/v1/chat/completions' || isVoiceChat(body)) {
         voiceSeen.push({ path, authorization, body })
         return voiceReply(path, voiceSeen.length)
       }

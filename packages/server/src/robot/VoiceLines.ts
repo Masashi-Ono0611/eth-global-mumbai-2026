@@ -51,11 +51,11 @@ export interface VoiceFacts {
 const VoiceTopic = Schema.Literals(['menu', 'limits', 'decider', 'switch_off', 'status', 'other'])
 type VoiceTopic = typeof VoiceTopic.Type
 
-/** The hearing prompt: transcribe and classify. The model writes nothing Vita says. */
+/** The hearing prompt: classify the owner's transcribed words. The model writes nothing Vita says. */
 export const hearingPrompt = (items: ReadonlyArray<CatalogueItem>) =>
   [
     'You are the ears of Vita, a robot duck that runs errands at the Duck Café for its owner.',
-    'The owner just spoke to Vita (audio). Answer with one JSON object and nothing else:',
+    'The owner just spoke to Vita; the user message is the transcript of what they said. Answer with one JSON object and nothing else:',
     '{"heard": what the owner said, in English, at most 200 characters,',
     ' "intent": "buy" when they ask Vita to get, buy or fetch something; "stop" when they ask Vita to stop, cancel or come back; otherwise "question",',
     ` "item": for "buy", the item they asked for, exactly one of ${items.map((item) => `"${item.itemId}"`).join(', ')}, or null when it is not on that list; null otherwise,`,
@@ -83,7 +83,7 @@ export type Hearing =
   | { readonly ok: false; readonly error: string }
 
 /**
- * The omni model's reply as a typed turn. The reason for a failure names the shape (never the text). An item off the
+ * The hearing model's reply as a typed turn. The reason for a failure names the shape (never the text). An item off the
  * menu becomes null, an unknown topic is `other`, and an empty transcript is a failure: Vita does not guess what it did
  * not hear.
  */

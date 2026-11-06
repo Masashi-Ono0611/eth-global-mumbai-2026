@@ -66,7 +66,7 @@ Replies vary each time; the shape stays (8 of 8 turns on 6 Nov, through the demo
 
 Safe to say:
 
-- "Vita's ears, brain and voice run on the 0G Router: `qwen3.5-omni-plus` hears and answers, `minimax-speech` speaks."
+- "Vita's ears, brain and voice run on the 0G Router: the sealed `whisper-large-v3` hears, the sealed `0gm-1.0-35b-a3b` understands, `minimax-speech` speaks a line built by code."
 - "In the app, 0G makes every purchase decision, and each one is recorded on 0G Storage and anchored on 0G Chain."
 
 Do not say:
