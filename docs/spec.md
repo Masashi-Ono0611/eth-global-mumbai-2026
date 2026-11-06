@@ -413,3 +413,37 @@ tokens, keys, signatures or World ID tokens.
 
 On-chain Agent Pass verification (S5b prototype) · camera frames and a vision decision · duck walking · a read-only
 MCP server over the wallet · the float path replaced by a policy-bound escrow · CCTP funding · ENS names · MPP.
+
+## 14. Telegram notifications (added 6 Nov 17:40 IST; Kris, via session -0f; built by -0f)
+
+The robot speaks to its owner through the Telegram bot `@vitaquack_bot` (created by Kris on 6 Nov): the owner learns
+in real life that the robot wants an approval, paid, was refused, or lost its allowance, without the wallet page open.
+Telegram only informs: **it never approves anything**, approvals stay World ID gated on `/wallet/approvals/:id`, the
+Arc enforcer is unchanged, and the chip never sees the token.
+
+- **Link.** The wallet's avatar sheet has **Connect Telegram**: `POST /api/telegram/link` (session, same origin) answers a
+  single-use code (10 min) and the page opens `https://t.me/vitaquack_bot?start=<code>`. Telegram calls
+  `POST /api/telegram/webhook`, verified by the `X-Telegram-Bot-Api-Secret-Token` header against
+  `TELEGRAM_WEBHOOK_SECRET`; `/start <code>` consumes the code and stores `telegram_links {account_id, chat_id,
+  linked_at}`; `/stop` unlinks; anything else gets a short help reply. The webhook is set once after a deploy by
+  `packages/server/scripts/telegram-set-webhook.ts` (reads `.env.main.local`, never CI; note that `setWebhook` stops
+  `getUpdates`). No chat id is ever hard-coded.
+- **Events.** Each is a row in a D1 `notifications` outbox `{id, account_id, kind, payload_json, status, attempts,
+  created_at}`, unique per `(kind, subject id)` so an event is delivered once. Delivery runs in `ctx.waitUntil` after
+  the triggering request; undelivered rows are retried at the next enqueue (a Worker cron only if it is one line in
+  `alchemy.run.ts`). **A notification failure never fails or delays a payment or an approval.**
+  1. `approval_needed` (where the approval row is written): "🦆 I want to buy Thali, 2.00 USDC at Duck Café. That's
+     over your 1.00 per-payment limit." with an inline URL button **Review and approve** → the approval page.
+  2. `payment_settled`: "✅ Paid 0.10 USDC for Chai at Duck Café" with **View on Arc** → `explorer.arc.io/tx/<hash>`.
+  3. `approval_denied` / `approval_expired`: "⛔ Okay, I didn't buy the Thali."
+  4. `grant_revoked`; `budget_low` (under 20 % of the daily cap left) is nice-to-have.
+- **Secrets** (§10 pattern): `APP_TELEGRAM_BOT_TOKEN` → `TELEGRAM_BOT_TOKEN`, `APP_TELEGRAM_WEBHOOK_SECRET` →
+  `TELEGRAM_WEBHOOK_SECRET`, decoded optionally: without them notifications are off, never a 500. Messages carry
+  amounts, item names and links only; no token in logs, commits or messages.
+- **Paths.** `packages/server/src/telegram/**`, one migration (`telegram_links`, `notifications`), the webhook script;
+  one enqueue call at each event's writer (`world/Approve.ts`, which also gains the `changes` check on its approval
+  insert so a skipped insert never answers an approval URL; the settlement success path in `robot/`; the revoke path);
+  in `apps/web` only the Connect Telegram row and its catalog keys.
+- **Tests.** Webhook secret check (403), link code single-use and expiry, outbox dedup, and the payment path still
+  succeeding when Telegram answers 500 (mocked). Live: link Kris's chat, buy chai → the paid message, buy thali → the
+  approval message with a working button.
