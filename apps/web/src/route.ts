@@ -6,6 +6,7 @@ import { defineRouteUnion, literal, mapTo, oneOf, parseUrlWithFallback, slash, s
 export const AppRoute = defineRouteUnion({
   Home: {},
   Wallet: {},
+  Welcome: {},
   Robots: {},
   RobotConsole: { robotId: Schema.String },
   Approval: { approvalId: Schema.String },
@@ -23,6 +24,7 @@ const app = literal(APP_BASE.slice(1))
 
 export const homeRouter = pipe(app, mapTo(AppRoute.Home))
 export const walletRouter = pipe(app, slash(literal('wallet')), mapTo(AppRoute.Wallet))
+export const welcomeRouter = pipe(app, slash(literal('welcome')), mapTo(AppRoute.Welcome))
 export const robotsRouter = pipe(app, slash(literal('wallet')), slash(literal('robots')), mapTo(AppRoute.Robots))
 export const robotConsoleRouter = pipe(
   app,
@@ -63,6 +65,7 @@ const parser = oneOf(
   episodesRouter,
   robotEpisodesRouter,
   walletRouter,
+  welcomeRouter,
   robotConsoleRouter,
   merchantRouter,
   gateRouter,

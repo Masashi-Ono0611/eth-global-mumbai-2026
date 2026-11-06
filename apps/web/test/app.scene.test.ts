@@ -3,7 +3,14 @@ import { Option } from 'effect'
 import { Command, Mount, click, expect, given, label, role, scene, selector, submit, text, type } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect as vitestExpect, test } from 'vitest'
-import { CreatePasskeyWallet, OpenWallet, ReadSession, SignInWithPasskey, SignOut } from '../src/command.ts'
+import {
+  CreatePasskeyWallet,
+  OpenWallet,
+  OpenWelcome,
+  ReadSession,
+  SignInWithPasskey,
+  SignOut,
+} from '../src/command.ts'
 import * as Telegram from '../src/Telegram.ts'
 import { Message } from '../src/message.ts'
 import { AuthState } from '../src/model.ts'
@@ -47,6 +54,7 @@ describe('routes', () => {
 
   test('owner, merchant and gate paths parse into their pages and start loading', () => {
     vitestExpect(AppRoute.guards.Wallet(page('/app/wallet').route)).toBe(true)
+    vitestExpect(AppRoute.guards.Welcome(page('/app/welcome').route)).toBe(true)
     vitestExpect(AppRoute.guards.Robots(page('/app/wallet/robots').route)).toBe(true)
     vitestExpect(page('/app/robot/abc').route).toEqual(AppRoute.RobotConsole({ robotId: 'abc' }))
     vitestExpect(AppRoute.guards.Merchant(page('/app/merchant').route)).toBe(true)
@@ -76,7 +84,7 @@ describe('passkey wallet', () => {
     scene({ update, view }, given(page('/app')), expect(role('status')).toHaveText('Loading...'))
   })
 
-  test('creating a passkey wallet on the sign-in page opens the wallet', () => {
+  test('creating a passkey wallet on the sign-in page opens the first steps; signing in opens the wallet', () => {
     scene(
       { update, view },
       given(signedOut('/app')),
@@ -86,6 +94,14 @@ describe('passkey wallet', () => {
       expect(role('button', { name: 'Sign in with passkey' })).toBeDisabled(),
       Command.expectExact(CreatePasskeyWallet({ displayName: 'Ana' })),
       Command.resolve(CreatePasskeyWallet, Message.SucceededCreatePasskeyWallet({ session })),
+      Command.expectExact(OpenWelcome()),
+      Command.resolve(OpenWelcome, Message.CompletedOpenWelcome()),
+    )
+    scene(
+      { update, view },
+      given(signedOut('/app')),
+      click(role('button', { name: 'Sign in with passkey' })),
+      Command.resolve(SignInWithPasskey, Message.SucceededSignInWithPasskey({ session })),
       Command.expectExact(OpenWallet()),
       Command.resolve(OpenWallet, Message.CompletedOpenWallet()),
     )

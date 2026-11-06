@@ -4,7 +4,15 @@ import { Dialog } from '@foldkit/ui'
 import { sheetFolds } from './Sheet.ts'
 import type { SessionView } from '@ethmumbai/auth/config'
 import { modifyFields } from 'foldkit/struct'
-import { CreatePasskeyWallet, OpenWallet, ReadSession, SignInWithPasskey, SignOut, type Services } from './command.ts'
+import {
+  CreatePasskeyWallet,
+  OpenWallet,
+  OpenWelcome,
+  ReadSession,
+  SignInWithPasskey,
+  SignOut,
+  type Services,
+} from './command.ts'
 import { Message } from './message.ts'
 import { AuthState, type Flags, type Model } from './model.ts'
 import {
@@ -16,6 +24,7 @@ import {
   foldMerchant,
   foldAddRobot,
   foldWallet,
+  foldWelcome,
   initPages,
 } from './pages.ts'
 import { AppRoute, routeFromPathname } from './route.ts'
@@ -58,9 +67,10 @@ const profileSheet = sheetFolds<Model, Message>({
  * Signed in: the sign-in page hands over to the wallet; any other page reloads its data, which it first read
  * without a session.
  */
-const signedIn = (model: Model, session: SessionView): UpdateReturn => {
+const signedIn = (model: Model, session: SessionView, isNewWallet = false): UpdateReturn => {
   const next = modifyFields(model, { auth: () => AuthState.SignedIn({ session }), displayName: () => '' })
-  if (AppRoute.guards.Home(model.route)) return { model: next, commands: [OpenWallet()] }
+  // A wallet created just now starts with the first steps; an owner signing back in goes straight to the wallet.
+  if (AppRoute.guards.Home(model.route)) return { model: next, commands: [isNewWallet ? OpenWelcome() : OpenWallet()] }
   const pages = initPages(model.route)
   return { model: { ...next, ...pages.pages }, commands: 'commands' in pages ? pages.commands : [] }
 }
@@ -81,7 +91,7 @@ export const update = (model: Model, message: Message): UpdateReturn =>
         commands: [CreatePasskeyWallet({ displayName })],
       }
     },
-    SucceededCreatePasskeyWallet: ({ session }) => signedIn(model, session),
+    SucceededCreatePasskeyWallet: ({ session }) => signedIn(model, session, true),
     FailedCreatePasskeyWallet: ({ failure }) => ({
       model: modifyFields(model, { auth: () => AuthState.Refused({ failure }) }),
     }),
@@ -127,6 +137,8 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     GotTelegramMessage: ({ message: telegramMessage }) => foldTelegram(model, telegramMessage),
     GotProfileSheetMessage: ({ message: sheetMessage }) => profileSheet.fold(model, sheetMessage),
     CompletedOpenWallet: () => ({ model }),
+    CompletedOpenWelcome: () => ({ model }),
+    GotWelcomeMessage: ({ message: welcomeMessage }) => foldWelcome(model, welcomeMessage),
     GotWalletMessage: ({ message: walletMessage }) => foldWallet(model, walletMessage),
     GotAddRobotMessage: ({ message: addRobotMessage }) => foldAddRobot(model, addRobotMessage),
     GotConsoleMessage: ({ message: consoleMessage }) => foldConsole(model, consoleMessage),

@@ -6,7 +6,7 @@ import * as Navigation from 'foldkit/navigation'
 import { Message } from './message.ts'
 import type { Clipboard } from './Clipboard.ts'
 import { Passkeys } from './Passkey.ts'
-import { walletRouter } from './route.ts'
+import { walletRouter, welcomeRouter } from './route.ts'
 import type { AuthFailure } from './model.ts'
 
 const failureOf = (error: unknown): AuthFailure => (Predicate.isTagged(error, 'PasskeyFailed') ? 'passkey' : 'server')
@@ -57,6 +57,12 @@ export const SignOut = Command.define('SignOut', {
 export const OpenWallet = Command.define('OpenWallet', {
   messages: [Message.CompletedOpenWallet],
   execute: Navigation.load(walletRouter()).pipe(Effect.as(Message.CompletedOpenWallet())),
+})
+
+/** A new owner, just signed up, goes through the first steps (Telegram, money in, a robot) instead of the wallet. */
+export const OpenWelcome = Command.define('OpenWelcome', {
+  messages: [Message.CompletedOpenWelcome],
+  execute: Navigation.load(welcomeRouter()).pipe(Effect.as(Message.CompletedOpenWelcome())),
 })
 
 /** What the Commands run against: the browser provides these in entry.ts. */

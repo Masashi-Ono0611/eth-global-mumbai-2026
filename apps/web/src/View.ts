@@ -16,6 +16,7 @@ import * as Merchant from './pages/merchant/Merchant.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { addRobotView } from './pages/AddRobotView.ts'
 import { walletView } from './pages/WalletView.ts'
+import { welcomeView } from './pages/WelcomeView.ts'
 import { AppRoute, episodesRouter, homeRouter, walletRouter } from './route.ts'
 import * as Telegram from './Telegram.ts'
 // STYLES
@@ -169,6 +170,22 @@ const walletPage = (model: Model, h: HtmlBuilder<Message>): Page =>
     h,
   )
 
+const welcomePage = (model: Model, h: HtmlBuilder<Message>): Page =>
+  childPage(
+    model,
+    format(model.context.locale, 'welcome.title', {}),
+    model.maybeWelcome,
+    (welcome) =>
+      h.submodel({
+        slotId: 'welcome',
+        model: welcome,
+        view: welcomeView,
+        viewInputs: { locale: model.context.locale },
+        toParentMessage: (message) => Message.GotWelcomeMessage({ message }),
+      }),
+    h,
+  )
+
 const robotsPage = (model: Model, h: HtmlBuilder<Message>): Page =>
   childPage(
     model,
@@ -290,6 +307,7 @@ const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
     Home: () => ({ title: format(locale, 'landing.title', {}), body: homeView(model, h) }),
     NotFound: () => ({ title: format(locale, 'common.notFoundTitle', {}), body: notFoundView(locale, h) }),
     Wallet: () => walletPage(model, h),
+    Welcome: () => welcomePage(model, h),
     Robots: () => robotsPage(model, h),
     RobotConsole: () => consolePage(model, h),
     Approval: () => approvalPage(model, h),
@@ -306,6 +324,7 @@ const isOwnerRoute = (route: AppRoute): boolean =>
   AppRoute.match(route, {
     Home: () => true,
     Wallet: () => true,
+    Welcome: () => true,
     Robots: () => true,
     RobotConsole: () => true,
     Approval: () => true,

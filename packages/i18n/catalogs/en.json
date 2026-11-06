@@ -303,6 +303,22 @@
     "simCode": "{name} runs in the simulator. Open it in a new tab and it pairs itself with this code (works once, 10 minutes):",
     "openSimulator": "Open simulator"
   },
+  "welcome": {
+    "title": "Welcome",
+    "progress": "Step {step} of 3",
+    "toWallet": "Go to the wallet",
+    "telegramTitle": "Where should your robot reach you?",
+    "telegramLead": "Your robot messages you on Telegram when it needs your OK, and tells you what it paid. You can say no right in the chat.",
+    "skip": "Not now",
+    "fundTitle": "Add money",
+    "fundLead": "Your robots spend from this wallet, never more than you allow. Send USDC on the Arc network to it.",
+    "fundWaiting": "Watching for your USDC…",
+    "later": "I'll add money later",
+    "robotTitle": "Add your robot",
+    "robotLead": "Pair a robot, or try the duck in the simulator, then give it an allowance.",
+    "funded": "Your wallet has {balance} USDC.",
+    "addRobot": "Add a robot"
+  },
   "telegram": {
     "title": "Telegram",
     "hint": "Get a message when your robot needs your OK or has paid.",

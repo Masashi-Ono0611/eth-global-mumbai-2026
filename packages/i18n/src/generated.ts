@@ -313,7 +313,21 @@ export interface MessageArgumentsByKey<T = string> {
   'wallet.open': Readonly<Record<string, never>>
   'wallet.signInFirst': Readonly<Record<string, never>>
   'wallet.title': Readonly<Record<string, never>>
+  'welcome.addRobot': Readonly<Record<string, never>>
+  'welcome.fundLead': Readonly<Record<string, never>>
+  'welcome.fundTitle': Readonly<Record<string, never>>
+  'welcome.fundWaiting': Readonly<Record<string, never>>
+  'welcome.funded': { readonly balance: string | number }
+  'welcome.later': Readonly<Record<string, never>>
+  'welcome.progress': { readonly step: string | number }
+  'welcome.robotLead': Readonly<Record<string, never>>
+  'welcome.robotTitle': Readonly<Record<string, never>>
+  'welcome.skip': Readonly<Record<string, never>>
+  'welcome.telegramLead': Readonly<Record<string, never>>
+  'welcome.telegramTitle': Readonly<Record<string, never>>
+  'welcome.title': Readonly<Record<string, never>>
+  'welcome.toWallet': Readonly<Record<string, never>>
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = 'e3c076d98a95b770958116ebe7a9731656c6359c97e1ebfa3fa40a439cc95c76'
+export const catalogVersion = '79bd59d320958ac6ade7c804e7e5f0f468328c7d61256e98d85d2b78c0836cf7'

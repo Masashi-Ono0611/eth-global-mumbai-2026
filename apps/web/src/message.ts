@@ -4,7 +4,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { Dialog } from '@foldkit/ui'
 import { AuthFailure } from './model.ts'
 import * as Telegram from './Telegram.ts'
-import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
+import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet, Welcome } from './pageModules.ts'
 
 export const Message = defineMessageUnion({
   UpdatedDisplayName: { value: Schema.String },
@@ -22,9 +22,11 @@ export const Message = defineMessageUnion({
   GotProfileSheetMessage: { message: Dialog.Message },
   GotTelegramMessage: { message: Telegram.Message },
   CompletedOpenWallet: {},
+  CompletedOpenWelcome: {},
   SucceededSignOut: {},
   FailedSignOut: {},
   GotWalletMessage: { message: Wallet.Message },
+  GotWelcomeMessage: { message: Welcome.Message },
   GotAddRobotMessage: { message: AddRobot.Message },
   GotConsoleMessage: { message: RobotConsole.Message },
   GotApprovalMessage: { message: Approval.Message },

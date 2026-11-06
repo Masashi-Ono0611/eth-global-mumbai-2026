@@ -304,6 +304,22 @@ export const en: Readonly<Record<MessageKey, string>> = {
   'addRobot.simCode':
     '{name} runs in the simulator. Open it in a new tab and it pairs itself with this code (works once, 10 minutes):',
   'addRobot.openSimulator': 'Open simulator',
+  'welcome.title': 'Welcome',
+  'welcome.progress': 'Step {step} of 3',
+  'welcome.toWallet': 'Go to the wallet',
+  'welcome.telegramTitle': 'Where should your robot reach you?',
+  'welcome.telegramLead':
+    'Your robot messages you on Telegram when it needs your OK, and tells you what it paid. You can say no right in the chat.',
+  'welcome.skip': 'Not now',
+  'welcome.fundTitle': 'Add money',
+  'welcome.fundLead':
+    'Your robots spend from this wallet, never more than you allow. Send USDC on the Arc network to it.',
+  'welcome.fundWaiting': 'Watching for your USDC…',
+  'welcome.later': "I'll add money later",
+  'welcome.robotTitle': 'Add your robot',
+  'welcome.robotLead': 'Pair a robot, or try the duck in the simulator, then give it an allowance.',
+  'welcome.funded': 'Your wallet has {balance} USDC.',
+  'welcome.addRobot': 'Add a robot',
   'telegram.title': 'Telegram',
   'telegram.hint': 'Get a message when your robot needs your OK or has paid.',
   'telegram.checking': 'Checking…',
