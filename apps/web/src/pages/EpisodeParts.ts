@@ -13,7 +13,7 @@ export const backClassName =
 export const titleClassName = 'font-display text-[1.7rem] leading-tight font-bold text-balance'
 export const mutedClassName = 'text-[0.92rem] text-muted text-pretty'
 
-const auditCardClassName =
+export const auditCardClassName =
   'grid justify-items-start gap-3 rounded-card bg-surface p-4 wrap-anywhere *:max-w-full [&_a]:font-semibold [&_a]:text-paid [&_a]:decoration-paid/40 [&>h2]:font-display [&>h2]:text-lg [&>h2]:font-bold'
 /** Label over value, one column: the card is phone-width. */
 const fieldListClassName =
@@ -81,23 +81,32 @@ const MONO: ReadonlySet<Field> = new Set<Field>([
   'teeSigner',
 ])
 
+/** Label over value for the rows that have a value; ids and hashes (`mono`) are monospaced. */
+export const definitionList = <M>(
+  rows: ReadonlyArray<readonly [label: string, value: string | Html | null, mono: boolean]>,
+  h: HtmlBuilder<M>,
+): Html =>
+  h.dl(
+    [h.Class(fieldListClassName)],
+    rows.flatMap(([label, value, mono]) =>
+      value === null ? [] : [h.dt([], [label]), h.dd(mono ? [h.Class(monoValueClassName)] : [], [value])],
+    ),
+  )
+
 /** A definition list of the fields that have a value. */
 export const fields = (
   rows: ReadonlyArray<readonly [Field, string | Html | null]>,
   locale: Locale,
   h: HtmlBuilder<Message>,
 ): Html =>
-  h.dl(
-    [h.Class(fieldListClassName)],
-    rows.flatMap(([field, value]) =>
-      value === null
-        ? []
-        : [
-            h.dt([], [format(locale, 'episode.field', { field })]),
-            h.dd(MONO.has(field) ? [h.Class(monoValueClassName)] : [], [value]),
-          ],
-    ),
+  definitionList(
+    rows.map(([field, value]) => [format(locale, 'episode.field', { field }), value, MONO.has(field)] as const),
+    h,
   )
+
+/** Why an owner's or a reader's request failed, announced. */
+export const alertLine = <M>(error: string, locale: Locale, h: HtmlBuilder<M>): Html =>
+  h.p([h.Role('alert'), h.Class(alertTextClassName)], [format(locale, 'common.errorDetail', { message: error })])
 
 export const card = (kind: Card, locale: Locale, content: ReadonlyArray<Html>, h: HtmlBuilder<Message>): Html =>
   h.section([h.Class(auditCardClassName)], [h.h2([], [format(locale, 'episode.card', { card: kind })]), ...content])

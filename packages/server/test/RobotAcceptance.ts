@@ -1,11 +1,13 @@
 import { expect } from 'bun:test'
 import type { TestApi } from 'alchemy/Test/Bun'
 import { TeeProof } from '@ethmumbai/protocol/Errand'
+import { ProofList } from '@ethmumbai/protocol/Proof'
 import { Effect, Schema } from 'effect'
 import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { keccak256, sha256, stringToHex } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
+import { TEST_EPISODE_LOG } from './AuditAcceptance.ts'
 import { type Caps, freshConnections, grantRow, randomId, sampleGrant, SPEC_CAPS } from './AgentSamples.ts'
 import { TEST_MERCHANT_PAY_TO } from './MerchantAcceptance.ts'
 import { makeSoftwareAuthenticator, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
@@ -164,6 +166,8 @@ const evidenceRoundTrip = (appUrl: string, episodeId: string) =>
   Effect.gen(function* () {
     const evidence = yield* HttpClient.get(`${appUrl}/api/evidence/${episodeId}`)
     expect(yield* evidence.json).toMatchObject({ episodeId, status: 'pending' })
+    // Not on 0G yet: no public proof.
+    expect((yield* HttpClient.get(`${appUrl}/api/proofs/${episodeId}`)).status).toBe(404)
     const wrongToken = yield* HttpClient.get(`${appUrl}/api/evidence/pending`, {
       headers: { authorization: 'Bearer nope' },
     })
@@ -186,6 +190,47 @@ const evidenceRoundTrip = (appUrl: string, episodeId: string) =>
     expect(uploaded.status).toBe(200)
     const recorded = yield* (yield* HttpClient.get(`${appUrl}/api/evidence/${episodeId}`)).json
     expect(recorded).toMatchObject({ status: 'uploaded', ...proof, payload: { episodeId } })
+    yield* publicProof(appUrl, episodeId, proof)
+  })
+
+/**
+ * Once on 0G the episode is a public proof, without a session: listed with only what the anchored JSON holds (never the
+ * robot's name or the decision input), and its pointer names the root and the EpisodeLog contract to check it against.
+ */
+const publicProof = (
+  appUrl: string,
+  episodeId: string,
+  proof: { readonly rootHash: string; readonly storageTx: string; readonly logTx: string },
+) =>
+  Effect.gen(function* () {
+    const listed = yield* HttpClient.get(`${appUrl}/api/proofs`).pipe(
+      Effect.flatMap((response) => response.json),
+      Effect.flatMap(Schema.decodeUnknownEffect(ProofList)),
+    )
+    expect(listed.anchors).toMatchObject({ chainId: 16602, episodeLog: TEST_EPISODE_LOG })
+    const entry = listed.proofs.find((candidate) => candidate.episodeId === episodeId)
+    expect(entry).toMatchObject({ rootHash: proof.rootHash, logTx: proof.logTx })
+    expect(Object.keys(entry ?? {}).toSorted()).toEqual([
+      'action',
+      'episodeId',
+      'frames',
+      'item',
+      'logTx',
+      'model',
+      'paymentTx',
+      'rootHash',
+      'state',
+      'teeProofs',
+      'uploadedAt',
+    ])
+    const pointer = yield* (yield* HttpClient.get(`${appUrl}/api/proofs/${episodeId}`)).json
+    expect(pointer).toMatchObject({ episodeId, ...proof, anchors: { episodeLog: TEST_EPISODE_LOG } })
+    expect((yield* HttpClient.get(`${appUrl}/api/proofs?after=nope`)).status).toBe(400)
+    const after = yield* HttpClient.get(`${appUrl}/api/proofs?after=${entry?.uploadedAt ?? 0}.${episodeId}`).pipe(
+      Effect.flatMap((response) => response.json),
+      Effect.flatMap(Schema.decodeUnknownEffect(ProofList)),
+    )
+    expect(after.proofs.map((candidate) => candidate.episodeId)).not.toContain(episodeId)
   })
 
 const Invoice = Schema.Struct({ id: Schema.String })
