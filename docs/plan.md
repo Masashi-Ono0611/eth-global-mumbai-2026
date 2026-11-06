@@ -77,7 +77,7 @@ workers build from `docs/spec.md` while Kris does the prerequisites and the team
 | Time | Beat |
 | --- | --- |
 | 0:00 | The problem: don't give a robot your wallet, give it a budget |
-| 0:20 | Owner (passkey, funded on Arc) grants Vitaquack's chip 1.00 USDC a day, 0.30 per payment, Duck Café only, on the consent screen (the form defaults; an approved 0.50 restricted item still counts against the daily cap, so 0.50/day would revert) |
+| 0:20 | Owner (passkey, funded on Arc) grants Vitaquack's chip 5.00 USDC a day, 1.00 per payment, Duck Café only, on the consent screen (the form defaults; chai/samosa go through, the 2.00 thali needs World approval over the cap, cigarettes need it as a restricted off-list payee; approved payments count against the daily cap) |
 | 0:50 | "Buy me a chai": 0G decides (show the request id) → the chip signs → paid on Arc (explorer link) → **the gate opens** |
 | 1:50 | Mock cigarette pack → Agent Pass on the phone → **deny: nothing paid** → approve: paid |
 | 2:50 | Revoke in the wallet → the next attempt fails on-chain |
