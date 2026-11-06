@@ -6,13 +6,18 @@ export interface MessageArgumentsByKey<T = string> {
   'approval.amount': Readonly<Record<string, never>>
   'approval.approveWithWorld': Readonly<Record<string, never>>
   'approval.deny': Readonly<Record<string, never>>
+  'approval.errandEnded': { readonly state: string | number }
   'approval.explainer': Readonly<Record<string, never>>
+  'approval.followStopped': Readonly<Record<string, never>>
+  'approval.following': Readonly<Record<string, never>>
   'approval.invoice': Readonly<Record<string, never>>
   'approval.item': Readonly<Record<string, never>>
   'approval.notConfigured': Readonly<Record<string, never>>
+  'approval.paid': Readonly<Record<string, never>>
   'approval.payee': Readonly<Record<string, never>>
   'approval.status': { readonly status: string | number }
   'approval.title': Readonly<Record<string, never>>
+  'approval.viewOnArc': Readonly<Record<string, never>>
   'auth.createWallet': Readonly<Record<string, never>>
   'auth.creatingWallet': Readonly<Record<string, never>>
   'auth.displayName': Readonly<Record<string, never>>
@@ -71,6 +76,7 @@ export interface MessageArgumentsByKey<T = string> {
   'gate.payLink': Readonly<Record<string, never>>
   'gate.payToOpen': Readonly<Record<string, never>>
   'gate.price': Readonly<Record<string, never>>
+  'gate.restrictedNote': Readonly<Record<string, never>>
   'gate.title': Readonly<Record<string, never>>
   'gate.verified': Readonly<Record<string, never>>
   'gate.waiting': Readonly<Record<string, never>>
@@ -139,4 +145,4 @@ export interface MessageArgumentsByKey<T = string> {
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '104499bfd339ef842809af19ee6b6254f7f7df80ad8bc0237f8f556faf281a1f'
+export const catalogVersion = 'b8d458176b28e8ee423f2683fa93295188068c3639cf5c53f49dfd1bd07d7e71'

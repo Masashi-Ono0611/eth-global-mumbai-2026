@@ -3,13 +3,18 @@
     "amount": "Znesek",
     "approveWithWorld": "Odobri z World",
     "deny": "Zavrni",
+    "errandEnded": "{state, select, refused {Čip je zavrnil: nič ni plačano} failed {Plačilo ni uspelo: nič ni plačano} expired {Poteklo: nič ni plačano} safe_stop {Varno ustavljeno: nič ni plačano} walked_away {Robot je odnehal: nič ni plačano} other {Končano ({state}): nič ni plačano}}",
     "explainer": "To plačilo presega meje robota ali je za omejen izdelek, zato potrebuje vašo svežo odobritev v aplikaciji World. Brez nje se nič ne plača.",
+    "followStopped": "Po 2 minutah ni končnega stanja; konzola kaže najnovejše.",
+    "following": "Spremljam robotovo plačilo…",
     "invoice": "Račun",
     "item": "Izdelek",
     "notConfigured": "Odobritev z World na tej namestitvi še ni nastavljena.",
+    "paid": "Plačano",
     "payee": "Prejemnik",
     "status": "{status, select, requested {Čaka na vaš odgovor} opened {Čaka na aplikacijo World} approved {Odobreno: čip zdaj podpiše plačilo} denied {Zavrnjeno: nič ni plačano} expired {Poteklo: nič ni plačano} consumed {Porabljeno za plačilo} other {{status}}}",
-    "title": "Odobritev za omejen izdelek"
+    "title": "Odobritev za omejen izdelek",
+    "viewOnArc": "poglej na Arc"
   },
   "auth": {
     "createWallet": "Ustvari denarnico s ključem za dostop",
@@ -70,6 +75,7 @@
     "payLink": "Povezava za plačilo (QR)",
     "payToOpen": "Plačajte ta račun, da se vrata odprejo.",
     "price": "Cena",
+    "restrictedNote": "Omejeni izdelki, kot so cigarete, se pri teh vratih ne prodajajo: potrebujejo lastnikovo odobritev v aplikaciji World App in se plačajo drugemu prejemniku, zato vrata zanje ostanejo zaprta.",
     "title": "Vrata",
     "verified": "Plačano: podpisano stanje trgovca je preverjeno (Ed25519).",
     "waiting": "Čakam na plačilo …"

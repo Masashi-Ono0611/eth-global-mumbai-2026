@@ -3,13 +3,18 @@
     "amount": "金額",
     "approveWithWorld": "World で承認",
     "deny": "拒否",
+    "errandEnded": "{state, select, refused {チップが拒否しました：支払いは行われません} failed {支払いに失敗しました：支払いは行われません} expired {期限切れ：支払いは行われません} safe_stop {安全に停止しました：支払いは行われません} walked_away {ロボットが見送りました：支払いは行われません} other {終了（{state}）：支払いは行われません}}",
     "explainer": "この支払いはロボットの上限を超えているか制限付き商品のため、World App での新たな承認が必要です。承認がなければ支払いは行われません。",
+    "followStopped": "2 分たっても最終状態になりません。最新の状態はコンソールで確認できます。",
+    "following": "ロボットの支払いを確認しています…",
     "invoice": "請求書",
     "item": "商品",
     "notConfigured": "このデプロイではまだ World 承認が設定されていません。",
+    "paid": "支払い済み",
     "payee": "支払先",
     "status": "{status, select, requested {あなたの回答を待っています} opened {World App を待っています} approved {承認済み：チップが支払いに署名します} denied {拒否：支払いは行われません} expired {期限切れ：支払いは行われません} consumed {支払いに使用済み} other {{status}}}",
-    "title": "制限付き商品の承認"
+    "title": "制限付き商品の承認",
+    "viewOnArc": "Arc で見る"
   },
   "auth": {
     "createWallet": "パスキーでウォレットを作成",
@@ -70,6 +75,7 @@
     "payLink": "支払いリンク（QR）",
     "payToOpen": "この請求書を支払うとゲートが開きます。",
     "price": "価格",
+    "restrictedNote": "たばこなどの制限品はこのゲートでは販売しません。World App でのオーナーの承認が必要で、支払先も別のため、ゲートは閉じたままです。",
     "title": "ゲート",
     "verified": "支払い済み：加盟店の署名付きステータスを確認しました（Ed25519）。",
     "waiting": "支払いを待っています…"

@@ -211,6 +211,7 @@ export const view = Submodel.defineView<Model, Message, { readonly locale: Local
               light(false, locale, h),
               h.p([], [format(locale, 'gate.payToOpen', {})]),
               invoiceView(invoice, locale, h),
+              h.p([h.Class('hint')], [format(locale, 'gate.restrictedNote', {})]),
               Option.match(maybeProblem, {
                 onNone: () => h.p([h.Class('hint')], [format(locale, 'gate.waiting', {})]),
                 onSome: (problem) => h.p([h.Role('alert')], [problemText(problem, locale)]),

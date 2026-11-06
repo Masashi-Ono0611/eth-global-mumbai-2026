@@ -3,13 +3,18 @@
     "amount": "Amount",
     "approveWithWorld": "Approve with World",
     "deny": "Deny",
+    "errandEnded": "{state, select, refused {Refused by the chip: nothing is paid} failed {The payment failed: nothing is paid} expired {Expired: nothing is paid} safe_stop {Stopped safely: nothing is paid} walked_away {The robot walked away: nothing is paid} other {Ended ({state}): nothing is paid}}",
     "explainer": "This payment is over the robot's limits or for a restricted item, so it needs your fresh approval in World App. Nothing is paid without it.",
+    "followStopped": "No final state after 2 minutes; the console shows the latest.",
+    "following": "Following the robot's payment…",
     "invoice": "Invoice",
     "item": "Item",
     "notConfigured": "World approval is not configured on this deployment yet.",
+    "paid": "Paid",
     "payee": "Payee",
     "status": "{status, select, requested {Waiting for your answer} opened {Waiting for World App} approved {Approved: the chip signs the payment now} denied {Denied: nothing is paid} expired {Expired: nothing is paid} consumed {Used for the payment} other {{status}}}",
-    "title": "Approval for a restricted item"
+    "title": "Approval for a restricted item",
+    "viewOnArc": "view on Arc"
   },
   "auth": {
     "createWallet": "Create passkey wallet",
@@ -70,6 +75,7 @@
     "payLink": "Payment link (QR)",
     "payToOpen": "Pay this invoice to open the gate.",
     "price": "Price",
+    "restrictedNote": "Restricted items such as cigarettes are not sold at this gate: they need the owner's approval in World App and are paid to a separate payee, so the gate stays closed for them.",
     "title": "Gate",
     "verified": "Paid: the merchant's signed status verified (Ed25519).",
     "waiting": "Waiting for payment…"
