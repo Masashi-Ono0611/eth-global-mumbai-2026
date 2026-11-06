@@ -60,6 +60,22 @@ const Reply = Schema.Struct({
 })
 const ApprovalStatus = Schema.Struct({ status: Schema.String })
 
+/**
+ * Local workerd opens the one SQLite file from two Workers without a busy timeout, so a test-Worker write that lands
+ * while the API Worker's after-response flush reads fails with SQLITE_BUSY (a 500). Production D1 has no such race;
+ * the test retries its own test-Worker calls a few times.
+ */
+const retryBusy = async <A>(attempt: () => Promise<A>): Promise<A> => {
+  for (let round = 0; ; round++) {
+    try {
+      return await attempt()
+    } catch (error) {
+      if (round >= 4) throw error
+      await Bun.sleep(200)
+    }
+  }
+}
+
 const textOf = (call: BotCall) => (typeof call.body.text === 'string' ? call.body.text : '')
 
 /**
@@ -158,12 +174,14 @@ const startErrand = async (urls: Urls, owner: Owner, robotId: string, item: stri
 }
 
 const settle = async (urls: Urls, owner: Owner, robotId: string, episodeId: string, txHash: string) => {
-  const settled = await fetch(`${urls.url}/test/vq/episodes/${episodeId}/settled`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ txHash }),
+  await retryBusy(async () => {
+    const settled = await fetch(`${urls.url}/test/vq/episodes/${episodeId}/settled`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ txHash }),
+    })
+    if (settled.status !== 204) throw new Error(`settled: HTTP ${settled.status}`)
   })
-  expect(settled.status).toBe(204)
   const view = await fetch(`${urls.appUrl}/api/robots/${robotId}/errands/${episodeId}`, {
     headers: { cookie: owner.cookie },
   })
@@ -173,7 +191,7 @@ const settle = async (urls: Urls, owner: Owner, robotId: string, episodeId: stri
 const scenario = async (urls: Urls, owner: Owner, stub: TelegramStub) => {
   await link(urls, owner)
   // Chai: paid → "Paid" with the Arc link and today's budget.
-  const robotId = await seedRobot(urls.url, owner.accountId)
+  const robotId = await retryBusy(() => seedRobot(urls.url, owner.accountId))
   const chai = await startErrand(urls, owner, robotId, 'chai')
   const chaiTx = `0x${'c1'.repeat(32)}`
   expect(await settle(urls, owner, robotId, chai.episodeId, chaiTx)).toBe('paid')
@@ -181,7 +199,7 @@ const scenario = async (urls: Urls, owner: Owner, stub: TelegramStub) => {
   expect(textOf(paid)).toContain('Today:')
   expect(JSON.stringify(paid.body.reply_markup)).toContain(`https://explorer.arc.io/tx/${chaiTx}`)
   // Thali: over the per-payment cap → the approval message with Review and Deny.
-  const thaliRobot = await seedRobot(urls.url, owner.accountId)
+  const thaliRobot = await retryBusy(() => seedRobot(urls.url, owner.accountId))
   const thali = await startErrand(urls, owner, thaliRobot, 'thali')
   expect(thali.state).toBe('awaiting_approval')
   const approvalId = thali.approvalUrl?.split('/').at(-1) ?? ''

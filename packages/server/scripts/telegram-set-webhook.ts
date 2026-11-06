@@ -4,6 +4,8 @@
 // with that secret (Telegram sends it back in X-Telegram-Bot-Api-Secret-Token on every update), the commands menu and
 // the bot's descriptions. It prints statuses only, never the token or the secret.
 // Note: once a webhook is set Telegram stops serving getUpdates; `--info` only reads the current webhook.
+import process from 'node:process'
+
 /** Statuses go to stdout and problems to stderr (scripts do not use `console`). */
 const say = (line: string) => process.stdout.write(`${line}\n`)
 const DEPLOYED = 'https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev'
