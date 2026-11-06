@@ -16,6 +16,7 @@ import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { addRobotView } from './pages/AddRobotView.ts'
 import { walletView } from './pages/WalletView.ts'
 import { AppRoute, episodesRouter, homeRouter, walletRouter } from './route.ts'
+import * as Telegram from './Telegram.ts'
 // STYLES
 
 const appShellClassName =
@@ -72,6 +73,13 @@ const profileSheet = (model: Model, session: SessionView, signingOut: boolean, h
                 h.a([h.Href(architectureUrl)], [format(locale, 'profile.howItWorks', {})]),
               ],
             ),
+            h.submodel({
+              slotId: 'telegram',
+              model: model.telegram,
+              view: Telegram.view,
+              viewInputs: { locale },
+              toParentMessage: (message) => Message.GotTelegramMessage({ message }),
+            }),
             h.button(
               [
                 h.Type('button'),

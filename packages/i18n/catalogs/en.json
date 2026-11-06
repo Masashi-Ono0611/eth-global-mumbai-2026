@@ -259,5 +259,20 @@
     "startOver": "Start again",
     "connected": "{name} connected",
     "hello": "Hello! My chip made its own key, and it stays on me. How much can I spend?"
+  },
+  "telegram": {
+    "title": "Telegram",
+    "hint": "Get a message when I need your OK or have paid.",
+    "checking": "Checking…",
+    "connect": "Connect Telegram",
+    "connecting": "Connecting…",
+    "pressStart": "Open Telegram and press Start. The link works once, for 10 minutes.",
+    "open": "Open Telegram",
+    "check": "I pressed Start",
+    "connected": "Connected",
+    "connectedAs": "Connected as @{username}",
+    "disconnect": "Disconnect",
+    "failed": "Telegram is not reachable right now.",
+    "retry": "Try again"
   }
 }

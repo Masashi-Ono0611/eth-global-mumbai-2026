@@ -3,6 +3,7 @@ import { SessionView } from '@ethmumbai/auth/config'
 import { defineMessageUnion } from 'foldkit/message'
 import { Dialog } from '@foldkit/ui'
 import { AuthFailure } from './model.ts'
+import * as Telegram from './Telegram.ts'
 import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
 
 export const Message = defineMessageUnion({
@@ -19,6 +20,7 @@ export const Message = defineMessageUnion({
   ClickedSignOut: {},
   ClickedProfile: {},
   GotProfileSheetMessage: { message: Dialog.Message },
+  GotTelegramMessage: { message: Telegram.Message },
   CompletedOpenWallet: {},
   SucceededSignOut: {},
   FailedSignOut: {},

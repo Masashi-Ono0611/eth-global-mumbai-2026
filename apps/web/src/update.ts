@@ -19,6 +19,7 @@ import {
   initPages,
 } from './pages.ts'
 import { AppRoute, routeFromPathname } from './route.ts'
+import * as Telegram from './Telegram.ts'
 
 type UpdateReturn = Update.Return<Model, Message, Services>
 
@@ -32,11 +33,20 @@ export const init = (context: Flags): UpdateReturn => {
       auth: AuthState.Checking(),
       displayName: '',
       profileSheet: Dialog.init({ id: 'profile' }),
+      telegram: Telegram.init(),
       ...pages.pages,
     },
     commands: [ReadSession(), ...('commands' in pages ? pages.commands : [])],
   }
 }
+
+const telegramChild = {
+  read: (model: Model) => Option.some(model.telegram),
+  write: (model: Model, next: Telegram.Model) => modifyFields(model, { telegram: () => next }),
+  toParentMessage: (message: Telegram.Message) => Message.GotTelegramMessage({ message }),
+}
+const foldTelegram = Update.foldChild({ update: Telegram.update, ...telegramChild })
+const telegramOpened = Update.foldChildStep({ update: Telegram.opened, ...telegramChild })
 
 const profileSheet = sheetFolds<Model, Message>({
   read: (model) => model.profileSheet,
@@ -108,7 +118,13 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     },
     // Close the sheet through the Dialog so it releases its modal resources (focus, scroll lock) before it unmounts.
     SucceededSignOut: () => profileSheet.close(modifyFields(model, { auth: () => AuthState.SignedOut() })),
-    ClickedProfile: () => profileSheet.open(model),
+    ClickedProfile: () => {
+      // Opening the sheet also asks for the Telegram row's state (the owner may have pressed Start meanwhile).
+      const opened = profileSheet.open(model)
+      const telegram = telegramOpened(opened.model)
+      return { model: telegram.model, commands: [...(opened.commands ?? []), ...(telegram.commands ?? [])] }
+    },
+    GotTelegramMessage: ({ message: telegramMessage }) => foldTelegram(model, telegramMessage),
     GotProfileSheetMessage: ({ message: sheetMessage }) => profileSheet.fold(model, sheetMessage),
     CompletedOpenWallet: () => ({ model }),
     GotWalletMessage: ({ message: walletMessage }) => foldWallet(model, walletMessage),

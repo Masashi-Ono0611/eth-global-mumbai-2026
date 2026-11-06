@@ -4,6 +4,7 @@ import { Command, Mount, click, expect, given, label, role, scene, selector, sub
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect as vitestExpect, test } from 'vitest'
 import { CreatePasskeyWallet, OpenWallet, ReadSession, SignInWithPasskey, SignOut } from '../src/command.ts'
+import * as Telegram from '../src/Telegram.ts'
 import { Message } from '../src/message.ts'
 import { AuthState } from '../src/model.ts'
 import { AppRoute } from '../src/route.ts'
@@ -106,6 +107,12 @@ describe('passkey wallet', () => {
       click(role('button', { name: 'Profile, records and sign out' })),
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+      // Opening the sheet also asks for the Telegram row's state (spec §14).
+      Command.resolve(
+        Telegram.LoadTelegram,
+        Telegram.Message.SucceededLoadTelegram({ configured: true, linked: false, username: null }),
+      ),
+      expect(role('button', { name: 'Connect Telegram' })).toExist(),
       expect(role('heading', { name: 'Ana' })).toExist(),
       expect(text(session.smartAccount)).toExist(),
       expect(role('link', { name: 'Payment records' })).toHaveAttr('href', '/wallet/episodes'),

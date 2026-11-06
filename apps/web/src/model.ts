@@ -6,6 +6,7 @@ import { Dialog } from '@foldkit/ui'
 import { Locale } from './Locale.ts'
 import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
 import { AppRoute } from './route.ts'
+import * as Telegram from './Telegram.ts'
 
 /** What the server rendered with; serialized into the page and read back unchanged when the browser hydrates. */
 export const Flags = Schema.Struct({
@@ -39,6 +40,8 @@ export const Model = Schema.Struct({
   displayName: Schema.String,
   /** The avatar's bottom sheet: who is signed in, the audit log, sign out. */
   profileSheet: Dialog.Model,
+  /** The sheet's Telegram row (spec §14). */
+  telegram: Telegram.Model,
   /** The owner pages keep their own state; only the current route's is present. */
   maybeWallet: Schema.Option(Wallet.Model),
   maybeAddRobot: Schema.Option(AddRobot.Model),
