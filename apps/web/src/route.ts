@@ -1,3 +1,4 @@
+import { APP_BASE } from '@ethmumbai/protocol/Pages'
 import { Option, Schema, pipe } from 'effect'
 import { defineRouteUnion, literal, mapTo, oneOf, parseUrlWithFallback, slash, string } from 'foldkit/route'
 
@@ -18,7 +19,7 @@ export const AppRoute = defineRouteUnion({
 export type AppRoute = typeof AppRoute.Type
 
 /** Every page lives under /app (vitaquack.com: "/" is the static landing page, /api stays where it is). */
-const app = literal('app')
+const app = literal(APP_BASE.slice(1))
 
 export const homeRouter = pipe(app, mapTo(AppRoute.Home))
 export const walletRouter = pipe(app, slash(literal('wallet')), mapTo(AppRoute.Wallet))
