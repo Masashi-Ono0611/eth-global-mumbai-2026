@@ -113,7 +113,7 @@ export const terminalStates: ReadonlySet<string> = new Set([
 export const worldAuthorizeUrl = (approvalId: string) =>
   `/api/world/authorize?${new URLSearchParams({ approval: approvalId }).toString()}`
 
-/** An owner's instruction for a robot ("get me a chai"); a simulator duck walks, scans and pays it (sim-plan.md S3). */
+/** An owner's instruction for a robot ("get me a chai"); a simulator duck walks, scans and pays it (spec §15). */
 export const createIntent = (robotId: string, instruction: string, item: string | null, model: string | null) =>
   postJson(
     `/api/robots/${encodeURIComponent(robotId)}/intents`,

@@ -19,13 +19,26 @@ export const isMediaPath = (path: string): boolean => path.startsWith('/media/')
 const readable = (method: string) => method === 'GET' || method === 'HEAD'
 
 /**
- * The shop (docs/site/pitch/shop) is the asset `/landing/shop/`, answered at `/shop/`. Its files are `../media/<name>`
- * and its home link `../`, so it lives at the slash address and `/shop` is sent there.
+ * The landing's subpages (docs/site/pitch/<name>, copied next to the landing by tools/copy-landing.ts): the shop at
+ * `/shop/` and the pitch at `/pitch/`. Each is the asset `/landing/<name>/`; its files are `../media/<name>` and its
+ * home link `../`, so it lives at the slash address and the bare `/<name>` is sent there.
  */
-const SHOP_ASSET = '/landing/shop/'
+const SUBPAGES: ReadonlyMap<string, string> = new Map([
+  ['shop', '/landing/shop/'],
+  ['pitch', '/landing/pitch/'],
+])
 
-/** `/shop` and `/shop/`: the shop's two addresses (the first only redirects). */
-export const isShopPath = (path: string): boolean => path === '/shop' || path === '/shop/'
+type Subpage = { readonly name: string; readonly asset: string }
+
+/** The subpage a path names, with or without its trailing slash; nothing for any other path. */
+const subpageOf = (path: string): Subpage | undefined => {
+  const name = /^\/([a-z]+)\/?$/.exec(path)?.[1]
+  const asset = name === undefined ? undefined : SUBPAGES.get(name)
+  return name === undefined || asset === undefined ? undefined : { name, asset }
+}
+
+/** `/shop`, `/shop/`, `/pitch` and `/pitch/`: a subpage's two addresses (the bare one only redirects). */
+export const isSubpagePath = (path: string): boolean => subpageOf(path) !== undefined
 
 const fromAssets = (request: Request, assets: FetchService, path: string): Promise<Response> =>
   assets.fetch(new Request(new URL(path, request.url), { method: request.method, headers: request.headers }))
@@ -34,13 +47,20 @@ const fromAssets = (request: Request, assets: FetchService, path: string): Promi
 export const serveLanding = (request: Request, assets: FetchService): Promise<Response> =>
   fromAssets(request, assets, LANDING_ASSET)
 
-/** `GET /shop/` (and HEAD): the shop asset, conditional headers kept; `/shop` is a 301 to `/shop/`. */
-export const serveShop = (request: Request, assets: FetchService): Promise<Response> =>
-  new URL(request.url).pathname === '/shop'
-    ? Promise.resolve(
-        new Response(null, { status: 301, headers: { location: new URL('/shop/', request.url).toString() } }),
+/** `GET /<name>/` (and HEAD): the subpage's asset, conditional headers kept; the bare `/<name>` is a 301 to it. */
+export const serveSubpage = (request: Request, assets: FetchService): Promise<Response> => {
+  const path = new URL(request.url).pathname
+  const subpage = subpageOf(path)
+  if (subpage === undefined) return Promise.resolve(new Response(null, { status: 404 }))
+  return path.endsWith('/')
+    ? fromAssets(request, assets, subpage.asset)
+    : Promise.resolve(
+        new Response(null, {
+          status: 301,
+          headers: { location: new URL(`/${subpage.name}/`, request.url).toString() },
+        }),
       )
-    : fromAssets(request, assets, SHOP_ASSET)
+}
 
 /** The landing's asset path is not an address of its own: 301 to `/`. */
 export const landingHome = (request: Request): Response =>

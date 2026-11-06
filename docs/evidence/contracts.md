@@ -75,13 +75,13 @@ the testnet deployments are for the Studio showcase only.
 
 Verification:
 
-- **Runtime code = the build it came from**: `keccak256(cast code 0x7c21…e4D3)` = `0x8ae1c544a79174dbaae0c617c21fa0a3b4e795fc06a6273b917018271081b653`
+- Runtime code = the build it came from: `keccak256(cast code 0x7c21…e4D3)` = `0x8ae1c544a79174dbaae0c617c21fa0a3b4e795fc06a6273b917018271081b653`
   = the `deployedBytecode` of `contracts/src` at `a0d25c2`; without metadata it equals the Studio pull's (above).
-- **Behaviour against live Arc state with exactly this runtime code**: `ARC_RPC_URL=https://rpc.mainnet.arc.io bunx
+- Behaviour against live Arc state with exactly this runtime code: `ARC_RPC_URL=https://rpc.mainnet.arc.io bunx
   vitest run packages/chain/test/LiveApproval.test.ts` → 1 passed (8 cases: under cap pays; over cap and unlisted payee
   revert `RPP:approval-required`; a valid approver signature pays; wrong payee / amount / signer revert
   `RPP:approval-payee-mismatch` / `RPP:approval-amount-mismatch` / `RPP:invalid-approval-signature`).
-- **Explorer source verification: not done.** `forge verify-contract … --verifier blockscout --verifier-url
+- Explorer source verification: not done. `forge verify-contract … --verifier blockscout --verifier-url
   https://explorer.arc.io/api/` was refused: the explorer API answers a Cloudflare browser challenge ("Just a
   moment…") to non-browser clients. To retry from a browser session or with Arc's support.
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { byteRange, isLandingAssetPath, isMediaPath, serveMedia } from '../src/EdgeLanding.ts'
+import { byteRange, isLandingAssetPath, isMediaPath, isSubpagePath, serveMedia } from '../src/EdgeLanding.ts'
 import edge from '../src/EdgeWorker.ts'
 
 const film = Uint8Array.from({ length: 100 }, (_, index) => index)
@@ -11,6 +11,7 @@ const assets = (seen: Request[] = []) => ({
     const path = new URL(request.url).pathname
     if (path === '/landing/') return new Response('<h1>Vitaquack</h1>', { headers: { 'content-type': 'text/html' } })
     if (path === '/landing/shop/') return new Response('<h1>Shop</h1>', { headers: { 'content-type': 'text/html' } })
+    if (path === '/landing/pitch/') return new Response('<h1>Pitch</h1>', { headers: { 'content-type': 'text/html' } })
     if (path !== '/media/f2.mp4') return new Response('not found', { status: 404 })
     return new Response(film, { headers: { 'content-type': 'video/mp4', etag: '"f2"' } })
   },
@@ -99,6 +100,24 @@ describe('the landing through the edge', () => {
     await edge.fetch(new Request('https://vitaquack.com/shop/', { method: 'POST' }), { ...env, WEBSITE: website })
     await edge.fetch(new Request('https://vitaquack.com/shops'), { ...env, WEBSITE: website })
     expect(paths).toEqual(['POST /shop/', 'GET /shops'])
+  })
+
+  test('answers GET /pitch/ with the pitch asset, sends /pitch to /pitch/ and nothing else under them', async () => {
+    const seen: Request[] = []
+    const env = { API: refuse, WEBSITE: refuse, ASSETS: assets(seen) }
+    const pitch = await edge.fetch(new Request('https://vitaquack.com/pitch/'), env)
+    expect(pitch.status).toBe(200)
+    expect(await pitch.text()).toBe('<h1>Pitch</h1>')
+    expect(seen.map((asked) => new URL(asked.url).pathname)).toEqual(['/landing/pitch/'])
+    const bare = await edge.fetch(new Request('https://vitaquack.com/pitch'), env)
+    expect(bare.status).toBe(301)
+    expect(bare.headers.get('location')).toBe('https://vitaquack.com/pitch/')
+    for (const path of ['/shop', '/shop/', '/pitch', '/pitch/']) expect(isSubpagePath(path)).toBe(true)
+    for (const path of ['/', '/pitch/media', '/pitches', '/app/pitch', '/Pitch/'])
+      expect(isSubpagePath(path)).toBe(false)
+    const { paths, website } = recordingWebsite()
+    await edge.fetch(new Request('https://vitaquack.com/pitch/deck'), { ...env, WEBSITE: website })
+    expect(paths).toEqual(['GET /pitch/deck'])
   })
 
   test.each([

@@ -25,10 +25,10 @@ till's custom domain; both are owned by those stacks.
 
 One piece runs outside Cloudflare: the **evidence uploader** (`tools/evidence-uploader/`), which puts finished
 episodes and their camera frames on 0G Storage and records them in `EpisodeLog` on 0G Galileo. 0G's storage SDK needs
-Node, so it cannot run in a Worker. It runs on netcup as the system service `vitaquack-evidence-uploader` (since 7 Nov
+Node, so it cannot run in a Worker. It runs on netcup as the systemd service `vitaquack-evidence-uploader` (since 7 Nov
 2026; restarts on any exit, starts with the box), polling `https://vitaquack.com` every 15 s. CI does not deploy it;
 `sudo systemctl restart vitaquack-evidence-uploader` picks up a change. If it is down, errands still run and pay, but
-their proof stays at "Saving to 0G...". Status, logs and install: `tools/evidence-uploader/README.md`.
+their proof stays at "Saving to 0G..." and they do not appear on `/app/proofs`. Status, logs and install: `tools/evidence-uploader/README.md`.
 
 ## Cutover to vitaquack.com (6 Nov 2026)
 
@@ -129,7 +129,7 @@ base64url. `APP_RELEASE` is the commit, set by CI or on the command line.
 
 ### Telegram (spec §14)
 
-`APP_TELEGRAM_BOT_TOKEN` (the @vitaquack_bot token from BotFather) and `APP_TELEGRAM_WEBHOOK_SECRET` (16–256 of
+`APP_TELEGRAM_BOT_TOKEN` (the @vitaquack_bot token from BotFather) and `APP_TELEGRAM_WEBHOOK_SECRET` (16 to 256 of
 `[A-Za-z0-9_-]`, random) are GitHub secrets and lines in `.env.main.local`. Both set turns the feature on
 (`/api/health` → `telegram: true`); either missing or `pending` turns it off and its routes answer 503. After a deploy
 that changes the edge URL, or after rotating either value, point the bot at the app by hand (never from CI):
@@ -152,7 +152,7 @@ APP_RELEASE="$(git rev-parse HEAD)" heavy --wait bunx alchemy deploy --stage mai
 APP_RELEASE="$(git rev-parse HEAD)" heavy --wait bunx alchemy deploy --stage main --env-file .env.main.local --no-input --yes
 ```
 
-Read the plan and the final resource outcomes, not just the exit code (this CLI has returned 0 on failed uploads).
+Read the plan and the final resource outcomes as well as the exit code (this CLI has returned 0 on failed uploads).
 Then check `/api/health` (its `release` is the commit) and run the browser acceptance:
 
 ```sh

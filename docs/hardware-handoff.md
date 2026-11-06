@@ -23,7 +23,7 @@ till driving the screen, the ESP32 pulls the invoice to show instead of minting 
 
 - **Signed message:** the UTF-8 bytes of `<invoiceId>|<status>|<nonce>|<expiresAt>`, with `expiresAt` in decimal
   unix seconds, e.g. `hii53ccex7ybkvbtmd3lnoo6n4|pending|evidence1793926337083|1793926932`. `status` is one of
-  `pending`, `paid`, `used`, `expired`. The nonce must be 1–32 characters of `[A-Za-z0-9_-]` (anything else is 400).
+  `pending`, `paid`, `used`, `expired`. The nonce must be 1 to 32 characters of `[A-Za-z0-9_-]` (anything else is 400).
 - **Verify with Monocypher's `crypto_ed25519_check(sig, public_key, message, message_size)`** from the optional
   `monocypher-ed25519.c` (SHA-512 Ed25519, what WebCrypto signs). It returns 0 when valid. Do **not** use
   `crypto_eddsa_check`: that is BLAKE2b and never verifies these signatures.
@@ -31,7 +31,7 @@ till driving the screen, the ESP32 pulls the invoice to show instead of minting 
   nonce, so it fails.
 - **The first read that sees `paid` gets `paid`; every later read gets `used`.** Act on that one read: show PAID, move
   the servo, mint the next invoice. Treat `used` and `expired` as "mint a new one".
-- **Run one gate at a time.** A "buy chai" errand pays the counter's newest open chai invoice. With the web gate
+- **Run one gate at a time.** A chai errand pays the counter's newest open chai invoice. With the web gate
   (`$APP/app/gate/duck-cafe`) and the ESP32 both open, the robot pays whichever minted last. Close the browser tab when
   the ESP32 is the gate.
 
@@ -44,7 +44,7 @@ workers.dev origin was **107 bytes**, which they cannot. The options:
 | --- | --- | --- |
 | version 7, ECC M (122 B), 2 px per module, 4-module quiet zone | 45 | 90 + 16 = 106 px: yes |
 | version 6, ECC L (134 B), 2 px, 4-module quiet zone | 41 | 82 + 16 = 98 px: yes |
-| version 6 or 7 at 3 px | 41–45 | 147–159 px: no |
+| version 6 or 7 at 3 px | 41 to 45 | 147 to 159 px: no |
 | vitaquack.com (54 B): version 4, ECC M, 3 px | 33 | 99 + 24 = 123 px: yes (the H2 setting) |
 
 On vitaquack.com the 2 px question is moot; whether the duck's camera reads the 3 px version 4 code is H2, not yet run.
@@ -84,14 +84,14 @@ Chip protocol (spec §8). Shapes, with values from the native tests:
    (`no_lease`). On the next good poll it logs `lease ok`. The robot's conversation (`/app/robot/<id>`) shows it Connected while
    `now < lease_until`.
 
-Not yet proven on the deployed edge: a 25 s long-poll through `$APP` (the local dev proxy reset such long responses;
-the Lead's end-to-end run checks the deployed one). **Do not point the chip at the API Worker's own origin** as a
-workaround: invoice links carry the public origin, so such a chip refuses every payment with `bad_invoice_origin`
-(Spike B, `docs/spikes/sim-results.md`). Always pair against the public app address `$APP`.
+The 25 s long-poll holds through the deployed edge: two polls through `$APP` answered 200 in 24.8 s and 24.6 s
+(`docs/evidence/2026-11-06-deployed-e2e.md`). **Do not point the chip at the API Worker's own origin**: invoice links
+carry the public origin, so such a chip refuses every payment with `bad_invoice_origin` (Spike B,
+`docs/spikes/sim-results.md`). Always pair against the public app address `$APP`.
 
 ## 3. Network (bench H4)
 
-- The venue Wi-Fi is unusable for devices: about 3 KB/s, pings of 0.4–2.5 s, 8 MB downloads stalled. Do not install
+- The venue Wi-Fi is unusable for devices: about 3 KB/s, pings of 0.4 to 2.5 s, 8 MB downloads stalled. Do not install
   anything over it.
 - The shared network is a **dedicated phone hotspot**: Pixel, 2.4 GHz, WPA2, name `duckbench`, for the Mac, the Radxa
   and the ESP32. The alternative is macOS Internet Sharing from wired Ethernet to Wi-Fi (channel 6, WPA2/WPA3 Personal,
@@ -112,23 +112,24 @@ workaround: invoice links carry the public origin, so such a chip refuses every 
    `./vitaquack-chip --server $APP --pair <CODE>`. Expect `chip 0x… (new key)`, `paired <robotId>`, `lease ok`.
    Check `stat -c %a ~/.vitaquack-chip/key.json` → `600`.
 4. When the page says the robot connected, keep the allowance presets (3.00 a day, 1.00 a purchase, Duck Café,
-   1 day) and **Confirm with passkey**. In the robot's conversation that opens (`$APP/app/robot/<id>`) tap **Chai 0.10**. Expect `signed <invoiceId>`, then `payment settled 0x<tx>` (on
-   <https://explorer.arc.io>).
+   1 day) and **Confirm with passkey**. In the robot's conversation that opens (`$APP/app/robot/<id>`) tap **Get me a chai**, then let the duck
+   scan the gate's QR (§5). Expect `signed <invoiceId>`, then `payment settled 0x<tx>` (on <https://explorer.arc.io>).
 5. Network cut: switch the hotspot off. Within 35 s expect `STOP motors (lease expired)`; switch it on, expect
    `lease ok`. Restart the process. It must not pair again (`pairing.json`) and must not re-sign a used invoice
    (`replayed_invoice`).
 6. ESP32: join, fetch the gate key, mint an invoice, draw the QR (section 1 settings), poll with fresh nonces, and
    verify with `crypto_ed25519_check`. Run the tamper test (flip one byte of `sig`: rejected) and a replay test (an
    old answer with another nonce: rejected).
-7. Then the loop with one gate only: "buy chai" pays the ESP32's invoice, and the ESP32 shows PAID on its next read.
+7. Then the loop with one gate only: a chai errand pays the ESP32's invoice, and the ESP32 shows PAID on its next read.
 
 ## 5. Scans: the duck pays the QR it read (behind `APP_SCANS_ENABLED`)
 
-The camera reads the gate's QR (`vq1:<invoiceId>`) and keeps only a JPEG crop of the QR, at most 64 KB (no scene
-frames: spec rule 4). The chip hashes and signs the crop, and the Worker starts the errand for exactly that invoice,
-as the conversation's **Chai** button would (0G decides, then the chip signs the payment). The crop is stored in R2 and uploaded to 0G Storage as proof of the robot's work.
-It is never sent to 0G; the episode evidence (and so the `EpisodeLog` anchor) carries only
-`{sha256, bytes, capturedAt, chipSig}`. The route exists only while `APP_SCANS_ENABLED` is `true`. Until then it
+The camera reads the gate's QR (`vq1:<invoiceId>`) and sends a JPEG crop of the QR, at most 64 KB. The chip hashes
+and signs the crop, and the Worker starts the errand for exactly that invoice (0G decides, then the chip signs the
+payment). A scan is how every errand on a real robot starts; a **Get me** pill only records what the owner asked for
+(§6.1). The crop is stored in R2 and uploaded plain to 0G Storage as proof of the robot's work (spec rule 4). It never
+reaches the 0G decision. The episode evidence (and so the `EpisodeLog` anchor) carries
+`{sha256, bytes, capturedAt, chipSig}`, plus `rootHash` once the crop is on 0G Storage. The route exists only while `APP_SCANS_ENABLED` is `true`. Until then it
 answers 404, and `GET $APP/api/health` shows `features.scans: false`.
 
 The examples below are exact request/response pairs from the native run on `688209b`, against the local Worker, with
@@ -213,7 +214,8 @@ needed), `walked_away` or `safe_stop`. On the demo allowance (3.00 a day, 1.00 a
 `awaiting_approval`; once less than its price is left today it is `walked_away`, because no approval lifts the daily
 allowance. Follow it on `$APP/app/robot/<robotId>`, or let the gate show PAID. The owner sees
 the crop at `/app/wallet/episodes/<episodeId>`. `POST /api/wallet/episodes/<id>/verify` re-reads it from R2 and answers
-`observations: [{sha256, hashMatches, signerMatches}]`.
+`observations: [{sha256, hashMatches, signerMatches, zeroG}]`. `zeroG` is the 0G Storage copy downloaded by root and
+re-hashed, or `null` until the uploader has put it there. Uploaded episodes are public at `$APP/app/proofs`.
 
 ### 5.3 Live camera frames (`POST /frame`, behind `APP_LIVE_ENABLED`)
 
@@ -247,7 +249,7 @@ The ESP32 cannot be reached from outside (it sits behind the Mac's NAT), so it p
 an item on the till (<https://eth-mumbai-merchant.kristjan-grm11775.workers.dev>, laptop or phone): that mints the bill
 exactly as `POST …/invoices` does and puts it on display, replacing the previous one (one displayed invoice per
 merchant). `POST …/invoices` (the sim's stalls, the web gate) never changes the display, so they cannot take over the
-screen. Displaying does not claim the invoice: the duck's scan (§5) and a "buy chai" errand still pay it. Neither route
+screen. Displaying does not claim the invoice: the duck's scan (§5) and a chai errand still pay it. Neither route
 needs auth or an Origin header, like the mint.
 
 | Call | Answer |
@@ -273,7 +275,7 @@ curl -s -w ' %{http_code}\n' $APP/api/merchants/duck-cafe/counter
 {"invoice":null} 200
 ```
 
-ESP32 loop with the till: read `GET …/counter` every 1–2 s. `null` → show the idle screen. A new `id` → draw its QR
+ESP32 loop with the till: read `GET …/counter` every 1 to 2 s. `null` → show the idle screen. A new `id` → draw its QR
 (`VQ1:<ID>`) and read its signed status every second as in §1; the signed status stays the only proof of payment
 (the counter read carries no signature, and a QR carries only an invoice id). On the first verified `paid` show PAID;
 the counter then answers `null` until the till puts up the next bill. When not `null`, `status` is always `pending`.

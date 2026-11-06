@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plan v3.4: Vitaquack at ETHGlobal Mumbai · ETHGlobal Mumbai 2026</title>
+<title>Plan v3.6: Vitaquack at ETHGlobal Mumbai · ETHGlobal Mumbai 2026</title>
 <!-- GENERATED from docs/plan.md by docs/render-plan-page.py; edit the markdown, then rerun the script. -->
 <style>
   :root {
@@ -73,231 +73,71 @@
 <main>
   <nav class="tabs"><a href="/architecture/">Architecture</a><a href="/plan/" aria-current="page">Plan</a></nav>
   <div class="kicker">ETHGlobal Mumbai 2026 · the plan in full (from docs/plan.md) · comment with 💬</div>
-<h1>Plan v3.4: Vitaquack at ETHGlobal Mumbai</h1>
-<nav class="toc"><a class="h2" href="#0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</a><a class="h3" href="#status-board-fri-6-nov-17-31-ist">Status board (Fri 6 Nov 17:31 IST)</a><a class="h3" href="#scope">Scope</a><a class="h3" href="#who-does-what">Who does what</a><a class="h3" href="#prerequisites-kris-they-block-m2-m5-m6">Prerequisites (Kris; they block M2/M5/M6)</a><a class="h3" href="#checkpoints-ist">Checkpoints (IST)</a><a class="h3" href="#demo-script-4-minute-finalist-slot-the-video-follows-the-sam">Demo script (4-minute finalist slot; the video follows the same story)</a><a class="h3" href="#fallbacks-decided-in-advance">Fallbacks, decided in advance</a><a class="h3" href="#submission-checklist">Submission checklist</a><a class="h2" href="#1-the-architecture-in-one-paragraph">1. The architecture, in one paragraph</a><a class="h2" href="#2-what-is-proven-what-is-not-honest-labels">2. What is proven, what is not (honest labels)</a><a class="h2" href="#3-spikes">3. Spikes</a><a class="h2" href="#4-booth-questions">4. Booth questions</a><a class="h2" href="#5-alternatives-considered-and-rejected">5. Alternatives considered and rejected</a></nav>
-<p><strong>What this file is:</strong> the schedule, scope and story. <strong>What it is not:</strong> the build order (<code>docs/spec.md</code>) or the
-decision log (<code>docs/decisions.md</code>). Where this file and those disagree, they win. Evidence lives in <code>docs/research/</code>
-(index: <code>docs/research/README.md</code>), <code>docs/spikes/</code> and <code>docs/evidence/</code>.</p>
-<p>Versions: v3.4 (Fri 6 Nov 06:00 IST) consolidated after three outside reviews: evidence relabelled, float path dropped,
-MCP off the critical path, Robot Agent in the foundation stack, chip long-polling, passkey-only login, name Vitaquack.
-v3.3 (04:30) battle plan. v3.2/v3.1 spikes and comment rounds. v3 (5 Nov) the four-system split.</p>
-<h2 id="0-battle-plan-to-saturday-09-00-ist">0. Battle plan to Saturday 09:00 IST</h2>
-<p><strong>Deadline: submissions close Sat 7 Nov 09:00 IST, no late entries.</strong> On Fri 05:00 no product code existed. Three Opus
-workers build from <code>docs/spec.md</code> while Kris does the prerequisites and the teammates build the physical duck.</p>
-<h3 id="status-board-fri-6-nov-17-31-ist">Status board (Fri 6 Nov 17:31 IST)</h3>
-<table>
-<thead>
-<tr>
-<th>Lane</th>
-<th>State</th>
-<th>Blocker</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Everything real, on the deployed app</strong></td>
-<td>Kris (real passkey, Mac) → real 0G decisions → <strong>real World approval with his Orb-verified account</strong> → enforcer <code>PaymentApproved</code> → paid <code>0xae55688e…ffa9</code>; episodes on 0G Storage + <code>EpisodeLog</code>; one-command e2e and the browser journey prove the loop</td>
-<td>live <strong>deny</strong> and <strong>revoke</strong> clicks still to do (<code>docs/demo.md</code>)</td>
-</tr>
-<tr>
-<td>Robot evidence (scans)</td>
-<td><strong>Live, flag on</strong> (<code>features.scans: true</code>): <code>POST /api/chips/:robotId/scans</code> starts the errand for the scanned invoice with a chip-signed ≤ 64 KB QR crop (R2 copy plus a plain copy on 0G Storage as proof of work, root and hash anchored on 0G); <code>/wallet/episodes/:id</code> shows &quot;What the robot saw&quot; with a verify badge; the chip&#39;s <code>--local-port</code> listener and <code>docs/hardware-handoff.md</code> §5 are ready for the Radxa</td>
-<td>the hardware team wires the Radxa scanner</td>
-</tr>
-<tr>
-<td>Audit view</td>
-<td><code>/wallet/episodes</code> + <code>/wallet/episodes/:id</code>: timeline, 0G input/decision, chip, Arc payment, World <code>acr</code>/<code>amr</code>, 0G evidence, Verify (on-chain), Replay (non-binding)</td>
-<td>—</td>
-</tr>
-<tr>
-<td>Merchant till</td>
-<td><strong>Live:</strong> <a href="https://eth-mumbai-merchant.kristjan-grm11775.workers.dev">https://eth-mumbai-merchant.kristjan-grm11775.workers.dev</a> (own stack; items over 1 USDC badged &quot;needs owner approval&quot;). Built on 6 Nov evening, live once its release deploys: the till drives the café&#39;s counter screen, a tap puts the bill on the ESP32 (<code>POST …/counter</code>) and the till shows it pending / PAID / expired (<code>docs/hardware-handoff.md</code> §6)</td>
-<td>—</td>
-</tr>
-<tr>
-<td>Demo rules</td>
-<td>grant defaults <strong>5.00/day, 1.00 per payment</strong>; <strong>thali 2.00</strong> = the over-cap approval beat, cigarettes = the restricted beat; approval page names the reason</td>
-<td>the two commits deploy in the next push</td>
-</tr>
-<tr>
-<td>Design</td>
-<td>Tailwind v4 + @foldkit/ui replaced zyzz; the wallet redesign (steps 2–3: shell, wallet home) is live; the robot conversation (console) is being rewritten by the redesign session</td>
-<td>—</td>
-</tr>
-<tr>
-<td>Contracts / infra</td>
-<td>Arc Studio is the single source (pinned pull, 92 tests, byte-identical deploys); state-store incident resolved with a guard; three stacks in the named store</td>
-<td>Kris revokes the Alchemy CLI OAuth grant after the event</td>
-</tr>
-<tr>
-<td>0G</td>
-<td><strong><code>glm-5.3</code> (TeeML) live since 17:15 IST</strong> via the router (provider <code>0xD179…E503</code>, 6/6 on the probe); the first two decisions&#39; TEE signatures verified with 0G&#39;s SDK (<code>docs/evidence/2026-11-06-tee-verification.md</code>); <strong>the Worker now fetches each decision&#39;s TEE proof at decision time</strong>, stores it with the decision and in the anchored evidence; the episode page shows &quot;Sealed in a TEE ✓ (0G chat …)&quot; after Verify</td>
-<td>first proof-carrying episode: the next glm-5.3 errand after release 2ecf188</td>
-</tr>
-<tr>
-<td>Next</td>
-<td>deny/revoke → M+R uploads those episodes → demo rehearsal → video (<code>docs/video-script.md</code>) Sat 06:00 → submission (<code>docs/submission.md</code>) by 08:00</td>
-<td>Kris</td>
-</tr>
-</tbody></table>
-<h3 id="scope">Scope</h3>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>What</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>MUST</strong></td>
-<td>Passkey wallet on Arc mainnet → grant to the chip (mock chip; the Radxa later) → the Robot Agent asks 0G and buys from our x402 merchant through our facilitator → a restricted item needs Agent Pass (approve <strong>and</strong> deny) → revoke stops the next payment → 0G Storage episode log + <code>EpisodeLog</code> contract → our enforcer built in Arc Studio → the gate (web page; ESP32 later) opens on a signed &quot;paid&quot;</td>
-</tr>
-<tr>
-<td><strong>STRETCH</strong></td>
-<td>on-chain Agent Pass verification (S5b prototype) · camera/vision · duck walking · a read-only MCP server</td>
-</tr>
-<tr>
-<td><strong>CUT</strong></td>
-<td>float path · outside MCP hosts · CCTP/Gateway funding · MPP · ENS · IDKit · 4337 break-glass (documented only)</td>
-</tr>
-</tbody></table>
-<h3 id="who-does-what">Who does what</h3>
-<table>
-<thead>
-<tr>
-<th>Lane</th>
-<th>Owner</th>
-<th>Builds (spec §2)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Lead</td>
-<td>Opus worker</td>
-<td>M0 protocol + chain packages → M1 contracts → M2 facilitator, relayer, schema, secrets, <strong>first real payment</strong></td>
-</tr>
-<tr>
-<td>Wallet</td>
-<td>Opus worker</td>
-<td>M0a passkey-only auth → M7 pages (wallet, robots, console, approval) → M6 World approval</td>
-</tr>
-<tr>
-<td>Merchant + Robot</td>
-<td>Opus worker</td>
-<td>M3 merchant + virtual gate → M4 chip protocol + mock chip → M5 Robot Agent + 0G + evidence uploader</td>
-</tr>
-<tr>
-<td>Orchestrator</td>
-<td>this Claude session (Fable)</td>
-<td>spec, reviews, integration, docs, the live checks, this plan</td>
-</tr>
-<tr>
-<td>Kris</td>
-<td></td>
-<td>prerequisites below, Arc Studio, World client, funding, the demo and video</td>
-</tr>
-<tr>
-<td>Teammates</td>
-<td></td>
-<td>the physical duck (Radxa OS, servos, walking), ESP32 wiring + servo, the camera QR read, booth questions</td>
-</tr>
-</tbody></table>
-<h3 id="prerequisites-kris-they-block-m2-m5-m6">Prerequisites (Kris; they block M2/M5/M6)</h3>
+<h1>Plan v3.6: Vitaquack at ETHGlobal Mumbai</h1>
+<nav class="toc"><a class="h2" href="#where-things-stand-sat-7-nov">Where things stand (Sat 7 Nov)</a><a class="h2" href="#still-open-before-09-00">Still open before 09:00</a><a class="h2" href="#fallbacks-decided-in-advance">Fallbacks, decided in advance</a><a class="h2" href="#booth-questions-still-open">Booth questions still open</a></nav>
+<p>The build order is <code>docs/spec.md</code> and the decision log is <code>docs/decisions.md</code>. Where this file disagrees with them, they
+win. The click-by-click walkthrough is <code>docs/demo.md</code>, the form text is <code>docs/submission.md</code>, and every proven run is
+indexed in <code>docs/evidence/README.md</code>. Git history keeps the earlier versions of this plan (status boards, checkpoints,
+spikes).</p>
+<p>Submissions close <strong>Sat 7 Nov 09:00 IST, no late entries</strong>. Aim for 08:00.</p>
+<h2 id="where-things-stand-sat-7-nov">Where things stand (Sat 7 Nov)</h2>
 <ul>
-<li><input checked="" disabled="" type="checkbox"> 10 USDC to the relayer <code>0x404b09F43db64fB08f70b0b3e2b785bC312D6fDb</code> (Kris, 06:09 IST); the smoke funds demo
-owners from it</li>
-<li><input checked="" disabled="" type="checkbox"> two merchant payout addresses on Arc: generated by the Lead (<code>MERCHANT_PAY_TO</code> <code>0x2845…97F5</code>, <code>RESTRICTED_PAY_TO</code>
-<code>0x0166…8f52</code>, keys in <code>.env.main.local</code>); Kris may replace them</li>
-<li><input disabled="" type="checkbox"> a keyed Arc RPC URL (<code>APP_ARC_RPC_URL</code>; the app falls back to the public RPC, which throttles)</li>
-<li><input disabled="" type="checkbox"> the 0G API key, base URL and model (<code>APP_ZG_*</code>) in <code>.env.main.local</code>; <strong>without them every errand ends in
-<code>safe_stop</code></strong>. 0G Galileo gas for the storage signer <code>0xc6fF8A666f4C7F674C1D129C73b46D61f2891fcD</code> (key generated,
-in <code>.env.main.local</code>)</li>
-<li><input disabled="" type="checkbox"> a World IdP client (<code>auth.world.org/portal</code>, redirect
-<code>https://ethmumbai-edge-main-3vwjnhueh7xtsffr.kristjan-grm11775.workers.dev/api/world/callback</code>,
-<code>client_secret_basic</code>)</li>
-<li><input checked="" disabled="" type="checkbox"> the Arc Studio project: <a href="https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75">https://studio.arc.io/app/63241623-a488-4452-ae23-ab151e4f2d75</a> (6 Nov 11:40 IST, built from the CLI with <code>ARC_STUDIO_TOKEN</code>; 42 tests, both contracts on Arc testnet, a live page)</li>
+<li>Live: the wallet at <a href="https://vitaquack.com/app/">https://vitaquack.com/app/</a>, public proof pages at <a href="https://vitaquack.com/app/proofs">https://vitaquack.com/app/proofs</a> (no sign-in;
+&quot;Verify against 0G&quot; runs in the reader&#39;s browser), the café till at <a href="https://cafe.vitaquack.com">https://cafe.vitaquack.com</a>, the simulator duck at
+<a href="https://vitaquack.com/sim/">https://vitaquack.com/sim/</a>, the shop at <a href="https://vitaquack.com/shop/">https://vitaquack.com/shop/</a> (USDC on Arc), the team site under
+<a href="https://vitaquack.com/plan/">https://vitaquack.com/plan/</a>.</li>
+<li>Proven on the deployed app: the full loop with real 0G decisions, including a real Orb-verified World approval paid on
+Arc, revoke, and episodes with chip-signed frames on 0G Storage and <code>EpisodeLog</code>. The evidence uploader runs as the
+systemd service <code>vitaquack-evidence-uploader</code> on netcup. Details and links: <code>docs/evidence/README.md</code>.</li>
+<li>Demo rules: grant defaults 3.00 a day and 1.00 per payment. The 2.00 thali is the over-limit approval beat, and a
+thali past the daily cap makes the robot walk away. No restricted item is sold. Every errand starts from the duck&#39;s
+scan.</li>
 </ul>
-<h3 id="checkpoints-ist">Checkpoints (IST)</h3>
+<h2 id="still-open-before-09-00">Still open before 09:00</h2>
 <table>
 <thead>
 <tr>
-<th>By</th>
-<th>Checkpoint</th>
+<th>What</th>
+<th>Who</th>
+<th>Record in</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>Fri 08:00</td>
-<td><del>protocol package published; auth routes compiling</del> <strong>done 06:00</strong> (protocol 19 tests; passkey auth native 9/9)</td>
+<td>The live World deny on vitaquack.com: <em>fill in</em></td>
+<td>Kris</td>
+<td><code>docs/submission.md</code> (World track)</td>
 </tr>
 <tr>
-<td><strong>Fri 10:00</strong></td>
-<td><del>M2 smoke</del> <strong>done 06:10 IST</strong>: $0.01 chip-signed payment settled on Arc mainnet, replay refused, revoke, next refused; <code>docs/evidence/2026-11-06-smoke.md</code>. Enforcer deployed <code>0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3</code> (<code>docs/evidence/contracts.md</code>)</td>
+<td>The real-duck run (sign-up → chai pays → thali approve → thali deny → walk away → revoke) with the Radxa chip and the ESP32 counter screen: <em>fill in</em></td>
+<td>Kris, teammates</td>
+<td><code>docs/evidence/demo-run.md</code></td>
 </tr>
 <tr>
-<td>Fri 12:00</td>
-<td><del>merchant 402/pay/status and the chip protocol with the mock chip</del> <strong>code done 06:00</strong> (native 14/14); first push to <code>main</code> 06:18; verified on the deployed app 06:22 (<code>docs/evidence/2026-11-06-deployed-merchant.md</code>)</td>
+<td>The video (2:30 to 2:59, ≥ 720p, real narration): <em>fill in</em></td>
+<td>Kris</td>
+<td><code>docs/video-script.md</code>, <code>docs/submission.md</code> Links</td>
 </tr>
 <tr>
-<td>Fri 15:00</td>
-<td>Robot Agent errands with a real 0G decision; evidence uploaded to 0G Storage</td>
+<td>The Radxa scanner wiring (<code>docs/hardware-handoff.md</code> §5)</td>
+<td>teammates</td>
+<td>the real-duck run</td>
 </tr>
 <tr>
-<td>Fri 19:00</td>
-<td>World approve/deny on the deployed app; wallet pages complete</td>
+<td>The phone hotspot with the Radxa, ESP32 and laptops (H2, H6 in <code>docs/spikes/hardware-results.md</code> not yet run)</td>
+<td>teammates</td>
+<td><code>docs/spikes/hardware-results.md</code></td>
 </tr>
 <tr>
-<td><strong>Fri 21:00</strong></td>
-<td><del>the full MUST loop on the deployed app</del> <strong>done 12:39 IST with real 0G decisions</strong> (<code>docs/evidence/2026-11-06-deployed-e2e.md</code> runs 9–10; World = stub until the client exists)</td>
-</tr>
-<tr>
-<td>Sat 02:00</td>
-<td>stretch stops; README, diagram, Studio walkthrough</td>
-</tr>
-<tr>
-<td><strong>Sat 06:00</strong></td>
-<td><strong>feature freeze</strong>: video (2:30–2:59), World debrief, contract addresses</td>
-</tr>
-<tr>
-<td>Sat 09:00</td>
-<td>submitted (aim for 08:00)</td>
+<td>A keyed Arc RPC URL (<code>APP_ARC_RPC_URL</code>); until then the Worker uses <code>https://arc-rpc.publicnode.com</code></td>
+<td>Kris</td>
+<td>nothing to record</td>
 </tr>
 </tbody></table>
-<h3 id="demo-script-4-minute-finalist-slot-the-video-follows-the-sam">Demo script (4-minute finalist slot; the video follows the same story)</h3>
-<table>
-<thead>
-<tr>
-<th>Time</th>
-<th>Beat</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>0:00</td>
-<td>The problem: don&#39;t give a robot your wallet, give it a budget</td>
-</tr>
-<tr>
-<td>0:20</td>
-<td>Owner (passkey, funded on Arc) grants Vitaquack&#39;s chip 3.00 USDC a day, 1.00 per payment, Duck Café only, on the consent screen (the form defaults; chai/samosa go through, the 2.00 thali needs World approval over the per-payment cap; a thali over the daily cap makes the robot walk away)</td>
-</tr>
-<tr>
-<td>0:50</td>
-<td>&quot;Buy me a chai&quot;: 0G decides (show the request id) → the chip signs → paid on Arc (explorer link) → <strong>the gate opens</strong></td>
-</tr>
-<tr>
-<td>1:50</td>
-<td>Thali 2.00, over the per-payment cap → Agent Pass on the phone → <strong>approve: paid</strong> → another thali → <strong>deny: nothing paid</strong> → a third is over the daily cap → the robot walks away</td>
-</tr>
-<tr>
-<td>2:50</td>
-<td>Revoke in the wallet → the next attempt fails on-chain</td>
-</tr>
-<tr>
-<td>3:20</td>
-<td>How it works: the architecture, our enforcer in Arc Studio, the episode log on 0G Storage</td>
-</tr>
-<tr>
-<td>3:50</td>
-<td>Close</td>
-</tr>
-</tbody></table>
-<h3 id="fallbacks-decided-in-advance">Fallbacks, decided in advance</h3>
+<p>After the event Kris revokes the Alchemy CLI OAuth grant.</p>
+<p>Not on the critical path: Bun on the Radxa is not tested (H3 signs in Python at 187 ms), and the walking policy is
+trained in simulation but has not run on the real duck (<a href="https://vitaquack.com/plan/duck-walk/">https://vitaquack.com/plan/duck-walk/</a>). On-chain Agent Pass
+verification (the S5b prototype) stays a stretch.</p>
+<h2 id="fallbacks-decided-in-advance">Fallbacks, decided in advance</h2>
 <table>
 <thead>
 <tr>
@@ -318,16 +158,12 @@ in <code>.env.main.local</code>)</li>
 <td>the Python signer from bench C1 (proven), or the mock chip on a laptop</td>
 </tr>
 <tr>
-<td>Camera QR reading</td>
-<td>the chip takes the invoice id from the merchant API; skip the scan</td>
-</tr>
-<tr>
-<td>x402 payment too large for a header</td>
-<td>it already goes in the POST body (spec §7)</td>
+<td>Camera QR reading on the duck</td>
+<td>the simulator duck&#39;s camera reads the same counter QR (<code>docs/evidence/2026-11-06-sim-e2e.md</code>)</td>
 </tr>
 <tr>
 <td>0G slow or down</td>
-<td>that is the safe-stop we must show anyway; never fake a decision</td>
+<td>that is the safe stop we must show anyway; never fake a decision</td>
 </tr>
 <tr>
 <td>Venue network</td>
@@ -338,147 +174,10 @@ in <code>.env.main.local</code>)</li>
 <td>demo the Radxa reading a QR and signing; never block the payment on the gait</td>
 </tr>
 </tbody></table>
-<h3 id="submission-checklist">Submission checklist</h3>
-<p>See <code>docs/spec.md</code> §12 (ETHGlobal rules checked Fri 04:15: 3 partner prizes, the from-scratch disclosure, video 2–4 min
-≥ 720p with real narration, 0G&#39;s &lt; 3 min, contract addresses, World debrief).</p>
-<h2 id="1-the-architecture-in-one-paragraph">1. The architecture, in one paragraph</h2>
-<p>Four systems in one Cloudflare Worker plus a chip client. The <strong>wallet</strong> (passkey login = passkey signer of a MetaMask
-<code>HybridDeleGator</code> on Arc) grants a budget to a robot&#39;s <strong>chip</strong> address as a delegation with caveats (daily cap,
-per-payment cap, payee allowlist, expiry, approval requirement). The <strong>Robot Agent</strong> (an Effect service with D1 state,
-one errand at a time per robot) asks 0G for a structured decision, hands the invoice to the chip over HTTPS
-long-polling, and submits the chip-signed voucher to the <strong>merchant</strong>&#39;s x402 endpoint; our facilitator simulates and
-settles it through the DelegationManager, and Arc checks every caveat. Restricted or over-cap purchases need a World
-Agent Pass approval that the backend verifies and co-signs. Every decision is logged with its 0G request id and uploaded
-to 0G Storage. Diagrams: the <a href="https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/">architecture page</a>.
-Build detail: <code>docs/spec.md</code>.</p>
-<h2 id="2-what-is-proven-what-is-not-honest-labels">2. What is proven, what is not (honest labels)</h2>
-<table>
-<thead>
-<tr>
-<th>Claim</th>
-<th>Evidence level</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>HybridDeleGator, SimpleFactory, DelegationManager and the enforcers are on Arc, byte-identical to Base</td>
-<td>verified on-chain (<code>eth_getCode</code>)</td>
-</tr>
-<tr>
-<td>A chip-signed voucher under a grant settles on Arc; replay and post-revoke payments are refused</td>
-<td><strong>broadcast</strong> (6 Nov 06:10, <code>docs/evidence/2026-11-06-smoke.md</code>: $0.01 settled, revoke tx; replay and post-revoke refusals simulated from the relayer)</td>
-</tr>
-<tr>
-<td>A passkey-signed grant is accepted on-chain (ERC-1271 on the Hybrid account)</td>
-<td><strong>broadcast</strong> (6 Nov 06:32, deployed e2e with a virtual authenticator, <code>docs/evidence/2026-11-06-deployed-e2e.md</code>); real phones not yet</td>
-</tr>
-<tr>
-<td>The enforcer (cap, allowlist, approval) behaves on Arc</td>
-<td><strong>deployed</strong> <code>0x7c21…e4D3</code> + 8-case live approval test against that code (<code>docs/evidence/contracts.md</code>); no approved payment broadcast yet</td>
-</tr>
-<tr>
-<td>Chip pairing and 25 s long-polls through the deployed edge</td>
-<td><strong>deployed</strong> (edge holds 24.8 s, lease 35 s)</td>
-</tr>
-<tr>
-<td>Merchant 402 / pay / signed gate status on the deployed app</td>
-<td><strong>deployed</strong> (<code>docs/evidence/2026-11-06-deployed-merchant.md</code>)</td>
-</tr>
-<tr>
-<td>The real Radxa builds and signs the voucher the kit expects</td>
-<td><strong>bench</strong> (C1, 20/20), simulated settlement</td>
-</tr>
-<tr>
-<td>A World RS256 token can be verified in an Arc contract bound to one payment</td>
-<td><strong>prototype</strong> (S5b, 43 tests, live <code>eth_call</code>); no real World token yet; stretch</td>
-</tr>
-<tr>
-<td>0G decides, logs, safe-stops; episodes on 0G Storage</td>
-<td><strong>native with a stub</strong> (16/16); <strong>not run live</strong> (needs <code>APP_ZG_*</code>); the deployed errand answers 503 until then</td>
-</tr>
-<tr>
-<td>World approve / deny on the deployed app</td>
-<td><strong>native with a stub</strong> (10 token cases); <strong>not run live</strong> (needs the IdP client)</td>
-</tr>
-<tr>
-<td>The full MUST loop on the deployed app</td>
-<td><strong>not until a real 0G decision pays an errand</strong> (<code>docs/evidence/demo-run.md</code>)</td>
-</tr>
-</tbody></table>
-<h2 id="3-spikes">3. Spikes</h2>
-<table>
-<thead>
-<tr>
-<th>#</th>
-<th>Spike</th>
-<th>Status</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>S1</td>
-<td>real-device passkey → HybridDeleGator on Arc → passkey-signed grant → $0.01 relayed payment</td>
-<td>open (M0a + M2)</td>
-</tr>
-<tr>
-<td>S2</td>
-<td>our ERC-7710 facilitator: owner → chip leaf, then $0.01 real</td>
-<td>simulated 14/14 (6 Nov); broadcast in M2</td>
-</tr>
-<tr>
-<td>S3</td>
-<td>0G: a tool-calling model, latency, request ids</td>
-<td>open (M5, needs the key)</td>
-</tr>
-<tr>
-<td>S4</td>
-<td><del>Robot Agent ↔ wallet MCP</del></td>
-<td>dropped (MCP off the path)</td>
-</tr>
-<tr>
-<td>S5</td>
-<td>Agent Pass browser flow with <code>nonce</code>, approve and deny, with Kris&#39;s Orb ID</td>
-<td>open (M6)</td>
-</tr>
-<tr>
-<td>S5b</td>
-<td><code>HumanApprovalEnforcer</code> verifies a World token on Arc</td>
-<td>prototype done; stretch</td>
-</tr>
-<tr>
-<td>S6</td>
-<td>mock chip ↔ Robot Agent long-polling; then the Radxa with Bun + viem</td>
-<td>open (M4; H3 retry)</td>
-</tr>
-<tr>
-<td>S7</td>
-<td>the phone hotspot with the Radxa, ESP32 and laptops; H2, H6 on it</td>
-<td>open (teammates)</td>
-</tr>
-<tr>
-<td>S8</td>
-<td>walking policy on the new servos</td>
-<td>open (teammates)</td>
-</tr>
-</tbody></table>
-<p>Hardware bench results so far: C1 pass (the chip signs the plan&#39;s voucher); H1 partial (camera ribbon reseated, ≤ 57 °C);
-H3 signing works in Python at 187 ms (Bun not yet tested); H4 venue Wi-Fi unusable → phone hotspot; H2/H6 not yet run.
-Details: <code>docs/spikes/hardware-results.md</code>.</p>
-<h2 id="4-booth-questions">4. Booth questions</h2>
+<h2 id="booth-questions-still-open">Booth questions still open</h2>
 <ul>
-<li><strong>0G:</strong> may Storage and <code>EpisodeLog</code> run on Galileo testnet? (Credits: we have them. Standard providers: decided.)</li>
-<li><strong>World:</strong> how fast can we get a production IdP client; does &quot;mocked proofs&quot; apply to Agent Pass.</li>
-<li><strong>Arc:</strong> can judges open a Studio URL without logging in; is a Studio-authored enforcer deployed to mainnet by us
+<li>Arc: can judges open a Studio URL without logging in; is a Studio-authored enforcer deployed to mainnet by us
 acceptable; a keyed RPC.</li>
-</ul>
-<h2 id="5-alternatives-considered-and-rejected">5. Alternatives considered and rejected</h2>
-<ul>
-<li><strong>World Chain + 0G + ENS instead of Arc:</strong> no World Chain prize; MetaMask&#39;s delegation contracts aren&#39;t on World
-Chain; gas in ETH; World&#39;s wallet can&#39;t grant allowances. ENS names could sit on top of Arc later
-(<code>docs/research/worldchain-ens-alternative.md</code>).</li>
-<li><strong>The float path</strong> (pull to the chip, then EIP-3009 via Circle): after the pull, Arc no longer binds payee, invoice
-or revocation. Later fix: a policy-bound escrow.</li>
-<li><strong>Verifying the World token on Arc by default:</strong> publishes the owner&#39;s World pseudonym in calldata. Stretch only.</li>
-<li><strong>An Agents SDK / Goblin-style agent, WebSockets and MCP between our own components:</strong> don&#39;t compose with the
-Effect/Alchemy foundation and add hours without adding security.</li>
 </ul>
 
   <footer>Generated from <code>docs/plan.md</code> · diagrams on the <a href="/architecture/">Architecture</a> page ·

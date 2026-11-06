@@ -1,4 +1,4 @@
-# 6 Nov, 17:00–18:10 IST: the demo's approval story becomes spending limits only
+# 6 Nov, 17:00 to 18:10 IST: the demo's approval story becomes spending limits only
 
 Kris decided (17:45 IST, via session -9e) that cigarettes leave the catalogue and the demo: the World approval beat
 is a purchase over the per-payment cap, and the daily cap is never lifted. This file records what was proven for
@@ -17,7 +17,7 @@ is `demo-run.md` (still to record).
 
 ## Evidence
 
-**Real model, 0G router, `glm-5.3` (TeeML).** `packages/server/scripts/zg-probe.ts`, scenarios `chai | thali |
+Real model, 0G router, `glm-5.3` (TeeML): `packages/server/scripts/zg-probe.ts`, scenarios `chai | thali |
 thali-over-today`, run by the M+R worker at 17:50 IST, 5 of 5 as the table says:
 
 | Scenario | `remainingToday` | Decision |
@@ -26,21 +26,23 @@ thali-over-today`, run by the M+R worker at 17:50 IST, 5 of 5 as the table says:
 | thali 2.00 (over the 1.00 per-payment cap) | 2.90 | `ask_human`, twice |
 | thali 2.00 (over today's allowance) | 0.90 | `walk_away`, twice: "Over today's allowance; the owner can raise it." |
 
-**Native (workerd + D1), `packages/server/test/LimitsAcceptance.ts`**, grant 3.00/day and 1.00/payment, a stub brain
+Native (workerd + D1), `packages/server/test/LimitsAcceptance.ts`, grant 3.00/day and 1.00/payment, a stub brain
 that applies the decision table to what the Worker actually sent: chai → `pay` → `paid`; thali → `ask_human`
 (`remainingToday` 2.90) → approved in the stub World → `signing` → `paid`; a second thali → `walked_away`
 (`remainingToday` 0.90, `dailyAllowance.exceeded`), and the evidence records `walk_away` / `walked_away`; plus a
 declined thali with no TEE proof. Full native suite: 24 pass, 0 fail.
 
-**Gate.** `heavy --wait bun run check` at `a108be8` (the same tree as `518ac36`, docs aside) in a fresh worktree
+Gate: `heavy --wait bun run check` at `a108be8` (the same tree as `518ac36`, docs aside) in a fresh worktree
 after `bun install --frozen-lockfile`: exit 0 (a first run in a worktree with stale `node_modules` failed typecheck
 with bogus "cannot find module" errors; not the code). CI "Checks and deploy" on `9eedd02` and `39aac79`: success.
 
-**Deployed.** `GET /api/health` → `release 39aac79…`, every feature flag true. `GET /api/merchants/duck-cafe/items` →
+Deployed: `GET /api/health` → `release 39aac79…`, every feature flag true. `GET /api/merchants/duck-cafe/items` →
 `chai 100000`, `samosa 250000`, `thali 2000000`, none restricted, merchant `payTo` set.
 
 ## Not yet proven on the deployed app
 
 The thali approval with the 3.00/1.00 grant and the daily-cap walk-away have run natively and against the real model,
 not yet through the deployed pages with a real passkey, World App and the mock chip: that is the demo run
-(`demo-run.md`). The earlier live-World and 0G runs in this folder used the cigarettes catalogue; they stay as recorded.
+(`demo-run.md`). Later the same evening the thali `ask_human` ran on the deployed app through the simulator, with the
+owner's No (`2026-11-06-sim-e2e.md`). The earlier live-World and 0G runs in this folder used the cigarettes catalogue,
+and they stay as recorded.

@@ -1,7 +1,7 @@
 # Vitaquack chip client (`@ethmumbai/chip`)
 
-The robot's chip: it holds the robot's secp256k1 key, long-polls the app for sign requests, checks every request against
-its own policy and only then signs the one-time payment voucher (a delegation leaf) with viem. The same code runs as the
+The robot's chip holds the robot's secp256k1 key and long-polls the app for sign requests. It checks every request
+against its own policy and only then signs the one-time payment voucher (a delegation leaf) with viem. The same code runs as the
 **mock chip** on a laptop and on the duck's **Radxa Zero 3W** (spec §8). Nothing in the Worker changes for hardware.
 
 ```sh
@@ -29,8 +29,8 @@ grant's delegate is this address.
 
 ## Scan listener (`--local-port N`)
 
-The camera process on the same board posts the QR crop it read. The chip refuses to sign more than a JPEG crop of at most
-64 KB (spec rule 4: no scene frames leave the chip). It computes the crop's SHA-256 and signs, EIP-191 with its key,
+The camera process on the same board posts the QR crop it read. The chip signs only a JPEG crop of at most 64 KB. It
+computes the crop's SHA-256 and signs, EIP-191 with its key,
 `vitaquack-scan:v1|<invoiceId>|<0x sha256>|<capturedAt ms>|<robotId>`. It then posts
 `{invoiceId, capturedAt, frame: {mime, sha256, bytes, b64}, sig}` to `POST <server>/api/chips/<robotId>/scans` with its
 chip token, and answers with the Worker's status and JSON.
@@ -46,8 +46,8 @@ clock is used when it is absent, and the Worker accepts ±120 s. Local 400s (nev
 `expected {"invoiceId", "jpegBase64", "capturedAt"?}`, `jpegBase64 is not base64`, `crop is larger than 64 KB`,
 `crop is not a JPEG`. Answers 502 when the Worker does not answer within 60 s. Every other status is the Worker's own
 (`docs/hardware-handoff.md`). Repeating a scan of the same invoice gets 200 with the same errand. The crop is stored
-in R2 and uploaded plain to 0G Storage as proof of the robot's work; it never reaches the 0G decision, and the episode
-evidence carries its hash, the chip's signature and its 0G Storage root.
+in R2 and uploaded plain to 0G Storage as proof of the robot's work (spec rule 4). It never reaches the 0G decision.
+The episode evidence carries its hash, the chip's signature and its 0G Storage root.
 
 ## Frame listener (same `--local-port N`)
 
@@ -55,8 +55,10 @@ For the owner's live view, the camera process posts one whole frame a second to 
 `{"jpegBase64", "capturedAt"?}`. The chip refuses anything but a JPEG of at most 64 KB. It signs EIP-191
 `vitaquack-frame:v1|<robotId>|<0x sha256>|<capturedAt ms>`, a prefix of its own so a frame can never pass as a scan.
 It posts `{capturedAt, frame, sig}` to `POST <server>/api/chips/<robotId>/frames` and answers with the Worker's status
-and JSON: 201 when stored, 202 (not kept) while the robot has no open request, 429 under 200 ms after the last stored frame, 404 while `APP_LIVE_ENABLED` is off. Log
-line: `frame 0x<first 8 hex>… → 201`. Unlike the chip's other calls, `/frame` reuses its connection. Codes and limits: `docs/hardware-handoff.md` §5.3.
+and JSON: 201 when stored, 202 (not kept) while the robot has no open request, 429 under 200 ms after the last stored
+frame, 404 while `APP_LIVE_ENABLED` is off. Log line: `frame 0x<first 8 hex>… → 201`. Unlike the chip's other calls,
+`/frame` reuses its connection. Live frames are owner-only and never go to 0G. Codes and limits are in
+`docs/hardware-handoff.md` §5.3.
 
 ## Log lines (one per event)
 
@@ -118,7 +120,7 @@ the bench protocol. To point it at the same endpoints it needs: (1) pairing: `pe
 (3) the spec's leaf, not the spike's: caveats ExactExecution(USDC ‖ 0 ‖ transfer(payTo, amount)) · Id(invoiceHash) ·
 Timestamp(0, expiresAt) · Redeemer(relayer), salt = `keccak256(invoiceHash)` as a uint256, authority = the grant's
 delegation hash, delegate `0x…0a11`; (4) the invoice hash from `linesHash`/`rulesHash` as sent (the request carries the
-hashes, not the lines). Its pure-Python recovery took 187 ms per signature (H3); fine for a payment, slow for a benchmark.
+hashes, not the lines). Its pure-Python recovery took 187 ms per signature (H3), which is fine for a payment and slow for a benchmark.
 
 ## Tests
 

@@ -11,7 +11,7 @@
     },
     {
       "path": "tools/oxlint/anti-slop/PROVENANCE.md",
-      "sha256": "095e47598c3bfcaa311667fd2ea091194dae09ede73073c4e92b34802ea24743"
+      "sha256": "dde0c7445f18418e420244687e1a9a633fac7a0f99d881f149e31d926b47ed46"
     },
     {
       "path": "tools/oxlint/anti-slop/effect/index.ts",
@@ -87,7 +87,7 @@
     },
     {
       "path": ".agents/skills/sources.json",
-      "sha256": "58e709c538dffeb5e22bfc856fd55814a4dcdb9f782ee0dba8f2ef309f5138cd"
+      "sha256": "557dd037671931162239786dc37229893af51465f648f1fa98da2be3945004f2"
     },
     {
       "path": ".agents/skills/thermo-nuclear-code-quality-review/LICENSE",

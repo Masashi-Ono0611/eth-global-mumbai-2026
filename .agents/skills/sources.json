@@ -62,6 +62,18 @@
       "localTreeSha256": "ada40f95b941526582f5666075771b295d25a91a62bb66c601ce738f1d8776b7",
       "unchanged": true
     },
+    "asd-ste100": {
+      "repository": "danyuchn/asd-ste100-skill",
+      "commit": "fd86652be0d5d3485c69e1529dfd1fa3c9a7a640",
+      "path": ".",
+      "licenses": [
+        "LICENSE"
+      ],
+      "license": "MIT",
+      "treeSha256": "9506e92f832ae7800a9cf43aa686260aa894882234714b27ea43f5dc7aa43e05",
+      "localTreeSha256": "9506e92f832ae7800a9cf43aa686260aa894882234714b27ea43f5dc7aa43e05",
+      "unchanged": true
+    },
     "audit-program": {
       "repository": "foldkit/foldkit",
       "commit": "7ee214268c602967937b80f6f20d1e831f2e8ab6",

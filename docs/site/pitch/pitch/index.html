@@ -1,35 +1,32 @@
 <!doctype html>
-<html lang="en" data-skin="c" data-model="flow">
+<html lang="en" data-skin="c" data-model="deck">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Vitaquack: a passkey wallet that gives your robot a budget</title>
-    <meta name="description" content="Your robot pays for small things by itself and asks you before big ones. Preorder the duck, built in Shenzhen and shipping in January 2027." />
-    <link rel="canonical" href="https://vitaquack.com/" />
+    <title>Vitaquack: the pitch</title>
+    <meta name="description" content="The stage pitch in seven screens, then the live demo. Give your robot a budget, not your wallet." />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="https://vitaquack.com/pitch/" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://vitaquack.com/" />
-    <meta property="og:title" content="Vitaquack: a passkey wallet that gives your robot a budget" />
-    <meta property="og:description" content="Your robot pays for small things by itself and asks you before big ones. Preorder the duck, built in Shenzhen and shipping in January 2027." />
+    <meta property="og:url" content="https://vitaquack.com/pitch/" />
+    <meta property="og:title" content="Vitaquack: the pitch" />
+    <meta property="og:description" content="Give your robot a budget, not your wallet. Seven screens, then the live demo." />
     <meta property="og:image" content="https://vitaquack.com/media/og.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Vitaquack: a passkey wallet that gives your robot a budget" />
-    <meta name="twitter:description" content="Your robot pays for small things by itself and asks you before big ones. Preorder the duck, built in Shenzhen and shipping in January 2027." />
-    <meta name="twitter:image" content="https://vitaquack.com/media/og.jpg" />
-    <meta name="theme-color" content="#16173a" id="theme-color" />
-    <link rel="icon" href="/pitch/media/favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/pitch/media/apple-touch-icon.png" />
-    <link rel="preload" href="/pitch/media/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/pitch/media/fonts/mukta-400-latin.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/pitch/media/rv1.webp" as="image" fetchpriority="high" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#e7f1f6" id="theme-color" />
+    <link rel="icon" href="../media/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="../media/apple-touch-icon.png" />
+    <link rel="preload" href="../media/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="../media/fonts/mukta-400-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="../media/rv1.webp" as="image" fetchpriority="high" />
     <style>
-      @font-face { font-family: 'Baloo 2'; font-weight: 500 800; font-display: swap; src: url('/pitch/media/fonts/baloo2-latin.woff2') format('woff2'); }
-      @font-face { font-family: 'Mukta'; font-weight: 400; font-display: swap; src: url('/pitch/media/fonts/mukta-400-latin.woff2') format('woff2'); }
-      @font-face { font-family: 'Mukta'; font-weight: 500; font-display: swap; src: url('/pitch/media/fonts/mukta-500-latin.woff2') format('woff2'); }
-      @font-face { font-family: 'Mukta'; font-weight: 600; font-display: swap; src: url('/pitch/media/fonts/mukta-600-latin.woff2') format('woff2'); }
-      @font-face { font-family: 'Mukta'; font-weight: 700; font-display: swap; src: url('/pitch/media/fonts/mukta-700-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Baloo 2'; font-weight: 500 800; font-display: swap; src: url('../media/fonts/baloo2-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Mukta'; font-weight: 400; font-display: swap; src: url('../media/fonts/mukta-400-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Mukta'; font-weight: 500; font-display: swap; src: url('../media/fonts/mukta-500-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Mukta'; font-weight: 600; font-display: swap; src: url('../media/fonts/mukta-600-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Mukta'; font-weight: 700; font-display: swap; src: url('../media/fonts/mukta-700-latin.woff2') format('woff2'); }
 
       /* ---- Skins: tokens only. A = the cinematic look, B = hybrid (the app's mark, yellow and type on the dark films),
          C = the app's own light identity. ---- */
@@ -154,14 +151,15 @@
       .credit::before { content: ''; display: inline-block; width: 0.55rem; height: 0.55rem; margin-right: 0.5rem; border-radius: 50%; background: currentColor; vertical-align: 0.05em; }
       @media (max-width: 48rem) { .cards { grid-template-columns: 1fr; } }
       [data-model='slides'] .benefits { min-height: 100svh; display: grid; align-content: center; }
-      .built { padding-block: clamp(3rem, 8vh, 6rem); border-top: 1px solid var(--rule); }
-      [data-model='slides'] .built { min-height: 100svh; display: grid; align-content: center; }
+      section.built { padding-block: clamp(3rem, 8vh, 6rem); border-top: 1px solid var(--rule); }
+      [data-model='slides'] section.built { min-height: 100svh; display: grid; align-content: center; }
 
       /* How it works: the payment, step by step (the diagram from the pitch), over the app's own screens. */
       .live { padding: clamp(3rem, 8vh, 6rem) 0 clamp(4rem, 10vh, 7rem); text-align: center; overflow: hidden; isolation: isolate; background: radial-gradient(60rem 40rem at 50% 60%, var(--bg-2), var(--bg)); }
       [data-model='slides'] .live { min-height: 100svh; }
       .live .wall { position: absolute; inset: -10% 0; z-index: -2; display: grid; grid-template-rows: 1fr 1fr; gap: 2rem; opacity: 0.17; pointer-events: none; overflow: hidden; }
       [data-skin='c'] .live .wall { opacity: 0.14; }
+      .live .wall { -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 50%, transparent 60%, #000 100%); mask-image: radial-gradient(ellipse 75% 65% at 50% 50%, transparent 60%, #000 100%); }
       .live .row-screens { display: flex; gap: 2rem; width: max-content; align-items: center; animation: wall 90s linear infinite; }
       .live .row-screens.back { animation-direction: reverse; animation-duration: 120s; }
       .live .row-screens img { width: 15rem; border-radius: 1.25rem; outline: 1px solid var(--outline); display: block; }
@@ -239,7 +237,9 @@
       .tier .then { font: 600 0.95rem/1.3 var(--text); color: var(--muted); }
       .tier .body { color: var(--soft); margin-top: 0.4rem; }
       .tier .go { margin-top: auto; padding-top: 1rem; display: grid; }
-      .shop .small { margin-top: 1.25rem; color: var(--muted); font-size: 0.95rem; max-width: 46rem; }
+      .terms { display: flex; flex-wrap: wrap; gap: 0.6rem 1.75rem; margin-top: 1.25rem; padding: 0; list-style: none; color: var(--muted); font-size: 0.95rem; }
+      .terms li { display: inline-flex; align-items: flex-start; gap: 0.5rem; }
+      .terms svg { width: 1.15rem; height: 1.15rem; flex: none; margin-top: 0.2em; color: var(--fg); }
       @media (max-width: 48rem) { .tiers { grid-template-columns: 1fr; } }
       /* The module and the counter, side by side. */
       .two .wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(2rem, 5vw, 4rem); }
@@ -254,7 +254,7 @@
       .hack .words { max-width: 48rem; margin-inline: auto; }
       .hack .lede { margin: 0.9rem auto 0; }
       .hack .ctas { justify-content: center; }
-      .built .lede { margin-top: 0.8rem; font-weight: 400; }
+      section.built .lede { margin-top: 0.8rem; font-weight: 400; }
 
       /* The final band and the footer. */
       .band { display: grid; align-items: center; min-height: 56svh; overflow: hidden; isolation: isolate; text-align: center; }
@@ -289,14 +289,45 @@
         .caption, .cursor, .dot, .mark, .bar { transition: none; }
         .mark.on { animation: none; }
       }
-      
-      .tb { position: fixed; z-index: 30; left: 0.75rem; top: calc(4.75rem + env(safe-area-inset-top)); display: flex; gap: 0.4rem; padding: 0.35rem; border-radius: 999px; background: rgb(20 20 40 / 0.85); color: #fff; font: 600 0.78rem/1 system-ui, sans-serif; backdrop-filter: blur(10px); }
-      .tb button { all: unset; cursor: pointer; padding: 0.45rem 0.65rem; border-radius: 999px; min-height: 1.6rem; }
-      .tb button[aria-pressed='true'] { background: #ffe07a; color: #1f2d36; }
-      .tb span { align-self: center; opacity: 0.6; padding: 0 0.25rem; }
-      @media (max-width: 48rem) { .tb { top: calc(3.9rem + env(safe-area-inset-top)); } }
-      @media (max-width: 48rem) { .cm-fab { bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important; } }
 
+      /* The pitch: seven screens, one per keypress. The landing's pieces, each given a whole screen. */
+      html { scroll-padding-top: 0; }
+      .deck > section { position: relative; min-height: 100svh; display: grid; align-content: center; box-sizing: border-box; }
+      [data-skin='c'] .deck .film { min-height: 100svh; padding-block: clamp(2rem, 6vh, 4rem); }
+      .deck .live { display: grid; align-content: center; }
+      .deck section.built { border-top: 0; }
+      .deck .ctas a[target] { cursor: alias; }
+
+      .now, .close { text-align: center; padding-block: clamp(2rem, 6vh, 4rem); }
+      .now .words, .close .words { max-width: 56rem; margin-inline: auto; }
+      .now h2 { font-size: clamp(3rem, 8vw, 6.5rem); }
+      .now .lede { margin: 1rem auto 0; max-width: 40rem; }
+      .beats { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 2.25rem 0 0; padding: 0; list-style: none; }
+      .beats li { display: inline-flex; align-items: center; gap: 0.6rem; min-height: 3.25rem; padding: 0.7rem 1.2rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--rule); font: 500 1.1rem/1.2 var(--text); color: var(--soft); }
+      .beats b { font-weight: 700; color: var(--fg); }
+      .beats li.asks { background: color-mix(in oklab, var(--accent) 45%, transparent); border-color: transparent; color: var(--fg); }
+      .beats li.stop { border-color: color-mix(in oklab, var(--no) 60%, transparent); }
+      .beats li.stop b { color: var(--no); }
+      .now .ctas { justify-content: center; margin-top: 2.5rem; }
+
+      .close h1 { font-size: clamp(3rem, 7.5vw, 6rem); }
+      .close .says { margin: 1.5rem auto 0; max-width: 42rem; font: 500 clamp(1.15rem, 1.7vw, 1.45rem)/1.45 var(--text); color: var(--soft); text-wrap: balance; }
+      .close .built { justify-content: center; margin-top: 2.25rem; }
+      .close .site { display: inline-block; margin-top: 2.5rem; font: var(--display-weight) clamp(1.5rem, 2.6vw, 2.2rem)/1 var(--display); letter-spacing: var(--track); color: var(--fg); text-decoration: none; }
+      .close .site:hover { text-decoration: underline; }
+      .close .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 1.75rem; margin: 1.5rem 0 0; padding: 0; list-style: none; font: 600 0.95rem/1 var(--text); }
+      .close .links a { color: var(--muted); text-decoration: none; padding-block: 0.4rem; display: inline-block; }
+      .close .links a:hover { color: var(--fg); text-decoration: underline; }
+
+      .mark-top { position: fixed; left: clamp(1rem, 3vw, 2rem); top: calc(1rem + env(safe-area-inset-top)); z-index: 20; color: var(--fg); }
+      .dots { position: fixed; left: clamp(1rem, 3vw, 2rem); bottom: calc(1.25rem + env(safe-area-inset-bottom)); z-index: 20; display: flex; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+      .dots button { all: unset; cursor: pointer; width: 0.6rem; height: 0.6rem; border-radius: 999px; background: color-mix(in oklab, var(--fg) 25%, transparent); transition-property: width, background-color; transition-duration: 0.25s; touch-action: manipulation; }
+      .dots button[aria-current='true'] { width: 1.6rem; background: var(--accent); }
+      .dots button:focus-visible { outline: 3px solid var(--glow); outline-offset: 3px; }
+      .hint { position: fixed; right: clamp(1rem, 3vw, 2rem); bottom: calc(1.25rem + env(safe-area-inset-bottom)); z-index: 20; margin: 0; font: 600 0.85rem/1 var(--text); color: var(--muted); transition-property: opacity; transition-duration: 0.4s; }
+      .hint.away { opacity: 0; }
+      @media (max-width: 48rem) { .hint { display: none; } .now h2 { font-size: clamp(2.6rem, 14vw, 4rem); } }
+      @media (prefers-reduced-motion: reduce) { .dots button, .hint { transition: none; } }
     </style>
   </head>
   <body>
@@ -363,36 +394,22 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       <symbol id="i-arc" viewBox="0 0 48 50"><path d="M23.8574 0C31.0115 0 37.371 6.19775 41.7656 17.4521C44.0513 23.3056 45.7332 30.2603 46.7295 37.8262C46.8186 38.5019 46.8939 39.1888 46.9717 39.874C46.9969 39.9162 47.0119 39.9553 47.0068 39.9873C47.0068 39.9873 47.5924 43.6447 47.7168 50H47.6514C46.7829 49.2873 36.54 41.2389 19.5615 43.5693C19.8177 40.6962 20.1699 37.9004 20.625 35.2207C20.6482 35.0838 20.6755 34.9514 20.6992 34.8154C27.3585 34.6146 33.1876 35.3879 37.6572 36.4014C37.6406 36.2954 37.6263 36.1865 37.6094 36.0811C36.6906 30.3599 35.3355 25.1217 33.5879 20.6455C30.7304 13.3264 27.001 8.77832 23.8574 8.77832C20.7141 8.77863 16.9853 13.3266 14.1279 20.6455C13.4363 22.4157 12.8068 24.3036 12.2422 26.2949C11.4483 29.0854 10.7807 32.0773 10.248 35.2207C9.45968 39.8629 8.96755 44.8418 8.78613 50H0C0.405408 37.7593 2.48104 26.3352 5.9502 17.4521C10.3437 6.19798 16.7036 0.000184295 23.8574 0Z" fill="currentColor"/></symbol>
       <symbol id="i-arc-word" viewBox="0 0 146 50"><path d="M23.8574 0C31.0115 0 37.371 6.19775 41.7656 17.4521C44.0513 23.3056 45.7332 30.2603 46.7295 37.8262C46.8186 38.5019 46.8939 39.1888 46.9717 39.874C46.9969 39.9162 47.0119 39.9553 47.0068 39.9873C47.0068 39.9873 47.5924 43.6447 47.7168 50H47.6514C46.7829 49.2873 36.54 41.2389 19.5615 43.5693C19.8177 40.6962 20.1699 37.9004 20.625 35.2207C20.6482 35.0838 20.6755 34.9514 20.6992 34.8154C27.3585 34.6146 33.1876 35.3879 37.6572 36.4014C37.6406 36.2954 37.6263 36.1865 37.6094 36.0811C36.6906 30.3599 35.3355 25.1217 33.5879 20.6455C30.7304 13.3264 27.001 8.77832 23.8574 8.77832C20.7141 8.77863 16.9853 13.3266 14.1279 20.6455C13.4363 22.4157 12.8068 24.3036 12.2422 26.2949C11.4483 29.0854 10.7807 32.0773 10.248 35.2207C9.45968 39.8629 8.96755 44.8418 8.78613 50H0C0.405408 37.7593 2.48104 26.3352 5.9502 17.4521C10.3437 6.19798 16.7036 0.000184295 23.8574 0ZM131.198 16.6523C134.06 16.6524 136.482 17.1955 138.466 18.2783C140.448 19.3622 142.002 20.7725 143.127 22.5098C144.251 24.2481 144.957 26.0777 145.243 27.999L141.624 28.7354C141.419 27.1408 140.908 25.6789 140.091 24.3496C139.272 23.0217 138.128 21.9584 136.656 21.1611C135.184 20.3638 133.365 19.9649 131.198 19.9648C129.031 19.9648 127.088 20.4664 125.371 21.4678C123.654 22.4702 122.294 23.8806 121.293 25.6992C120.291 27.5192 119.79 29.6764 119.79 32.1699V32.6602C119.79 35.1546 120.291 37.312 121.293 39.1309C122.295 40.9507 123.654 42.3619 125.371 43.3633C127.088 44.3657 129.031 44.8662 131.198 44.8662C134.469 44.8662 136.963 44.0174 138.681 42.3203C140.398 40.624 141.461 38.5481 141.87 36.0947L145.488 36.8311C145.12 38.7534 144.354 40.5828 143.188 42.3203C142.023 44.0587 140.448 45.4699 138.466 46.5527C136.482 47.6355 134.06 48.1777 131.198 48.1777C128.295 48.1777 125.709 47.5534 123.439 46.3066C121.17 45.0599 119.381 43.2709 118.073 40.9404C116.764 38.6097 116.11 35.8707 116.11 32.7217V32.1084C116.11 28.9191 116.764 26.1698 118.073 23.8594C119.381 21.5499 121.17 19.7711 123.439 18.5234C125.709 17.2767 128.295 16.6523 131.198 16.6523ZM97.2402 47.3193H93.1309L89.4512 35.9111H69.9473L66.2666 47.3193H62.1582L76.2031 4.38672H83.1943L97.2402 47.3193ZM116.065 20.8232H112.14C109.89 20.8233 108.091 21.4578 106.742 22.7246C105.393 23.9925 104.719 25.9754 104.719 28.6738V47.3193H101.038V17.5117H104.596V21.2529H105.332C105.904 19.9035 106.752 18.9219 107.877 18.3086C109.001 17.6953 110.566 17.3887 112.569 17.3887H116.065V20.8232ZM71.0508 32.3545H88.3467L80.0664 6.7168H79.3311L71.0508 32.3545Z" fill="currentColor"/></symbol>
     </svg>
+    <a class="brand mark-top" href="../"><svg class="duck" aria-hidden="true"><use href="#i-duck"/></svg><svg class="robot" aria-hidden="true"><use href="#i-robot"/></svg>Vitaquack</a>
 
-    <header class="top">
-      <div class="wrap">
-        <a class="brand" href="#top" aria-label="Vitaquack, top of page"><svg class="duck" aria-hidden="true"><use href="#i-duck"/></svg><svg class="robot" aria-hidden="true"><use href="#i-robot"/></svg>Vitaquack</a>
-        <nav aria-label="Site">
-          <a href="#how-it-works">How it works</a>
-          <a href="/pitch/shop/">Shop</a>
-          <a class="cta" href="https://vitaquack.com/app/">Try the app</a>
-        </nav>
-      </div>
-    </header>
-
-    <main id="top">
-      <section class="film hero drift" aria-labelledby="h-hero">
-        <div class="media"><video muted loop playsinline preload="metadata" poster="/pitch/media/rv1.webp" data-src="/pitch/media/rv1.mp4" aria-hidden="true"></video></div>
+    <main class="deck">
+      <section class="film hero" id="s-hero" aria-labelledby="h-hero">
+        <div class="media"><video muted loop playsinline preload="metadata" poster="../media/rv1.webp" data-src="../media/rv1.mp4" aria-hidden="true"></video></div>
         <div class="wrap">
           <div class="words">
             <h1 class="in" id="h-hero">Give your robot a budget, not your wallet.</h1>
             <p class="lede in">It pays for a chai on its own. Anything bigger, it asks you first.</p>
-            <div class="ctas in">
-              <a class="cta big" href="https://vitaquack.com/app/">Try the app</a>
-              <a class="quiet" href="#get">Get your own duck</a>
-            </div>
             <p class="built in">Built on <svg class="arc" aria-label="Arc"><use href="#i-arc-word"/></svg> <svg class="zg" aria-label="0G"><use href="#i-zg"/></svg> <svg class="world" aria-label="World"><use href="#i-world"/></svg></p>
           </div>
         </div>
       </section>
 
-      <section class="film drift" aria-labelledby="h-key">
-        <div class="media"><video muted playsinline preload="metadata" data-poster="/pitch/media/f2.webp" data-src="/pitch/media/f2.mp4" data-once aria-hidden="true"></video></div>
+      <section class="film" id="s-key" aria-labelledby="h-key">
+        <div class="media"><video muted playsinline preload="metadata" data-poster="../media/f2.webp" data-src="../media/f2.mp4" data-once aria-hidden="true"></video></div>
         <div class="wrap">
           <div class="words">
             <h2 id="h-key">Your robot's key belongs on your robot.</h2>
@@ -401,10 +418,10 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         </div>
       </section>
 
-      <section class="live" id="how-it-works" aria-labelledby="h-how">
+      <section class="live" id="s-how" aria-labelledby="h-how">
         <div class="wall" aria-hidden="true">
-          <div class="row-screens"><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /></div>
-          <div class="row-screens back"><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="/pitch/media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /></div>
+          <div class="row-screens"><img src="../media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /></div>
+          <div class="row-screens back"><img src="../media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-episodes.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-gate.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-merchant.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-home.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-wallet.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /><img src="../media/app-pairing.webp" alt="" loading="lazy" decoding="async" width="430" height="900" /></div>
         </div>
         <div class="wrap">
           <div class="head"><h2 id="h-how">How it works</h2></div>
@@ -426,97 +443,81 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
               </ol>
             </div>
           </div>
-          <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/">Try the app</a><a class="quiet" href="https://explorer.arc.io/tx/0xa18da6c6aa0b5963839d53133c72dc0e75616450779e534efedc6d687090814a">See a real payment on Arc</a></div>
+          <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/" target="_blank" rel="noopener">Open the wallet</a><a class="quiet" href="https://explorer.arc.io/tx/0xa18da6c6aa0b5963839d53133c72dc0e75616450779e534efedc6d687090814a" target="_blank" rel="noopener">See a real payment on Arc</a></div>
         </div>
       </section>
 
-      <section class="benefits" aria-labelledby="h-get">
+      <section class="benefits" id="s-budget" aria-labelledby="h-get">
         <div class="wrap">
           <h2 id="h-get">A budget it can't break.</h2>
           <div class="cards">
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="/pitch/media/f4.webp" data-src="/pitch/media/f4.mp4" aria-hidden="true"></video></div><h3>You set the budget.</h3><p>3.00 USDC a day, 1.00 a go, and only at the places you pick.</p><p class="credit">Enforced on Arc</p></div>
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="/pitch/media/rv2.webp" data-src="/pitch/media/rv2.mp4" aria-hidden="true"></video></div><h3>It shops for you.</h3><p>It decides, signs and pays, and every decision comes with a reason you can read.</p><p class="credit">Decided by 0G</p></div>
-            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="/pitch/media/f6.webp" data-src="/pitch/media/f6.mp4" aria-hidden="true"></video></div><h3>It asks you for the big ones.</h3><p>Over the limit, you get a message on your phone. Say no and nothing is paid.</p><p class="credit">A real person, with World ID</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="../media/f4.webp" data-src="../media/f4.mp4" aria-hidden="true"></video></div><h3>You set the budget.</h3><p>3.00 USDC a day, 1.00 a go, and only at the places you pick.</p><p class="credit">Enforced on Arc</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="../media/rv2.webp" data-src="../media/rv2.mp4" aria-hidden="true"></video></div><h3>It shops for you.</h3><p>It decides, signs and pays, and every decision comes with a reason you can read.</p><p class="credit">Decided by 0G</p></div>
+            <div class="card"><div class="panel"><video muted loop playsinline preload="metadata" data-poster="../media/f6.webp" data-src="../media/f6.mp4" aria-hidden="true"></video></div><h3>It asks you for the big ones.</h3><p>Over the limit, you get a message on your phone. Say no and nothing is paid.</p><p class="credit">A real person, with World ID</p></div>
           </div>
         </div>
       </section>
 
-      <section class="shop" id="get" aria-labelledby="h-own">
-        <div class="wrap">
-          <h2 id="h-own">Get your own duck.</h2>
-          <p class="lede">The first 20 are built by hand in Shenzhen in December and ship in January.</p>
-          <div class="tiers">
-            <div class="tier pick"><p class="what">Full Kit</p><p class="price">$499</p><p class="then">For the first 20. Then $599.</p><p class="body">The walking duck with its chip, the counter it pays at, and 5 USDC to spend.</p><div class="go"><a class="cta" href="/pitch/shop/#full-kit">Preorder the duck</a></div></div>
-            <div class="tier"><p class="what">Dev Kit</p><p class="price">$99</p><p class="then">For the first 50. Then $149.</p><p class="body">The chip for a robot you already have, and a counter it can pay at.</p><div class="go"><a class="quiet" href="/pitch/shop/#dev-kit">See the Dev Kit</a></div></div>
-            <div class="tier"><p class="what">Wallet</p><p class="price">Free</p><p class="then">Today, in your browser.</p><p class="body">The wallet and the simulator duck. Give the simulator a budget and send it for a chai.</p><div class="go"><a class="quiet" href="https://vitaquack.com/app/">Try the app</a></div></div>
-          </div>
-          <p class="small">You pay in USDC on Arc, the same money your robot spends. Or reserve a kit for 50 USDC. It counts toward the price, and you get it back if you cancel before we ship.</p>
-        </div>
-      </section>
-
-      <section class="two" aria-label="The module and the counter">
-        <div class="wrap">
-          <article aria-labelledby="h-module">
-            <div class="panel"><img src="/pitch/media/build-05.webp" width="640" height="640" alt="A Radxa Zero 3W board held in a hand" loading="lazy" /></div>
-            <h2 id="h-module">Already have a robot? Give it a budget.</h2>
-            <p>The Vitaquack module is the duck's chip in its own case. It keeps your robot's key, checks every bill against the limits you set, and signs. It runs on the same board as Pollen's Microduck, a Radxa Zero 3W. If it loses its connection for 35 seconds, it stops signing until it's back.</p>
-            <div class="ctas"><a class="quiet" href="/pitch/shop/#dev-kit">See the Dev Kit</a></div>
-          </article>
-          <article aria-labelledby="h-counter">
-            <div class="panel"><img src="/pitch/media/build-07.webp" width="640" height="640" alt="The counter's small screen lit on the table" loading="lazy" /></div>
-            <h2 id="h-counter">Every robot needs somewhere to shop.</h2>
-            <p>The counter is an ESP32 with a small screen. It shows the bill as a QR code and moves its servo only when the payment comes back signed as paid. Put it by a till, on a box or on a gate.</p>
-            <p class="small">In every kit, or $39 on its own.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="hack" aria-labelledby="h-hack">
+      <section class="now" id="s-now" aria-labelledby="h-now">
         <div class="wrap">
           <div class="words">
-            <h2 id="h-hack">Hack anything. The worst case is your daily cap.</h2>
-            <p class="lede">The wallet, the chip and the contracts are open source under Apache-2.0. Change the robot's brain, or write your own spending rule as a contract on Arc. Whatever you change, Arc still holds the robot to the limits you signed.</p>
-            <div class="ctas"><a class="cta" href="https://github.com/grmkris/eth-global-mumbai-2026">Read the code on GitHub</a><a class="quiet" href="https://vitaquack.com/sim/">Try the simulator</a></div>
+            <h2 id="h-now">Now, live.</h2>
+            <p class="lede">A real duck, real USDC on Arc, and a real person on the phone.</p>
+            <ol class="beats" aria-label="The three things you will see">
+              <li><b>Get me a chai</b> it pays</li>
+              <li class="asks"><b>Get me a thali</b> it asks you</li>
+              <li class="stop"><b>Stop</b> Arc refuses the next one</li>
+            </ol>
+            <div class="ctas"><a class="cta big" href="https://vitaquack.com/app/" target="_blank" rel="noopener">Open the wallet</a></div>
           </div>
         </div>
       </section>
 
-      <section class="built" aria-labelledby="h-built">
+      <section class="built" id="s-built" aria-labelledby="h-built">
         <div class="wrap">
           <h2 id="h-built">Built in a weekend at ETHGlobal Mumbai.</h2>
-          <p class="lede">The next 20 are built in Shenzhen, 27 November to 19 December.</p>
+          <p class="lede">The duck was printed at the table on Thursday. The first 20 are built in Shenzhen in December and ship in January.</p>
           <ol class="story" aria-label="How we built it">
-              <li><figure><button type="button" data-large="/pitch/media/build-01-large.webp"><div class="pic"><img src="/pitch/media/build-01.webp" srcset="/pitch/media/build-01-320.webp 320w, /pitch/media/build-01.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The 3D printer buckled into the back seat of a car" loading="lazy" /></div><figcaption>The printer came by car.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-02-large.webp"><div class="pic"><img src="/pitch/media/build-02.webp" srcset="/pitch/media/build-02-320.webp 320w, /pitch/media/build-02.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The printer printing on the hackathon table" loading="lazy" /></div><figcaption>Printing the duck, at the table.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-03-large.webp"><div class="pic"><img src="/pitch/media/build-03.webp" srcset="/pitch/media/build-03-320.webp 320w, /pitch/media/build-03.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="Printed black parts on the print bed" loading="lazy" /></div><figcaption>Parts off the bed.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-04-large.webp"><div class="pic"><img src="/pitch/media/build-04.webp" srcset="/pitch/media/build-04-320.webp 320w, /pitch/media/build-04.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="Hands assembling a printed leg with its servos" loading="lazy" /></div><figcaption>Putting it together.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-05-large.webp"><div class="pic"><img src="/pitch/media/build-05.webp" srcset="/pitch/media/build-05-320.webp 320w, /pitch/media/build-05.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="A Radxa Zero 3W board held in a hand" loading="lazy" /></div><figcaption>The brain: a Radxa Zero 3W.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-06-large.webp"><div class="pic"><img src="/pitch/media/build-06.webp" srcset="/pitch/media/build-06-320.webp 320w, /pitch/media/build-06.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The gate's little screen wired to its board on the table" loading="lazy" /></div><figcaption>Wiring the gate: an ESP32 and a tiny screen.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-07-large.webp"><div class="pic"><img src="/pitch/media/build-07.webp" srcset="/pitch/media/build-07-320.webp 320w, /pitch/media/build-07.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The gate's screen lit for the first time" loading="lazy" /></div><figcaption>First words on the gate's screen.</figcaption></button></figure></li>
-              <li><figure><button type="button" data-large="/pitch/media/build-08-large.webp"><div class="pic"><img src="/pitch/media/build-08.webp" srcset="/pitch/media/build-08-320.webp 320w, /pitch/media/build-08.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The team at the hackathon table" loading="lazy" /></div><figcaption>The team, late.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-01-large.webp"><div class="pic"><img src="../media/build-01.webp" srcset="../media/build-01-320.webp 320w, ../media/build-01.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The 3D printer buckled into the back seat of a car" loading="lazy" /></div><figcaption>The printer came by car.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-02-large.webp"><div class="pic"><img src="../media/build-02.webp" srcset="../media/build-02-320.webp 320w, ../media/build-02.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The printer printing on the hackathon table" loading="lazy" /></div><figcaption>Printing the duck, at the table.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-03-large.webp"><div class="pic"><img src="../media/build-03.webp" srcset="../media/build-03-320.webp 320w, ../media/build-03.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="Printed black parts on the print bed" loading="lazy" /></div><figcaption>Parts off the bed.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-04-large.webp"><div class="pic"><img src="../media/build-04.webp" srcset="../media/build-04-320.webp 320w, ../media/build-04.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="Hands assembling a printed leg with its servos" loading="lazy" /></div><figcaption>Putting it together.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-05-large.webp"><div class="pic"><img src="../media/build-05.webp" srcset="../media/build-05-320.webp 320w, ../media/build-05.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="A Radxa Zero 3W board held in a hand" loading="lazy" /></div><figcaption>The brain: a Radxa Zero 3W.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-06-large.webp"><div class="pic"><img src="../media/build-06.webp" srcset="../media/build-06-320.webp 320w, ../media/build-06.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The counter's little screen wired to its board on the table" loading="lazy" /></div><figcaption>Wiring the counter: an ESP32 and a tiny screen.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-07-large.webp"><div class="pic"><img src="../media/build-07.webp" srcset="../media/build-07-320.webp 320w, ../media/build-07.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The counter's screen lit for the first time" loading="lazy" /></div><figcaption>First words on the counter's screen.</figcaption></button></figure></li>
+              <li><figure><button type="button" data-large="../media/build-08-large.webp"><div class="pic"><img src="../media/build-08.webp" srcset="../media/build-08-320.webp 320w, ../media/build-08.webp 640w" sizes="(max-width: 64rem) 25vw, 9rem" width="640" height="640" alt="The team at the hackathon table" loading="lazy" /></div><figcaption>The team, late.</figcaption></button></figure></li>
             </ol>
         </div>
       </section>
 
-
+      <section class="close" id="s-close" aria-labelledby="h-close">
+        <div class="wrap">
+          <div class="words">
+            <h1 id="h-close">Give your robot a budget, not your wallet.</h1>
+            <p class="says">Arc holds the rules. 0G is the brain and the memory. World is the human.</p>
+            <p class="built">Built on <svg class="arc" aria-label="Arc"><use href="#i-arc-word"/></svg> <svg class="zg" aria-label="0G"><use href="#i-zg"/></svg> <svg class="world" aria-label="World"><use href="#i-world"/></svg></p>
+            <a class="site" href="../">vitaquack.com</a>
+            <ul class="links">
+              <li><a href="https://vitaquack.com/app/" target="_blank" rel="noopener">Try the app</a></li>
+              <li><a href="https://vitaquack.com/app/proofs" target="_blank" rel="noopener">Proofs on 0G</a></li>
+              <li><a href="https://vitaquack.com/plan/architecture/" target="_blank" rel="noopener">Architecture</a></li>
+              <li><a href="https://github.com/grmkris/eth-global-mumbai-2026" target="_blank" rel="noopener">GitHub</a></li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <footer>
-      <div class="wrap">
-        <div class="cols">
-          <div>
-            <a class="brand" href="#top"><svg class="duck" aria-hidden="true"><use href="#i-duck"/></svg><svg class="robot" aria-hidden="true"><use href="#i-robot"/></svg>Vitaquack</a>
-            <p style="margin-top: 0.8rem; max-width: 28rem">A passkey wallet that gives robots a budget. Built on Arc, 0G and World.</p>
-          </div>
-          <div><h3>Product</h3><ul><li><a href="https://vitaquack.com/app/">Try the app</a></li><li><a href="/pitch/shop/">Shop</a></li><li><a href="https://vitaquack.com/plan/architecture/">How it works</a></li></ul></div>
-          <div><h3>Built by</h3><ul><li><a href="https://x.com/_krisgg">@_krisgg</a></li><li><a href="https://x.com/corotvoid">@corotvoid</a></li><li><a href="https://x.com/Masashi_Ono0611">@Masashi_Ono0611</a></li></ul></div>
-          <div><h3>Links</h3><ul><li><a href="https://github.com/grmkris/eth-global-mumbai-2026">GitHub (Apache-2.0)</a></li><li><a href="https://t.me/vitaquack_bot">Telegram bot</a></li><li><a href="https://ethglobal.com/events/mumbai">ETHGlobal Mumbai 2026</a></li></ul></div>
-        </div>
-        <p class="fine">The duck is a modified <a href="https://github.com/apirrone/Open_Duck_Mini">Open Duck Mini</a> (Apache-2.0).</p>
-      </div>
-    </footer>
-
-    <div class="bar" id="bar"><a class="cta" href="https://vitaquack.com/app/">Try the app</a></div>
+    <ol class="dots" aria-label="Screens">
+      <li><button type="button" aria-label="Screen 1: the budget" aria-current="true"></button></li>
+      <li><button type="button" aria-label="Screen 2: the key"></button></li>
+      <li><button type="button" aria-label="Screen 3: how it works"></button></li>
+      <li><button type="button" aria-label="Screen 4: a budget it can't break"></button></li>
+      <li><button type="button" aria-label="Screen 5: now, live"></button></li>
+      <li><button type="button" aria-label="Screen 6: built in a weekend"></button></li>
+      <li><button type="button" aria-label="Screen 7: close"></button></li>
+    </ol>
+    <p class="hint" id="hint">Space or arrow keys for the next screen</p>
 
     <dialog class="lightbox" id="lightbox" aria-label="Photo">
       <div class="frame" id="lightbox-frame">
@@ -529,26 +530,13 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       </div>
       <button type="button" class="close" id="lightbox-close">Close</button>
     </dialog>
-    
-    <div class="tb" role="group" aria-label="Mock variant">
-      <span>Skin</span><button data-skin="a">A</button><button data-skin="b">B</button><button data-skin="c">C</button>
-      <span>Model</span><button data-model="flow">Flow</button><button data-model="slides">Slides</button>
-    </div>
-    <script src="/lib/comments.js" defer></script>
-
 
     <script>
       const still = matchMedia('(prefers-reduced-motion: reduce)').matches || navigator.connection?.saveData === true
-      const html = document.documentElement
-      const themeFor = { a: '#16173a', b: '#16173a', c: '#e7f1f6' }
-      const applyTheme = () => { document.getElementById('theme-color').content = themeFor[html.dataset.skin] ?? '#16173a' }
-      applyTheme()
 
-      // Films: the source is attached one screen ahead, played only while on screen, and detached two screens away so
-      // iPhones never hold more than a few decoders. A play-once film restarts whenever its section comes back.
+      // Films, as on the landing: the source is attached one screen ahead, played only while on screen, and detached two
+      // screens away. A play-once film restarts whenever its screen comes back.
       const videos = [...document.querySelectorAll('video[data-src]')]
-      // Posters: only the hero's loads with the page; the others arrive one screen ahead, or all at once for visitors who
-      // never get the films (reduced motion, save-data), because the posters are all they see.
       const lazyPosters = [...document.querySelectorAll('video[data-poster]')]
       const showPoster = (v) => { if (!v.poster) v.poster = v.dataset.poster }
       if (still) lazyPosters.forEach(showPoster)
@@ -557,8 +545,6 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
           for (const { target, isIntersecting } of entries) if (isIntersecting) { showPoster(target); observer.unobserve(target) }
         }, { rootMargin: '150% 0px' })
         lazyPosters.forEach((v) => posterNear.observe(v))
-      }
-      if (!still) {
         const near = new IntersectionObserver((entries) => {
           for (const { target, isIntersecting } of entries) {
             const v = target
@@ -579,11 +565,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
         videos.forEach((v) => { near.observe(v); seen.observe(v) })
       }
 
-      // The phone's bottom bar hides while the final call to action is on screen.
-      const bar = document.getElementById('bar')
-      new IntersectionObserver((entries) => { for (const e of entries) bar.classList.toggle('away', e.isIntersecting) }, { threshold: 0.2 }).observe(document.querySelector('footer'))
-
-      // How it works: three scenarios in plain words, a step per stop. 'off' = not needed this time, 'no' = refused.
+      // How it works: the landing's three scenarios, a step per stop. 'off' = not needed this time, 'no' = refused.
       const live = document.querySelector('.live')
       const flowStops = [...live.querySelectorAll('.rail .mark')]
       const flowNames = [...live.querySelectorAll('.rail .name')].map((n) => n.textContent)
@@ -611,6 +593,7 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
           [1, 'Arc refuses the next chai. Not even we can override that.', 'no'],
         ] },
       ]
+
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
       let flowRun = 0
       const runFlow = async (run) => {
@@ -639,7 +622,6 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       }
       new IntersectionObserver((entries) => { for (const { isIntersecting } of entries) { flowRun += 1; if (isIntersecting) runFlow(flowRun) } }, { threshold: 0.25 }).observe(live)
 
-
       // Lightbox: click a photo; arrows or a swipe move; Esc, the button or the backdrop close.
       const lightbox = document.getElementById('lightbox')
       const shots = [...document.querySelectorAll('.story button')]
@@ -661,30 +643,38 @@ m3404 2 c-2 -6 -5 -31 -8 -54 -4 -43 -9 -69 -22 -123 -4 -16 -7 -34 -8 -40 -1
       lightbox.addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX }, { passive: true })
       lightbox.addEventListener('touchend', (e) => { if (touchX === null) return; const dx = e.changedTouches[0].clientX - touchX; touchX = null; if (Math.abs(dx) > 48) show(shown + (dx < 0 ? 1 : -1)) }, { passive: true })
 
-      // Keyboard stepping exists only in the slides model; the flowing page keeps native scrolling.
-      const sections = [...document.querySelectorAll('main > section')]
-      const current = () => Math.max(0, sections.findIndex((c) => c.getBoundingClientRect().bottom > innerHeight / 2))
-      const go = (index) => { const t = sections[Math.min(sections.length - 1, Math.max(0, index))]; t.scrollIntoView({ behavior: still ? 'auto' : 'smooth' }) }
+      // Screens: space, arrows, PageUp/Down, Home and End move a whole screen; the dots show where we are and jump.
+      const screens = [...document.querySelectorAll('.deck > section')]
+      const dots = [...document.querySelectorAll('.dots button')]
+      const hint = document.getElementById('hint')
+      const current = () => Math.max(0, screens.findIndex((s) => s.getBoundingClientRect().bottom > innerHeight / 2))
+      const go = (index) => {
+        const target = screens[Math.min(screens.length - 1, Math.max(0, index))]
+        target.scrollIntoView({ behavior: still ? 'auto' : 'smooth' })
+        hint.classList.add('away')
+      }
+      dots.forEach((button, index) => button.addEventListener('click', () => go(index)))
+      const dotWatch = new IntersectionObserver((entries) => {
+        for (const { target, isIntersecting } of entries) {
+          if (!isIntersecting) continue
+          const index = screens.indexOf(target)
+          dots.forEach((button, i) => button.setAttribute('aria-current', String(i === index)))
+          if (index > 0) hint.classList.add('away')
+        }
+      }, { threshold: 0.5 })
+      screens.forEach((s) => dotWatch.observe(s))
       addEventListener('keydown', (event) => {
         if (lightbox.open) {
           if (event.key === 'ArrowRight') { event.preventDefault(); show(shown + 1) }
           else if (event.key === 'ArrowLeft') { event.preventDefault(); show(shown - 1) }
           return
         }
-        if (html.dataset.model !== 'slides' || event.target.closest?.('a, button, input, summary')) return
+        if (event.target.closest?.('a, button, input, summary')) return
         if ([' ', 'ArrowDown', 'ArrowRight', 'PageDown'].includes(event.key) && !event.shiftKey) { event.preventDefault(); go(current() + 1) }
         else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(event.key) || (event.key === ' ' && event.shiftKey)) { event.preventDefault(); go(current() - 1) }
+        else if (event.key === 'Home') { event.preventDefault(); go(0) }
+        else if (event.key === 'End') { event.preventDefault(); go(screens.length - 1) }
       })
-      
-      // Mock toolbar: skin and model live on <html>; the URL carries them so a combination can be shared.
-      const params = new URLSearchParams(location.search)
-      if (['a', 'b', 'c'].includes(params.get('skin'))) html.dataset.skin = params.get('skin')
-      if (['flow', 'slides'].includes(params.get('model'))) html.dataset.model = params.get('model')
-      const tbButtons = [...document.querySelectorAll('.tb button')]
-      const syncTb = () => { for (const b of tbButtons) b.setAttribute('aria-pressed', String(b.dataset.skin ? b.dataset.skin === html.dataset.skin : b.dataset.model === html.dataset.model)); applyTheme() }
-      for (const b of tbButtons) b.addEventListener('click', () => { if (b.dataset.skin) html.dataset.skin = b.dataset.skin; else html.dataset.model = b.dataset.model; history.replaceState(null, '', `?skin=${html.dataset.skin}&model=${html.dataset.model}`); syncTb() })
-      syncTb()
-
     </script>
   </body>
 </html>

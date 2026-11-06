@@ -20,11 +20,13 @@ rmSync(path.join(target, 'landing'), { recursive: true, force: true })
 rmSync(path.join(target, 'media'), { recursive: true, force: true })
 mkdirSync(path.join(target, 'landing'))
 cpSync(path.join(source, 'index.html'), path.join(target, 'landing', 'index.html'))
-// The shop, answered at /shop/ by the edge (EdgeLanding.ts); its files are ../media/<name> from there.
-if (!existsSync(path.join(source, 'shop', 'index.html')))
-  throw new Error(`landing: no shop at ${source}/shop/index.html`)
-mkdirSync(path.join(target, 'landing', 'shop'))
-cpSync(path.join(source, 'shop', 'index.html'), path.join(target, 'landing', 'shop', 'index.html'))
+// The subpages, answered at /shop/ and /pitch/ by the edge (EdgeLanding.ts); their files are ../media/<name> from there.
+for (const subpage of ['shop', 'pitch']) {
+  if (!existsSync(path.join(source, subpage, 'index.html')))
+    throw new Error(`landing: no ${subpage} at ${source}/${subpage}/index.html`)
+  mkdirSync(path.join(target, 'landing', subpage))
+  cpSync(path.join(source, subpage, 'index.html'), path.join(target, 'landing', subpage, 'index.html'))
+}
 cpSync(path.join(source, 'media'), path.join(target, 'media'), {
   recursive: true,
   // Dotfiles are editor and transfer leftovers, never page files.
@@ -34,5 +36,5 @@ const files = readdirSync(path.join(target, 'media'))
 const oversized = files.filter((name) => statSync(path.join(target, 'media', name)).size > assetLimit)
 if (oversized.length > 0) throw new Error(`landing: over the 25 MiB asset limit: ${oversized.join(', ')}`)
 console.log(
-  `landing: landing/index.html, landing/shop/index.html and ${files.length} media files → ${path.relative(root, target)}`,
+  `landing: landing/index.html, landing/shop/index.html, landing/pitch/index.html and ${files.length} media files → ${path.relative(root, target)}`,
 )
