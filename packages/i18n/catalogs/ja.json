@@ -1,17 +1,14 @@
 {
-  "account": {
-    "email": "メールアドレス",
-    "name": "名前",
-    "title": "アカウント"
-  },
   "auth": {
-    "email": "メールアドレス",
+    "createWallet": "パスキーでウォレットを作成",
+    "creatingWallet": "ウォレットを作成しています...",
+    "displayName": "お名前",
     "language": "言語",
-    "password": "パスワード",
-    "signInError": "サインインに失敗しました。もう一度お試しください。",
+    "passkeyFailed": "パスキーの操作が完了しませんでした。もう一度お試しください。",
+    "passkeyHint": "パスキーはログインであり、ウォレットの鍵でもあります。デバイスの外に出ることはありません。",
+    "serverFailed": "ウォレットサービスが応答しませんでした。もう一度お試しください。",
     "signingIn": "サインイン中...",
-    "signInTitle": "サインイン",
-    "signInWithEmail": "メールでサインイン",
+    "signInWithPasskey": "パスキーでサインイン",
     "signOut": "サインアウト"
   },
   "catalog": {
@@ -35,5 +32,10 @@
     "feedTitle": "しくみ",
     "lead": "あなたのアヒル、<italic>あなたの予算</italic>。",
     "title": "予算を持ったアヒル。"
+  },
+  "wallet": {
+    "address": "Arc 上のスマートアカウント",
+    "addressNote": "このアドレスは取引の前から存在します。ウォレットは最初の権限付与と同時にデプロイされます。",
+    "signedInAs": "{name} としてサインイン中"
   }
 }

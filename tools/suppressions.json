@@ -4,11 +4,7 @@
     "comment": "oxlint-disable-next-line import/no-unassigned-import -- Vite loads the application stylesheet for its side effects"
   },
   {
-    "file": "packages/auth/src/AttemptLimiter.ts",
-    "comment": "@effect-diagnostics-next-line unstableApiUsage:off -- The pinned Effect D1 adapter defines the native Worker database binding."
-  },
-  {
-    "file": "packages/auth/src/live.ts",
-    "comment": "@effect-diagnostics-next-line unstableApiUsage:off -- The pinned Effect D1 adapter is the Worker persistence boundary."
+    "file": "apps/chip/src/state.ts",
+    "comment": "@effect-diagnostics-next-line unstableApiUsage:off -- The chip's state files need the Bun FileSystem service; no stable Effect file API exists."
   }
 ]

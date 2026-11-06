@@ -8,7 +8,8 @@ import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { chromium } from 'playwright'
 import { verifyBrowser } from './BrowserAcceptance.ts'
-import { verifyBrowserIdentity } from './IdentityBrowserAcceptance.ts'
+import { verifyPasskeyBrowser } from './PasskeyBrowserAcceptance.ts'
+import { makeSoftwareAuthenticator, passkeyCall, registerPasskey, sessionCookie } from './PasskeyFixture.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
 import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 
@@ -43,7 +44,6 @@ const makeStack = (generation: string) =>
           AUTH_ORIGIN: edge.url,
           APP_ENV: 'local',
           APP_RELEASE: `native-${generation}`,
-          AUTH_SECRET: Redacted.make('native-test-auth-secret-012345678901234567890123'),
           AUTH_SESSION_KEYS: Redacted.make(
             JSON.stringify({
               activeKeyId: 'native-test',
@@ -64,19 +64,6 @@ const makeStack = (generation: string) =>
 const Stack = makeStack('before')
 
 class RestartPending extends Schema.TaggedError<RestartPending>()('RestartPending', {}) {}
-
-const authCall =
-  (origin: string) =>
-  (action: string, payload: object, cookie = '') =>
-    HttpClient.post(`${origin}/api/auth/${action}`, {
-      headers: {
-        origin: new URL(origin).origin,
-        'content-type': 'application/json',
-        'x-effect-auth-csrf': '1',
-        cookie,
-      },
-      body: HttpBody.text(JSON.stringify({ payload }), 'application/json'),
-    })
 
 const { test, beforeAll, afterAll, deploy, destroy } = Test.make({
   providers: Cloudflare.providers(),
@@ -112,19 +99,17 @@ test(
 )
 
 test(
-  'signs in through the browser, retains the session across reloads and revokes it on logout',
+  'creates a passkey wallet in a real browser, keeps the session across reloads and revokes it on logout',
   Effect.scoped(
     Effect.gen(function* () {
-      const { url, appUrl } = yield* stack
-      const seeded = yield* HttpClient.post(`${url}/test/identity/seed-browser`)
-      expect(seeded.status).toBe(204)
+      const { appUrl } = yield* stack
       const browserInstance = yield* Effect.acquireRelease(
         Effect.promise(() => chromium.launch({ headless: true })),
         (browser) => Effect.promise(() => browser.close()),
       )
-      yield* Effect.promise(() => verifyBrowserIdentity(browserInstance, appUrl))
+      yield* Effect.promise(() => verifyPasskeyBrowser(browserInstance, appUrl))
     }),
-  ).pipe(Effect.provide(FetchHttpClient.layer)),
+  ),
   { timeout: 60000 },
 )
 
@@ -177,36 +162,21 @@ test(
 )
 
 test(
-  'enforces Origin and CSRF on the actual application Worker',
+  'enforces Origin on every mutating auth route of the actual application Worker',
   Effect.gen(function* () {
     const { appUrl } = yield* stack
-    const missingHeaders = yield* HttpClient.post(`${appUrl}/api/auth/getSession`, {
-      headers: new Headers({ 'content-type': 'application/json' }),
-      body: HttpBody.text('{}', 'application/json'),
-    })
-    expect(missingHeaders.status).toBe(403)
-
-    const valid = yield* HttpClient.post(`${appUrl}/api/auth/getSession`, {
-      headers: new Headers({
-        origin: new URL(appUrl).origin,
-        'content-type': 'application/json',
-        'x-effect-auth-csrf': '1',
-      }),
-      body: HttpBody.text('{}', 'application/json'),
-    })
-    expect(valid.status).toBe(200)
-    expect(yield* valid.json).toMatchObject({ _tag: 'Success' })
-
-    const wrongOrigin = yield* HttpClient.post(`${appUrl}/api/auth/getSession`, {
-      headers: new Headers({
-        origin: 'https://evil.invalid',
-        'content-type': 'application/json',
-        'x-effect-auth-csrf': '1',
-      }),
+    const missingOrigin = yield* HttpClient.post(`${appUrl}/api/auth/logout`)
+    expect(missingOrigin.status).toBe(403)
+    const wrongOrigin = yield* HttpClient.post(`${appUrl}/api/passkeys/login/options`, {
+      headers: { origin: 'https://evil.invalid', 'content-type': 'application/json' },
       body: HttpBody.text('{}', 'application/json'),
     })
     expect(wrongOrigin.status).toBe(403)
-
+    const valid = yield* passkeyCall(appUrl)('/api/passkeys/login/options', {})
+    expect(valid.status).toBe(200)
+    expect(yield* valid.json).toMatchObject({ rpId: new URL(appUrl).hostname, userVerification: 'required' })
+    const anonymous = yield* HttpClient.get(`${appUrl}/api/auth/session`)
+    expect(anonymous.status).toBe(401)
     const unknownRoute = yield* HttpClient.get(`${appUrl}/api/health-other`)
     expect(unknownRoute.status).toBe(404)
   }).pipe(Effect.provide(FetchHttpClient.layer)),
@@ -238,112 +208,44 @@ test(
 )
 
 test(
-  'serves Yielded Auth session reads through the native Worker router',
+  'registers a passkey, signs in with it, refuses replays and invalidates every cookie on logout',
   Effect.gen(function* () {
-    const { url } = yield* stack
-    const response = yield* HttpClient.post(`${url}/api/auth/getSession`, {
-      headers: new Headers({
-        origin: 'http://localhost',
-        'content-type': 'application/json',
-        'x-effect-auth-csrf': '1',
+    const { appUrl } = yield* stack
+    const call = passkeyCall(appUrl)
+    const authenticator = yield* Effect.promise(() => makeSoftwareAuthenticator({ countSignatures: true }))
+    const { response: registered, request } = yield* registerPasskey(appUrl, authenticator, 'Native Owner')
+    expect(registered.status).toBe(200)
+    const account = yield* Schema.decodeUnknownEffect(
+      Schema.Struct({
+        accountId: Schema.String.check(Schema.isPattern(/^[a-z2-7]{26}$/)),
+        smartAccount: Schema.String.check(Schema.isPattern(/^0x[0-9a-fA-F]{40}$/)),
       }),
-      body: HttpBody.text('{}', 'application/json'),
-    })
-    const body = yield* response.text
-    expect(response.status, body).toBe(200)
-    const payload: unknown = JSON.parse(body)
-    expect(payload).toMatchObject({ _tag: 'Success' })
-  }).pipe(Effect.provide(FetchHttpClient.layer)),
-  { timeout: 60000 },
-)
+    )(yield* registered.json)
+    expect(registered.headers['set-cookie']).toMatch(/vq_session=.*HttpOnly.*Secure.*SameSite=Lax/i)
+    const replayedRegistration = yield* call('/api/passkeys/register/verify', request)
+    expect(replayedRegistration.status).toBe(400)
+    const cookie = sessionCookie(registered)
+    const session = yield* HttpClient.get(`${appUrl}/api/auth/session`, { headers: { cookie } })
+    expect(session.status).toBe(200)
+    expect(yield* session.json).toEqual({ ...account, displayName: 'Native Owner' })
 
-test(
-  'authenticates, rejects password signup, logs out and immediately invalidates disabled accounts',
-  Effect.gen(function* () {
-    const { url, appUrl } = yield* stack
-    const seeded = yield* HttpClient.post(`${url}/test/identity/seed`)
-    expect(seeded.status).toBe(204)
-    const call = authCall(appUrl)
-    const credentials = { email: 'native-identity@example.invalid', password: 'native-identity-password-52' }
-    const denied = yield* call('signIn', { ...credentials, password: 'incorrect-password' })
-    expect(yield* denied.json).toMatchObject({ _tag: 'Failure' })
-    const signup = yield* call('register', credentials)
-    expect(signup.status).toBe(404)
-    const login = yield* call('signIn', credentials)
-    const loginBody = yield* login.text
-    expect(login.status, loginBody).toBe(200)
-    expect(JSON.parse(loginBody)).toMatchObject({
-      _tag: 'Success',
-      value: { _tag: 'Authenticated', session: { subjectId: 'native-identity' } },
-    })
-    const cookie = Object.entries(login.cookies.cookies)
-      .map(([name, value]) => `${name}=${value.value}`)
-      .join('; ')
-    expect(cookie.length).toBeGreaterThan(0)
-    const session = yield* call('getSession', {}, cookie)
-    expect(yield* session.json).toMatchObject({
-      _tag: 'Success',
-      value: { subjectId: 'native-identity', claims: { displayName: 'Native Identity', emailVerified: true } },
-    })
-    const cachedCookie = Object.entries({ ...login.cookies.cookies, ...session.cookies.cookies })
-      .map(([name, value]) => `${name}=${value.value}`)
-      .join('; ')
-    const logout = yield* call('signOut', {}, cachedCookie)
-    expect(yield* logout.json).toMatchObject({ _tag: 'Success' })
-    const stale = yield* call('getSession', {}, cachedCookie)
-    expect(yield* stale.json).toMatchObject({ _tag: 'Success', value: null })
-    const again = yield* call('signIn', credentials)
-    const againCookie = Object.entries(again.cookies.cookies)
-      .map(([name, value]) => `${name}=${value.value}`)
-      .join('; ')
-    const cachedSession = yield* call('getSession', {}, againCookie)
-    const disabledCookie = Object.entries({ ...again.cookies.cookies, ...cachedSession.cookies.cookies })
-      .map(([name, value]) => `${name}=${value.value}`)
-      .join('; ')
-    const disable = yield* HttpClient.post(`${url}/test/identity/disable`)
-    expect(disable.status).toBe(204)
-    const disabled = yield* call('getSession', {}, disabledCookie)
-    expect(yield* disabled.json).toMatchObject({ _tag: 'Success', value: null })
-  }).pipe(Effect.provide(FetchHttpClient.layer)),
-  { timeout: 60000 },
-)
+    const options = yield* call('/api/passkeys/login/options', {})
+    const { challenge } = yield* Schema.decodeUnknownEffect(Schema.Struct({ challenge: Schema.String }))(
+      yield* options.json,
+    )
+    const assertion = yield* Effect.promise(() => authenticator.assert(challenge, { origin: new URL(appUrl).origin }))
+    const login = yield* call('/api/passkeys/login/verify', assertion)
+    expect(login.status).toBe(200)
+    const replayedLogin = yield* call('/api/passkeys/login/verify', assertion)
+    expect(replayedLogin.status).toBe(400)
+    const secondCookie = sessionCookie(login)
 
-test(
-  'retains password attempt budgets across separate application requests',
-  Effect.gen(function* () {
-    const { url, appUrl } = yield* stack
-    const seeded = yield* HttpClient.post(`${url}/test/identity/seed-limited`)
-    expect(seeded.status).toBe(204)
-    const attempt = () =>
-      HttpClient.post(`${appUrl}/api/auth/signIn`, {
-        headers: { origin: new URL(appUrl).origin, 'content-type': 'application/json', 'x-effect-auth-csrf': '1' },
-        body: HttpBody.text(
-          JSON.stringify({
-            payload: { email: 'native-limited@example.invalid', password: 'native-identity-password-52' },
-          }),
-          'application/json',
-        ),
-      })
-    for (let count = 0; count < 10; count += 1) {
-      const accepted = yield* attempt()
-      expect(yield* accepted.json).toMatchObject({ _tag: 'Success', value: { _tag: 'Authenticated' } })
+    const logout = yield* call('/api/auth/logout', {}, secondCookie)
+    expect(logout.status).toBe(204)
+    for (const stale of [cookie, secondCookie]) {
+      const replay = yield* HttpClient.get(`${appUrl}/api/auth/session`, { headers: { cookie: stale } })
+      expect(replay.status).toBe(401)
     }
-    const refused = yield* attempt()
-    expect(yield* refused.json).toMatchObject({ _tag: 'Failure', error: { _tag: 'PasswordRejected' } })
-  }).pipe(Effect.provide(FetchHttpClient.layer)),
-  { timeout: 60000 },
-)
-
-test(
-  'serializes attempt admission, retains fractional refill and expires private buckets',
-  Effect.gen(function* () {
-    const { url } = yield* stack
-    const response = yield* HttpClient.post(`${url}/test/identity/limits`)
-    expect(response.status).toBe(200)
-    const body: unknown = yield* response.json
-    expect(body).toMatchObject({ accepted: 3, rejected: 9, keysAreDigests: true, refilled: true, expired: true })
-    if (typeof body !== 'object' || body === null || !('fraction' in body)) throw new Error('Missing refill fraction')
-    expect(typeof body.fraction).toBe('number')
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 60000 },
 )
@@ -353,15 +255,10 @@ test(
   Effect.gen(function* () {
     const { url, appUrl } = yield* stack
     expect((yield* HttpClient.post(`${url}/test/recovery/seed`)).status).toBe(204)
-    const callAuth = authCall(appUrl)
-    const login = yield* callAuth('signIn', {
-      email: 'native-recovery@example.invalid',
-      password: 'native-identity-password-52',
-    })
-    expect(yield* login.json).toMatchObject({ _tag: 'Success', value: { _tag: 'Authenticated' } })
-    const cookie = Object.entries(login.cookies.cookies)
-      .map(([name, value]) => `${name}=${value.value}`)
-      .join('; ')
+    const authenticator = yield* Effect.promise(() => makeSoftwareAuthenticator())
+    const { response: registered } = yield* registerPasskey(appUrl, authenticator, 'Native Recovery')
+    expect(registered.status).toBe(200)
+    const cookie = sessionCookie(registered)
     const read = () => HttpClient.get(`${url}/test/recovery/read`).pipe(Effect.flatMap((response) => response.json))
     expect(yield* read()).toMatchObject({ generation: 'before', reads: 1 })
     expect(yield* read()).toMatchObject({ generation: 'before', reads: 2 })
@@ -387,10 +284,9 @@ test(
       ),
       Effect.retry({ times: 100, schedule: Schedule.spaced('100 millis') }),
     )
-    expect(yield* (yield* callAuth('getSession', {}, cookie)).json).toMatchObject({
-      _tag: 'Success',
-      value: { subjectId: 'native-recovery' },
-    })
+    const session = yield* HttpClient.get(`${appUrl}/api/auth/session`, { headers: { cookie } })
+    expect(session.status).toBe(200)
+    expect(yield* session.json).toMatchObject({ displayName: 'Native Recovery' })
   }).pipe(Effect.provide(FetchHttpClient.layer)),
   { timeout: 120000 },
 )

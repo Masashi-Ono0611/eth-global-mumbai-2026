@@ -28,10 +28,10 @@ describe('App locales', () => {
     expect(normalizeLocale('unknown')).toBe('en')
     expect(direction('ar-XB')).toBe('rtl')
     expect(normalizeLocale('sloppy')).toBe('en')
-    expect(format('en-XA', 'auth.signInTitle', {})).toContain('⟦')
+    expect(format('en-XA', 'auth.signInWithPasskey', {})).toContain('⟦')
     const userValue = '<script>customer</script>'
     expect(format('en-XA', 'common.errorDetail', { message: userValue })).toContain(userValue)
-    expect(format('ar-XB', 'auth.signInTitle', {})).toContain('\u2067')
+    expect(format('ar-XB', 'auth.signInWithPasskey', {})).toContain('\u2067')
   })
 
   test.each([

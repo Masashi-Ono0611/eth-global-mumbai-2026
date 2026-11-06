@@ -1,17 +1,14 @@
 {
-  "account": {
-    "email": "E-pošta",
-    "name": "Ime",
-    "title": "Račun"
-  },
   "auth": {
-    "email": "E-pošta",
+    "createWallet": "Ustvari denarnico s ključem za dostop",
+    "creatingWallet": "Ustvarjanje denarnice...",
+    "displayName": "Vaše ime",
     "language": "Jezik",
-    "password": "Geslo",
-    "signInError": "Prijava ni uspela. Poskusite znova.",
+    "passkeyFailed": "Korak s ključem za dostop se ni zaključil. Poskusite znova.",
+    "passkeyHint": "Ključ za dostop je vaša prijava in ključ vaše denarnice. Nikoli ne zapusti vaše naprave.",
+    "serverFailed": "Storitev denarnice se ni odzvala. Poskusite znova.",
     "signingIn": "Prijavljanje...",
-    "signInTitle": "Prijava",
-    "signInWithEmail": "Prijava z e-pošto",
+    "signInWithPasskey": "Prijava s ključem za dostop",
     "signOut": "Odjava"
   },
   "catalog": {
@@ -35,5 +32,10 @@
     "feedTitle": "Kako deluje",
     "lead": "Vaša raca, <italic>vaš proračun</italic>.",
     "title": "Raca s proračunom."
+  },
+  "wallet": {
+    "address": "Vaš pametni račun na Arcu",
+    "addressNote": "Ta naslov obstaja že pred prvo transakcijo: denarnica se namesti ob prvem pooblastilu.",
+    "signedInAs": "Prijavljeni kot {name}"
   }
 }

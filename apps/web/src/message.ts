@@ -1,19 +1,24 @@
 import { Schema } from 'effect'
-import { AccountClaims } from '@ethmumbai/auth/config'
+import { SessionView } from '@ethmumbai/auth/config'
 import { defineMessageUnion } from 'foldkit/message'
 import { Locale } from './Locale.ts'
+import { AuthFailure } from './model.ts'
 
 export const Message = defineMessageUnion({
   SelectedLocale: { value: Schema.String },
   SucceededSaveLocale: { locale: Locale },
   FailedSaveLocale: {},
-  SubmittedSignIn: {},
-  SucceededSignIn: { claims: AccountClaims },
-  FailedSignIn: {},
-  ReceivedSession: { claims: Schema.NullOr(AccountClaims) },
+  UpdatedDisplayName: { value: Schema.String },
+  SubmittedCreateWallet: {},
+  SucceededCreatePasskeyWallet: { session: SessionView },
+  FailedCreatePasskeyWallet: { failure: AuthFailure },
+  ClickedSignIn: {},
+  SucceededSignInWithPasskey: { session: SessionView },
+  FailedSignInWithPasskey: { failure: AuthFailure },
+  SucceededReadSession: { maybeSession: Schema.Option(SessionView) },
   FailedReadSession: {},
-  RequestedSession: {},
-  RequestedSignOut: {},
+  ClickedRetrySession: {},
+  ClickedSignOut: {},
   SucceededSignOut: {},
   FailedSignOut: {},
 })

@@ -229,3 +229,24 @@ footer a {
 :lang(mr) h2 {
   font-family: inherit;
 }
+.passkey-panel {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  inline-size: min(100%, 32rem);
+}
+.passkey-panel .auth-form {
+  inline-size: 100%;
+}
+.hint {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.smart-account {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}

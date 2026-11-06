@@ -3,15 +3,14 @@
 import type { FormatXMLElementFn } from 'intl-messageformat'
 export type RichTextValue<T = string> = FormatXMLElementFn<T>
 export interface MessageArgumentsByKey<T = string> {
-  'account.email': Readonly<Record<string, never>>
-  'account.name': Readonly<Record<string, never>>
-  'account.title': Readonly<Record<string, never>>
-  'auth.email': Readonly<Record<string, never>>
+  'auth.createWallet': Readonly<Record<string, never>>
+  'auth.creatingWallet': Readonly<Record<string, never>>
+  'auth.displayName': Readonly<Record<string, never>>
   'auth.language': Readonly<Record<string, never>>
-  'auth.password': Readonly<Record<string, never>>
-  'auth.signInError': Readonly<Record<string, never>>
-  'auth.signInTitle': Readonly<Record<string, never>>
-  'auth.signInWithEmail': Readonly<Record<string, never>>
+  'auth.passkeyFailed': Readonly<Record<string, never>>
+  'auth.passkeyHint': Readonly<Record<string, never>>
+  'auth.serverFailed': Readonly<Record<string, never>>
+  'auth.signInWithPasskey': Readonly<Record<string, never>>
   'auth.signOut': Readonly<Record<string, never>>
   'auth.signingIn': Readonly<Record<string, never>>
   'catalog.pieces': { readonly count: number }
@@ -30,7 +29,10 @@ export interface MessageArgumentsByKey<T = string> {
   'landing.feedTitle': Readonly<Record<string, never>>
   'landing.lead': { readonly italic: RichTextValue<T> }
   'landing.title': Readonly<Record<string, never>>
+  'wallet.address': Readonly<Record<string, never>>
+  'wallet.addressNote': Readonly<Record<string, never>>
+  'wallet.signedInAs': { readonly name: string | number }
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '1db8e3f6bf570af8225b85fc8df5c04051f5019e632ad17443dc9c286a047b2c'
+export const catalogVersion = '2a430476231de6df6f259ddbc862f319c63b39ae3d21d3a84cd9c09f96f4c21a'

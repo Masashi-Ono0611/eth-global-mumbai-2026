@@ -1,15 +1,11 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import { format } from '@ethmumbai/i18n'
 import { Effect, Layer } from 'effect'
-import { Redacted } from 'effect'
 import { HttpServerRequest } from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
-import { exerciseAttemptLimiter } from './AttemptLimiterFixture.ts'
-import { seedIdentity, disableIdentity } from './IdentityFixture.ts'
 import { DomainLive } from '../src/DomainLive.ts'
 import { recoveryRoutes } from './RecoveryFixture.ts'
-import { makeAuthHttp } from '../src/AuthHttp.ts'
 import { AppDatabase, AppMedia } from '../src/Resources.ts'
 import { storageHealth } from './StorageHealth.ts'
 
@@ -22,72 +18,17 @@ export default class RuntimeWorker extends Cloudflare.Worker<RuntimeWorker>()(
     env: {
       APP_ENV: 'local',
       APP_RELEASE: 'native-test',
-      AUTH_ORIGIN: 'http://localhost',
-      AUTH_SECRET: 'native-test-auth-secret-012345678901234567890123',
-      AUTH_SESSION_KEYS: JSON.stringify({
-        activeKeyId: 'native-test',
-        keys: [{ id: 'native-test', material: 'bmF0aXZlLXRlc3Qta2V5LW1hdGVyaWFsLWxvbmc=' }],
-      }),
     },
   },
   Effect.gen(function* () {
     const database = yield* Cloudflare.D1.QueryDatabase(AppDatabase)
     const media = yield* Cloudflare.R2.ReadWriteBucket(AppMedia)
-    const auth = makeAuthHttp(database, {
-      origin: 'http://localhost',
-      secret: Redacted.make('native-test-auth-secret-012345678901234567890123'),
-      secureCookies: false,
-      sessionKeys: {
-        activeKeyId: 'native-test',
-        keys: [{ id: 'native-test', material: Redacted.make('bmF0aXZlLXRlc3Qta2V5LW1hdGVyaWFsLWxvbmc=') }],
-      },
-    })
-    const identityRoutes = Layer.mergeAll(
-      auth.layer,
-      yield* recoveryRoutes(database, media),
-      HttpRouter.add(
-        'POST',
-        '/test/identity/seed',
-        seedIdentity(database).pipe(Effect.orDie, Effect.as(HttpServerResponse.empty({ status: 204 }))),
-      ),
-      HttpRouter.add(
-        'POST',
-        '/test/identity/seed-limited',
-        seedIdentity(database, 'native-limited').pipe(
-          Effect.orDie,
-          Effect.as(HttpServerResponse.empty({ status: 204 })),
-        ),
-      ),
-      HttpRouter.add(
-        'POST',
-        '/test/identity/seed-browser',
-        seedIdentity(database, 'native-browser').pipe(
-          Effect.orDie,
-          Effect.as(HttpServerResponse.empty({ status: 204 })),
-        ),
-      ),
-      HttpRouter.add(
-        'POST',
-        '/test/identity/disable',
-        disableIdentity(database).pipe(Effect.orDie, Effect.as(HttpServerResponse.empty({ status: 204 }))),
-      ),
-      HttpRouter.add(
-        'POST',
-        '/test/identity/limits',
-        exerciseAttemptLimiter(database).pipe(Effect.orDie, Effect.flatMap(HttpServerResponse.json)),
-      ),
-    )
-    const authHandle = yield* HttpRouter.toHttpEffect(identityRoutes).pipe(Effect.orDie)
+    const fixtureHandle = yield* HttpRouter.toHttpEffect(yield* recoveryRoutes(media)).pipe(Effect.orDie)
     return {
       fetch: Effect.gen(function* () {
         const request = yield* HttpServerRequest
         const url = new URL(request.url, 'http://local.invalid')
-        if (
-          url.pathname.startsWith('/api/auth/') ||
-          url.pathname.startsWith('/test/identity/') ||
-          url.pathname.startsWith('/test/recovery/')
-        )
-          return yield* authHandle
+        if (url.pathname.startsWith('/test/recovery/')) return yield* fixtureHandle
         if (url.pathname === '/intl')
           return yield* HttpServerResponse.json({
             en: format('en', 'catalog.pieces', { count: 2 }),

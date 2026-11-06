@@ -2,12 +2,8 @@ import { direction, format, type Locale } from '@ethmumbai/i18n'
 import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { Message } from './message.ts'
 import { LocaleSave, type Model } from './model.ts'
-import { AppRoute, homeRouter, loginRouter } from './route.ts'
-
-import { accountView } from './ViewAccount.ts'
-
-/** The team's architecture page on the scratch site (docs/site). */
-const architectureUrl = 'https://eth-mumbai-site.kristjan-grm11775.workers.dev/architecture/'
+import { homeView } from './pages/Home.ts'
+import { AppRoute, homeRouter } from './route.ts'
 const languages: ReadonlyArray<Readonly<{ locale: Locale; label: string }>> = [
   { locale: 'en', label: 'English' },
   { locale: 'sl', label: 'Slovenščina' },
@@ -42,30 +38,6 @@ const languagePicker = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const homeView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
-  h.main(
-    [h.Id('main')],
-    [
-      h.section(
-        [h.Class('intro')],
-        [
-          h.h1([], [format(locale, 'landing.title', {})]),
-          h.p([h.Class('lead')], [format(locale, 'landing.description', {})]),
-          h.a([h.Href(architectureUrl), h.Class('primary-action')], [format(locale, 'landing.browse', {})]),
-          h.a([h.Href(loginRouter()), h.Class('secondary-action')], [format(locale, 'auth.signInWithEmail', {})]),
-        ],
-      ),
-      h.section(
-        [h.Id('inspiration'), h.Class('inspiration')],
-        [
-          h.h2([], [format(locale, 'landing.feedTitle', {})]),
-          h.p([], [format(locale, 'landing.feedDescription', {})]),
-          h.p([h.Class('empty-state')], [format(locale, 'landing.feedEmpty', {})]),
-        ],
-      ),
-    ],
-  )
-
 const notFoundView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.main(
     [h.Id('main'), h.Class('intro')],
@@ -79,13 +51,11 @@ const notFoundView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { locale } = model.context
   const page = AppRoute.match(model.route, {
-    Home: () => ({ title: format(locale, 'landing.title', {}), body: homeView(locale, h) }),
-    Login: () => ({ title: format(locale, 'auth.signInTitle', {}), body: accountView(model, h) }),
-    Account: () => ({ title: format(locale, 'auth.signInTitle', {}), body: accountView(model, h) }),
+    Home: () => ({ title: format(locale, 'landing.title', {}), body: homeView(model, h) }),
     NotFound: () => ({ title: format(locale, 'common.notFoundTitle', {}), body: notFoundView(locale, h) }),
   })
   return {
-    title: `${page.title} | ETH Global Mumbai 2026`,
+    title: `${page.title} | Vitaquack`,
     lang: locale,
     dir: direction(locale) === 'rtl' ? 'Rtl' : 'Ltr',
     body: h.div(
@@ -93,13 +63,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       [
         h.header(
           [h.Class('masthead')],
-          [h.a([h.Href(homeRouter()), h.Class('brand')], ['ETH Global Mumbai 2026']), languagePicker(model, h)],
+          [h.a([h.Href(homeRouter()), h.Class('brand')], ['Vitaquack']), languagePicker(model, h)],
         ),
         page.body,
         h.footer(
           [],
           [
-            h.span([], ['ETH Global Mumbai 2026']),
+            h.span([], ['Vitaquack · ETHGlobal Mumbai 2026']),
             h.a([h.Href('https://github.com/grmkris/eth-global-mumbai-2026')], [format(locale, 'landing.contact', {})]),
           ],
         ),

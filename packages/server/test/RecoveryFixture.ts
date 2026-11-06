@@ -1,20 +1,16 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
-import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
 import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWriteBucket'
 import { Effect, Layer } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerResponse from 'effect/http/HttpServerResponse'
-import { seedIdentity } from './IdentityFixture.ts'
 
 // Module memory is deliberately observed to prove the test actually restarts workerd.
 let reads = 0
-const owner = 'native-recovery'
 const key = 'acceptance/recovery.txt'
 
-export const recoveryRoutes = (database: QueryDatabaseClient, media: ReadWriteBucketClient) =>
+export const recoveryRoutes = (media: ReadWriteBucketClient) =>
   Effect.sync(() => {
     const seed = Effect.gen(function* () {
-      yield* seedIdentity(database, owner)
       yield* media.put(key, 'survives-native-restart')
       return HttpServerResponse.empty({ status: 204 })
     })

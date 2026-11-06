@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { AccountClaims } from '@ethmumbai/auth/config'
+import { SessionView } from '@ethmumbai/auth/config'
 import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { Locale } from './Locale.ts'
@@ -15,19 +15,27 @@ export const Flags = Schema.Struct({
 })
 export type Flags = typeof Flags.Type
 
+/** Why the last passkey ceremony did not sign the owner in: the prompt itself, or the Worker. */
+export const AuthFailure = Schema.Literals(['passkey', 'server'])
+export type AuthFailure = typeof AuthFailure.Type
+
 export const LocaleSave = defineTaggedUnion({ Saved: {}, Saving: { locale: Locale }, Failed: {} })
 export const AuthState = defineTaggedUnion({
   Checking: {},
-  SignedOut: { failed: Schema.Boolean },
+  SignedOut: {},
+  Refused: { failure: AuthFailure },
+  CreatingWallet: {},
   SigningIn: {},
-  SignedIn: { claims: AccountClaims },
-  SigningOut: { claims: AccountClaims },
+  SignedIn: { session: SessionView },
+  SigningOut: { session: SessionView },
   Unavailable: {},
 })
+export type AuthState = typeof AuthState.Type
 export const Model = Schema.Struct({
   context: Flags,
   route: AppRoute,
   localeSave: LocaleSave,
   auth: AuthState,
+  displayName: Schema.String,
 })
 export type Model = typeof Model.Type

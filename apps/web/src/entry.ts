@@ -1,12 +1,11 @@
 import * as FetchHttpClient from 'effect/http/FetchHttpClient'
 import { Layer } from 'effect'
-import { browserAuthLayer } from '@ethmumbai/auth/client'
 import { Runtime } from 'foldkit'
 import { Message } from './message.ts'
 import { Flags, Model } from './model.ts'
 import { init, update } from './update.ts'
 import { view } from './View.ts'
-import { passwordFormLayer } from './PasswordForm.ts'
+import { passkeysLayer } from './Passkey.ts'
 // oxlint-disable-next-line import/no-unassigned-import -- Vite loads the application stylesheet for its side effects
 import './styles.css'
 
@@ -18,11 +17,7 @@ const application = Runtime.makeApplication({
   view,
   container: document.getElementById('root'),
   devTools: { Message },
-  resources: Layer.mergeAll(
-    FetchHttpClient.layer,
-    browserAuthLayer(window.location.origin).pipe(Layer.orDie),
-    passwordFormLayer(document),
-  ),
+  resources: Layer.mergeAll(FetchHttpClient.layer, passkeysLayer(navigator)),
 })
 
 Runtime.hydrate(application)

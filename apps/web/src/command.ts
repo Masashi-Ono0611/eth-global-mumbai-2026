@@ -1,39 +1,55 @@
-import { Effect, Predicate, Redacted } from 'effect'
-import { BrowserAuth } from '@ethmumbai/auth/client'
+import { Effect, Option, Predicate, Schema } from 'effect'
+import * as AuthClient from '@ethmumbai/auth/client'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
 import { Command } from 'foldkit'
 import { Locale, localeEndpoint } from './Locale.ts'
 import { Message } from './message.ts'
-import { PasswordForm } from './PasswordForm.ts'
+import { Passkeys } from './Passkey.ts'
+import type { AuthFailure } from './model.ts'
 
-export const SignIn = Command.define('SignIn', {
-  messages: [Message.SucceededSignIn, Message.FailedSignIn],
+const failureOf = (error: unknown): AuthFailure => (Predicate.isTagged(error, 'PasskeyFailed') ? 'passkey' : 'server')
+
+/** Registration: the Worker's options, the authenticator's new ES256 credential, the Worker's verification. */
+export const CreatePasskeyWallet = Command.define('CreatePasskeyWallet', {
+  args: { displayName: Schema.String },
+  messages: [Message.SucceededCreatePasskeyWallet, Message.FailedCreatePasskeyWallet],
+  execute: ({ displayName }) =>
+    Effect.gen(function* () {
+      const options = yield* AuthClient.registrationOptions(displayName)
+      const credential = yield* (yield* Passkeys).create(options)
+      const account = yield* AuthClient.register(credential)
+      return Message.SucceededCreatePasskeyWallet({ session: { ...account, displayName: options.user.name } })
+    }).pipe(Effect.catch((error) => Effect.succeed(Message.FailedCreatePasskeyWallet({ failure: failureOf(error) })))),
+})
+
+/** Login with any discoverable passkey of this site, then the session the Worker now recognises. */
+export const SignInWithPasskey = Command.define('SignInWithPasskey', {
+  messages: [Message.SucceededSignInWithPasskey, Message.FailedSignInWithPasskey],
   execute: Effect.gen(function* () {
-    const { auth } = yield* BrowserAuth
-    const credentials = yield* (yield* PasswordForm).take
-    const result = yield* auth.signIn({ email: credentials.email, password: Redacted.value(credentials.password) })
-    return Predicate.isTagged(result, 'Authenticated')
-      ? Message.SucceededSignIn({ claims: result.session.claims })
-      : Message.FailedSignIn()
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSignIn()))),
+    const options = yield* AuthClient.loginOptions
+    const assertion = yield* (yield* Passkeys).get(options)
+    yield* AuthClient.login(assertion)
+    const session = yield* AuthClient.readSession
+    if (session === null) return Message.FailedSignInWithPasskey({ failure: 'server' })
+    return Message.SucceededSignInWithPasskey({ session })
+  }).pipe(Effect.catch((error) => Effect.succeed(Message.FailedSignInWithPasskey({ failure: failureOf(error) })))),
 })
 
 export const ReadSession = Command.define('ReadSession', {
-  messages: [Message.ReceivedSession, Message.FailedReadSession],
-  execute: Effect.gen(function* () {
-    const { auth } = yield* BrowserAuth
-    const session = yield* auth.getSession()
-    return Message.ReceivedSession({ claims: session?.claims ?? null })
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedReadSession()))),
+  messages: [Message.SucceededReadSession, Message.FailedReadSession],
+  execute: AuthClient.readSession.pipe(
+    Effect.map((session) => Message.SucceededReadSession({ maybeSession: Option.fromNullishOr(session) })),
+    Effect.catch(() => Effect.succeed(Message.FailedReadSession())),
+  ),
 })
 
 export const SignOut = Command.define('SignOut', {
   messages: [Message.SucceededSignOut, Message.FailedSignOut],
-  execute: Effect.gen(function* () {
-    yield* (yield* BrowserAuth).auth.signOut()
-    return Message.SucceededSignOut()
-  }).pipe(Effect.catch(() => Effect.succeed(Message.FailedSignOut()))),
+  execute: AuthClient.logout.pipe(
+    Effect.as(Message.SucceededSignOut()),
+    Effect.catch(() => Effect.succeed(Message.FailedSignOut())),
+  ),
 })
 
 export const SaveLocale = Command.define('SaveLocale', {
@@ -50,4 +66,4 @@ export const SaveLocale = Command.define('SaveLocale', {
 })
 
 /** What the Commands run against: the browser provides these in entry.ts. */
-export type Services = HttpClient.HttpClient | BrowserAuth | PasswordForm
+export type Services = HttpClient.HttpClient | Passkeys

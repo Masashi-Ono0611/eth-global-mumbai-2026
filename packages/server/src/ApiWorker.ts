@@ -1,10 +1,12 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as AlchemyHttp from 'alchemy/Http'
-import { Effect, Layer } from 'effect'
+import { decodeSessionKeyring, relyingPartyFromOrigin } from '@ethmumbai/auth'
+import { Context, Effect, Layer } from 'effect'
 import { HttpServerRequest } from 'effect/http/HttpServerRequest'
 import * as HttpRouter from 'effect/http/HttpRouter'
-import { decodeAuthSecret, decodeAuthSessionKeyring } from './AuthConfiguration.ts'
-import { makeAuthHttp } from './AuthHttp.ts'
+import { AuthOrigin } from './auth/Origin.ts'
+import { authRoutes } from './auth/Routes.ts'
+import { makeSessionAuth, SessionAuth } from './auth/Session.ts'
 import { DomainLive } from './DomainLive.ts'
 import { health } from './Health.ts'
 import { onFirstUse } from './IsolateCache.ts'
@@ -44,24 +46,21 @@ export default ApiWorker.make(
           release: env.APP_RELEASE,
           component: 'server',
         }).pipe(Effect.orDie)
+        // Only AUTH_ORIGIN and AUTH_SESSION_KEYS are fatal; feature secrets decode optionally (spec §10).
         const authOrigin: unknown = env.AUTH_ORIGIN
-        if (typeof authOrigin !== 'string' || authOrigin.length === 0) {
+        if (typeof authOrigin !== 'string' || !URL.canParse(authOrigin)) {
           return yield* Effect.die(new Error('AUTH_ORIGIN binding is required'))
         }
-        const authSessionKeys = yield* decodeAuthSessionKeyring(env.AUTH_SESSION_KEYS).pipe(Effect.orDie)
-        const authSecret = yield* decodeAuthSecret(env.AUTH_SECRET).pipe(Effect.orDie)
-        const auth = makeAuthHttp(database, {
-          origin: authOrigin,
-          secret: authSecret,
-          secureCookies: true,
-          sessionKeys: authSessionKeys,
-        })
+        const sessionKeys = yield* decodeSessionKeyring(env.AUTH_SESSION_KEYS).pipe(Effect.orDie)
+        const services = Context.make(AuthOrigin, relyingPartyFromOrigin(authOrigin)).pipe(
+          Context.add(SessionAuth, yield* makeSessionAuth(database, sessionKeys)),
+        )
         const routes = Layer.mergeAll(
-          auth.layer,
+          authRoutes(database),
           HttpRouter.add('GET', '/api/health', health(observabilityBase.release)),
         ).pipe(Layer.provide(AlchemyHttp.Platform))
         const handle = yield* HttpRouter.toHttpEffect(routes).pipe(Effect.orDie)
-        return { handle, observabilityBase }
+        return { handle: Effect.provideContext(handle, services), observabilityBase }
       }),
     )
     const fetch = Effect.gen(function* () {
