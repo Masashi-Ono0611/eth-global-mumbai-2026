@@ -45,6 +45,7 @@ const walletGuards = (test: TestApi['test'], stack: Effect.Effect<Urls>) =>
           {
             id: robot.robotId,
             name: 'Duck',
+            kind: 'chip',
             status: 'unpaired',
             chipAddress: null,
             pairingCode: robot.pairingCode,
