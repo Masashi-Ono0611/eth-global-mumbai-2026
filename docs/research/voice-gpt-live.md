@@ -1,12 +1,12 @@
-# Voice for the duck: 0G push-to-talk or GPT-Live, 0G stays the brain (STRETCH proposal)
+# Voice for the duck: 0G push-to-talk chosen, GPT-Live compared (STRETCH)
 
-Status: **proposal, evidence and a local demo; no app code changes.** Built and tested on 2026-11-06 by Masashi. The robot
-has no microphone or speaker, so in the demo the conversation runs on a laptop next to it. This page compares two ways to
-give the duck a voice, with the same character in both, and maps them onto Vitaquack's errand flow so the team can decide
-whether either is worth anything before the deadline.
+Status: **decided for the demo, A (0G push-to-talk); no app code changes.** Built, tested and chosen on 2026-11-06 by
+Masashi. The robot has no microphone or speaker, so the conversation runs on a laptop next to it. This page says why A, how
+it compares with GPT-Live (B, kept but not recommended), and how a voice would fit Vitaquack's errand flow later.
 
-Run it: `docs/research/spikes/vita-voice/` (one Node file and three pages, no dependencies; how to run is at the top of
-`server.mjs.txt`). Open `/compare` to switch between the two and score them.
+To show it: **`vita-voice-demo.md`** is the demo kit (setup in 5 minutes, Vita's character sheet, a 90-second script, what
+to say and not say, fixes). Code: `docs/research/spikes/vita-voice/` (one Node file and three pages, no dependencies). The
+page at `/` is A; `/compare` switches to B.
 
 ## 1. The idea in one line
 
@@ -14,23 +14,25 @@ The owner (or the shop clerk) talks to the duck on the laptop; the duck answers 
 starts errands through the same API the console uses. **0G still makes every purchase decision, Arc still enforces every
 limit, World still approves restricted items.** Voice only replaces the "Buy" button and reads the result back.
 
-## 2. Two voices for the same duck (measured 2026-11-06)
+## 2. Why A: two voices for the same duck (measured 2026-11-06)
 
 | | A · 0G push-to-talk | B · GPT-Live |
 |---|---|---|
 | How you talk | hold a button (or Space), one turn at a time | press Start once, then just talk; you can interrupt |
 | Hearing and answering | `qwen3.5-omni-plus` on the 0G Router (audio in, reply out, one call) | `gpt-live-1` (OpenAI) |
 | Voice | `minimax-speech-2.8-turbo` on the 0G Router, pitched up in the browser | `gleam` voice, told to be a squeaky cartoon duck |
-| Reply starts after | **5.3 to 6.8 s** for a whole turn (1.5 to 2.7 s thinking, 3.7 to 4.6 s making the voice) | **0.8 to 2.0 s** to the first words (typed turns) |
-| Kept the reply shape | 4/4 on omni-plus (omni-flash often skipped the answer, so A uses plus) | 3/3 |
+| Reply starts after | **5.3 to 9.2 s** for a whole turn (1.5 to 4.3 s thinking, 3.7 to 7.1 s making the voice; two runs on 6 Nov) | **0.8 to 2.0 s** to the first words (typed turns) |
+| Kept the reply shape | 8/8 on omni-plus (omni-flash often skipped the answer, so A uses plus) | 3/3 |
 | The closing QUACK | a separate slow clip after a short pause, with the duck hopping and quack sounds | the voice stretches it itself ("QUAAAACK!" 3 of 3) |
 | Runs on | 0G only | OpenAI; 0G is not in the voice |
 | Cost | under a cent per turn (0G Router billing, estimate) | per minute while connected (not metered by us) |
 | New secret | none (the 0G key we already have) | `OPENAI_API_KEY` |
 | Prize story | "the duck's ears and voice are 0G too" adds a second 0G call (the prize lists "vision, voice or decision model") | the submission must not say voice runs on 0G |
+| TEE | today no voice step has a TEE claim (omni's provider is not a registered 0G service). Hearing could move to the sealed `whisper-large-v3` on 0G once it answers (502 today): the transcript would then be provable, the reply text and the voice still not | never: hearing and understanding stay inside OpenAI |
 
-Not measured yet: either option with a real microphone in a noisy booth (A was checked with a recorded clip, B with typed
-turns), and how the voices sound to a person (Masashi's scores on `/compare` are still to come).
+B wins only on feel (speed, interrupting). A wins on everything the prize and the trust story need, so A is the pick. Not
+measured yet: either option with a real microphone in a noisy booth (A was checked with a recorded clip, B with typed
+turns).
 
 ### The character (same in both)
 
@@ -85,7 +87,7 @@ voice ──▶ A: 0G omni + 0G TTS  /  B: GPT-Live ──tool: run_errand {item
 
 ## 4. What was measured in the PoCs (2026-11-06)
 
-- **Vita, both voices** (`vita-voice/`): the numbers in section 2. A on omni-plus: three typed turns and one recorded clip end to end, 4/4 in shape;
+- **Vita, both voices** (`vita-voice/`): the numbers in section 2. A on omni-plus: three typed turns and one recorded clip, then the four demo lines, 8/8 in shape;
   the browser's recorder (48 kHz → 16 kHz WAV) was checked by feeding it a known clip, which came back transcribed word for
   word. B: a live session with the Vita persona, three typed turns. A first version of B without delegation rejected typed
   turns ("response.create requires a session with Responses delegation"), so B now has a tool-less delegation.
@@ -108,16 +110,15 @@ voice ──▶ A: 0G omni + 0G TTS  /  B: GPT-Live ──tool: run_errand {item
 | QA on the deployed app (real mic, chai paid, cigarettes → World approval) | 1 h | 1 h |
 
 Risks: for B, another vendor, a live connection in the demo, raw audio leaving for OpenAI (privacy note needed) and a new
-secret; for A, a 5 to 7 s wait per turn and no TEE claim for the speech step. For both, `docs/video-script.md` says "Kris's
+secret; for A, a 5 to 9 s wait per turn and no TEE claim for the speech step. For both, `docs/video-script.md` says "Kris's
 own voice (no AI voice)" for the narration, so a talking duck in the video needs a team decision.
 
-## 6. Our opinion
+## 6. Decision and our opinion
 
-Do **not** start this before the MUST loop has a real 0G decision on the deployed app and the World approve and deny
-evidence exists. Until then, the laptop demo in `vita-voice/` can be shown at the booth as it is (it needs only the two
-keys on the laptop, nothing in the app).
-
-If there is time to wire one in, prefer **A, 0G push-to-talk**: it keeps the whole loop on 0G and adds a second 0G call for
-the prize, needs no new vendor or secret, and is the smaller change. B feels much more like a conversation (1 to 2 s instead
-of 5 to 7 s) and is the better choice for a later, conversational version. Either way the voice starts the same errand
-route, is shown live at the booth and stays out of the narrated video. Otherwise list it as future work in the README.
+- **The demo uses A.** Anyone can show it from a laptop with only the 0G Router key, following `vita-voice-demo.md`.
+  Nothing in the app changes.
+- **B (GPT-Live) stays in the code, not recommended.** It is there to show why we chose A: faster and interruptible, but
+  the voice leaves 0G, it needs an OpenAI key, raw audio goes to OpenAI and it is billed per minute while connected.
+- **Wiring A into the app** (section 3) waits until the MUST loop has a real 0G decision on the deployed app and the World
+  approve and deny evidence exists. Otherwise it stays a laptop demo and goes in the README as future work. Either way the
+  voice stays out of the narrated video.
