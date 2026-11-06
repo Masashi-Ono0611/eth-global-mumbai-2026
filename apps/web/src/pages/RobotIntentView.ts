@@ -93,31 +93,74 @@ const walking = (model: Model, name: string, sim: boolean, locale: Locale, h: Ht
   )
 }
 
-/** The intent in the conversation: the owner's instruction, 0G's navigation turns, the stop control, how it ended. */
-export const intentMessages = (
+type Timed = Readonly<{ at: number; messages: ReadonlyArray<Html> }>
+type IntentParts = Readonly<{ head: ReadonlyArray<Html>; turns: ReadonlyArray<Timed>; tail: ReadonlyArray<Html> }>
+
+/** The intent in the conversation: the owner's instruction, 0G's navigation turns (each with when it was answered),
+ *  then the stop control and how it ended. */
+const intentParts = (model: Model, name: string, sim: boolean, locale: Locale, h: HtmlBuilder<Message>): IntentParts =>
+  Intent.match(model.intent, {
+    Idle: () => ({ head: [], turns: [], tail: [] }),
+    Sending: ({ instruction }) => ({
+      head: [h.keyed('p')('intent-ask', [h.Class(ownerBubbleClassName)], [instruction])],
+      turns: [],
+      tail: [],
+    }),
+    Failed: ({ error }) => ({
+      head: [
+        h.keyed('p')(
+          'intent-failed',
+          [h.Class(errorBubbleClassName), h.Role('alert')],
+          [format(locale, 'thread.intentFailed', { message: error })],
+        ),
+      ],
+      turns: [],
+      tail: [],
+    }),
+    Open: ({ intent }) => ({
+      head: [h.keyed('p')(`${intent.id}-ask`, [h.Class(ownerBubbleClassName)], [intent.instruction])],
+      turns: intent.turns.map((turn) => ({ at: turn.createdAt, messages: turnMessages(turn, locale, h) })),
+      tail: [walking(model, name, sim, locale, h), intentEnd(model, locale, h)],
+    }),
+  })
+
+/** The live errand's messages split around its outcome, with when it started and ended (unix ms; end is Infinity
+ *  while it runs). */
+export type ErrandParts = Readonly<{
+  body: ReadonlyArray<Html>
+  outcome: ReadonlyArray<Html>
+  span: Readonly<{ start: number; end: number }> | null
+}>
+
+/**
+ * The intent and the errand it turned into, in the order they happened: navigation turns before the errand started
+ * come first, turns while it ran sit between its messages and its outcome, and turns after it ended follow the outcome
+ * ("Walking to the gate" after "Paid", not above the scan). Without the errand's times, the intent comes first.
+ */
+export const intentAndErrand = (
   model: Model,
+  errand: ErrandParts,
   name: string,
   sim: boolean,
   locale: Locale,
   h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> =>
-  Intent.match(model.intent, {
-    Idle: () => [],
-    Sending: ({ instruction }) => [h.keyed('p')('intent-ask', [h.Class(ownerBubbleClassName)], [instruction])],
-    Failed: ({ error }) => [
-      h.keyed('p')(
-        'intent-failed',
-        [h.Class(errorBubbleClassName), h.Role('alert')],
-        [format(locale, 'thread.intentFailed', { message: error })],
-      ),
-    ],
-    Open: ({ intent }) => [
-      h.keyed('p')(`${intent.id}-ask`, [h.Class(ownerBubbleClassName)], [intent.instruction]),
-      ...intent.turns.flatMap((turn) => turnMessages(turn, locale, h)),
-      walking(model, name, sim, locale, h),
-      intentEnd(model, locale, h),
-    ],
-  })
+): ReadonlyArray<Html> => {
+  const intent = intentParts(model, name, sim, locale, h)
+  const { span } = errand
+  const between = (from: number, to: number) =>
+    intent.turns.filter(({ at }) => at >= from && at < to).flatMap(({ messages }) => messages)
+  if (span === null)
+    return [...intent.head, ...between(-Infinity, Infinity), ...intent.tail, ...errand.body, ...errand.outcome]
+  return [
+    ...intent.head,
+    ...between(-Infinity, span.start),
+    ...errand.body,
+    ...between(span.start, span.end),
+    ...errand.outcome,
+    ...between(span.end, Infinity),
+    ...intent.tail,
+  ]
+}
 
 /** The errand the intent turned into already shows the instruction, so its own "Buy …" bubble is skipped. */
 export const fromIntent = (model: Model, episodeId: string): boolean =>

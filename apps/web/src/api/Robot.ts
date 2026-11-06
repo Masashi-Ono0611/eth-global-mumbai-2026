@@ -58,6 +58,10 @@ export const ErrandDetail = Schema.Struct({
     state: Schema.String,
     result: Schema.NullOr(Schema.String),
     invoice_id: Schema.NullOr(Schema.String),
+    /** When the errand started (unix ms) and last changed state (unix s): the conversation orders the intent's
+     *  navigation turns around them. Absent on Workers before the field was read. */
+    created_at: Schema.optionalKey(Schema.Number),
+    state_changed_at: Schema.optionalKey(Schema.NullOr(Schema.Number)),
   }),
   decisions: Schema.Array(Decision),
   chipRequest: Schema.NullOr(

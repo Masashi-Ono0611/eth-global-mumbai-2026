@@ -9,18 +9,17 @@ import {
   type ErrandDetail,
   isZeroGDecision,
   teeVerifiedOf,
+  terminalStates,
   worldAuthorizeUrl,
 } from '../api/Robot.ts'
 import { type Catalogue, explorerTx, type GrantView, leftToday, usdc } from '../api/Wallet.ts'
-import { Dialog } from '@foldkit/ui'
 import { duck } from '../Duck.ts'
-import { sheetTitleClassName, sheetView } from '../Sheet.ts'
-import { allowanceView } from './AllowanceView.ts'
+import { allowanceSheet } from './RobotAllowanceSheet.ts'
 import { episodeRouter, robotEpisodesRouter, walletRouter } from '../route.ts'
 import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './RobotConsole.ts'
 import { dock } from './RobotDockView.ts'
 import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
-import { fromIntent, intentMessages, simulatorLink } from './RobotIntentView.ts'
+import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
 import { failedView, signedOutView } from './Shared.ts'
 
 // STYLES
@@ -343,13 +342,14 @@ const liveMessages = (
   maybeApprovalUrl: Option.Option<string>,
   locale: Locale,
   h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> => {
+): ErrandParts => {
   const { episode } = detail
   const step = liveStep(episode.state, locale)
   const robot = robotOf(model)
   const crop = detail.observation ?? null
   const approvalId = Option.map(maybeApprovalUrl, (url) => url.split('/').at(-1) ?? url)
-  return [
+  const ended = terminalStates.has(episode.state) && episode.state_changed_at != null
+  const body = [
     fromIntent(model, episodeId) ? h.empty : ownerBubble(episodeId, episode.item, locale, h),
     crop !== null && robot !== null
       ? seen(episodeId, episodeId, crop, episode.item, detail.payment?.invoice.amount ?? null, robot, locale, h)
@@ -375,95 +375,62 @@ const liveMessages = (
         })
       : h.empty,
     step === null ? h.empty : h.keyed('p')(`${episodeId}-step`, [h.Class(systemClassName), h.Role('status')], [step]),
-    outcome(
-      episodeId,
-      episode,
-      detail.payment?.invoice.amount,
-      detail.payment?.txHash ?? null,
-      detail.evidence,
-      locale,
-      h,
-    ),
   ]
+  return {
+    body,
+    outcome: [
+      outcome(
+        episodeId,
+        episode,
+        detail.payment?.invoice.amount,
+        detail.payment?.txHash ?? null,
+        detail.evidence,
+        locale,
+        h,
+      ),
+    ],
+    span:
+      episode.created_at === undefined
+        ? null
+        : { start: episode.created_at, end: ended ? (episode.state_changed_at ?? 0) * 1000 : Infinity },
+  }
 }
 
-const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const untimed = (body: ReadonlyArray<Html>): ErrandParts => ({ body, outcome: [], span: null })
+
+const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ErrandParts =>
   Errand.match(model.errand, {
-    Idle: () => [],
-    Starting: ({ item }) => [
-      ownerBubble('starting', item, locale, h),
-      h.keyed('p')(
-        'starting-step',
-        [h.Class(systemClassName), h.Role('status')],
-        [format(locale, 'thread.deciding', {})],
-      ),
-    ],
-    Refused: ({ error }) => [
-      h.keyed('p')(
-        'refused',
-        [h.Class(errorBubbleClassName), h.Role('alert')],
-        [format(locale, 'thread.couldNotStart', { message: error })],
-      ),
-    ],
+    Idle: () => untimed([]),
+    Starting: ({ item }) =>
+      untimed([
+        ownerBubble('starting', item, locale, h),
+        h.keyed('p')(
+          'starting-step',
+          [h.Class(systemClassName), h.Role('status')],
+          [format(locale, 'thread.deciding', {})],
+        ),
+      ]),
+    Refused: ({ error }) =>
+      untimed([
+        h.keyed('p')(
+          'refused',
+          [h.Class(errorBubbleClassName), h.Role('alert')],
+          [format(locale, 'thread.couldNotStart', { message: error })],
+        ),
+      ]),
     Running: ({ episodeId, maybeDetail, maybeApprovalUrl }) =>
       Option.match(maybeDetail, {
-        onNone: () => [
-          h.keyed('p')(
-            `${episodeId}-loading`,
-            [h.Class(systemClassName), h.Role('status')],
-            [format(locale, 'common.loading', {})],
-          ),
-        ],
+        onNone: () =>
+          untimed([
+            h.keyed('p')(
+              `${episodeId}-loading`,
+              [h.Class(systemClassName), h.Role('status')],
+              [format(locale, 'common.loading', {})],
+            ),
+          ]),
         onSome: (detail) => liveMessages(model, episodeId, detail, maybeApprovalUrl, locale, h),
       }),
   })
-
-const allowanceSheet = (
-  model: Model,
-  view: ConsoleRobot,
-  catalogue: Catalogue,
-  locale: Locale,
-  timeZone: string,
-  h: HtmlBuilder<Message>,
-): Html => {
-  const name = view.robot.name
-  const active = view.grant !== null && view.grant.status === 'active'
-  return h.submodel({
-    slotId: model.allowanceSheet.id,
-    model: model.allowanceSheet,
-    view: Dialog.view,
-    viewInputs: {
-      hasDescription: false,
-      toView: (render: Dialog.RenderInfo) =>
-        sheetView(
-          render,
-          [
-            h.h2(
-              [...render.title, h.Class(sheetTitleClassName)],
-              [format(locale, active ? 'allowance.title' : 'allowance.give', { name })],
-            ),
-            h.submodel({
-              slotId: `allowance-${view.robot.id}`,
-              model: model.allowance,
-              view: allowanceView,
-              viewInputs: {
-                locale,
-                timeZone,
-                robotName: name,
-                payeeName: catalogue.name,
-                grant: view.grant,
-                robot: { chipAddress: view.robot.chipAddress, pairedAt: view.robot.pairedAt ?? null },
-              },
-              toParentMessage: (message) => Message.GotAllowanceMessage({ message }),
-            }),
-          ],
-          format(locale, 'allowance.close', {}),
-          h,
-        ),
-    },
-    toParentMessage: (message) => Message.GotAllowanceSheetMessage({ message }),
-  })
-}
 
 const loadedView = (
   model: Model,
@@ -496,8 +463,14 @@ const loadedView = (
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
-          ...intentMessages(model, view.robot.name, view.robot.kind === 'sim', locale, h),
-          ...errandMessages(model, locale, h),
+          ...intentAndErrand(
+            model,
+            errandMessages(model, locale, h),
+            view.robot.name,
+            view.robot.kind === 'sim',
+            locale,
+            h,
+          ),
         ],
       ),
       dock(model, view, catalogue, locale, h),
