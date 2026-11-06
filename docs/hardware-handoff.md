@@ -107,7 +107,7 @@ Worker's own origin instead (a config change, not code).
 3. In the wallet tap **+ Robot** (`$APP/wallet/robots`), name it, **Next**, and note the code. On the Radxa run
    `./vitaquack-chip --server $APP --pair <CODE>`. Expect `chip 0x… (new key)`, `paired <robotId>`, `lease ok`.
    Check `stat -c %a ~/.vitaquack-chip/key.json` → `600`.
-4. When the page says the robot connected, keep the allowance presets (5.00 a day, 1.00 a purchase, Duck Café,
+4. When the page says the robot connected, keep the allowance presets (3.00 a day, 1.00 a purchase, Duck Café,
    1 day) and **Confirm with passkey**. In the robot's conversation that opens (`$APP/robot/<id>`) tap **Chai 0.10**. Expect `signed <invoiceId>`, then `payment settled 0x<tx>` (on
    <https://explorer.arc.io>).
 5. Network cut: switch the hotspot off. Within 35 s expect `STOP motors (lease expired)`; switch it on, expect

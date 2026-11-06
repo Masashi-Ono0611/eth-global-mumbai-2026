@@ -24,7 +24,7 @@ describe('/robot/:id', () => {
     items: [
       { itemId: 'chai', name: 'Chai', amount: '100000', restricted: false },
       { itemId: 'samosa', name: 'Samosa', amount: '250000', restricted: false },
-      { itemId: 'cigarettes', name: 'Cigarettes', amount: '500000', restricted: true },
+      { itemId: 'thali', name: 'Thali', amount: '2000000', restricted: false },
     ],
   }
   const loadedConsole = (history: ReadonlyArray<EpisodeSummary> = [], robot: ConsoleRobot = consoleRobot) =>
@@ -134,10 +134,10 @@ describe('/robot/:id', () => {
     )
   })
 
-  test('a restricted item asks in the conversation: Approve goes to World, No declines it there', () => {
+  test('a payment over the per-payment limit asks in the conversation: Approve goes to World, No declines it there', () => {
     const waiting = {
       ...detail('awaiting_approval', false),
-      episode: { id: 'e2', item: 'cigarettes', state: 'awaiting_approval', result: null, invoice_id: 'i2' },
+      episode: { id: 'e2', item: 'thali', state: 'awaiting_approval', result: null, invoice_id: 'i2' },
       chipRequest: null,
     }
     const started = RobotConsole.update(
@@ -155,7 +155,7 @@ describe('/robot/:id', () => {
       { update: RobotConsole.update, view },
       given(asking),
       expect(text('I need your OK')).toExist(),
-      expect(text('Cigarettes needs your OK before I can pay. Approving pays this once.')).toExist(),
+      expect(text('Thali needs your OK before I can pay. Approving pays this once.')).toExist(),
       expect(role('link', { name: 'Approve with World ID' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
       click(role('button', { name: 'No' })),
       Command.expectExact(RobotConsole.DeclineInThread({ approvalId: 'ap1' })),
@@ -182,7 +182,7 @@ describe('/robot/:id', () => {
     scene(
       { update: RobotConsole.update, view },
       given(loadedConsole()),
-      click(role('button', { name: 'Buy Cigarettes for 0.50 USDC' })),
+      click(role('button', { name: 'Buy Thali for 2.00 USDC' })),
       Command.resolve(
         RobotConsole.StartErrand,
         RobotConsole.Message.SucceededStartErrand({ episodeId: 'e3', maybeApprovalUrl: Option.none() }),
@@ -245,16 +245,16 @@ describe('/robot/:id', () => {
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
       Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
       expect(role('heading', { name: 'Give Duck an allowance' })).toExist(),
-      click(role('radio', { name: '10.00' })),
+      click(role('radio', { name: '5.00' })),
       click(role('radio', { name: '1 week' })),
       expect(
         text(
-          'Duck can spend up to 10.00 USDC a day, at most 1.00 at a time, only at Duck Café, for the next week. Anything else asks you first. Arc enforces this, so not even our server can go past it.',
+          'Duck can spend up to 5.00 USDC a day, at most 1.00 at a time, only at Duck Café, for the next week. Anything else asks you first. Arc enforces this, so not even our server can go past it.',
         ),
       ).toExist(),
       click(role('button', { name: 'Confirm with passkey' })),
       Command.expectExact(
-        Allowance.GrantAllowance({ robotId, dailyCap: '10.00', perPaymentCap: '1.00', allowlist: [payee], hours: 168 }),
+        Allowance.GrantAllowance({ robotId, dailyCap: '5.00', perPaymentCap: '1.00', allowlist: [payee], hours: 168 }),
       ),
       Command.resolve(Allowance.GrantAllowance, Allowance.Message.FailedGrant({ failure: { _tag: 'Passkey' } })),
       expect(role('alert')).toHaveText('The passkey step did not finish. Please try again.'),

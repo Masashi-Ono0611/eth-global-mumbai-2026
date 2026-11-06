@@ -16,9 +16,10 @@ import type { Passkeys } from '../Passkey.ts'
 
 // MODEL
 
-/** Presets, in USDC (the Worker takes decimal strings) and hours. Demo defaults (6 Nov): 5.00 a day, 1.00 at most for
- *  one purchase, so the 2.00 thali and the restricted cigarettes ask the owner; an approved one still counts. */
-export const DAILY_PRESETS = ['1.00', '5.00', '10.00'] as const
+/** Presets, in USDC (the Worker takes decimal strings) and hours. Demo defaults (6 Nov, spending limits only): 3.00 a
+ *  day and 1.00 at most for one purchase, so a 2.00 thali asks the owner and a third one would break the daily cap
+ *  (an approved payment still counts against it). */
+export const DAILY_PRESETS = ['1.00', '3.00', '5.00'] as const
 export const PER_PAYMENT_PRESETS = ['0.30', '1.00', '2.00'] as const
 export const HOUR_PRESETS = ['1', '24', '168'] as const
 
@@ -112,7 +113,7 @@ export const StopAllowance = Command.define('StopAllowance', {
 export const init = (robotId: string, maybePayTo: Option.Option<string>, editing: boolean): Model => ({
   robotId,
   maybePayTo,
-  daily: '5.00',
+  daily: '3.00',
   perPayment: '1.00',
   hours: '24',
   editing,

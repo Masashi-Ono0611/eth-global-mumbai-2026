@@ -51,7 +51,7 @@ describe('/wallet/robots (add a robot)', () => {
       Command.expectExact(
         Allowance.GrantAllowance({
           robotId: added.robotId,
-          dailyCap: '5.00',
+          dailyCap: '3.00',
           perPaymentCap: '1.00',
           allowlist: [payee],
           hours: 24,

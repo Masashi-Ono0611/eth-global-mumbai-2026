@@ -66,17 +66,17 @@ describe('/wallet', () => {
 
   test('a waiting approval is answered on the home: Approve goes to World, No declines it', () => {
     const waiting = home({
-      activity: { episodes: [activityRow('e2', 'cigarettes', 'awaiting_approval', '500000', null)], grants: [] },
-      episodes: [summary('e2', 'cigarettes', 'awaiting_approval', 'Restricted item the owner asked for')],
+      activity: { episodes: [activityRow('e2', 'thali', 'awaiting_approval', '2000000', null)], grants: [] },
+      episodes: [summary('e2', 'thali', 'awaiting_approval', 'Over the per-payment cap; the owner asked for it')],
       needsYou: [
         {
           episodeId: 'e2',
           approvalId: 'ap1',
           robotId: pairedRobot.id,
           robotName: 'Duck',
-          item: 'cigarettes',
-          amount: '500000',
-          reason: 'Restricted item the owner asked for',
+          item: 'thali',
+          amount: '2000000',
+          reason: 'Over the per-payment cap; the owner asked for it',
         },
       ],
     })
@@ -84,8 +84,8 @@ describe('/wallet', () => {
       { update: Wallet.update, view },
       given(loadedHome(waiting)),
       expect(role('heading', { name: 'Needs you' })).toExist(),
-      expect(text('I want to buy cigarettes for 0.50 USDC, and that needs your OK first.')).toExist(),
-      expect(text('0G: “Restricted item the owner asked for”')).toExist(),
+      expect(text('I want to buy thali for 2.00 USDC, and that needs your OK first.')).toExist(),
+      expect(text('0G: “Over the per-payment cap; the owner asked for it”')).toExist(),
       expect(text('Waiting for your answer')).toExist(),
       expect(role('link', { name: 'Approve with World ID' })).toHaveAttr('href', '/api/world/authorize?approval=ap1'),
       click(role('button', { name: 'No' })),
