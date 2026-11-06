@@ -54,7 +54,7 @@ workers build from `docs/spec.md` while Kris does the prerequisites and the team
 | --- | --- |
 | Fri 08:00 | ~~protocol package published; auth routes compiling~~ **done 06:00** (protocol 19 tests; passkey auth native 9/9) |
 | **Fri 10:00** | ~~M2 smoke~~ **done 06:10 IST**: $0.01 chip-signed payment settled on Arc mainnet, replay refused, revoke, next refused; `docs/evidence/2026-11-06-smoke.md`. Enforcer deployed `0x7c2167B0a49108b28DFDA3aca5ddddd9Af68e4D3` (`docs/evidence/contracts.md`) |
-| Fri 12:00 | ~~merchant 402/pay/status and the chip protocol with the mock chip~~ **code done 06:40** (native 14/14, mock chip against a stand-in Worker); first push to `main` 06:50; deployed check pending |
+| Fri 12:00 | ~~merchant 402/pay/status and the chip protocol with the mock chip~~ **code done 06:00** (native 14/14); first push to `main` 06:18; verified on the deployed app 06:22 (`docs/evidence/2026-11-06-deployed-merchant.md`) |
 | Fri 15:00 | Robot Agent errands with a real 0G decision; evidence uploaded to 0G Storage |
 | Fri 19:00 | World approve/deny on the deployed app; wallet pages complete |
 | **Fri 21:00** | **the full MUST loop on the deployed app, recorded in `docs/evidence/demo-run.md`** |
@@ -110,7 +110,7 @@ Build detail: `docs/spec.md`.
 | --- | --- |
 | HybridDeleGator, SimpleFactory, DelegationManager and the enforcers are on Arc, byte-identical to Base | verified on-chain (`eth_getCode`) |
 | A chip-signed voucher under a grant settles on Arc; replay and post-revoke payments are refused | **broadcast** (6 Nov 06:10, `docs/evidence/2026-11-06-smoke.md`: $0.01 settled, revoke tx; replay and post-revoke refusals simulated from the relayer) |
-| A passkey-signed grant is accepted on-chain (ERC-1271 on the Hybrid account) | **broadcast** (6 Nov 07:05, deployed e2e with a virtual authenticator, `docs/evidence/2026-11-06-deployed-e2e.md`); real phones not yet |
+| A passkey-signed grant is accepted on-chain (ERC-1271 on the Hybrid account) | **broadcast** (6 Nov 06:32, deployed e2e with a virtual authenticator, `docs/evidence/2026-11-06-deployed-e2e.md`); real phones not yet |
 | The enforcer (cap, allowlist, approval) behaves on Arc | **deployed** `0x7c21…e4D3` + 8-case live approval test against that code (`docs/evidence/contracts.md`); no approved payment broadcast yet |
 | Chip pairing and 25 s long-polls through the deployed edge | **deployed** (edge holds 24.8 s, lease 35 s) |
 | Merchant 402 / pay / signed gate status on the deployed app | **deployed** (`docs/evidence/2026-11-06-deployed-merchant.md`) |
