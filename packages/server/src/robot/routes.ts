@@ -23,6 +23,7 @@ import { readRequestForEpisode } from '../chip/Requests.ts'
 import { findItem, findMerchant } from '../merchant/Catalogue.ts'
 import { createInvoice, readInvoice, toInvoice } from '../merchant/Invoices.ts'
 import { json, jsonError, nowSeconds } from '../Respond.ts'
+import { firstRow } from '../Sql.ts'
 
 /** The robot's demo merchant (the catalogue's only one). */
 const MERCHANT_ID = 'duck-cafe'
@@ -155,6 +156,24 @@ const PaymentRow = Effect.fnUntraced(function* (deps: ErrandDeps, episode: Episo
   })
 })
 
+const ApprovalSummary = Schema.Struct({
+  id: Schema.String,
+  status: Schema.String,
+  error: Schema.NullOr(Schema.String),
+  decided_at: Schema.NullOr(Schema.Finite),
+})
+
+/** The errand's latest World approval (spec §9), without its tokens or signature. */
+const approvalOf = (deps: ErrandDeps, episodeId: string) =>
+  firstRow(
+    deps.database
+      .prepare(
+        'SELECT id, status, error, decided_at FROM approvals WHERE episode_id = ? ORDER BY created_at DESC LIMIT 1',
+      )
+      .bind(episodeId),
+    ApprovalSummary,
+  )
+
 const readErrand = (deps: ErrandDeps) =>
   Effect.gen(function* () {
     const { robotId, episodeId } = yield* HttpRouter.params
@@ -179,6 +198,7 @@ const readErrand = (deps: ErrandDeps) =>
         }),
       }),
       payment: yield* PaymentRow(deps, episode.value),
+      approval: Option.getOrNull(yield* approvalOf(deps, episode.value.id)),
       evidence: Option.getOrNull(yield* readEvidence(deps.database, episode.value.id)),
     })
   })
