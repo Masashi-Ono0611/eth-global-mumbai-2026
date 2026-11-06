@@ -190,6 +190,73 @@ const settledRoute = (database: QueryDatabaseClient) =>
     }),
   )
 
+const AuditEpisode = Schema.Struct({
+  episodeId: Schema.String,
+  accountId: Schema.String,
+  requestId: Schema.String,
+  inputJson: Schema.String,
+  provider: Schema.String,
+  rootHash: Schema.String,
+  storageTx: Schema.String,
+  logTx: Schema.String,
+})
+
+/** A finished, uploaded errand with one decision, as the audit routes read it. */
+const auditEpisodeRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'POST',
+    '/test/vq/audit-episodes',
+    Effect.gen(function* () {
+      const episode = yield* body(AuditEpisode)
+      yield* database.batch([
+        database
+          .prepare(
+            `INSERT INTO episodes (id, robot_id, account_id, item, state, decision_count, result, state_changed_at, created_at)
+              VALUES (?, 'audit-robot', ?, 'chai', 'paid', 1, ?, unixepoch(), unixepoch() * 1000)`,
+          )
+          .bind(episode.episodeId, episode.accountId, `0x${'6a'.repeat(32)}`),
+        database
+          .prepare(
+            `INSERT INTO decisions (id, episode_id, step, model, request_id, chat_id, provider, latency_ms, prompt_sha256,
+              input_json, action, reason, outcome, created_at) VALUES (?, ?, 1, 'm', ?, ?, ?, 1000, 'sha', ?, 'pay',
+              'as asked', 'paid', unixepoch() * 1000)`,
+          )
+          .bind(
+            `d-${episode.episodeId}`,
+            episode.episodeId,
+            episode.requestId,
+            episode.requestId,
+            episode.provider,
+            episode.inputJson,
+          ),
+        database
+          .prepare(
+            `INSERT INTO evidence_uploads (episode_id, status, payload_json, request_ids_hash, root_hash, storage_tx, log_tx,
+              attempts, uploaded_at, created_at) VALUES (?, 'uploaded', '{}', NULL, ?, ?, ?, 1, unixepoch(), unixepoch() * 1000)`,
+          )
+          .bind(episode.episodeId, episode.rootHash, episode.storageTx, episode.logTx),
+      ])
+      return noContent
+    }),
+  )
+
+const DecisionCount = Schema.Struct({ count: Schema.Finite })
+
+const decisionCountRoute = (database: QueryDatabaseClient) =>
+  HttpRouter.route(
+    'GET',
+    '/test/vq/episodes/:episodeId/decision-count',
+    Effect.gen(function* () {
+      const { episodeId } = yield* HttpRouter.params
+      const row = yield* database
+        .prepare('SELECT count(*) AS count FROM decisions WHERE episode_id = ?')
+        .bind(episodeId ?? '')
+        .first()
+      const decoded = Option.getOrUndefined(Schema.decodeUnknownOption(DecisionCount)(row))
+      return yield* HttpServerResponse.json({ count: decoded?.count ?? -1 }).pipe(Effect.orDie)
+    }),
+  )
+
 const SignedInvoice = Schema.Struct({ invoiceId: Schema.NullOr(Schema.String) })
 
 /** Which invoice the chip was asked to sign for an errand (from the queued request's payload). */
@@ -241,4 +308,6 @@ export const agentFixtureRoutes = (database: QueryDatabaseClient) =>
     stuckEpisodeRoute(database),
     settledRoute(database),
     chipInvoiceRoute(database),
+    auditEpisodeRoute(database),
+    decisionCountRoute(database),
   ])

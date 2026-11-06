@@ -1,9 +1,11 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
+import { Address } from '@ethmumbai/protocol/Hex'
 import { Effect, Layer, Option, Redacted, Schema } from 'effect'
 import { chipRoutes } from './chip/Routes.ts'
 import { merchantPayees, merchantRoutes } from './merchant/Routes.ts'
 import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
+import { auditRoutes, ZG_CHAIN_RPC_DEFAULT } from './robot/Audit.ts'
 import { evidenceRoutes } from './robot/Evidence.ts'
 import { robotRoutes } from './robot/routes.ts'
 import { ZeroGBindings, ZeroGExtraBody } from './robot/ZeroGClient.ts'
@@ -33,6 +35,10 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     ? Option.none()
     : yield* optionalBinding(env, 'ZG_EXTRA_JSON', ZeroGExtraBody)
   const evidenceToken = yield* optionalBinding(env, 'EVIDENCE_TOKEN', EvidenceToken)
+  const episodeLogAddress = yield* optionalBinding(env, 'EPISODE_LOG_ADDRESS', Address)
+  const chainRpc = isUnset(env.ZG_CHAIN_RPC)
+    ? Option.some(ZG_CHAIN_RPC_DEFAULT)
+    : yield* optionalBinding(env, 'ZG_CHAIN_RPC', ZeroGBindings.baseUrl)
   const payees = yield* merchantPayees(env)
   const errands: ErrandDeps = {
     database,
@@ -51,6 +57,7 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
     chipRoutes(database, errandChipHooks(errands)),
     robotRoutes(errands),
     evidenceRoutes(database, Option.map(evidenceToken, Redacted.make)),
+    auditRoutes(errands, Option.all({ address: episodeLogAddress, rpcUrl: chainRpc })),
   )
   return { layer, errands }
 })

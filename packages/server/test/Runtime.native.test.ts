@@ -9,6 +9,7 @@ import * as HttpBody from 'effect/http/HttpBody'
 import * as HttpClient from 'effect/http/HttpClient'
 import { type Browser, chromium } from 'playwright'
 import { keccak256, stringToHex } from 'viem'
+import { registerAuditAcceptance, startChainStub, TEST_EPISODE_LOG } from './AuditAcceptance.ts'
 import { verifyBrowser } from './BrowserAcceptance.ts'
 import { registerChainAcceptance } from './ChainAcceptance.ts'
 import { registerChipAcceptance, registerMockChipAcceptance } from './ChipAcceptance.ts'
@@ -35,6 +36,8 @@ import ApiWorkerLive, { ApiWorker } from '../src/ApiWorker.ts'
 
 // The 0G router stand-in runs in this process; the Worker reaches it on 127.0.0.1.
 const zeroG = startZeroGStub()
+// The 0G Chain stand-in answers EpisodeLog.records for the audit acceptance.
+const chainStub = startChainStub()
 
 const makeStack = (generation: string) =>
   Alchemy.Stack(
@@ -80,6 +83,8 @@ const makeStack = (generation: string) =>
           ZG_BASE_URL: zeroG.baseUrl,
           ZG_API_KEY: Redacted.make(TEST_ZG_API_KEY),
           ZG_MODEL: TEST_ZG_MODEL,
+          EPISODE_LOG_ADDRESS: TEST_EPISODE_LOG,
+          ZG_CHAIN_RPC: chainStub.url,
           // Derived throwaway keys (no literal, never funded): with a relayer the x402 402 and the errand paths run;
           // no ARC_RPC_URL, so only POST /pay reaches the public Arc RPC, and only to simulate.
           RELAYER_PRIVATE_KEY: Redacted.make(keccak256(stringToHex('vitaquack native test relayer'))),
@@ -335,6 +340,7 @@ registerMerchantAcceptance(test, stack)
 registerChipAcceptance(test, stack)
 registerMockChipAcceptance(test)
 registerRobotAcceptance(test, stack, zeroG)
+registerAuditAcceptance(test, stack, zeroG, chainStub)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
 registerWorldStubAcceptance(test, stack, zeroG)
