@@ -335,6 +335,17 @@ export const observations = sqliteTable(
   ],
 )
 
+// The robot's live camera view (Kris, 6 Nov): only the latest chip-signed frame per robot, its JPEG in R2 at
+// `live/<robotId>.jpg`. `received_at` (unix ms, the Worker's clock) caps the write rate per robot; `captured_at` is the
+// chip's signed capture time. Frames here are never evidence and never 0G decision input.
+export const liveFrames = sqliteTable('live_frames', {
+  robotId: text('robot_id').primaryKey(),
+  frameSha256: text('frame_sha256').notNull(),
+  bytes: integer('bytes').notNull(),
+  capturedAt: integer('captured_at').notNull(),
+  receivedAt: integer('received_at').notNull(),
+})
+
 /**
  * An owner's Telegram chat (spec §14). `chat_id` is null until the bot sees `/start <code>`; the code itself is never
  * stored, only its sha256, and it is single-use and lives 10 minutes. `linked_at` and `code_expires_at` are seconds.
@@ -366,7 +377,14 @@ export const notifications = sqliteTable(
     id: text('id').primaryKey(),
     accountId: text('account_id').notNull(),
     kind: text('kind', {
-      enum: ['approval_needed', 'payment_settled', 'approval_denied', 'approval_expired', 'grant_revoked'],
+      enum: [
+        'approval_needed',
+        'payment_settled',
+        'approval_denied',
+        'approval_expired',
+        'grant_revoked',
+        'funds_received',
+      ],
     }).notNull(),
     subjectId: text('subject_id').notNull(),
     payloadJson: text('payload_json'),
@@ -437,6 +455,16 @@ export const navTurns = sqliteTable(
  * merchant. Only `POST /api/merchants/:id/counter` writes it, so invoices minted through `POST …/invoices` (the sim's
  * stalls, the web gate) never take over the screen. `set_at` is seconds.
  */
+/**
+ * The last USDC balance (base units) the minute sweep read on Arc for a wallet with a linked Telegram chat; a higher
+ * read queues `funds_received`. A mirror for the message only: Arc holds the money.
+ */
+export const walletBalances = sqliteTable('wallet_balances', {
+  accountId: text('account_id').primaryKey(),
+  units: text('units').notNull(),
+  observedAt: integer('observed_at').notNull(),
+})
+
 export const counterDisplay = sqliteTable('counter_display', {
   merchantId: text('merchant_id').primaryKey(),
   invoiceId: text('invoice_id').notNull(),
@@ -459,9 +487,11 @@ export const appSchema = {
   relayerTxs,
   usedNonces,
   observations,
+  liveFrames,
   telegramLinks,
   notifications,
   intents,
   navTurns,
   counterDisplay,
+  walletBalances,
 }

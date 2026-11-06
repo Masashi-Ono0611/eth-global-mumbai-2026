@@ -106,10 +106,27 @@ lists use the card radius, bottom sheets the sheet radius, buttons the control r
 - Spoken bubbles: what Vita heard is an owner bubble with a small "you said"; Vita's line is a white bubble with a duck
   ring, its opener and closer in duck yellow, and "Vita said" under it. Vita's lines come from the Worker, built from
   the errand's real state; 0G's own reason sits under them as a quote, never spoken.
-- Loading: the duck bobbing in its ink circle with "Loading…" (fades in after a moment, still under reduced motion);
-  inside a thread, a robot bubble with three dots.
 - Sheets: bottom sheets (Foldkit UI Dialog) for Receive and the allowance. Stop sits in the allowance sheet in
   error red on error-soft.
+
+## Motion
+
+Motion says the app heard the owner and that work is under way; it never decorates. The tokens are in the
+`@theme` of `apps/web/src/styles.css`.
+
+- Curves: `ease-out` is `cubic-bezier(0.23, 1, 0.32, 1)` and is also the default for every `transition-*`
+  utility; `ease-in-out` is `cubic-bezier(0.77, 0, 0.175, 1)` for movement on screen; `ease-drawer` is
+  `cubic-bezier(0.32, 0.72, 0, 1)` for sheets. Never `ease-in`.
+- Durations: a press is 150ms (`active:scale-[0.96]`), a message entering 220ms, a page crossfade 180ms, a sheet
+  260ms up and 180ms down. UI motion stays under 300ms; leaving is faster than entering.
+- Waiting: a page that loads shows its skeleton (`Skeleton.ts`: rule-coloured blocks pulsing on a 1.5s cycle,
+  never duck yellow) with a visually hidden "Loading..." status. A busy button shows the 600ms spinner beside its
+  label, and a line that says work is under way starts with the three working dots (`Busy.ts`).
+- What enters: only the live errand's messages (fade and 8px up from 98%). The history, lists on the wallet home,
+  balances and amounts never animate.
+- Paid: the conversation's duck hops once; OPEN on the gate and Paid on the approval page pop in once from 96%.
+- Reduced motion keeps fades and drops movement; the dots keep pulsing and the spinner turns slower.
+- Only `transform`, `translate`, `scale` and `opacity` animate; no looping decoration.
 
 ## Do's and Don'ts
 

@@ -139,6 +139,10 @@ export const loadIntent = (robotId: string, intentId: string) =>
 export const stopIntent = (robotId: string, intentId: string) =>
   postJson(`/api/robots/${encodeURIComponent(robotId)}/intents/${encodeURIComponent(intentId)}/stop`, {}, IntentView)
 
+/** The robot's latest live camera frame (owner-only, never cached); `sha256` changes the URL for each new frame. */
+export const liveFrameUrl = (robotId: string, sha256: string) =>
+  `/api/robots/${encodeURIComponent(robotId)}/live/frame?${new URLSearchParams({ v: sha256 }).toString()}`
+
 /** The simulator page for a robot; with a pairing code its software chip pairs itself (the code stays in the fragment,
  *  so it never reaches a server log). */
 export const simulatorUrl = (robotId: string, pairingCode: string | null) =>

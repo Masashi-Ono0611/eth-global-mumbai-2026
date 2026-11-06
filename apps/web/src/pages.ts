@@ -3,13 +3,14 @@ import { Command, Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Message } from './message.ts'
 import type { Model } from './model.ts'
-import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
+import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet, Welcome } from './pageModules.ts'
 import { AppRoute } from './route.ts'
 
 /** The owner pages' state lives beside the session in the root Model: only the current route's page is present. */
 type Pages = Pick<
   Model,
   | 'maybeWallet'
+  | 'maybeWelcome'
   | 'maybeAddRobot'
   | 'maybeConsole'
   | 'maybeApproval'
@@ -20,6 +21,7 @@ type Pages = Pick<
 >
 const noPages: Pages = {
   maybeWallet: Option.none(),
+  maybeWelcome: Option.none(),
   maybeAddRobot: Option.none(),
   maybeConsole: Option.none(),
   maybeApproval: Option.none(),
@@ -30,6 +32,7 @@ const noPages: Pages = {
 }
 
 const toWallet = (message: Wallet.Message) => Message.GotWalletMessage({ message })
+const toWelcome = (message: Welcome.Message) => Message.GotWelcomeMessage({ message })
 const toAddRobot = (message: AddRobot.Message) => Message.GotAddRobotMessage({ message })
 const toConsole = (message: RobotConsole.Message) => Message.GotConsoleMessage({ message })
 const toApproval = (message: Approval.Message) => Message.GotApprovalMessage({ message })
@@ -56,6 +59,13 @@ export const initPages = (route: AppRoute) =>
       return {
         pages: { ...noPages, maybeWallet: Option.some(wallet.model) },
         commands: Command.mapMessages(wallet.commands, toWallet),
+      }
+    },
+    Welcome: () => {
+      const welcome = Welcome.init()
+      return {
+        pages: { ...noPages, maybeWelcome: Option.some(welcome.model) },
+        commands: Command.mapMessages(welcome.commands, toWelcome),
       }
     },
     Robots: () => {
@@ -110,6 +120,13 @@ export const foldWallet = Update.foldChild({
   write: (model: Model, nextWallet: Wallet.Model) =>
     modifyFields(model, { maybeWallet: () => Option.some(nextWallet) }),
   toParentMessage: toWallet,
+})
+
+export const foldWelcome = Update.foldChild({
+  update: Welcome.update,
+  read: (model: Model) => model.maybeWelcome,
+  write: (model: Model, next: Welcome.Model) => modifyFields(model, { maybeWelcome: () => Option.some(next) }),
+  toParentMessage: toWelcome,
 })
 
 export const foldAddRobot = Update.foldChild({

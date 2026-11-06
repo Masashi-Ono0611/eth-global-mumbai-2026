@@ -1,6 +1,6 @@
 import type { QueryDatabaseClient } from '@alchemy.run/cloudflare/D1/QueryDatabase'
 import { generateId } from '@ethmumbai/protocol/Base32'
-import { CreateIntentRequest, type IntentView, type NavTurnView } from '@ethmumbai/protocol/Intent'
+import { CreateIntentRequest, type IntentView, isOpenIntent, type NavTurnView } from '@ethmumbai/protocol/Intent'
 import { Clock, Effect, Option } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as HttpServerRequest from 'effect/http/HttpServerRequest'
@@ -8,6 +8,7 @@ import * as HttpServerResponse from 'effect/http/HttpServerResponse'
 import { type ErrandDeps, LIVE_STATES, readEpisode, tickRobot } from './Errands.ts'
 import { ErrandRefused, MERCHANT_ID, need } from './Start.ts'
 import { IntentRow, navCallsOf, type NavTurnRow, navTurnsOf, readIntent } from './IntentRows.ts'
+import { liveFrameOf } from './Live.ts'
 import { decodeTeeProof } from './TeeProof.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { readRobot, type RobotRow } from '../chip/Lease.ts'
@@ -215,7 +216,9 @@ const read = (deps: ErrandDeps) =>
   answerRefusals(
     Effect.gen(function* () {
       const intent = yield* ownIntent(deps)
-      return yield* json(yield* intentView(deps.database, intent))
+      // The owner's poll also carries the robot's live camera frame while the duck is out (none when LIVE is off).
+      const live = isOpenIntent(intent.state) ? yield* liveFrameOf(deps.database, intent.robot_id) : Option.none()
+      return yield* json({ ...(yield* intentView(deps.database, intent)), live: Option.getOrNull(live) })
     }),
   )
 

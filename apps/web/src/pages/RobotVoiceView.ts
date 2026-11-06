@@ -4,7 +4,7 @@ import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import * as RobotVoice from './RobotVoice.ts'
-import { typingDots } from './Shared.ts'
+import { workingDots } from '../Busy.ts'
 
 // Vita's voice in the conversation (Kris's voice mock, DESIGN.md "Quack chat"): a hold-to-talk mic beside the buy
 // chips, the owner's spoken words as their own bubble ("you said"), and Vita's line in a duck-ringed bubble with its
@@ -196,7 +196,7 @@ const pendingBubble = (locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.p(
     [h.Class(clsx(ownerClassName, 'opacity-55')), h.AriaHidden(true)],
     [
-      h.span([h.Class('inline-flex items-center gap-1.5 py-1.5 [&>span]:bg-surface')], typingDots(h)),
+      h.span([h.Class('inline-flex items-center py-1.5')], [workingDots(h)]),
       h.span([h.Class(ownerSaidClassName)], [micIcon(iconClassName, h), format(locale, 'voice.pending', {})]),
     ],
   )

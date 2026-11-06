@@ -16,7 +16,7 @@ const dockHintClassName = 'pl-1.5 text-[0.85rem] text-muted'
 const chipsClassName = 'grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-1.5'
 const withMicClassName = 'grid grid-cols-[1fr_auto] items-end gap-2'
 const chipClassName =
-  'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-transform active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
+  'grid min-h-[3.25rem] cursor-pointer place-content-center justify-items-center rounded-2xl bg-surface leading-tight font-semibold shadow-[0_1px_2px_rgb(31_45_54/0.08)] transition-[transform,opacity] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-45'
 const chipPriceClassName = 'text-[0.8rem] font-medium text-muted'
 const askChipClassName = 'text-[0.75rem] font-semibold text-duck-deep'
 const detailsClassName = 'px-1.5 text-sm text-muted [&_summary]:min-h-11 [&_summary]:cursor-pointer [&_summary]:py-2.5'

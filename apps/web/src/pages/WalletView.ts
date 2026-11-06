@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { format, type Locale } from '@ethmumbai/i18n'
 import { Dialog } from '@foldkit/ui'
 import { clsx } from 'clsx'
@@ -6,15 +7,17 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { terminalStates, worldAuthorizeUrl } from '../api/Robot.ts'
 import { type EpisodeActivity, leftToday, type RobotView, usdc, itemName } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
-import { qrDataUri } from '../Qr.ts'
-import { robotConsoleRouter, robotsRouter } from '../route.ts'
+import { receiveBody } from '../Receive.ts'
+import { robotConsoleRouter, robotsRouter, welcomeRouter } from '../route.ts'
 import { sheetTitleClassName, sheetView } from '../Sheet.ts'
-import { failedView, loadingView, signedOutView } from './Shared.ts'
-import { Copy, Decline, type Home, Message, type Model, type NeedsYou, WalletState } from './Wallet.ts'
+import { walletSkeleton } from '../Skeleton.ts'
+import { failedView, signedOutView } from './Shared.ts'
+import { Decline, type Home, Message, type Model, type NeedsYou, WalletState } from './Wallet.ts'
+import { busyLabel } from '../Busy.ts'
 
 // STYLES
 
-const pageClassName = 'grid gap-0 pb-6'
+const pageClassName = 'grid gap-0 pb-6 transition-opacity duration-150 starting:opacity-0'
 const balanceClassName = 'grid min-w-0 gap-0.5 px-2 pt-3'
 const amountClassName =
   'font-display text-[clamp(2.75rem,16vw,4rem)] leading-[0.95] font-extrabold tracking-[-0.02em] wrap-anywhere'
@@ -36,7 +39,7 @@ const askButtonsClassName = 'grid grid-cols-[1fr_auto] gap-2'
 const approveClassName =
   'inline-flex min-h-12 items-center justify-center gap-2 rounded-control bg-black px-3 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const declineClassName =
-  'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
 const listClassName = 'mx-0.5 grid rounded-card bg-surface py-1 [&>li+li]:border-t [&>li+li]:border-rule'
 const rowLinkClassName = 'grid min-h-[4.5rem] grid-cols-[52px_1fr_auto] items-center gap-3 px-3.5 py-2.5 no-underline'
 const faceClassName = 'relative grid size-[52px] place-items-center rounded-full bg-ink'
@@ -54,12 +57,10 @@ const onZeroGClassName = 'ml-1.5 rounded-full bg-paid/10 px-1.5 text-[0.75rem] f
 const paymentAmountClassName = 'shrink-0 text-right font-semibold whitespace-nowrap'
 const paidClassName = 'block text-[0.92rem] text-paid'
 const emptyClassName = 'px-2 text-muted'
-const qrFrameClassName = 'justify-self-center rounded-[26px] bg-surface p-4 shadow-[0_0_0_1px_var(--color-rule)]'
-const qrClassName = 'block size-48'
-const addressClassName = 'text-center text-[1.06rem] leading-relaxed font-semibold tracking-[0.04em] break-words'
-const sheetButtonsClassName = 'grid gap-2'
-const sheetButtonClassName =
-  'min-h-12 cursor-pointer rounded-control bg-paper font-semibold transition-transform active:scale-[0.96]'
+const stepsCardClassName = 'mx-1 mt-3 grid gap-2 rounded-card bg-surface p-4'
+const stepRowClassName = 'grid min-h-11 grid-cols-[1.25rem_1fr_auto] items-center gap-2'
+const stepActionClassName =
+  'inline-flex min-h-10 cursor-pointer items-center rounded-control bg-ink px-3.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const noteClassName = 'text-center text-sm text-balance text-muted'
 
 // VIEW
@@ -143,7 +144,7 @@ const askCard = (model: Model, need: NeedsYou, locale: Locale, h: HtmlBuilder<Me
               h.Disabled(declining),
               h.OnClick(Message.ClickedDecline({ approvalId: need.approvalId })),
             ],
-            [format(locale, declining ? 'home.declining' : 'home.decline', {})],
+            busyLabel(declining, format(locale, declining ? 'home.declining' : 'home.decline', {}), h),
           ),
         ],
       ),
@@ -286,9 +287,6 @@ const paymentRow = (episode: EpisodeActivity, onZeroG: boolean, locale: Locale, 
   )
 }
 
-/** Four-character groups, so an address can be read aloud and checked by eye. */
-const grouped = (address: string) => address.slice(0, 6) + ' ' + (address.slice(6).match(/.{1,4}/g) ?? []).join(' ')
-
 const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const address = home.wallet.account.smartAccount
   return h.submodel({
@@ -302,30 +300,7 @@ const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<M
           render,
           [
             h.h2([...render.title, h.Class(sheetTitleClassName)], [format(locale, 'receive.title', {})]),
-            h.div(
-              [h.Class(qrFrameClassName)],
-              [h.img([h.Src(qrDataUri(address)), h.Alt(format(locale, 'receive.qrAlt', {})), h.Class(qrClassName)])],
-            ),
-            h.p([h.Class(addressClassName)], [grouped(address)]),
-            h.div(
-              [h.Class(sheetButtonsClassName)],
-              [
-                h.button(
-                  [h.Type('button'), h.Class(sheetButtonClassName), h.OnClick(Message.ClickedCopyAddress({ address }))],
-                  [format(locale, 'receive.copy', {})],
-                ),
-                Copy.match(model.copy, {
-                  Idle: () => h.empty,
-                  Copied: () =>
-                    h.p([h.Role('status'), h.Class('text-center text-paid')], [format(locale, 'receive.copied', {})]),
-                  Failed: () =>
-                    h.p(
-                      [h.Role('alert'), h.Class('text-center text-error')],
-                      [format(locale, 'receive.copyFailed', {})],
-                    ),
-                }),
-              ],
-            ),
+            ...receiveBody({ address, copy: model.copy, onCopy: Message.ClickedCopyAddress({ address }), locale, h }),
             h.p([...render.description, h.Class(noteClassName)], [format(locale, 'receive.note', {})]),
           ],
           format(locale, 'profile.close', {}),
@@ -336,12 +311,93 @@ const receiveSheet = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<M
   })
 }
 
+type FirstStep = { readonly done: boolean; readonly label: string; readonly action: Html }
+
+/** What a new owner still has to do, in order; the card goes once everything is done. */
+const firstSteps = (home: Home, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<FirstStep> => {
+  const paired = home.robots.find((robot) => robot.status === 'paired')
+  const granted = home.robots.find((robot) => robot.grant !== null && robot.grant.status === 'active')
+  const link = (href: string, label: string) => h.a([h.Href(href), h.Class(stepActionClassName)], [label])
+  const telegram = Option.match(home.maybeTelegramLinked, {
+    onNone: () => [],
+    onSome: (linked) => [
+      {
+        done: linked,
+        label: format(locale, 'home.stepTelegram', {}),
+        action: link(welcomeRouter(), format(locale, 'home.stepConnect', {})),
+      },
+    ],
+  })
+  return [
+    ...telegram,
+    {
+      done: home.wallet.balance !== null && BigInt(home.wallet.balance.units) > 0n,
+      label: format(locale, 'home.stepFund', {}),
+      action: h.button(
+        [h.Type('button'), h.Class(stepActionClassName), h.OnClick(Message.ClickedReceive())],
+        [format(locale, 'home.receive', {})],
+      ),
+    },
+    {
+      done: paired !== undefined,
+      label: format(locale, 'home.stepRobot', {}),
+      action: link(robotsRouter(), format(locale, 'home.stepAdd', {})),
+    },
+    {
+      done: granted !== undefined,
+      label: format(locale, 'home.stepAllowance', {}),
+      action: link(robotConsoleRouter({ robotId: paired?.id ?? '' }), format(locale, 'home.stepGive', {})),
+    },
+    {
+      done: home.episodes.some((episode) => episode.state === 'paid'),
+      label: format(locale, 'home.stepErrand', {}),
+      action: link(
+        robotConsoleRouter({ robotId: granted?.id ?? paired?.id ?? '' }),
+        format(locale, 'home.stepSend', {}),
+      ),
+    },
+  ]
+}
+
+/** The first-steps card: each open step one tap from where it is done (the next one only, so the order is clear). */
+const firstStepsCard = (home: Home, locale: Locale, h: HtmlBuilder<Message>): Html => {
+  const steps = firstSteps(home, locale, h)
+  const next = steps.findIndex((step) => !step.done)
+  if (next < 0) return h.empty
+  return h.section(
+    [h.Class(stepsCardClassName), h.AriaLabelledBy('first-steps')],
+    [
+      h.h2([h.Id('first-steps'), h.Class('font-semibold')], [format(locale, 'home.firstSteps', {})]),
+      h.ol(
+        [h.Class('grid gap-1.5')],
+        steps.map((step, index) =>
+          h.li(
+            [h.Class(stepRowClassName)],
+            [
+              h.span(
+                [h.Class(step.done ? 'text-paid' : 'text-muted'), h.AriaHidden(true)],
+                [step.done ? '✓' : `${index + 1}`],
+              ),
+              h.span(
+                [h.Class(step.done ? 'text-muted line-through' : '')],
+                [step.label, step.done ? h.span([h.Class('sr-only')], [format(locale, 'home.stepDone', {})]) : h.empty],
+              ),
+              index === next ? step.action : h.span([]),
+            ],
+          ),
+        ),
+      ),
+    ],
+  )
+}
+
 const loadedView = (model: Model, home: Home, locale: Locale, h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class(pageClassName)],
     [
       balanceView(home, locale, h),
       pills(locale, h),
+      firstStepsCard(home, locale, h),
       home.needsYou.length === 0
         ? h.empty
         : h.section(
@@ -387,7 +443,7 @@ export const walletView = Submodel.defineView<Model, Message, { readonly locale:
     [
       h.h1([h.Class('sr-only')], [format(locale, 'wallet.title', {})]),
       WalletState.match(model.state, {
-        Loading: () => loadingView(locale, h),
+        Loading: () => walletSkeleton(locale, h),
         SignedOut: () => signedOutView(locale, h),
         Loaded: ({ home }) => loadedView(model, home, locale, h),
         Failed: ({ error }) => failedView(error, Message.ClickedReload(), locale, h),

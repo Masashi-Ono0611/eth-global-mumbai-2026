@@ -4,7 +4,8 @@ import { Message } from '../message.ts'
 import { type AuthFailure, AuthState, type Model } from '../model.ts'
 import { duck } from '../Duck.ts'
 import { walletRouter } from '../route.ts'
-import { loadingView } from './Shared.ts'
+import { panelSkeleton } from '../Skeleton.ts'
+import { busyLabel } from '../Busy.ts'
 
 // STYLES
 
@@ -19,9 +20,9 @@ const labelClassName = 'text-sm font-semibold text-muted'
 const inputClassName =
   'min-h-12 w-full rounded-control border border-rule bg-surface px-3.5 text-base text-ink placeholder:text-muted'
 const primaryClassName =
-  'min-h-12 cursor-pointer rounded-control bg-ink px-4 font-semibold text-surface transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-12 cursor-pointer rounded-control bg-ink px-4 font-semibold text-surface transition-transform active:scale-[0.96] disabled:opacity-60'
 const secondaryClassName =
-  'min-h-12 cursor-pointer rounded-control bg-surface px-4 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-12 cursor-pointer rounded-control bg-surface px-4 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
 const hintClassName = 'text-sm text-muted text-pretty'
 const errorClassName = 'text-error'
 const linkClassName = 'justify-self-start text-sm font-semibold'
@@ -63,13 +64,21 @@ const signUpView = (model: Model, ceremony: Ceremony, maybeFailure: Html, h: Htm
           ]),
           h.button(
             [h.Type('submit'), h.Disabled(busy), h.Class(primaryClassName)],
-            [format(locale, ceremony === 'creating' ? 'auth.creatingWallet' : 'auth.createWallet', {})],
+            busyLabel(
+              ceremony === 'creating',
+              format(locale, ceremony === 'creating' ? 'auth.creatingWallet' : 'auth.createWallet', {}),
+              h,
+            ),
           ),
         ],
       ),
       h.button(
         [h.Type('button'), h.Disabled(busy), h.Class(secondaryClassName), h.OnClick(Message.ClickedSignIn())],
-        [format(locale, ceremony === 'signingIn' ? 'auth.signingIn' : 'auth.signInWithPasskey', {})],
+        busyLabel(
+          ceremony === 'signingIn',
+          format(locale, ceremony === 'signingIn' ? 'auth.signingIn' : 'auth.signInWithPasskey', {}),
+          h,
+        ),
       ),
       maybeFailure,
       h.p([h.Class(hintClassName)], [format(locale, 'auth.passkeyHint', {})]),
@@ -90,7 +99,7 @@ const openingView = (locale: Locale, h: HtmlBuilder<Message>): Html =>
 const authView = (model: Model, h: HtmlBuilder<Message>): Html => {
   const { locale } = model.context
   return AuthState.match(model.auth, {
-    Checking: () => loadingView(locale, h),
+    Checking: () => panelSkeleton(locale, h),
     SignedOut: () => signUpView(model, 'idle', h.empty, h),
     Refused: ({ failure }) => signUpView(model, 'idle', failureAlert(failure, locale, h), h),
     CreatingWallet: () => signUpView(model, 'creating', h.empty, h),

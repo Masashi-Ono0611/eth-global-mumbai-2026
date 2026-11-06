@@ -79,38 +79,6 @@
   --radius-sheet: 30px;
 
   /* Vita's voice: the listening wave's bars (RobotVoiceView.ts); off under reduced motion. */
-  /* Loading: the duck bobs (state indication) and the whole loader fades in after 150 ms, so a fast load never flashes. */
-  --animate-duck-bob: duck-bob 1.2s ease-in-out infinite;
-  --animate-loader-in: loader-in 200ms ease-out 150ms both;
-  /* Typing dots while the robot works out an answer. */
-  --animate-typing-dot: typing-dot 1.2s ease-in-out infinite;
-  @keyframes duck-bob {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-4px);
-    }
-  }
-  @keyframes loader-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes typing-dot {
-    0%,
-    60%,
-    100% {
-      opacity: 0.35;
-    }
-    30% {
-      opacity: 1;
-    }
-  }
   --animate-voice-wave: voice-wave 0.9s ease-in-out infinite;
   @keyframes voice-wave {
     0%,
@@ -120,6 +88,80 @@
     50% {
       transform: scaleY(1);
     }
+  }
+
+  /* Motion (DESIGN.md "Motion"): strong custom curves, UI motion under 300ms, transform and opacity only. Every
+   * transition-* utility without its own ease uses the ease-out, so a press answers on the first frame. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Bottom sheets (iOS drawer curve). */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  /* A fast spinner reads as a fast app. */
+  --animate-spinner: spin 600ms linear infinite;
+  /* Skeleton blocks while a page loads: a calm pulse. */
+  --animate-skeleton: skeleton 1.5s ease-in-out infinite;
+  /* The three "working" dots; each dot is delayed by 150ms. */
+  --animate-dot: dot 900ms ease-in-out infinite both;
+  /* A paid moment: once, from 96%. */
+  --animate-pop: pop 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  /* The duck's single hop when its errand is paid. */
+  --animate-hop: hop 420ms cubic-bezier(0.23, 1, 0.32, 1) 1;
+
+  @keyframes skeleton {
+    50% {
+      opacity: 0.5;
+    }
+  }
+  @keyframes dot {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    40% {
+      opacity: 1;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+  @keyframes hop {
+    40% {
+      translate: 0 -4px;
+    }
+  }
+}
+
+/* Page to page (every link is a full load): a short crossfade where the browser supports cross-document view
+ * transitions (Chrome 126+, Safari 18.2+); elsewhere navigation stays a plain cut. Opacity only, so reduced motion
+ * keeps it. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--ease-out);
+}
+
+/* Reduced motion: fades stay, movement goes; looping indicators slow down instead of stopping. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes pop {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes hop {
+    from,
+    to {
+      translate: none;
+    }
+  }
+  .animate-spinner {
+    animation-duration: 1.5s;
   }
 }
 
@@ -270,8 +312,11 @@
     font-size: clamp(3rem, 2rem + 6vw, 7rem);
     font-weight: 700;
   }
+  /* The paid moment at the counter: OPEN pops in once (DESIGN.md "Motion"). */
   .gate-open {
     color: var(--color-gate-open);
+    animation: var(--animate-pop);
+    transform-origin: left center;
   }
   .gate-closed {
     color: var(--color-gate-closed);

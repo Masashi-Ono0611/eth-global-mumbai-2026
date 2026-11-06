@@ -4,6 +4,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 import { Dialog } from '@foldkit/ui'
 import type { SessionView } from '@ethmumbai/auth/config'
 import { sheetTitleClassName, sheetView } from './Sheet.ts'
+import { avatarSkeleton } from './Skeleton.ts'
 import { Message } from './message.ts'
 import { AuthState, type Model } from './model.ts'
 import { architectureUrl, homeView } from './pages/Home.ts'
@@ -15,6 +16,7 @@ import * as Merchant from './pages/merchant/Merchant.ts'
 import { robotConsoleView } from './pages/RobotConsoleView.ts'
 import { addRobotView } from './pages/AddRobotView.ts'
 import { walletView } from './pages/WalletView.ts'
+import { welcomeView } from './pages/WelcomeView.ts'
 import { AppRoute, episodesRouter, homeRouter, walletRouter } from './route.ts'
 import * as Telegram from './Telegram.ts'
 // STYLES
@@ -103,7 +105,7 @@ const walletTopBar = (model: Model, h: HtmlBuilder<Message>): Html =>
   AuthState.match(model.auth, {
     SignedIn: ({ session }) => topBar(model, session, false, h),
     SigningOut: ({ session }) => topBar(model, session, true, h),
-    Checking: () => h.empty,
+    Checking: () => h.header([h.Class(topBarClassName)], [avatarSkeleton(h)]),
     SignedOut: () => h.empty,
     Refused: () => h.empty,
     CreatingWallet: () => h.empty,
@@ -164,6 +166,22 @@ const walletPage = (model: Model, h: HtmlBuilder<Message>): Page =>
         view: walletView,
         viewInputs: { locale: model.context.locale },
         toParentMessage: (message) => Message.GotWalletMessage({ message }),
+      }),
+    h,
+  )
+
+const welcomePage = (model: Model, h: HtmlBuilder<Message>): Page =>
+  childPage(
+    model,
+    format(model.context.locale, 'welcome.title', {}),
+    model.maybeWelcome,
+    (welcome) =>
+      h.submodel({
+        slotId: 'welcome',
+        model: welcome,
+        view: welcomeView,
+        viewInputs: { locale: model.context.locale },
+        toParentMessage: (message) => Message.GotWelcomeMessage({ message }),
       }),
     h,
   )
@@ -289,6 +307,7 @@ const pageOf = (model: Model, h: HtmlBuilder<Message>): Page => {
     Home: () => ({ title: format(locale, 'landing.title', {}), body: homeView(model, h) }),
     NotFound: () => ({ title: format(locale, 'common.notFoundTitle', {}), body: notFoundView(locale, h) }),
     Wallet: () => walletPage(model, h),
+    Welcome: () => welcomePage(model, h),
     Robots: () => robotsPage(model, h),
     RobotConsole: () => consolePage(model, h),
     Approval: () => approvalPage(model, h),
@@ -305,6 +324,7 @@ const isOwnerRoute = (route: AppRoute): boolean =>
   AppRoute.match(route, {
     Home: () => true,
     Wallet: () => true,
+    Welcome: () => true,
     Robots: () => true,
     RobotConsole: () => true,
     Approval: () => true,

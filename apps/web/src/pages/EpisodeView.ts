@@ -35,6 +35,7 @@ import {
   titleClassName,
 } from './EpisodeParts.ts'
 import type { Inputs } from './EpisodeParts.ts'
+import { busyLabel } from '../Busy.ts'
 
 const brainOf = (provider: string | null, locale: Locale) =>
   format(locale, isZeroGDecision(provider) ? 'console.brainZeroG' : 'console.brainRehearsal', {})
@@ -151,7 +152,7 @@ const decisionCard = (model: Model, audit: EpisodeAudit, inputs: Inputs, h: Html
               h.Disabled(Replay.guards.Running(model.replay)),
               h.OnClick(Message.ClickedReplay()),
             ],
-            [format(locale, 'episode.action', { action: 'replay' })],
+            busyLabel(Replay.guards.Running(model.replay), format(locale, 'episode.action', { action: 'replay' }), h),
           ),
       h.p([h.Class(mutedClassName)], [format(locale, 'episode.replayNote', {})]),
       replayView(model, locale, h),
@@ -303,11 +304,13 @@ const evidenceCard = (model: Model, audit: EpisodeAudit, locale: Locale, h: Html
               h.Disabled(Verify.guards.Running(model.verify)),
               h.OnClick(Message.ClickedVerify()),
             ],
-            [
+            busyLabel(
+              Verify.guards.Running(model.verify),
               format(locale, 'episode.action', {
                 action: Verify.guards.Running(model.verify) ? 'verifying' : 'verify',
               }),
-            ],
+              h,
+            ),
           ),
           Verify.match(model.verify, {
             Idle: () => h.empty,

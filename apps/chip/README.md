@@ -49,6 +49,15 @@ clock is used when it is absent, and the Worker accepts ±120 s. Local 400s (nev
 in R2 and uploaded plain to 0G Storage as proof of the robot's work; it never reaches the 0G decision, and the episode
 evidence carries its hash, the chip's signature and its 0G Storage root.
 
+## Frame listener (same `--local-port N`)
+
+For the owner's live view, the camera process posts one whole frame a second to `POST http://127.0.0.1:N/frame`
+`{"jpegBase64", "capturedAt"?}`. The chip refuses anything but a JPEG of at most 64 KB. It signs EIP-191
+`vitaquack-frame:v1|<robotId>|<0x sha256>|<capturedAt ms>`, a prefix of its own so a frame can never pass as a scan.
+It posts `{capturedAt, frame, sig}` to `POST <server>/api/chips/<robotId>/frames` and answers with the Worker's status
+and JSON: 201 when stored, 429 under 400 ms after the last stored frame, 404 while `APP_LIVE_ENABLED` is off. Log
+line: `frame 0x<first 8 hex>… → 201`. Codes and limits: `docs/hardware-handoff.md` §5.3.
+
 ## Log lines (one per event)
 
 | Line                                                     | Meaning                                                                                                               |

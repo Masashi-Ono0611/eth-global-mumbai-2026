@@ -15,6 +15,8 @@ export const scansEnabled = (env: Bindings) => env.SCANS_ENABLED === 'true'
 
 /** Vita's voice in the conversation (`VOICE_ENABLED`): on only for the exact string `true`, like scans. */
 export const voiceEnabled = (env: Bindings) => env.VOICE_ENABLED === 'true'
+/** The robot's live camera view (`LIVE_ENABLED`): on only for the exact string `true`, like scans. */
+export const liveEnabled = (env: Bindings) => env.LIVE_ENABLED === 'true'
 
 export const features = (env: Bindings) => ({
   arc: https(env.ARC_RPC_URL),
@@ -28,6 +30,7 @@ export const features = (env: Bindings) => ({
   evidence: longer(16)(env.EVIDENCE_TOKEN),
   scans: scansEnabled(env),
   voice: voiceEnabled(env),
+  live: liveEnabled(env),
   telegram:
     shaped(/^\d{5,}:[A-Za-z0-9_-]{30,}$/)(env.TELEGRAM_BOT_TOKEN) &&
     shaped(/^[A-Za-z0-9_-]{16,256}$/)(env.TELEGRAM_WEBHOOK_SECRET),

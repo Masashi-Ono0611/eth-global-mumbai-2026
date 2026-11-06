@@ -1,4 +1,5 @@
 import { format, type Locale } from '@ethmumbai/i18n'
+import { clsx } from 'clsx'
 import { Option } from 'effect'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -20,15 +21,18 @@ import { ConsoleState, Decline, Errand, Intent, Message, type Model } from './Ro
 import { dock } from './RobotDockView.ts'
 import { seenBubble, teeMark, zeroGLine, type ZeroGRecord } from './ProofParts.ts'
 import { type ErrandParts, fromIntent, intentAndErrand, simulatorLink } from './RobotIntentView.ts'
-import { failedView, loadingView, signedOutView, typingBubble } from './Shared.ts'
+import { failedView, signedOutView } from './Shared.ts'
+import { workingDots } from '../Busy.ts'
+import { threadSkeleton } from '../Skeleton.ts'
+import { busyLabel } from '../Busy.ts'
 import { bubblesView } from './RobotVoiceView.ts'
 import * as RobotVoice from './RobotVoice.ts'
 
 // STYLES
 
-const pageClassName = 'flex min-h-[calc(100svh-2rem)] flex-col'
+const pageClassName = 'flex min-h-[calc(100svh-2rem)] flex-col transition-opacity duration-150 starting:opacity-0'
 const headerClassName =
-  'sticky top-0 z-10 grid grid-cols-[44px_44px_1fr_auto] items-center gap-2.5 border-b border-rule bg-paper/95 px-1 pt-1 pb-2.5 backdrop-blur'
+  'sticky top-0 z-10 grid grid-cols-[44px_44px_1fr_auto] items-center gap-2.5 border-b border-rule bg-paper/95 px-1 pt-1 pb-2.5 backdrop-blur [@media(prefers-reduced-transparency:reduce)]:bg-paper [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none'
 const backClassName =
   'grid size-11 place-items-center rounded-full bg-surface text-xl no-underline transition-transform active:scale-[0.96]'
 const faceClassName = 'relative grid size-11 place-items-center rounded-full bg-ink'
@@ -50,12 +54,17 @@ const receiptAmountClassName = 'block font-display text-2xl leading-tight font-e
 const paidClassName = 'inline-flex items-center gap-1 font-semibold text-paid'
 const proofClassName = 'text-[0.92rem] font-semibold decoration-ink/30'
 const systemClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-center text-sm text-muted'
+const stepTextClassName = 'transition-opacity duration-150 starting:opacity-0'
+/** The live errand's messages enter (DESIGN.md "Motion"); the history above never moves. A contents box, so the
+ *  bubbles stay items of the thread's column. */
+const liveClassName =
+  'contents *:origin-bottom *:transition-[opacity,translate,scale] *:duration-[220ms] *:starting:translate-y-2 *:starting:scale-[0.98] *:starting:opacity-0 motion-reduce:*:starting:translate-y-0 motion-reduce:*:starting:scale-100'
 const errorBubbleClassName = 'max-w-[86%] self-start rounded-[20px_20px_20px_6px] bg-error-soft px-3.5 py-2 text-error'
 const askButtonsClassName = 'mt-2.5 grid grid-cols-[1fr_auto] gap-2'
 const approveClassName =
   'inline-flex min-h-12 items-center justify-center rounded-control bg-black px-3 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const declineClassName =
-  'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
 // VIEW
 
 /** The header pill: what is left today when the Worker reports the day, otherwise the daily allowance. */
@@ -87,7 +96,8 @@ const headerStatus = (model: Model, online: boolean, locale: Locale): string =>
       ? format(locale, 'voice.headerSpeaking', {})
       : format(locale, online ? 'home.connected' : 'thread.offline', {})
 
-const header = (model: Model, view: ConsoleRobot, locale: Locale, h: HtmlBuilder<Message>): Html => {
+/** The robot's header; its duck hops once when the live errand is paid. */
+const header = (model: Model, view: ConsoleRobot, paid: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const online = view.lease.online
   return h.header(
     [h.Class(headerClassName)],
@@ -96,7 +106,10 @@ const header = (model: Model, view: ConsoleRobot, locale: Locale, h: HtmlBuilder
         [h.Href(walletRouter()), h.Class(backClassName), h.AriaLabel(format(locale, 'thread.back', {}))],
         [h.span([h.AriaHidden(true)], ['‹'])],
       ),
-      h.span([h.Class(online ? faceClassName : faceAsleepClassName)], [duck('size-8', !online, h)]),
+      h.span(
+        [h.Class(clsx(online ? faceClassName : faceAsleepClassName, { 'animate-hop': paid }))],
+        [duck('size-8', !online, h)],
+      ),
       h.div(
         [h.Class('min-w-0')],
         [
@@ -297,7 +310,7 @@ const askBubble = (model: Model, approvalId: string, item: string, locale: Local
               h.Disabled(declining),
               h.OnClick(Message.ClickedDecline({ approvalId })),
             ],
-            [format(locale, declining ? 'home.declining' : 'home.decline', {})],
+            busyLabel(declining, format(locale, declining ? 'home.declining' : 'home.decline', {}), h),
           ),
         ],
       ),
@@ -310,6 +323,14 @@ const askBubble = (model: Model, approvalId: string, item: string, locale: Local
     ],
   )
 }
+
+/** A step under way: the working dots, then its words in a keyed span, so the next step fades in. */
+const stepPill = (text: string, h: HtmlBuilder<Message>): Html =>
+  h.keyed('p')(
+    'live-step',
+    [h.Class(systemClassName), h.Role('status')],
+    [workingDots(h), h.keyed('span')(text, [h.Class(stepTextClassName)], [text])],
+  )
 
 /** The step a live errand is on, as the robot would say it. */
 const liveStep = (state: string, locale: Locale): string | null => {
@@ -355,7 +376,7 @@ const liveMessages = (
   const approvalId = Option.map(maybeApprovalUrl, (url) => url.split('/').at(-1) ?? url)
   const ended = terminalStates.has(episode.state) && episode.state_changed_at != null
   const body = [
-    fromIntent(model, episodeId) ? h.empty : ownerBubble(episodeId, episode.item, locale, h),
+    fromIntent(model, episodeId) ? h.empty : ownerBubble('live', episode.item, locale, h),
     crop !== null && robot !== null
       ? seen(episodeId, episodeId, crop, episode.item, detail.payment?.invoice.amount ?? null, robot, locale, h)
       : detail.payment === null
@@ -379,7 +400,7 @@ const liveMessages = (
           onSome: (id) => askBubble(model, id, episode.item, locale, h),
         })
       : h.empty,
-    step === null ? h.empty : h.keyed('p')(`${episodeId}-step`, [h.Class(systemClassName), h.Role('status')], [step]),
+    step === null ? h.empty : stepPill(step, h),
   ]
   return {
     body,
@@ -403,18 +424,14 @@ const liveMessages = (
 
 const untimed = (body: ReadonlyArray<Html>): ErrandParts => ({ body, outcome: [], span: null })
 
+const isPaid = (errand: Errand): boolean =>
+  Errand.guards.Running(errand) && Option.exists(errand.maybeDetail, (detail) => detail.episode.state === 'paid')
+
 const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ErrandParts =>
   Errand.match(model.errand, {
     Idle: () => untimed([]),
     Starting: ({ item }) =>
-      untimed([
-        ownerBubble('starting', item, locale, h),
-        h.keyed('p')(
-          'starting-step',
-          [h.Class(systemClassName), h.Role('status')],
-          [format(locale, 'thread.deciding', {})],
-        ),
-      ]),
+      untimed([ownerBubble('live', item, locale, h), stepPill(format(locale, 'thread.deciding', {}), h)]),
     Refused: ({ error }) =>
       untimed([
         h.keyed('p')(
@@ -425,8 +442,7 @@ const errandMessages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): 
       ]),
     Running: ({ episodeId, maybeDetail, maybeApprovalUrl }) =>
       Option.match(maybeDetail, {
-        onNone: () =>
-          untimed([h.keyed('div')(`${episodeId}-loading`, [h.Class('contents')], [typingBubble(locale, h)])]),
+        onNone: () => untimed([stepPill(format(locale, 'common.loading', {}), h)]),
         onSome: (detail) => liveMessages(model, episodeId, detail, maybeApprovalUrl, locale, h),
       }),
   })
@@ -446,7 +462,7 @@ const loadedView = (
   return h.div(
     [h.Class(pageClassName)],
     [
-      header(model, view, locale, h),
+      header(model, view, isPaid(model.errand), locale, h),
       h.section(
         [
           h.Class(threadClassName),
@@ -471,13 +487,18 @@ const loadedView = (
                 [format(locale, 'thread.records', { name: view.robot.name })],
               ),
           ...past.flatMap((episode) => historyMessages(episode, amounts, view.robot, locale, h)),
-          ...intentAndErrand(
-            model,
-            errandMessages(model, locale, h),
-            view.robot.name,
-            view.robot.kind === 'sim',
-            locale,
-            h,
+          // Keyed by the history's length: stable from Starting to Running, new when the next errand begins.
+          h.keyed('div')(
+            `live-${past.length}`,
+            [h.Class(liveClassName)],
+            intentAndErrand(
+              model,
+              errandMessages(model, locale, h),
+              view.robot.name,
+              view.robot.kind === 'sim',
+              locale,
+              h,
+            ),
           ),
           h.submodel({
             slotId: `voice-bubbles-${view.robot.id}`,
@@ -505,7 +526,7 @@ export const robotConsoleView = Submodel.defineView<
     [h.Id('main')],
     [
       ConsoleState.match(model.state, {
-        Loading: () => loadingView(locale, h),
+        Loading: () => threadSkeleton(locale, h),
         SignedOut: () => signedOutView(locale, h),
         Failed: ({ error }) => failedView(error, Message.ClickedRefresh(), locale, h),
         Loaded: ({ robot, catalogue, history, amounts }) =>

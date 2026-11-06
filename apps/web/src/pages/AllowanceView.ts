@@ -5,7 +5,17 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { clockTime } from '../api/Episodes.ts'
 import { ActionFailure } from '../api/OwnerAction.ts'
 import { leftToday, usdc } from '../api/Wallet.ts'
-import { DAILY_PRESETS, HOUR_PRESETS, Message, type Model, PER_PAYMENT_PRESETS, Step, Stop } from './Allowance.ts'
+import {
+  DAILY_PRESETS,
+  exceedsBalance,
+  HOUR_PRESETS,
+  Message,
+  type Model,
+  PER_PAYMENT_PRESETS,
+  Step,
+  Stop,
+} from './Allowance.ts'
+import { busyLabel } from '../Busy.ts'
 
 // STYLES
 
@@ -18,11 +28,11 @@ const segmentClassName =
 const payeeClassName = 'flex min-h-11 items-center gap-2 rounded-2xl bg-paper px-3.5 font-semibold'
 const summaryClassName = 'rounded-2xl bg-paper px-4 py-3 text-[0.96rem] shadow-[inset_3px_0_0_var(--color-duck)]'
 const primaryClassName =
-  'inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-control bg-ink px-4 font-semibold text-surface transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-control bg-ink px-4 font-semibold text-surface transition-transform active:scale-[0.96] disabled:cursor-progress disabled:opacity-60'
 const secondaryClassName =
   'min-h-12 cursor-pointer rounded-control bg-paper px-4 font-semibold transition-transform active:scale-[0.96]'
 const stopClassName =
-  'inline-flex min-h-12 cursor-pointer items-center justify-center rounded-control bg-error-soft px-4 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-control bg-error-soft px-4 font-semibold text-error transition-transform active:scale-[0.96] disabled:cursor-progress disabled:opacity-60'
 const rulesClassName = 'grid gap-1.5 [&_li]:flex [&_li]:gap-2'
 const leftClassName = 'font-display text-4xl leading-none font-extrabold'
 const unitClassName = 'ml-1.5 font-sans text-base font-normal text-muted'
@@ -60,6 +70,8 @@ export type ViewInputs = Readonly<{
   payeeName: string
   grant: ActiveGrant | null
   robot: RobotIdentity | null
+  /** The wallet's USDC in base units, when the page read it (null or absent: unknown). */
+  balanceUnits?: string | null
 }>
 
 const failureText = (failure: ActionFailure, locale: Locale) =>
@@ -105,6 +117,16 @@ const segments = (
       ),
     ],
   )
+
+/** The chosen daily cap is more than the wallet holds: said before the passkey signs (Arc would only stop payments). */
+const overBalance = (model: Model, inputs: ViewInputs, h: HtmlBuilder<Message>): Html => {
+  const balanceUnits = inputs.balanceUnits ?? null
+  if (balanceUnits === null || !exceedsBalance(model, balanceUnits)) return h.empty
+  return h.p(
+    [h.Role('status'), h.Class('text-[0.95rem] font-semibold text-error')],
+    [format(inputs.locale, 'allowance.overBalance', { balance: usdc(balanceUnits), name: inputs.robotName })],
+  )
+}
 
 const hoursLabel = (hours: string, locale: Locale) => format(locale, 'allowance.hours', { hours: Number(hours) })
 
@@ -163,6 +185,7 @@ const form = (model: Model, inputs: ViewInputs, h: HtmlBuilder<Message>): Html =
           }),
         ],
       ),
+      overBalance(model, inputs, h),
       Step.guards.Failed(model.step)
         ? h.p([h.Role('alert'), h.Class('text-error')], [failureText(model.step.failure, locale)])
         : h.empty,
@@ -173,7 +196,7 @@ const form = (model: Model, inputs: ViewInputs, h: HtmlBuilder<Message>): Html =
           h.Disabled(signing || Option.isNone(model.maybePayTo)),
           h.OnClick(Message.ClickedConfirm()),
         ],
-        [format(locale, signing ? 'allowance.signing' : 'allowance.confirm', {})],
+        busyLabel(signing, format(locale, signing ? 'allowance.signing' : 'allowance.confirm', {}), h),
       ),
       inputs.grant === null
         ? h.empty
@@ -268,7 +291,11 @@ const rules = (model: Model, grant: ActiveGrant, inputs: ViewInputs, h: HtmlBuil
           h.Disabled(stopping),
           h.OnClick(Message.ClickedStop({ grantId: grant.id })),
         ],
-        [format(locale, stopping ? 'allowance.stopping' : 'allowance.stop', { name: inputs.robotName })],
+        busyLabel(
+          stopping,
+          format(locale, stopping ? 'allowance.stopping' : 'allowance.stop', { name: inputs.robotName }),
+          h,
+        ),
       ),
       Stop.guards.Failed(model.stop)
         ? h.p([h.Role('alert'), h.Class('text-error')], [failureText(model.stop.failure, locale)])

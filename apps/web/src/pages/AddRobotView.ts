@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { format, type Locale } from '@ethmumbai/i18n'
 import { Submodel } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -5,9 +6,11 @@ import { simulatorUrl } from '../api/Robot.ts'
 import type { AddedRobot } from '../api/Wallet.ts'
 import { duck } from '../Duck.ts'
 import { walletRouter } from '../route.ts'
+import { bubbleSkeleton } from '../Skeleton.ts'
 import { Message, type Model, Stage } from './AddRobot.ts'
 import { allowanceView } from './AllowanceView.ts'
-import { failedView, signedOutView, typingBubble } from './Shared.ts'
+import { failedView, signedOutView } from './Shared.ts'
+import { workingDots } from '../Busy.ts'
 
 // STYLES
 
@@ -148,7 +151,7 @@ const askName = (locale: Locale, h: HtmlBuilder<Message>): Html =>
 
 const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   Stage.match(model.stage, {
-    Loading: () => [typingBubble(locale, h)],
+    Loading: () => [bubbleSkeleton(locale, h)],
     SignedOut: () => [signedOutView(locale, h)],
     Failed: ({ error }) => [failedView(error, Message.ClickedStartOver(), locale, h)],
     Naming: () => [askName(locale, h), kindChoice(model, false, locale, h), nameForm(model, false, locale, h)],
@@ -157,7 +160,14 @@ const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
       askName(locale, h),
       h.p([h.Class(ownerBubbleClassName)], [robot.name]),
       codeBubble(robot, locale, h),
-      h.p([h.Role('status'), h.Class(systemClassName)], [format(locale, 'addRobot.waiting', { name: robot.name })]),
+      h.p(
+        [h.Role('status'), h.Class(systemClassName)],
+        [workingDots(h), format(locale, 'addRobot.waiting', { name: robot.name })],
+      ),
+      h.button(
+        [h.Type('button'), h.Class(linkButtonClassName), h.OnClick(Message.ClickedCancelPairing())],
+        [format(locale, 'addRobot.cancelPairing', {})],
+      ),
     ],
     Expired: ({ robot }) => [
       h.p([h.Class(ownerBubbleClassName)], [robot.name]),
@@ -184,6 +194,7 @@ const messages = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Readon
               payeeName: model.merchantName,
               grant: null,
               robot: null,
+              balanceUnits: Option.getOrNull(model.maybeBalanceUnits),
             },
             toParentMessage: (message) => Message.GotAllowanceMessage({ message }),
           }),

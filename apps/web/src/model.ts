@@ -4,7 +4,7 @@ import { catalogVersion } from '@ethmumbai/i18n'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { Dialog } from '@foldkit/ui'
 import { Locale } from './Locale.ts'
-import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet } from './pageModules.ts'
+import { AddRobot, Approval, Episode, Episodes, Gate, Merchant, RobotConsole, Wallet, Welcome } from './pageModules.ts'
 import { AppRoute } from './route.ts'
 import * as Telegram from './Telegram.ts'
 
@@ -44,6 +44,7 @@ export const Model = Schema.Struct({
   telegram: Telegram.Model,
   /** The owner pages keep their own state; only the current route's is present. */
   maybeWallet: Schema.Option(Wallet.Model),
+  maybeWelcome: Schema.Option(Welcome.Model),
   maybeAddRobot: Schema.Option(AddRobot.Model),
   maybeConsole: Schema.Option(RobotConsole.Model),
   maybeApproval: Schema.Option(Approval.Model),

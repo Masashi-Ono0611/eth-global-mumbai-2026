@@ -4,6 +4,7 @@ import { requireSession } from '../auth/Session.ts'
 import { answerWalletErrors } from '../wallet/Errors.ts'
 import { approvalForEpisode, authorize, denyByOwner, readApprovalView, type WorldDeps } from './Authorize.ts'
 import { callback } from './Callback.ts'
+import { linkAuthorize } from './Link.ts'
 
 export type { WorldDeps } from './Authorize.ts'
 
@@ -20,4 +21,6 @@ export const worldRoutes = (deps: WorldDeps) =>
     ),
     HttpRouter.add('GET', '/api/world/authorize', requireSession(answerWalletErrors(authorize(deps)))),
     HttpRouter.add('GET', '/api/world/callback', callback(deps)),
+    // Telegram's one-time link: stands in for the session for one approval, then the same World sign-in (Link.ts).
+    HttpRouter.add('GET', '/api/world/link', answerWalletErrors(linkAuthorize(deps))),
   )

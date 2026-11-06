@@ -1,6 +1,8 @@
+import { Option } from 'effect'
 import { Command, Mount, click, expect, given, role, scene, text, withViewInputs } from 'foldkit/scene'
 import { describe, expect as vitestExpect, test } from 'vitest'
 import { Animation, Dialog } from '@foldkit/ui'
+import { qrDataUri } from '../src/Qr.ts'
 import * as Wallet from '../src/pages/Wallet.ts'
 import { walletView } from '../src/pages/WalletView.ts'
 import { activityRow, address, grant, pairedRobot, summary, txHash } from './Fixtures.ts'
@@ -25,6 +27,7 @@ const home = (overrides: Partial<Wallet.Home> = {}): Wallet.Home => ({
   episodes: [summary('e1', 'chai', 'paid', 'within budget')],
   needsYou: [],
   spentLastDay: '100000',
+  maybeTelegramLinked: Option.none(),
   ...overrides,
 })
 describe('/wallet', () => {
@@ -57,6 +60,39 @@ describe('/wallet', () => {
     )
   })
 
+  test('a new owner gets a Getting started card: the next step is one tap away; it goes once all are done', () => {
+    const fresh = home({
+      wallet: { ...home().wallet, balance: { units: '0', usdc: '0.00' } },
+      activity: { episodes: [], grants: [] },
+      robots: [],
+      episodes: [],
+      spentLastDay: '0',
+      maybeTelegramLinked: Option.some(false),
+    })
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(fresh)),
+      expect(role('heading', { name: 'Getting started' })).toExist(),
+      expect(role('link', { name: 'Connect' })).toHaveAttr('href', '/app/welcome'),
+      expect(role('link', { name: 'Add' })).not.toExist(),
+    )
+    // Telegram linked: money is next, through the Receive sheet.
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome({ ...fresh, maybeTelegramLinked: Option.some(true) })),
+      expect(text("Get your robot's messages on Telegram, done")).toExist(),
+      expect(text('Add money to the wallet')).toExist(),
+      expect(role('link', { name: 'Connect' })).not.toExist(),
+    )
+    // Funded, no robot yet (no bot on the server: no Telegram step).
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome({ ...fresh, wallet: home().wallet, maybeTelegramLinked: Option.none() })),
+      expect(role('link', { name: 'Add' })).toHaveAttr('href', '/app/wallet/robots'),
+    )
+    scene({ update: Wallet.update, view }, given(loadedHome(home())), expect(text('Getting started')).not.toExist())
+  })
+
   test('Receive opens a sheet with the address as a QR code, in groups, and a copy button', () => {
     scene(
       { update: Wallet.update, view },
@@ -68,7 +104,11 @@ describe('/wallet', () => {
       Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
 
       expect(role('heading', { name: 'Receive USDC' })).toExist(),
-      expect(role('img', { name: 'QR code of your wallet address' })).toExist(),
+      // The QR is an EIP-681 payment request on Arc (chain 5042), so a wallet app opens a send on the right network.
+      expect(role('img', { name: 'QR code of your wallet address' })).toHaveAttr(
+        'src',
+        qrDataUri(`ethereum:${address}@5042`),
+      ),
       expect(text('0x1234 5678 90ab cdef 1234 5678 90AB CDEF 1234 5678')).toExist(),
       click(role('button', { name: 'Copy address' })),
       Command.expectExact(Wallet.CopyAddress({ address })),

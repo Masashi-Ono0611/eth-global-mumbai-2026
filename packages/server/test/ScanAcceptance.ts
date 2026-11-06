@@ -20,10 +20,10 @@ import { errandView, mintInvoice, postTo, seedRobot, TEST_EVIDENCE_TOKEN, type Z
 type Urls = { readonly appUrl: string; readonly url: string; readonly apiUrl: string }
 
 /** The bearer token the robot seed stores (hashed) for every test robot. */
-const TEST_CHIP_TOKEN = 'R'.repeat(43)
+export const TEST_CHIP_TOKEN = 'R'.repeat(43)
 
 /** A JPEG-shaped crop (SOI marker first, EOI last, random in between), different on every call. */
-const sampleCrop = (size = 96) => {
+export const sampleCrop = (size = 96) => {
   const bytes = crypto.getRandomValues(new Uint8Array(size))
   bytes.set([0xff, 0xd8, 0xff, 0xe0], 0)
   bytes.set([0xff, 0xd9], size - 2)
@@ -357,8 +357,8 @@ const seedPairableRobot = Effect.fnUntraced(function* (url: string, accountId: s
   return { robotId, pairingCode }
 })
 
-const postLocal = (port: number, body: unknown) =>
-  HttpClient.post(`http://127.0.0.1:${port}/scan`, {
+const postLocal = (port: number, body: unknown, path = '/scan') =>
+  HttpClient.post(`http://127.0.0.1:${port}${path}`, {
     body: HttpBody.text(JSON.stringify(body), 'application/json'),
   }).pipe(Effect.flatMap((response) => Effect.map(response.json, (json) => ({ status: response.status, json }))))
 
@@ -389,7 +389,7 @@ export const registerChipScanListenerAcceptance = (test: TestApi['test'], stack:
         (process) => Effect.sync(() => process.kill()),
       )
       const started = yield* Clock.currentTimeMillis
-      const lines = yield* Effect.promise(() => readLines(chip.stdout, /scan listener on/, started + 15_000))
+      const lines = yield* Effect.promise(() => readLines(chip.stdout, /frame listener on/, started + 15_000))
       expect(lines).toContain(`paired ${robotId}`)
       expect(lines).toContain(`scan listener on http://127.0.0.1:${port}/scan`)
 
@@ -405,6 +405,15 @@ export const registerChipScanListenerAcceptance = (test: TestApi['test'], stack:
         readLines(chip.stdout, /scan \S+ 0x[0-9a-f]{8}… → 201/, started + 25_000),
       )).join('\n')
       expect(logged).toMatch(new RegExp(`scan ${invoiceId} 0x[0-9a-f]{8}… → 201`))
+      // The same listener signs a live frame (its own message, never a scan) and forwards it.
+      expect(lines).toContain(`frame listener on http://127.0.0.1:${port}/frame`)
+      expect(yield* postLocal(port, { jpegBase64: Base64.encode(Uint8Array.from([1, 2, 3])) }, '/frame')).toEqual({
+        status: 400,
+        json: { error: 'frame is not a JPEG' },
+      })
+      expect(yield* postLocal(port, { jpegBase64: Base64.encode(sampleCrop(4096)) }, '/frame')).toMatchObject({
+        status: 201,
+      })
       expect([...lines, logged].join('\n')).not.toContain(key.slice(2))
     }).pipe(Effect.scoped, Effect.provide(freshConnections)),
     { timeout: 60000 },

@@ -66,6 +66,7 @@ const main = Effect.fnUntraced(function* (argv: ReadonlyArray<string>, home: str
   if (args.localPort !== undefined) {
     yield* Effect.forkChild(serveScans(args.localPort, pairing, signer))
     yield* log(`scan listener on http://127.0.0.1:${args.localPort}/scan`)
+    yield* log(`frame listener on http://127.0.0.1:${args.localPort}/frame`)
   }
   return yield* serve(pairing, signer, state, report)
 })

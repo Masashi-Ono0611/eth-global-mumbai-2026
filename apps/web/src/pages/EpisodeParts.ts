@@ -38,7 +38,7 @@ export const alertTextClassName = 'text-error'
 
 /** Verify and Replay: the app's dark button, dimmed while its request runs. */
 export const auditButtonClassName =
-  'inline-flex min-h-12 cursor-pointer items-center rounded-control bg-ink px-5 font-semibold text-surface transition-transform active:scale-[0.96] disabled:cursor-progress disabled:opacity-60'
+  'inline-flex min-h-12 cursor-pointer items-center gap-2 rounded-control bg-ink px-5 font-semibold text-surface transition-transform active:scale-[0.96] disabled:cursor-progress disabled:opacity-60'
 
 export type Inputs = { readonly locale: Locale; readonly timeZone: string }
 type Field =

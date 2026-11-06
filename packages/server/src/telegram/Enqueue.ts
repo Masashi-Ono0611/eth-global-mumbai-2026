@@ -14,6 +14,7 @@ export type NotificationKind =
   | 'approval_denied'
   | 'approval_expired'
   | 'grant_revoked'
+  | 'funds_received'
 
 /** Rows written in this isolate since the last flush: the flush after the response runs only when there is news. */
 export const outboxSignal = { dirty: false }

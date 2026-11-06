@@ -7,9 +7,9 @@ import * as HttpRouter from 'effect/http/HttpRouter'
 import { decodeBody } from '../auth/Routes.ts'
 import { CurrentSession, requireSession } from '../auth/Session.ts'
 import { leaseOf, RobotRow } from '../chip/Lease.ts'
-import { json, nowSeconds, randomBytes } from '../Respond.ts'
+import { json, jsonError, nowSeconds, randomBytes } from '../Respond.ts'
 import { GrantRow, periodStartOf, spentSince } from '../robot/Budget.ts'
-import { allRows } from '../Sql.ts'
+import { allRows, changes } from '../Sql.ts'
 import type { WalletDeps } from './Deps.ts'
 import { answerWalletErrors } from './Errors.ts'
 import { finalizeRevoke } from './Revoke.ts'
@@ -55,6 +55,25 @@ const addRobot = (database: QueryDatabaseClient) =>
       .run()
     yield* Effect.logInfo('robot added').pipe(Effect.annotateLogs({ robotId }))
     return yield* json({ robotId, name, kind, pairingCode, pairingExpiresAt }, 201)
+  })
+
+/**
+ * `POST /api/robots/:robotId/cancel` → 200 `{cancelled: true}`: the owner gives up on a robot still waiting for its chip
+ * (the wrong kind, or no chip at hand), so Add robot starts fresh instead of resuming its code. Only an `unpaired`
+ * robot of this account goes; a paired one answers 404 (it stops through its allowance, never by deletion).
+ */
+const cancelPairing = (database: QueryDatabaseClient) =>
+  Effect.gen(function* () {
+    const { robotId } = yield* HttpRouter.params
+    const session = yield* CurrentSession
+    const removed = yield* changes(
+      database
+        .prepare("DELETE FROM robots WHERE id = ? AND account_id = ? AND status = 'unpaired'")
+        .bind(robotId ?? '', session.accountId),
+    )
+    if (removed !== 1) return yield* jsonError(404, 'no robot waiting to pair')
+    yield* Effect.logInfo('pairing cancelled').pipe(Effect.annotateLogs({ robotId }))
+    return yield* json({ cancelled: true })
   })
 
 const Allowlist = Schema.fromJsonString(Schema.Array(Address))
@@ -127,4 +146,5 @@ export const robotsRoutes = (deps: WalletDeps) =>
   Layer.mergeAll(
     HttpRouter.add('POST', '/api/robots', requireSession(answerWalletErrors(addRobot(deps.database)))),
     HttpRouter.add('GET', '/api/robots', requireSession(listRobots(deps))),
+    HttpRouter.add('POST', '/api/robots/:robotId/cancel', requireSession(cancelPairing(deps.database))),
   )

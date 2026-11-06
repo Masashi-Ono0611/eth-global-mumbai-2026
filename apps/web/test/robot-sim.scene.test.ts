@@ -19,6 +19,11 @@ const turn = (step: number, at: number, place: string): IntentView['turns'][numb
   createdAt: at,
 })
 
+/** A frame digest made of one repeated hex digit. */
+const sha = (digit: string): `0x${string}` => `0x${digit.repeat(64)}`
+/** The owner's live frame URL for that digest. */
+const liveSrc = (digit: string) => `/api/robots/${robotId}/live/frame?v=${sha(digit)}`
+
 describe('/robot/:id, a simulator robot', () => {
   const simRobot: ConsoleRobot = { ...consoleRobot, robot: { ...consoleRobot.robot, kind: 'sim' } }
   const intentId = 'intentintentintentintentaa'
@@ -105,6 +110,40 @@ describe('/robot/:id, a simulator robot', () => {
       expect(role('region', { name: 'Conversation with Duck' })).toContainText(
         /Walking to the chai stall.*0G decided.*Walking to the thali stall.*Paid with my chip.*Walking to the gate/s,
       ),
+    )
+  })
+
+  test("while the duck is out, the intent poll's live frame shows as a picture that changes with each new frame", () => {
+    const withLive = (digit: string, ageMs: number): IntentView => ({
+      ...intent('running', null),
+      live: { sha256: sha(digit), bytes: 12_000, capturedAt: 1, ageMs },
+    })
+    scene(
+      { update: RobotConsole.update, view },
+      given(loadedConsole([], simRobot)),
+      click(role('button', { name: 'Buy Chai for 0.10 USDC' })),
+      Command.resolve(
+        RobotConsole.SendIntent,
+        RobotConsole.Message.SucceededCreateIntent({ intent: intent('running', null) }),
+      ),
+      expect(role('img', { name: 'What Duck sees right now' })).not.toExist(),
+      Command.resolve(
+        RobotConsole.PollIntent,
+        RobotConsole.Message.SucceededLoadIntent({ intent: withLive('a', 1400) }),
+      ),
+      expect(role('img', { name: 'What Duck sees right now' })).toHaveAttr('src', liveSrc('a')),
+      expect(text("Live from Duck's camera · 1 second ago")).toExist(),
+      Command.resolve(
+        RobotConsole.PollIntent,
+        RobotConsole.Message.SucceededLoadIntent({ intent: withLive('b', 300) }),
+      ),
+      expect(role('img', { name: 'What Duck sees right now' })).toHaveAttr('src', liveSrc('b')),
+      expect(text("Live from Duck's camera · just now")).toExist(),
+      Command.resolve(
+        RobotConsole.PollIntent,
+        RobotConsole.Message.SucceededLoadIntent({ intent: intent('stopped', null) }),
+      ),
+      expect(role('img', { name: 'What Duck sees right now' })).not.toExist(),
     )
   })
 

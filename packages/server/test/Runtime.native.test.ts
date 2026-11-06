@@ -31,6 +31,7 @@ import {
   TEST_ZG_API_KEY,
   TEST_ZG_MODEL,
 } from './RobotAcceptance.ts'
+import { registerLiveAcceptance, registerLiveOffAcceptance } from './LiveAcceptance.ts'
 import RuntimeWorker from './RuntimeWorker.ts'
 import {
   registerChipScanListenerAcceptance,
@@ -112,6 +113,8 @@ const makeStack = (generation: string) =>
           SCANS_ENABLED: generation === 'after' ? 'true' : 'pending',
           // Vita's voice: off before the restart (its flag-off 404 runs there), on after (VoiceAcceptance.ts).
           VOICE_ENABLED: generation === 'after' ? 'true' : 'pending',
+          // The live camera view follows the same two generations (LiveAcceptance.ts).
+          LIVE_ENABLED: generation === 'after' ? 'true' : 'pending',
           TELEGRAM_BOT_TOKEN: Redacted.make(TEST_TELEGRAM_TOKEN),
           TELEGRAM_WEBHOOK_SECRET: Redacted.make(TEST_TELEGRAM_SECRET),
           TELEGRAM_API_BASE_URL: telegram.baseUrl,
@@ -271,6 +274,7 @@ test(
           'grants',
           'intents',
           'invoices',
+          'live_frames',
           'nav_turns',
           'notifications',
           'observations',
@@ -280,6 +284,7 @@ test(
           'robots',
           'telegram_links',
           'used_nonces',
+          'wallet_balances',
         ],
       },
       media: { sentinel: false },
@@ -333,6 +338,7 @@ test(
 
 registerScansOffAcceptance(test, stack)
 registerVoiceOffAcceptance(test, stack)
+registerLiveOffAcceptance(test, stack)
 
 test(
   'recovers auth sessions and R2 bytes after a Worker restart',
@@ -387,6 +393,7 @@ registerChipIntentAcceptance(test, stack, zeroG)
 registerVoiceAcceptance(test, stack, zeroG)
 registerVoiceStopAcceptance(test, stack, zeroG)
 registerChipScanListenerAcceptance(test, stack)
+registerLiveAcceptance(test, stack)
 registerWalletAcceptance(test, stack)
 registerConsoleAcceptance(test, stack, zeroG)
 registerWorldStubAcceptance(test, stack, zeroG)

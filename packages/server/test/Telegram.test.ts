@@ -4,6 +4,7 @@ import * as HttpClientResponse from 'effect/http/HttpClientResponse'
 import { describe, expect, test } from 'vitest'
 import { callBot, escapeHtml, messageBody } from '../src/telegram/Bot.ts'
 import { makeTelegramConfig, type TelegramConfig } from '../src/telegram/Config.ts'
+import { fundsReceived } from '../src/telegram/Funds.ts'
 
 const token = `12345678:${'k'.repeat(35)}`
 const config: TelegramConfig = {
@@ -93,5 +94,19 @@ describe('telegram messages', () => {
       reply_markup: { inline_keyboard: [[{ text: 'Open', url: 'https://x.test' }]] },
     })
     expect(messageBody('42', { text: 'hi', buttons: [] })).not.toHaveProperty('reply_markup')
+  })
+})
+
+describe('funds_received', () => {
+  test('says what came in and what the wallet holds now, with the wallet link', () => {
+    expect(Option.getOrThrow(fundsReceived('https://vitaquack.com', 'acc:1730000000000:400000:1400000'))).toEqual({
+      text: '💰 Received <b>1.00 USDC</b>.\nYour wallet now has 1.40 USDC.',
+      buttons: [[{ text: 'Open wallet', url: 'https://vitaquack.com/app/wallet' }]],
+    })
+  })
+
+  test('a malformed subject says nothing', () => {
+    expect(Option.isNone(fundsReceived('https://vitaquack.com', 'acc:1730000000000'))).toBe(true)
+    expect(Option.isNone(fundsReceived('https://vitaquack.com', 'acc:1:x:2'))).toBe(true)
   })
 })

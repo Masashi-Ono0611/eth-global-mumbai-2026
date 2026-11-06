@@ -1,8 +1,9 @@
 import { format, type Locale } from '@ethmumbai/i18n'
 import { isOpenIntent, type NavCall, type NavTurnView } from '@ethmumbai/protocol/Intent'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { simulatorUrl } from '../api/Robot.ts'
+import { liveFrameUrl, simulatorUrl } from '../api/Robot.ts'
 import { Intent, Message, type Model } from './RobotConsole.ts'
+import { busyLabel } from '../Busy.ts'
 
 // STYLES
 
@@ -11,8 +12,14 @@ const robotBubbleClassName = 'max-w-[86%] self-start rounded-[20px_20px_20px_6px
 const errorBubbleClassName = 'max-w-[86%] self-start rounded-[20px_20px_20px_6px] bg-error-soft px-3.5 py-2 text-error'
 const stepClassName = 'self-center rounded-full bg-surface/60 px-3 py-1 text-center text-sm text-muted'
 const walkingClassName = 'grid justify-items-center gap-2 self-center text-center text-sm text-muted'
+const liveClassName = 'grid max-w-[86%] gap-1.5 self-start rounded-[20px_20px_20px_6px] bg-surface p-2 pb-2.5'
+/** Inner radius = the bubble's 20 px minus its 8 px padding, like the scan crop. The frame keeps its own aspect: the
+ *  simulator sends 4:3 (320×240), the Radxa 16:9 (640×360). */
+const liveImageClassName =
+  'block h-auto w-64 max-w-full rounded-[12px] bg-paper outline outline-1 -outline-offset-1 outline-black/10'
+const liveCaptionClassName = 'px-1.5 text-[0.8rem] text-muted'
 const stopClassName =
-  'min-h-11 cursor-pointer rounded-full bg-error-soft px-5 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-11 cursor-pointer rounded-full bg-error-soft px-5 font-semibold text-error transition-transform active:scale-[0.96] disabled:opacity-60'
 const simLinkClassName =
   'self-center rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const formClassName = 'grid grid-cols-[1fr_auto] gap-1.5'
@@ -72,6 +79,28 @@ const intentEnd = (model: Model, locale: Locale, h: HtmlBuilder<Message>): Html 
   return h.empty
 }
 
+/** The robot's latest camera frame while it is out: the image refreshes when the poll brings a new frame's digest. */
+const liveFrame = (model: Model, name: string, locale: Locale, h: HtmlBuilder<Message>): Html => {
+  const { intent } = model
+  const live = Intent.guards.Open(intent) ? (intent.intent.live ?? null) : null
+  if (live === null) return h.empty
+  return h.keyed('figure')(
+    'live-frame',
+    [h.Class(liveClassName)],
+    [
+      h.img([
+        h.Src(liveFrameUrl(model.robotId, live.sha256)),
+        h.Alt(format(locale, 'thread.liveAlt', { name })),
+        h.Class(liveImageClassName),
+      ]),
+      h.figcaption(
+        [h.Class(liveCaptionClassName)],
+        [format(locale, 'thread.liveSeen', { name, seconds: Math.floor(live.ageMs / 1000) })],
+      ),
+    ],
+  )
+}
+
 /** While the duck walks: say so, and let the owner stop it. */
 const walking = (model: Model, name: string, sim: boolean, locale: Locale, h: HtmlBuilder<Message>): Html => {
   const { intent } = model
@@ -87,7 +116,7 @@ const walking = (model: Model, name: string, sim: boolean, locale: Locale, h: Ht
           h.Disabled(intent.stopping),
           h.OnClick(Message.ClickedStopIntent({ intentId: intent.intent.id })),
         ],
-        [format(locale, intent.stopping ? 'thread.stopping' : 'thread.stop', { name })],
+        busyLabel(intent.stopping, format(locale, intent.stopping ? 'thread.stopping' : 'thread.stop', { name }), h),
       ),
     ],
   )
@@ -118,9 +147,10 @@ const intentParts = (model: Model, name: string, sim: boolean, locale: Locale, h
       tail: [],
     }),
     Open: ({ intent }) => ({
-      head: [h.keyed('p')(`${intent.id}-ask`, [h.Class(ownerBubbleClassName)], [intent.instruction])],
+      // The same key as while Sending, so the owner's words do not enter twice.
+      head: [h.keyed('p')('intent-ask', [h.Class(ownerBubbleClassName)], [intent.instruction])],
       turns: intent.turns.map((turn) => ({ at: turn.createdAt, messages: turnMessages(turn, locale, h) })),
-      tail: [walking(model, name, sim, locale, h), intentEnd(model, locale, h)],
+      tail: [liveFrame(model, name, locale, h), walking(model, name, sim, locale, h), intentEnd(model, locale, h)],
     }),
   })
 

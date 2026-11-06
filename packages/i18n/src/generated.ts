@@ -4,6 +4,7 @@ import type { FormatXMLElementFn } from 'intl-messageformat'
 export type RichTextValue<T = string> = FormatXMLElementFn<T>
 export interface MessageArgumentsByKey<T = string> {
   'addRobot.askName': Readonly<Record<string, never>>
+  'addRobot.cancelPairing': Readonly<Record<string, never>>
   'addRobot.close': Readonly<Record<string, never>>
   'addRobot.connected': { readonly name: string | number }
   'addRobot.expired': Readonly<Record<string, never>>
@@ -38,6 +39,7 @@ export interface MessageArgumentsByKey<T = string> {
   'allowance.open': { readonly amount: string | number }
   'allowance.openLeft': { readonly left: string | number; readonly daily: string | number }
   'allowance.openNone': Readonly<Record<string, never>>
+  'allowance.overBalance': { readonly balance: string | number; readonly name: string | number }
   'allowance.paired': Readonly<Record<string, never>>
   'allowance.perDay': Readonly<Record<string, never>>
   'allowance.perPurchase': Readonly<Record<string, never>>
@@ -177,6 +179,7 @@ export interface MessageArgumentsByKey<T = string> {
   'home.decline': Readonly<Record<string, never>>
   'home.declineFailed': { readonly message: string | number }
   'home.declining': Readonly<Record<string, never>>
+  'home.firstSteps': Readonly<Record<string, never>>
   'home.lineBusy': { readonly item: string | number }
   'home.lineCodeExpired': Readonly<Record<string, never>>
   'home.lineDenied': { readonly item: string | number }
@@ -203,6 +206,16 @@ export interface MessageArgumentsByKey<T = string> {
   'home.soon': Readonly<Record<string, never>>
   'home.spent': { readonly amount: string | number }
   'home.spentNone': Readonly<Record<string, never>>
+  'home.stepAdd': Readonly<Record<string, never>>
+  'home.stepAllowance': Readonly<Record<string, never>>
+  'home.stepConnect': Readonly<Record<string, never>>
+  'home.stepDone': Readonly<Record<string, never>>
+  'home.stepErrand': Readonly<Record<string, never>>
+  'home.stepFund': Readonly<Record<string, never>>
+  'home.stepGive': Readonly<Record<string, never>>
+  'home.stepRobot': Readonly<Record<string, never>>
+  'home.stepSend': Readonly<Record<string, never>>
+  'home.stepTelegram': Readonly<Record<string, never>>
   'home.waitingCount': { readonly count: number }
   'home.zeroGReason': { readonly reason: string | number }
   'landing.browse': Readonly<Record<string, never>>
@@ -241,7 +254,6 @@ export interface MessageArgumentsByKey<T = string> {
   'receive.title': Readonly<Record<string, never>>
   'robot.state': { readonly state: string | number }
   'robots.openConsole': Readonly<Record<string, never>>
-  'telegram.check': Readonly<Record<string, never>>
   'telegram.checking': Readonly<Record<string, never>>
   'telegram.connect': Readonly<Record<string, never>>
   'telegram.connected': Readonly<Record<string, never>>
@@ -254,6 +266,7 @@ export interface MessageArgumentsByKey<T = string> {
   'telegram.pressStart': Readonly<Record<string, never>>
   'telegram.retry': Readonly<Record<string, never>>
   'telegram.title': Readonly<Record<string, never>>
+  'telegram.waiting': Readonly<Record<string, never>>
   'thread.askChip': { readonly item: string | number }
   'thread.askOk': { readonly item: string | number }
   'thread.askRowHint': { readonly name: string | number }
@@ -283,6 +296,8 @@ export interface MessageArgumentsByKey<T = string> {
   'thread.intentStoppedNoReason': Readonly<Record<string, never>>
   'thread.invoice': { readonly item: string | number; readonly amount: string | number }
   'thread.leftOf': { readonly daily: string | number }
+  'thread.liveAlt': { readonly name: string | number }
+  'thread.liveSeen': { readonly name: string | number; readonly seconds: number }
   'thread.needsOk': Readonly<Record<string, never>>
   'thread.noAllowance': Readonly<Record<string, never>>
   'thread.offline': Readonly<Record<string, never>>
@@ -327,7 +342,21 @@ export interface MessageArgumentsByKey<T = string> {
   'wallet.open': Readonly<Record<string, never>>
   'wallet.signInFirst': Readonly<Record<string, never>>
   'wallet.title': Readonly<Record<string, never>>
+  'welcome.addRobot': Readonly<Record<string, never>>
+  'welcome.fundLead': Readonly<Record<string, never>>
+  'welcome.fundTitle': Readonly<Record<string, never>>
+  'welcome.fundWaiting': Readonly<Record<string, never>>
+  'welcome.funded': { readonly balance: string | number }
+  'welcome.later': Readonly<Record<string, never>>
+  'welcome.progress': { readonly step: string | number }
+  'welcome.robotLead': Readonly<Record<string, never>>
+  'welcome.robotTitle': Readonly<Record<string, never>>
+  'welcome.skip': Readonly<Record<string, never>>
+  'welcome.telegramLead': Readonly<Record<string, never>>
+  'welcome.telegramTitle': Readonly<Record<string, never>>
+  'welcome.title': Readonly<Record<string, never>>
+  'welcome.toWallet': Readonly<Record<string, never>>
 }
 export type MessageKey = keyof MessageArgumentsByKey
 export type MessageValues<K extends MessageKey, T = string> = MessageArgumentsByKey<T>[K]
-export const catalogVersion = '7e1312aaace37ab2de703ae216b2b3709d1bb7385b06204109b1655a1b09f71e'
+export const catalogVersion = 'fe5d23cbbdebe0e721c3cde9bb67241e4738ed7dc49983c1b5d1f1df4c512cc8'

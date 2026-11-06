@@ -188,6 +188,36 @@ const settle = async (urls: Urls, owner: Owner, robotId: string, episodeId: stri
   return Schema.decodeUnknownSync(State)(await view.json()).episode.state
 }
 
+const linkOf = (call: BotCall) => /"url":"([^"]*\/api\/world\/link\?[^"]*)"/.exec(JSON.stringify(call.body))?.[1]
+
+/**
+ * With a World account bound, the approval button carries a one-time link (world/Link.ts). Re-sending the message (a
+ * second render) mints a fresh one. The rehearsal World does not bind subjects, so even a fresh link only leads to
+ * the approval page (passkey sign-in), as a used or foreign one always does; World IdP's own path is the deploy's.
+ */
+const oneTimeLink = async (urls: Urls, owner: Owner, stub: TelegramStub, approvalId: string) => {
+  const bound = await fetch(`${urls.url}/test/vq/world-sub`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ accountId: owner.accountId, sub: 'stub-sub' }),
+  })
+  expect(bound.status).toBe(204)
+  const queued = await fetch(`${urls.url}/test/vq/notifications/${approvalId}/again`, { method: 'POST' })
+  expect(queued.status).toBe(204)
+  const linked = await awaitMessage(urls, stub, /Thali.*per-payment limit/s, (call) => linkOf(call) !== undefined)
+  expect(JSON.stringify(linked.body.reply_markup)).toContain('Approve with World ID')
+  const oneTime = new URL(linkOf(linked) ?? '')
+  expect(oneTime.searchParams.get('approval')).toBe(approvalId)
+  const open = (url: URL) => fetch(new URL(`${url.pathname}${url.search}`, urls.appUrl), { redirect: 'manual' })
+  const page = `/app/wallet/approvals/${approvalId}`
+  expect(new URL((await open(oneTime)).headers.get('location') ?? '', urls.appUrl).pathname).toBe(page)
+  // Used once: the same link never opens World again.
+  expect(new URL((await open(oneTime)).headers.get('location') ?? '', urls.appUrl).pathname).toBe(page)
+  const forged = new URL(oneTime)
+  forged.searchParams.set('t', 'A'.repeat(32))
+  expect(new URL((await open(forged)).headers.get('location') ?? '', urls.appUrl).pathname).toBe(page)
+}
+
 const scenario = async (urls: Urls, owner: Owner, stub: TelegramStub) => {
   await link(urls, owner)
   // Chai: paid → "Paid" with the Arc link and today's budget.
@@ -207,6 +237,7 @@ const scenario = async (urls: Urls, owner: Owner, stub: TelegramStub) => {
   const buttons = JSON.stringify(asked.body.reply_markup)
   expect(buttons).toContain(`/app/wallet/approvals/${approvalId}`)
   expect(buttons).toContain(`deny:${approvalId}`)
+  await oneTimeLink(urls, owner, stub, approvalId)
   // A chat that is not the owner's changes nothing; the owner's tap denies; a second tap is "already decided".
   expect(await denyTap(urls, STRANGER_CHAT, approvalId)).toBe('This approval is not yours.')
   const approval = async () =>

@@ -18,6 +18,7 @@ const configured = {
   EVIDENCE_TOKEN: 'evidence-token-0123456789',
   SCANS_ENABLED: 'true',
   VOICE_ENABLED: 'true',
+  LIVE_ENABLED: 'true',
   TELEGRAM_BOT_TOKEN: `12345678:${'k'.repeat(35)}`,
   TELEGRAM_WEBHOOK_SECRET: 'webhook-secret-0123456789',
 }
@@ -45,6 +46,7 @@ test('a `pending` placeholder, a missing or a malformed binding turns only its o
     evidence: false,
     scans: false,
     voice: false,
+    live: false,
     telegram: false,
   })
 })
@@ -59,6 +61,11 @@ test('voice is on only for the exact string `true`', () => {
   expect(features({ ...configured, VOICE_ENABLED: 'pending' })).toMatchObject({ voice: false, scans: true })
   expect(features({ ...configured, VOICE_ENABLED: 'TRUE' }).voice).toBe(false)
   expect(features({ ...configured, VOICE_ENABLED: '1' }).voice).toBe(false)
+})
+
+test('the live view is on only for the exact string `true`', () => {
+  expect(features({ ...configured, LIVE_ENABLED: 'pending' })).toMatchObject({ live: false, scans: true })
+  expect(features({ ...configured, LIVE_ENABLED: 'yes' }).live).toBe(false)
 })
 
 test('telegram needs both its secrets, and never counts a `pending` placeholder', () => {

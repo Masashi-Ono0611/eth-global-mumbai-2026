@@ -1,4 +1,4 @@
-import { rpc } from '@ethmumbai/chain/Arc'
+import { type ArcClient, rpc } from '@ethmumbai/chain/Arc'
 import { USDC } from '@ethmumbai/chain/Env'
 import { Effect, Layer, Option, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
@@ -20,6 +20,17 @@ export const formatUsdc = (units: bigint): string => {
   return fraction.length === 0 ? `${whole}.00` : `${whole}.${fraction.padEnd(2, '0')}`
 }
 
+/** The wallet's USDC on Arc in base units; none while Arc does not answer (logged, never fatal). */
+export const readUsdcBalance = (arc: ArcClient, address: string) =>
+  rpc('balanceOf', () =>
+    arc.readContract({ address: USDC, abi: erc20, functionName: 'balanceOf', args: [getAddress(address)] }),
+  ).pipe(
+    Effect.map(Option.some),
+    Effect.catchTag('ArcRpcError', ({ message }) =>
+      Effect.as(Effect.logWarning('balance read failed', { message }), Option.none<bigint>()),
+    ),
+  )
+
 /** `GET /api/wallet` → the account, its USDC balance on Arc (null while ARC_RPC_URL is unset or Arc does not answer),
  * and how to fund it: send USDC on Arc mainnet to the smart account (its address exists before the deploy). */
 const wallet = (deps: WalletDeps) =>
@@ -29,18 +40,9 @@ const wallet = (deps: WalletDeps) =>
     const balance = yield* Option.match(deps.arc, {
       onNone: () => Effect.succeedNone,
       onSome: (arc) =>
-        rpc('balanceOf', () =>
-          arc.readContract({
-            address: USDC,
-            abi: erc20,
-            functionName: 'balanceOf',
-            args: [getAddress(owner.smart_account)],
-          }),
-        ).pipe(
-          Effect.map((units) => Option.some({ units: units.toString(), usdc: formatUsdc(units) })),
-          Effect.catchTag('ArcRpcError', ({ message }) =>
-            Effect.as(Effect.logWarning('balance read failed', { message }), Option.none()),
-          ),
+        Effect.map(
+          readUsdcBalance(arc, owner.smart_account),
+          Option.map((units) => ({ units: units.toString(), usdc: formatUsdc(units) })),
         ),
     })
     return yield* json({

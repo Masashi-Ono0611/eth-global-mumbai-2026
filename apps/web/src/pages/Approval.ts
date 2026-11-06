@@ -12,6 +12,8 @@ import { explorerTx, usdc } from '../api/Wallet.ts'
 import { robotConsoleRouter } from '../route.ts'
 import { failedView, loadingView, signedOutView } from './Shared.ts'
 import { duck } from '../Duck.ts'
+import { busyLabel } from '../Busy.ts'
+import { workingDots } from '../Busy.ts'
 
 // MODEL
 
@@ -219,10 +221,12 @@ const actionsClassName = 'grid grid-cols-[1fr_auto] gap-2'
 const approveClassName =
   'inline-flex min-h-12 items-center justify-center rounded-control bg-black px-3 font-semibold text-surface no-underline transition-transform active:scale-[0.96]'
 const denyClassName =
-  'min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 disabled:cursor-progress min-h-12 cursor-pointer rounded-control bg-surface px-6 font-semibold transition-transform active:scale-[0.96] disabled:opacity-60'
 const statusClassName = 'rounded-card bg-surface px-4 py-3 font-semibold'
 const hintClassName = 'mt-1 block text-[0.92rem] font-normal text-muted'
 const arcLinkClassName = 'font-semibold text-paid'
+/** The paid moment: once, from 96% (DESIGN.md "Motion"). */
+const paidClassName = 'origin-left animate-pop'
 
 // VIEW
 
@@ -236,7 +240,7 @@ const actions = (model: Model, approval: ApprovalView, locale: Locale, h: HtmlBu
         : h.p([h.Role('alert')], [format(locale, 'approval.notConfigured', {})]),
       h.button(
         [h.Type('button'), h.Class(denyClassName), h.Disabled(denying), h.OnClick(Message.ClickedDeny())],
-        [format(locale, denying ? 'home.declining' : 'home.decline', {})],
+        busyLabel(denying, format(locale, denying ? 'home.declining' : 'home.decline', {}), h),
       ),
       Denial.guards.Failed(model.denial)
         ? h.p([h.Role('alert')], [format(locale, 'common.errorDetail', { message: model.denial.error })])
@@ -254,7 +258,11 @@ const statusLine = (model: Model, approval: ApprovalView, locale: Locale, h: Htm
     Following: () =>
       h.div(
         [h.Class(statusClassName)],
-        [answered, hint(approval.error), hint(format(locale, 'approval.following', {}))],
+        [
+          answered,
+          hint(approval.error),
+          h.span([h.Class(hintClassName)], [workingDots(h), format(locale, 'approval.following', {})]),
+        ],
       ),
     GaveUp: () =>
       h.div(
@@ -267,7 +275,7 @@ const statusLine = (model: Model, approval: ApprovalView, locale: Locale, h: Htm
         [
           state === 'paid'
             ? h.p(
-                [h.Role('status')],
+                [h.Role('status'), h.Class(paidClassName)],
                 [
                   `${format(locale, 'approval.paid', {})} · `,
                   txHash === null

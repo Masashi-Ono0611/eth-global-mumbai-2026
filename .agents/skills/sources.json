@@ -26,6 +26,30 @@
       "localTreeSha256": "86d1b38541d543228d2c51d22f5873497ea01676496d64c6aa304c2d27600782",
       "unchanged": true
     },
+    "animation-vocabulary": {
+      "repository": "emilkowalski/skills",
+      "commit": "a81dbca07f2217b7103e510c0f13f8d5b017afc9",
+      "path": "skills/animation-vocabulary",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "e8f2f403dff9e422b11c420d78bac0ed82c999cf7f56ef75745c9e8c548ec142",
+      "localTreeSha256": "e8f2f403dff9e422b11c420d78bac0ed82c999cf7f56ef75745c9e8c548ec142",
+      "unchanged": true
+    },
+    "apple-design": {
+      "repository": "emilkowalski/skills",
+      "commit": "a81dbca07f2217b7103e510c0f13f8d5b017afc9",
+      "path": "skills/apple-design",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "17d56c00b870b03bfcfe83e603a47f81e01c48937105c5850be5f4a748b213e2",
+      "localTreeSha256": "17d56c00b870b03bfcfe83e603a47f81e01c48937105c5850be5f4a748b213e2",
+      "unchanged": true
+    },
     "apple-web-app": {
       "repository": "joe-bell/skills",
       "commit": "6e79fd26ab3849f214b9a9ba2ac7cd6b6223e98a",
@@ -72,6 +96,30 @@
       ],
       "treeSha256": "2447f94dac19bd86bb36b54db17eea0ef2c6000ff27643d8ea89af238609d3aa",
       "localTreeSha256": "2447f94dac19bd86bb36b54db17eea0ef2c6000ff27643d8ea89af238609d3aa",
+      "unchanged": true
+    },
+    "copy-editing": {
+      "repository": "coreyhaines31/marketingskills",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "path": "skills/copy-editing",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "9baff2efd91fd4e11fbad663c6024fe70b65ca3967957ab77ec863a81ff3b715",
+      "localTreeSha256": "9baff2efd91fd4e11fbad663c6024fe70b65ca3967957ab77ec863a81ff3b715",
+      "unchanged": true
+    },
+    "copywriting": {
+      "repository": "coreyhaines31/marketingskills",
+      "commit": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+      "path": "skills/copywriting",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "7795e4db6296711434f73350b1162d4d9b8817ed237f9fc8c9527f3f8796ab39",
+      "localTreeSha256": "7795e4db6296711434f73350b1162d4d9b8817ed237f9fc8c9527f3f8796ab39",
       "unchanged": true
     },
     "create-design-md": {
@@ -184,6 +232,18 @@
       "localTreeSha256": "688a3873f613a906567ca5ae1726124e2d8dee1d338730ededfdb272a1942a00",
       "unchanged": true
     },
+    "grilling": {
+      "repository": "mattpocock/skills",
+      "commit": "59db609eb1e18aaf59b63284d0e52255aff0c63c",
+      "path": "skills/productivity/grilling",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "714b8c4d1544298615f0647b237e7ea13c6940c302417c51571ca77ba5161dad",
+      "localTreeSha256": "714b8c4d1544298615f0647b237e7ea13c6940c302417c51571ca77ba5161dad",
+      "unchanged": true
+    },
     "hallmark": {
       "repository": "nutlope/hallmark",
       "commit": "8f6969f8922caabde9de1784959eae11ddf68073",
@@ -196,6 +256,20 @@
       "localTreeSha256": "d31a58b43c7c30e35773e35c2636fd84ab2fa475be2a7eaed6fc35afb1a3eb0a",
       "unchanged": true
     },
+    "humanizer": {
+      "repository": "blader/humanizer",
+      "commit": "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0",
+      "path": ".",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "577bca59541fb99c57a75af3f4e28d531efe763d374074cb7a8a4180bcda26da",
+      "localTreeSha256": "f80a0bb5c3d66ae195e6403356bb350c0309fe933c93d03620b884d60188ba47",
+      "unchanged": false,
+      "adaptation": "Only the skill is kept: the upstream repo's maintainer AGENTS.md, CI workflows, plugin manifests and packaging script are dropped",
+      "baseCommit": "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0"
+    },
     "improve-ui": {
       "repository": "ibelick/ui-skills",
       "commit": "00db7d656719c399c091f3ea138c6f42a7fa4d98",
@@ -206,6 +280,30 @@
       ],
       "treeSha256": "c2c156610aed793056de96e056f74732ceb93dacafb848b554a05c4447720283",
       "localTreeSha256": "c2c156610aed793056de96e056f74732ceb93dacafb848b554a05c4447720283",
+      "unchanged": true
+    },
+    "investigate-a-failure": {
+      "repository": "joelhooks/rat-stack",
+      "commit": "82737fe6848fa3c95e6887bcb10a52bc28f0e8f0",
+      "path": "skills/investigate-a-failure",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "8887d58608af1bf5b624426a058cb5dcabf47c5c882ff773d0f38e03ae32a8f1",
+      "localTreeSha256": "8887d58608af1bf5b624426a058cb5dcabf47c5c882ff773d0f38e03ae32a8f1",
+      "unchanged": true
+    },
+    "learn-alchemy": {
+      "repository": "joelhooks/rat-stack",
+      "commit": "82737fe6848fa3c95e6887bcb10a52bc28f0e8f0",
+      "path": "skills/learn-alchemy",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "e18a5281b12de4f9f540e916eb34d10660766dcefa77100b5d4bb93c2af0169a",
+      "localTreeSha256": "e18a5281b12de4f9f540e916eb34d10660766dcefa77100b5d4bb93c2af0169a",
       "unchanged": true
     },
     "make-interfaces-feel-better": {
@@ -244,6 +342,18 @@
       "localTreeSha256": "e704af1d3855858200fef89564eff78c070225be71c429ce5c069e0f2c298ec4",
       "unchanged": true
     },
+    "test-behaviour": {
+      "repository": "joelhooks/rat-stack",
+      "commit": "82737fe6848fa3c95e6887bcb10a52bc28f0e8f0",
+      "path": "skills/test-behaviour",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "01e3ac232f5dcbdb108fbb7af51507b9d28088ce46e80d5c367e1b8be50a0cf9",
+      "localTreeSha256": "01e3ac232f5dcbdb108fbb7af51507b9d28088ce46e80d5c367e1b8be50a0cf9",
+      "unchanged": true
+    },
     "thermo-nuclear-code-quality-review": {
       "repository": "cursor/plugins",
       "commit": "ccb5507cec1546dc88135c1139c811e6c59115ba",
@@ -258,6 +368,18 @@
       "adaptation": "agents/openai.yaml added so Codex also treats it as manual-only.",
       "baseCommit": "ccb5507cec1546dc88135c1139c811e6c59115ba"
     },
+    "thermo-nuclear-review": {
+      "repository": "cursor/plugins",
+      "commit": "0f77cd5dab1e006de02d6ad221d5620de026473a",
+      "path": "thermos/skills/thermo-nuclear-review",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "6555687f1bffa96a3cd813aa7e94707d4aec98465c1184c3d12fbfd034bfc3f0",
+      "localTreeSha256": "6555687f1bffa96a3cd813aa7e94707d4aec98465c1184c3d12fbfd034bfc3f0",
+      "unchanged": true
+    },
     "unslop": {
       "repository": "cursor/plugins",
       "commit": "ccb5507cec1546dc88135c1139c811e6c59115ba",
@@ -271,6 +393,30 @@
       "unchanged": false,
       "adaptation": "Description scoped to prose; upstream 'Must always apply' contradicts its manual-only flag (cursor/plugins#308, #367). agents/openai.yaml added so Codex also treats it as manual-only.",
       "baseCommit": "ccb5507cec1546dc88135c1139c811e6c59115ba"
+    },
+    "ux-heuristics": {
+      "repository": "wondelai/skills",
+      "commit": "c172996495bed0fcd26896a9416b2093fd7073f0",
+      "path": "ux-heuristics",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "eb888dd283ed0ae9c7be7353e9220f8b7ba615bf51fd2a7508da95bab27f5679",
+      "localTreeSha256": "eb888dd283ed0ae9c7be7353e9220f8b7ba615bf51fd2a7508da95bab27f5679",
+      "unchanged": true
+    },
+    "web-perf": {
+      "repository": "cloudflare/skills",
+      "commit": "49a31e0b3229ccdffe4944be9c61bc7481d1d432",
+      "path": "skills/web-perf",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "eb1a00102cb156a71c94f2d8ab37d6bca5200b4a800d18cace050ced7112d0d8",
+      "localTreeSha256": "eb1a00102cb156a71c94f2d8ab37d6bca5200b4a800d18cace050ced7112d0d8",
+      "unchanged": true
     },
     "workers-best-practices": {
       "repository": "cloudflare/skills",

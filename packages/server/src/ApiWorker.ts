@@ -16,6 +16,7 @@ import { PRODUCTION_NAMES, pinnedOnMain } from './ProductionNames.ts'
 import { AppDatabase, AppMedia } from './Resources.ts'
 import { robotAgentRoutes } from './RobotAgent.ts'
 import { makeTelegramConfig } from './telegram/Config.ts'
+import { sweep } from './Sweep.ts'
 import { flushIfDue } from './telegram/Deliver.ts'
 import { telegramRoutes } from './telegram/Routes.ts'
 import { walletRoutes } from './wallet/Routes.ts'
@@ -31,6 +32,19 @@ const Runtime = Layer.mergeAll(
   Cloudflare.D1.QueryDatabaseBinding,
   Cloudflare.R2.ReadWriteBucketBinding,
 )
+
+/**
+ * Once a minute: expire errands and approvals nobody is looking at and send queued Telegram messages, so neither waits
+ * for unrelated traffic. Same isolate-cached application as fetch; a failed sweep is logged, never fatal.
+ */
+const everyMinute = <E, R, S>(
+  application: (
+    env: Cloudflare.Workers.WorkerEnvironment['Service'],
+  ) => Effect.Effect<{ readonly sweep: Effect.Effect<void, never, S> }, E, R>,
+) =>
+  Cloudflare.Workers.cron('* * * * *', () =>
+    Effect.flatMap(Cloudflare.Workers.WorkerEnvironment, (env) => Effect.flatMap(application(env), (app) => app.sweep)),
+  )
 
 export class ApiWorker extends Cloudflare.Worker<ApiWorker, Cloudflare.WorkerShape>()('Api') {}
 
@@ -115,7 +129,12 @@ export default ApiWorker.make(
           onNone: () => Effect.void,
           onSome: (config) => flushIfDue({ database, origin: authOrigin, config }),
         })
-        return { handle: Effect.provideContext(handle, services), observabilityBase, notify }
+        return {
+          handle: Effect.provideContext(handle, services),
+          observabilityBase,
+          notify,
+          sweep: sweep({ database, origin: authOrigin, telegram, arc: chain.arc }),
+        }
       }),
     )
     const fetch = Effect.gen(function* () {
@@ -129,6 +148,7 @@ export default ApiWorker.make(
       yield* execution.waitUntil(notify)
       return response
     })
+    yield* everyMinute(application)
     return { fetch }
-  }).pipe(Effect.provide(Runtime)),
+  }).pipe(Effect.provide(Layer.merge(Cloudflare.Workers.CronEventSourceLive, Runtime))),
 )

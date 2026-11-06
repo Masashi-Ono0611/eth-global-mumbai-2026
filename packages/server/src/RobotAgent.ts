@@ -3,7 +3,7 @@ import type { ReadWriteBucketClient } from '@alchemy.run/cloudflare/R2/ReadWrite
 import { Address } from '@ethmumbai/protocol/Hex'
 import { Effect, Layer, Option, Redacted, Schema } from 'effect'
 import { chipRoutes } from './chip/Routes.ts'
-import { scansEnabled, voiceEnabled } from './Features.ts'
+import { liveEnabled, scansEnabled, voiceEnabled } from './Features.ts'
 import { merchantPayees, merchantRoutes } from './merchant/Routes.ts'
 import type { Settlement } from './merchant/X402.ts'
 import { type ApprovalPort, type ErrandDeps, errandChipHooks } from './robot/Errands.ts'
@@ -11,6 +11,7 @@ import { auditRoutes, ZG_CHAIN_RPC_DEFAULT, ZG_STORAGE_INDEXER_DEFAULT } from '.
 import { evidenceRoutes } from './robot/Evidence.ts'
 import { evidenceFrameRoutes } from './robot/EvidenceFrames.ts'
 import { intentRoutes } from './robot/Intents.ts'
+import { liveRoutes } from './robot/Live.ts'
 import { navRoutes } from './robot/Nav.ts'
 import { ZG_COMPUTE_RPC_DEFAULT, ZG_INFERENCE_CONTRACT_DEFAULT } from './robot/TeeProof.ts'
 import { robotRoutes } from './robot/routes.ts'
@@ -96,6 +97,8 @@ export const robotAgentRoutes = Effect.fn('EthMumbai.RobotAgent.routes')(functio
       : Layer.empty,
     // Vita's voice exists only while VOICE_ENABLED is `true` (otherwise 404); its `buy` turns create intents.
     voiceEnabled(env) ? voiceRoutes({ ...errands, media }) : Layer.empty,
+    // The robot's live camera view exists only while LIVE_ENABLED is `true`; otherwise its paths are 404.
+    liveEnabled(env) ? liveRoutes(errands, media) : Layer.empty,
   )
   return { layer, errands }
 })

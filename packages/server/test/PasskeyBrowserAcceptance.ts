@@ -46,8 +46,13 @@ export const verifyPasskeyBrowser = async (browser: Browser, origin: string): Pr
     await page.goto(new URL('/app/', origin).toString(), { waitUntil: 'networkidle' })
     await page.locator('#display-name').fill('Browser Owner')
     await page.getByRole('button', { name: 'Create passkey wallet' }).click()
-    // Signed up on the sign-in page, the owner lands on the wallet.
-    await page.waitForURL(new URL('/app/wallet', origin).toString())
+    // Signed up on the sign-in page, the owner lands on the first steps (Telegram, money, robot); the wallet is a tap away.
+    await page.waitForURL(new URL('/app/welcome', origin).toString(), { waitUntil: 'networkidle' })
+    await page.getByRole('heading', { name: 'Where should your robot reach you?' }).waitFor({ state: 'visible' })
+    expect(await page.getByRole('link', { name: 'Go to the wallet' }).getAttribute('href')).toBe('/app/wallet')
+    // Opened directly (no page crossfade): a tap mid-crossfade intermittently raises 'Transition was aborted because of
+    // invalid state', which belongs to the crossfade, not to this test of the session.
+    await page.goto(new URL('/app/wallet', origin).toString(), { waitUntil: 'networkidle' })
     const address = await smartAccount(page)
     expect(address).toMatch(/^0x[0-9a-fA-F]{40}$/)
     const session = (await context.cookies()).find((cookie) => cookie.name === 'vq_session')

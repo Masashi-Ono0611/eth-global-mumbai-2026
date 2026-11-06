@@ -9,28 +9,32 @@ const loaded = (configured: boolean, linked: boolean, username: string | null = 
 const link = 'https://t.me/vitaquack_bot?start=abcdefghijklmnopqrstuvwxyz012345'
 
 describe('the profile sheet Telegram row', () => {
-  test('connect: a one-time link to open Telegram, then Connected after Start', () => {
+  test('connect: a one-time link to open Telegram; the row notices Start by itself', () => {
+    const poll = Telegram.PollTelegram({ delayMillis: Telegram.POLL_MILLIS })
     scene(
       { update: Telegram.update, view },
       given(loaded(true, false)),
-      expect(text('Get a message when I need your OK or have paid.')).toExist(),
+      expect(text('Get a message when your robot needs your OK or has paid.')).toExist(),
       click(role('button', { name: 'Connect Telegram' })),
       Command.expectExact(Telegram.LinkTelegram()),
       Command.resolve(Telegram.LinkTelegram, Telegram.Message.SucceededLinkTelegram({ url: link })),
       expect(role('link', { name: 'Open Telegram' })).toHaveAttr('href', link),
-      // Not pressed Start yet: the link stays on screen.
-      click(role('button', { name: 'I pressed Start' })),
+      expect(role('status')).toHaveText('Waiting for Start in Telegram…'),
+      // Not pressed Start yet: the link stays on screen and the row asks again.
+      Command.expectExact(poll),
       Command.resolve(
-        Telegram.LoadTelegram,
-        Telegram.Message.SucceededLoadTelegram({ configured: true, linked: false, username: null }),
+        poll,
+        Telegram.Message.SucceededPollTelegram({ configured: true, linked: false, username: null }),
       ),
       expect(role('link', { name: 'Open Telegram' })).toExist(),
-      click(role('button', { name: 'I pressed Start' })),
+      // A failed read keeps watching too.
+      Command.resolve(poll, Telegram.Message.FailedPollTelegram()),
       Command.resolve(
-        Telegram.LoadTelegram,
-        Telegram.Message.SucceededLoadTelegram({ configured: true, linked: true, username: 'kristjan96' }),
+        poll,
+        Telegram.Message.SucceededPollTelegram({ configured: true, linked: true, username: 'kristjan96' }),
       ),
       expect(role('status')).toHaveText('Connected as @kristjan96'),
+      Command.expectNone(),
     )
   })
 
@@ -46,6 +50,13 @@ describe('the profile sheet Telegram row', () => {
     )
     scene({ update: Telegram.update, view }, given(loaded(false, false)), expect(text('Telegram')).not.toExist())
   })
+})
+
+test('the watch ends with the link: after 10 minutes of polls the row offers Connect again', () => {
+  let model = Telegram.update(loaded(true, false), Telegram.Message.SucceededLinkTelegram({ url: link })).model
+  for (let poll = 0; poll < 300; poll++) model = Telegram.update(model, Telegram.Message.FailedPollTelegram()).model
+  vitestExpect(Telegram.isLinked(model)).toBe(false)
+  scene({ update: Telegram.update, view }, given(model), expect(role('button', { name: 'Connect Telegram' })).toExist())
 })
 
 test('opening the sheet asks the server; a link not yet used survives a reopen', () => {
