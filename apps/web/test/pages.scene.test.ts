@@ -1,5 +1,19 @@
 import { Option } from 'effect'
-import { Command, Mount, click, expect, given, role, scene, text, withViewInputs } from 'foldkit/scene'
+import {
+  Command,
+  Mount,
+  click,
+  expect,
+  given,
+  label,
+  role,
+  scene,
+  selector,
+  submit,
+  text,
+  type,
+  withViewInputs,
+} from 'foldkit/scene'
 import { describe, expect as vitestExpect, test } from 'vitest'
 import { Animation, Dialog } from '@foldkit/ui'
 import { qrDataUri } from '../src/Qr.ts'
@@ -40,7 +54,7 @@ describe('/wallet', () => {
       given(loadedHome(home())),
       expect(text('1.40')).toExist(),
       expect(text('Your robots spent 0.10 USDC in the last 24 hours')).toExist(),
-      expect(role('button', { name: 'Send, coming soon' })).toBeDisabled(),
+      expect(role('button', { name: 'Send' })).toBeEnabled(),
       expect(role('link', { name: 'Add a robot' })).toHaveAttr('href', '/app/wallet/robots'),
       expect(role('link', { name: /Duck/ })).toHaveAttr('href', `/app/robot/${pairedRobot.id}`),
       expect(text('Bought chai')).toExist(),
@@ -132,6 +146,59 @@ describe('/wallet', () => {
       Command.resolve(Wallet.CopyAddress, Wallet.Message.CompletedCopyAddress({ copied: true })),
       expect(text('Address copied')).toExist(),
       expect(text('Send only USDC on Arc.')).toExist(),
+    )
+  })
+
+  const openSend = [
+    click(role('button', { name: 'Send' })),
+    Command.resolve(Dialog.ShowDialog, Dialog.Message.SucceededShowDialog()),
+    Command.resolve(Animation.WaitForPaint, Animation.Message.CompletedWaitForPaint({ generation: 1 })),
+    Command.resolve(Animation.WaitForAnimationSettled, Animation.Message.EndedAnimation({ generation: 1 })),
+    Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
+  ] as const
+  const payee = '0x00000000000000000000000000000000000000b0'
+
+  test('Send: an Arc address and an amount, checked before the passkey; Max sends the whole balance', () => {
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(home())),
+      ...openSend,
+      expect(role('heading', { name: 'Send USDC' })).toExist(),
+      expect(text('You have 1.40 USDC.')).toExist(),
+      expect(text('Only USDC on Arc. A send cannot be undone.')).toExist(),
+      expect(role('button', { name: 'Send with passkey' })).toBeDisabled(),
+      type(label('To (an address on Arc)'), '0x12'),
+      expect(text('An Arc address starts with 0x and has 40 more characters.')).toExist(),
+      type(label('To (an address on Arc)'), payee),
+      type(label('Amount in USDC'), '2'),
+      expect(text('That is more than the wallet holds (1.40 USDC).')).toExist(),
+      expect(role('button', { name: 'Send with passkey' })).toBeDisabled(),
+      click(role('button', { name: 'Send everything: 1.40 USDC' })),
+      expect(role('button', { name: 'Send with passkey' })).toBeEnabled(),
+      submit(selector('form')),
+      Command.expectExact(Wallet.SendUsdc({ to: payee, amount: '1.40' })),
+      expect(role('button', { name: 'Sending on Arc...' })).toBeDisabled(),
+      Command.resolve(Wallet.SendUsdc, Wallet.Message.SucceededSend({ status: 'sent', txHash })),
+      expect(role('status')).toHaveText(/Sent 1.40 USDC to 0x0000…00b0/),
+      expect(role('link', { name: 'view on Arc' })).toHaveAttr('href', `https://explorer.arc.io/tx/${txHash}`),
+      Command.expectExact(Wallet.LoadWallet({ delayMillis: 0 })),
+      Command.resolve(Wallet.LoadWallet, Wallet.Message.SucceededLoadWallet({ home: home() })),
+    )
+  })
+
+  test('Send: a dismissed passkey says so and keeps what was typed; nothing is sent', () => {
+    scene(
+      { update: Wallet.update, view },
+      given(loadedHome(home())),
+      ...openSend,
+      type(label('To (an address on Arc)'), payee),
+      type(label('Amount in USDC'), '0.50'),
+      submit(selector('form')),
+      Command.expectExact(Wallet.SendUsdc({ to: payee, amount: '0.50' })),
+      Command.resolve(Wallet.SendUsdc, Wallet.Message.FailedSend({ failure: { _tag: 'Passkey' } })),
+      expect(role('alert')).toHaveText('The passkey step did not finish. Please try again.'),
+      expect(label('Amount in USDC')).toHaveValue('0.50'),
+      expect(role('button', { name: 'Send with passkey' })).toBeEnabled(),
     )
   })
 
