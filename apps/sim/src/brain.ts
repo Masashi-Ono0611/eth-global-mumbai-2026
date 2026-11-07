@@ -8,7 +8,7 @@ import { el } from './dom.ts'
 // (a provider that publishes none, or a proof that could not be fetched) has none.
 
 // STYLES
-const listClassName = 'grid gap-2'
+const listClassName = 'grid list-none gap-2'
 const cardClassName = 'grid gap-1 rounded-md bg-white/5 p-2 ring-1 ring-white/10'
 const headClassName = 'flex items-center justify-between gap-2 text-[11px] text-white/60 tabular-nums'
 const reasoningClassName = 'text-xs text-white/70 italic line-clamp-3'

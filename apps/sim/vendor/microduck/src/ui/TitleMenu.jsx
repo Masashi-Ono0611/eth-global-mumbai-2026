@@ -17,8 +17,8 @@ import { playConfirmBloop } from "../game/audio.js";
 import { INK, ORANGE, MONO } from "../theme.js";
 import { ComicButton, ComicTitle, HalftoneRamp, ANTON, CREAM } from "./comic.jsx";
 import MenuDuck, { preloadMenuDuck, isMenuDuckReady } from "./MenuDuck.jsx";
-import { PreorderButton } from "./Hud.jsx";
 import { readLayoutMap, resolveKeycaps } from "./keyboard-layout.js";
+import { isTypingTarget } from "../game/controls/keyboard.js";
 
 const rowIn = keyframes`
   from { transform: translateY(12px); opacity: 0; }
@@ -265,6 +265,8 @@ export default function TitleMenu() {
   // BIOS readout).
   useEffect(() => {
     const onKey = (e) => {
+      // Vitaquack: Enter and Esc in a text field (the owner's errand box) stay with the field.
+      if (isTypingTarget(e.target)) return;
       const s = useGame.getState();
       if (e.code === "Enter" && s.menuOpen) {
         if (e.target instanceof HTMLButtonElement && e.target.dataset.cta !== "1") return;
@@ -454,9 +456,7 @@ export default function TitleMenu() {
       </Box>
       )}
 
-      {/* The in-game HUD's shop plate, verbatim: same component, same
-          fixed spot, so pausing never swaps it for a lookalike. */}
-      {ready && <PreorderButton sx={{ ...row(0.1) }} />}
+      {/* Vitaquack: no Pollen store pre-order button here either (the in-game HUD drops it too). */}
 
       {/* Loading gate: one centered spinner on bare ink until logo,
           fonts, the duck stage's assets and the game boot are all in -

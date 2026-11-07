@@ -4,6 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
+    <meta
+      name="description"
+      content="Vitaquack's simulator robot: a walking duck in the browser that runs errands with the same wallet, 0G brain, chip signature and Arc USDC as the real one."
+    />
+    <meta name="theme-color" content="#08080c" />
     <!-- Hugging Face's CDN answers 404 (no CORS headers) to any request whose Referer is a *.workers.dev page, which
          is where the sim is deployed: send no Referer cross-origin, so Pollen's meshes and policies load. Same-origin
          requests keep theirs, and CORS requests always carry Origin. -->
@@ -11,6 +16,7 @@
     <title>Vitaquack · Simulator</title>
     <!-- The robot duck, the app's own icon (served by apps/web on the same origin). -->
     <link rel="icon" href="/app/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/app/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
@@ -19,10 +25,14 @@
       :root {
         --ink: #08080c;
       }
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      /* The lowest layer (styles.css names the order): unlayered, this reset beat every Tailwind padding and margin
+         utility in our overlay. The engine's own styles are unlayered and still win over it. */
+      @layer reset {
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
       }
       html,
       body {

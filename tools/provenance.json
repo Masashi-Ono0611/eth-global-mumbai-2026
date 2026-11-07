@@ -167,7 +167,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/PROVENANCE.md",
-      "sha256": "b3ff3454069622c20673b82a5c4e837b92bf05fc79ffc6f75126cf0c908fe98b"
+      "sha256": "1ee5b50d3a379e2bcfba1764b38a13a5ac81fa334927443859641cd594884ebb"
     },
     {
       "path": "apps/sim/vendor/microduck/src/App.jsx",
@@ -207,7 +207,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/controls/keyboard.js",
-      "sha256": "9eaa6bdb74212df4daa19778acf2eb61f636db6eabf1da44bdeafdf9bdfd342b"
+      "sha256": "129d3b1bda6e1f19d124cae033d81ac38ec1db2d2ae245c1f6ccdca2080640f9"
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/controls/touch.js",
@@ -215,7 +215,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/controls/waypoint.js",
-      "sha256": "a6a24820dc25d0db16deb7d07a75789a4cd61d515e5028f1c2e1f35b455f67f7"
+      "sha256": "febd285cd1a6c052e6d40f1d1ef2e65cf0f71af65b9f4a2b9dda9c94acdc32f0"
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/custom-policy.js",
@@ -239,7 +239,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/game.js",
-      "sha256": "4b4fa92fe11e3339491d2fd573df6bbc7a1ad2afd1a4e9340918c65b780f3c6f"
+      "sha256": "0acf3265710e216a168fb1f06d4383a565d768afbf1757ec8964b866d8a98453"
     },
     {
       "path": "apps/sim/vendor/microduck/src/game/haptics.js",
@@ -291,7 +291,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/ui/Hud.jsx",
-      "sha256": "e8b245ffaa23f5643f6602bcadf9b0538121d345a2de82223964256b8881834e"
+      "sha256": "a63379ed62d5781fe31d11c19f084f384ca296f26d2a1224bcbd6255d5621aed"
     },
     {
       "path": "apps/sim/vendor/microduck/src/ui/MenuDuck.jsx",
@@ -307,7 +307,7 @@
     },
     {
       "path": "apps/sim/vendor/microduck/src/ui/TitleMenu.jsx",
-      "sha256": "8f24ad2b2aea6b0d46587ed26e1a34e74489a6630d721519b8af5e113e99afd9"
+      "sha256": "1e607697dbb8afcfbd4145d75cca111b5261339ff6cae98d0c2b3c76dcbab287"
     },
     {
       "path": "apps/sim/vendor/microduck/src/ui/TouchOverlay.jsx",

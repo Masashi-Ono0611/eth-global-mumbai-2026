@@ -168,16 +168,19 @@ const mountCamera = (engine: EngineContext) => {
 }
 
 const makePanel = () => {
-  const frame = el('canvas', 'block h-[180px] w-[240px] [image-rendering:pixelated]')
+  const frame = el('canvas', 'block h-[180px] w-[240px] [image-rendering:pixelated] max-sm:h-[90px] max-sm:w-[120px]')
   frame.width = WIDTH
   frame.height = HEIGHT
   const status = el('p', 'font-mono text-[11px] text-white/70', ['searching'])
   const panel = el(
     'figure',
-    'pointer-events-none fixed top-20 right-3 z-50 grid gap-1 rounded-lg bg-black/75 p-2 ring-1 ring-amber-400/60',
+    // On a phone the owner's panel spans the width (capped at 42dvh in ui.ts): the picture sits below it, half size.
+    'pointer-events-none fixed top-20 right-3 z-50 grid gap-1 rounded-lg bg-black/75 p-2 ring-1 ring-amber-400/60 max-sm:top-[calc(42dvh+1.5rem)]',
     [
       el('figcaption', 'font-mono text-[11px] font-semibold tracking-wide text-amber-300 uppercase', [
-        `Chip camera · ${WIDTH}×${HEIGHT} · ${HZ} Hz`,
+        'Chip camera',
+        // Half-size on a phone: the caption keeps to the picture's width.
+        el('span', 'max-sm:hidden', [` · ${WIDTH}×${HEIGHT} · ${HZ} Hz`]),
       ]),
       frame,
       status,
