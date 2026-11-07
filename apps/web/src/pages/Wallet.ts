@@ -317,10 +317,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     FailedDecline: ({ approvalId, error }) => ({
       model: modifyFields(model, { decline: () => Decline.Failed({ approvalId, error }) }),
     }),
-    // A finished send starts the next one empty; an unfinished one keeps what the owner typed.
+    // A finished send starts the next one empty; an unfinished one keeps what the owner typed. A send still pending
+    // on Arc stays on screen (until the page reloads), so the same money is not sent twice while its outcome is open.
     ClickedSend: () =>
       sendSheet.open(
-        SendStep.guards.Done(model.sendStep)
+        SendStep.guards.Done(model.sendStep) && model.sendStep.status === 'sent'
           ? modifyFields(model, { sendTo: () => '', sendAmount: () => '', sendStep: () => SendStep.Editing() })
           : SendStep.guards.Failed(model.sendStep)
             ? modifyFields(model, { sendStep: () => SendStep.Editing() })

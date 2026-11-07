@@ -157,6 +157,11 @@ describe('/wallet', () => {
     Mount.resolve(Dialog.AcquireResources, Dialog.Message.SucceededAcquireResources()),
   ] as const
   const payee = '0x00000000000000000000000000000000000000b0'
+  const afterSend = (status: 'sent' | 'pending') => {
+    const typed = { ...loadedHome(home()), sendTo: payee, sendAmount: '0.50' }
+    return Wallet.update(typed, Wallet.Message.SucceededSend({ status, txHash: null })).model
+  }
+  const reopen = (status: 'sent' | 'pending') => Wallet.update(afterSend(status), Wallet.Message.ClickedSend()).model
 
   test('Send: an Arc address and an amount, checked before the passkey; Max sends the whole balance', () => {
     scene(
@@ -200,6 +205,13 @@ describe('/wallet', () => {
       expect(label('Amount in USDC')).toHaveValue('0.50'),
       expect(role('button', { name: 'Send with passkey' })).toBeEnabled(),
     )
+  })
+
+  test('Send: a send still pending on Arc stays on screen when the sheet opens again, so it is not sent twice', () => {
+    vitestExpect(reopen('pending').sendStep).toEqual(Wallet.SendStep.Done({ status: 'pending', txHash: null }))
+    vitestExpect(reopen('pending').sendAmount).toBe('0.50')
+    vitestExpect(reopen('sent').sendStep).toEqual(Wallet.SendStep.Editing())
+    vitestExpect(reopen('sent').sendAmount).toBe('')
   })
 
   test('a waiting approval is answered on the home: Approve goes to World, No declines it', () => {
