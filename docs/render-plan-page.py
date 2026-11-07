@@ -75,6 +75,8 @@ def main() -> None:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/pitch/media/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/pitch/media/apple-touch-icon.png">
 <title>{html.escape(title)} · ETHGlobal Mumbai 2026</title>
 <!-- GENERATED from docs/plan.md by docs/render-plan-page.py; edit the markdown, then rerun the script. -->
 <style>{style}{TABS_CSS}{PLAN_CSS}</style>
